@@ -23,17 +23,47 @@
     mark a clean checkout dirty - and a marker that appears for any reason other than the tree is worse than
     no marker at all.
   -->
+  <!--
+    The dirty-tree read runs through an in-process task (RoslynCodeTaskFactory) instead of
+    `<Exec>`: MSBuild writes every `<Exec>` as a temporary `.exec.cmd`, and this machine's
+    antivirus flags that file on every build (2026-11-11). The task spawns git directly, so
+    the marker is unchanged and no `.cmd` is written anywhere.
+  -->
+  <UsingTask TaskName="CuoGitStatus"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <WorkingDirectory ParameterType="System.String" Required="true" />
+      <Lines ParameterType="System.String[]" Output="true" />
+      <ExitCode ParameterType="System.Int32" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Diagnostics" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var info = new ProcessStartInfo("git", "status --porcelain");
+        info.WorkingDirectory = WorkingDirectory;
+        info.RedirectStandardOutput = true;
+        info.RedirectStandardError = true;
+        info.UseShellExecute = false;
+        info.CreateNoWindow = true;
+        using (var process = Process.Start(info))
+        {
+          var text = process.StandardOutput.ReadToEnd();
+          process.WaitForExit();
+          ExitCode = process.ExitCode;
+          Lines = text.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="MarkADirtyTreeInTheRevisionStamp"
           AfterTargets="InitializeSourceControlInformation"
           Condition="'$(SourceRevisionId)' != '' and '$(DirtyTreeChecked)' != 'true'">
-    <Exec Command="git status --porcelain"
-          WorkingDirectory="$(MSBuildThisFileDirectory).."
-          ConsoleToMSBuild="true"
-          IgnoreExitCode="true"
-          StandardOutputImportance="low">
-      <Output TaskParameter="ConsoleOutput" ItemName="_UncommittedLines" />
+    <CuoGitStatus WorkingDirectory="$(MSBuildThisFileDirectory)..">
+      <Output TaskParameter="Lines" ItemName="_UncommittedLines" />
       <Output TaskParameter="ExitCode" PropertyName="_GitStatusExitCode" />
-    </Exec>
+    </CuoGitStatus>
     <PropertyGroup>
       <DirtyTreeChecked>true</DirtyTreeChecked>
       <SourceRevisionId Condition="'$(_GitStatusExitCode)' == '0' and '@(_UncommittedLines)' != ''">$(SourceRevisionId)-dirty</SourceRevisionId>

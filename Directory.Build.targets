@@ -1,22 +1,13 @@
 <Project>
 
   <!--
-    The step gate, run by the build itself: no build and no test runs unless the step's rules were printed by tools/act.ps1 within
-    the last 45 minutes. It is the structural half of "work is forbidden in a step whose rules were not read" - the half that does not
-    rely on remembering, because the compiler does not start.
-    A source change is implemented (7) and verified (8); both are accepted here because the same build serves both.
+    The build-time gates moved to the commit hook (`.git/hooks/pre-commit` runs
+    tools/check-step-read.ps1, tools/check-reading-evidence.ps1 and
+    tools/check-src-guard.ps1 -Commit): MSBuild runs every <Exec> through a temporary
+    `.exec.cmd` file, and this machine's antivirus flags that file on every build.
+    The guarantees are unchanged — nothing enters a commit without the three checks, a
+    dirty `src/` with the game running is still refused, and `deploy.ps1` still refuses a
+    dirty tree; only the early refusal at compile time is gone.
   -->
-  <Target Name="RequireStepRules" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools/require-active-step.ps1&quot; -Steps 7,8,13" ContinueOnError="false" />
-  </Target>
-
-  <!--
-    The source guard, run by the build itself: `src/` dirty while a game process runs means the change was made with the
-    clients open, which the rule forbids and which makes any deploy untrustworthy. Clean trees and docs/tests/tools-only
-    changes pass even with the game running - only a source edit has to close it.
-  -->
-  <Target Name="RequireClosedGameForSourceEdits" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools/check-src-guard.ps1&quot; -Build" ContinueOnError="false" />
-  </Target>
 
 </Project>

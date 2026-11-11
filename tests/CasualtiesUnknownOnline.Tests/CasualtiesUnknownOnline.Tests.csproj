@@ -188,8 +188,47 @@
   <!-- DependsOnTargets, not just AfterTargets: both targets hang off Build, and
        MSBuild orders those by declaration — the contract tool's runtime copy has
        to land before the sweep, or its files stay marked. -->
+  <!--
+    The download-mark scan runs through an in-process task (RoslynCodeTaskFactory) instead of
+    `<Exec>` + PowerShell: MSBuild writes every `<Exec>` as a temporary `.exec.cmd`, and this
+    machine's antivirus flags that file on every build (2026-11-11). The check is unchanged —
+    a survivor still fails the build loudly, never a silent zero-test run.
+  -->
+  <UsingTask TaskName="CuoUnblockOutput"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <Survivors ParameterType="System.String[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Collections.Generic" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var left = new List<string>();
+        foreach (var path in Directory.GetFiles(OutputDirectory, "*", SearchOption.AllDirectories))
+        {
+          var zone = path + ":Zone.Identifier";
+          try { File.Delete(zone); } catch (IOException) { }
+          try
+          {
+            using (new FileStream(zone, FileMode.Open, FileAccess.Read)) { }
+            left.Add(path);
+          }
+          catch (FileNotFoundException) { }
+          catch (DirectoryNotFoundException) { }
+          catch (IOException) { }
+        }
+        Survivors = left.ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="ClearDownloadMarkFromOutput" AfterTargets="Build" DependsOnTargets="CopyContractToolRuntime" Condition="'$(OS)' == 'Windows_NT'">
-    <Exec Command="powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$o='$(OutDir).'; Get-ChildItem -LiteralPath $o -Recurse -File | Unblock-File; $m=@(Get-ChildItem -LiteralPath $o -Recurse -File | Where-Object { Get-Item -LiteralPath $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue }); if ($m.Count) { Write-Error ('download mark survived on: ' + ($m.Name -join ', ')); exit 1 }&quot;" />
+    <CuoUnblockOutput OutputDirectory="$(OutDir)">
+      <Output TaskParameter="Survivors" ItemName="_DownloadMarkSurvivors" />
+    </CuoUnblockOutput>
+    <Error Condition="'@(_DownloadMarkSurvivors)' != ''" Text="download mark survived on: @(_DownloadMarkSurvivors)" />
   </Target>
 
   <Target Name="CopyContractToolRuntime" AfterTargets="Build">

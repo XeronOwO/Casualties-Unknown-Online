@@ -91,3 +91,4 @@ reversing/*
 
 # Chat-only handoff/planning artifacts — never commit these to the repo
 docs/handoff/
+.build-temp/

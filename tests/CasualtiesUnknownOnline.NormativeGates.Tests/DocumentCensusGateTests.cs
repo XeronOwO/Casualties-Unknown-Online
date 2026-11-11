@@ -34,7 +34,7 @@ public sealed class DocumentCensusGateTests
 	/// navigable documents: the archive under <c>docs/evidence/checklists/</c> is the per-cycle record `tools/check-delivery.ps1` writes and
 	/// nobody reads it by path, so it is kept by the script, not by a census row.</summary>
 	private static readonly string[] SkippedDirectories =
-		["bin", "obj", ".git", ".vs", "reversing", "node_modules", "artifacts", ".agent-local", ".acceptance", "checklists"];
+		["bin", "obj", ".git", ".vs", "reversing", "node_modules", "artifacts", ".agent-local", ".acceptance", ".build-temp", "checklists"];
 
 	private static readonly string[] Dispositions = ["keep", "rework", "delete"];
 	private static readonly string[] Readers = ["loaded", "index", "spec", "claim", "attribution", "none"];

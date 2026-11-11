@@ -15,12 +15,12 @@ internal sealed class EnemyPairingCase : AcceptanceCase
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		var hostScene = await context.RecipeAsync("enemy-scene", cancellationToken).ConfigureAwait(false);
+		var hostScene = await context.RecipeAsync("enemy-count", cancellationToken).ConfigureAwait(false);
 		context.Read("host-scene", hostScene);
 		Require(Boolean(hostScene, "ok"), "the host's scene read failed: " + Raw(hostScene));
 		var hostCount = Integer(hostScene, "count");
 
-		var memberScene = await context.MemberRecipeAsync("enemy-scene", cancellationToken).ConfigureAwait(false);
+		var memberScene = await context.MemberRecipeAsync("enemy-count", cancellationToken).ConfigureAwait(false);
 		context.Read("member-scene", memberScene);
 		Require(Boolean(memberScene, "ok"), "the member's scene read failed: " + Raw(memberScene));
 		var memberCount = Integer(memberScene, "count");
@@ -108,3 +108,4 @@ internal sealed class EnemyPairingCase : AcceptanceCase
 		}
 	}
 }
+

@@ -12,9 +12,25 @@ internal sealed class OverlaySoundCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var armed = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "click")).ConfigureAwait(false);
+		// The overlay's own controls answer only while its window is up, and the recorder hooks the
+		// game's Sound after the scene is ready: the arming is retried instead of read once on the
+		// frame the previous case left (measured: one run read "the sound recorder did not arm"
+		// right after a restart, and the next run passed).
+		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		JsonElement? armed = null;
+		for (var attempt = 0; attempt < 6; attempt++)
+		{
+			armed = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "click")).ConfigureAwait(false);
+			if (armed is { ValueKind: JsonValueKind.Object } armAnswer && armAnswer.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("armed", armed);
-		Require(Boolean(armed, "ok"), "the sound recorder did not arm");
+		Require(Boolean(armed, "ok"), "the sound recorder did not arm: " + (armed?.GetRawText() ?? "null"));
 
 		var intent = await context.RecipeAsync("ui-intent-probe-a", cancellationToken, ("control", "home.refresh")).ConfigureAwait(false);
 		context.Read("intent", intent);

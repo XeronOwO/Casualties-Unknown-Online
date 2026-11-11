@@ -303,7 +303,7 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		// The ending ends the run; it goes after every case that needs a world.
 		new EndingCase(),
-    ];
+	];
 }
 
 internal sealed class AssertionException(string message) : Exception(message);

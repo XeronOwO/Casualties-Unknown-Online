@@ -40,15 +40,24 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		context.Note("member placed: " + Raw(placed));
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
-		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
-		if (!Boolean(opened, "opened"))
+		JsonElement? opened = null;
+		for (var attempt = 0; attempt < 3; attempt++)
 		{
-			// An earlier case may have left the game's own view mid-close; one clean close and a
-			// second ask is the game's path, and the settle keeps the two asks in different frames.
-			context.Note("the first open answered false: " + Raw(opened));
-			await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
-			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			if (attempt > 0)
+			{
+				// The game may still be closing its view from the previous case; a close and a fresh
+				// ask in a later frame is the only path it offers.
+				await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
+				await Task.Delay(TimeSpan.FromMilliseconds(900), cancellationToken).ConfigureAwait(false);
+			}
+
 			opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+			if (Boolean(opened, "opened"))
+			{
+				break;
+			}
+
+			context.Note($"open attempt {attempt + 1} answered false: {Raw(opened)}");
 		}
 
 		context.Read("medical-open", opened);

@@ -92,6 +92,18 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("member-limb-before", before);
 		var beforeDisinfection = Number(before, "disinfectionTime");
 
+		// The game's own wound view must point at the limb that receives the dose: the release recipe
+		// follows the displayed limb, and a view left on another limb sends the cream elsewhere.
+		var pointed = await context.RecipeAsync("remote-gesture", cancellationToken,
+			("mode", "wound-view"),
+			("item", "paincream"),
+			("cast", "0"),
+			("moved", "1"),
+			("owner", ""),
+			("limb", "3"),
+			("frame", ""));
+		context.Note("wound-view: " + Raw(pointed));
+
 		// The release on the displayed limb; the case reads the adapter's own answer and then the
 		// member's limb — the dose is the member's marker, not the host's rendering.
 		var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "paincream"), ("limb", "3"));

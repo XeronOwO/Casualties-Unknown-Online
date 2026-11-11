@@ -19,6 +19,9 @@ internal sealed class GiveItemCase : AcceptanceCase
 		// object AND have room: a full bag refuses the pickup, and the member keeps whatever earlier
 		// cases left in it.
 		await context.ClearMemberBodyAsync(cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+		var emptyBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		context.Read("member-bag-empty", emptyBag);
 		var hostBody = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		context.Read("host-body", hostBody);
 		var (hostX, hostY) = Position(hostBody);
@@ -34,6 +37,14 @@ internal sealed class GiveItemCase : AcceptanceCase
 		var dropped = await context.RecipeAsync("item-drop", cancellationToken, ("type", "bandage"), ("height", "1")).ConfigureAwait(false);
 		context.Read("dropped", dropped);
 		Require(Boolean(dropped, "ok"), "the ground item was not created");
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
+		// The receiver is placed again after the drop: its own client applies a give only while it
+		// stands beside the giver, and the drop's physics can move the pair apart.
+		await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", hostX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
 		var give = await context.RecipeAsync("give-probe", cancellationToken,
 			("mode", "give-world"),

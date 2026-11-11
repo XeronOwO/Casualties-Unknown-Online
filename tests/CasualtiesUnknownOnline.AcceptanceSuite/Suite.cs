@@ -444,6 +444,9 @@ internal static class CaseRegistry
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.
 		new TopicalDoseCase(),
+		// new BlockSyncCase(), // parked: the cell under the player is air, and world.DamageBlock on an
+		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
+		// to find a solid cell around the host before it hits.
 		// new ConsoleHealCase(), // parked: the reset is applied and stored, then the wound's parts read back (2026-11-12)
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs

@@ -16,7 +16,22 @@ internal sealed class CloneProbeCase : AcceptanceCase
 	{
 		_ = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		var probe = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "components"));
+		// The clone is what the host's client shows for the member; the member's display can be
+		// absent for a moment after a scene change or when the pair drifted apart, and the case reads
+		// it with a bounded wait instead of on one frame (measured: cloneCount 0 on a run whose
+		// previous case had just moved bodies).
+		JsonElement? probe = null;
+		for (var wait = 0; wait < 30; wait++)
+		{
+			probe = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "components"));
+			if (Integer(probe, "cloneCount") >= 1)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("remote-clone-probe", probe);
 		Require(Boolean(probe, "ok"), "the clone probe did not answer ok: " + Raw(probe));
 

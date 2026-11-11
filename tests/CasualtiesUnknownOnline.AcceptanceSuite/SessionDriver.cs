@@ -243,11 +243,12 @@ internal sealed class SessionDriver(Options options)
 			}
 
 			var controls = Controls(state);
-			if (controls.Contains("home.leave"))
+			if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
 			{
-				// The member still holds a session the host's fresh run does not name (a guest of
-				// the run the restart replaced). Leaving it is the only way to reach the current
-				// session; the join below is the judge, so a refusal here is not reported.
+				// A member that holds a session the host's fresh run does not name (a guest of the
+				// run the restart replaced) leaves it, and the join below is the judge. A member that
+				// is already a Guest of the CURRENT session must NOT leave: every leave/rejoin pair
+				// resets the run announcement and the member never enters (measured livelock).
 				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
 				await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 			}

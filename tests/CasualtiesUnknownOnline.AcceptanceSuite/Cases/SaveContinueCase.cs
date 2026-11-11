@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
@@ -45,28 +46,28 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		}
 
 		Require(inWorld, "the host did not enter the restored world");
-		context.Read("restored line", System.Text.Json.JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
+		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 	}
 
 	private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 
-	private static bool IsTrue(System.Text.Json.JsonElement answer, string property)
+	private static bool IsTrue(JsonElement answer, string property)
 	{
-		if (answer.ValueKind == System.Text.Json.JsonValueKind.Object)
+		if (answer.ValueKind == JsonValueKind.Object)
 		{
 			if (answer.TryGetProperty(property, out var value))
 			{
 				return value.ValueKind switch
 				{
-					System.Text.Json.JsonValueKind.True => true,
-					System.Text.Json.JsonValueKind.String => string.Equals(value.GetString(), "true", StringComparison.OrdinalIgnoreCase),
+					JsonValueKind.True => true,
+					JsonValueKind.String => string.Equals(value.GetString(), "true", StringComparison.OrdinalIgnoreCase),
 					_ => false,
 				};
 			}
 
 			foreach (var child in answer.EnumerateObject())
 			{
-				if (child.Value.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array && IsTrue(child.Value, property))
+				if (child.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array && IsTrue(child.Value, property))
 				{
 					return true;
 				}

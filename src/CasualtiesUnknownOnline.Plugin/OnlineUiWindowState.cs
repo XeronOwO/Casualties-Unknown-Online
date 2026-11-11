@@ -55,6 +55,13 @@ internal sealed class OnlineUiWindowState
 	/// </summary>
 	internal List<WorldLibraryEntry> WorldRows = [];
 
+	/// <summary>
+	/// True once the player confirmed the IP-direct purchase notice this run. The notice asks the
+	/// player to support the official release before the first IP-direct action when Steam is not
+	/// initialized; nothing is persisted, so a restart shows it again (the ticket's acceptance row).
+	/// </summary>
+	internal bool IpNoticeAcknowledged;
+
 	/// <summary>True once the player asked for the older runs too; the page shows the newest few otherwise, so one long archive does not fill the window.</summary>
 	internal bool WorldsShowAll;
 

@@ -205,6 +205,7 @@ internal static class OnlineUiHomeDrawer
 			return;
 		}
 
+		var steam = ctx.Steam;
 		page.Section(ctx.T("ip.section"));
 		page.Muted(ctx.T("ip.hint"));
 
@@ -240,12 +241,27 @@ internal static class OnlineUiHomeDrawer
 				},
 				width: NameFieldWidth));
 
+		if (!steam.IsInitialized && !ctx.State.IpNoticeAcknowledged)
+		{
+			page.Muted(ctx.T("ip.notice_body"));
+			page.Button(
+				"ip.notice_confirm",
+				ctx.T("ip.notice_confirm"),
+				() => ctx.State.IpNoticeAcknowledged = true);
+		}
+
 		page.Button(
 			"ip.create_host",
 			ctx.T("ip.create_host"),
 			() =>
 			{
 				ctx.State.Error = null;
+				if (!steam.IsInitialized && !ctx.State.IpNoticeAcknowledged)
+				{
+					ctx.State.Error = ctx.T("ip.notice_required");
+					return;
+				}
+
 				ctx.CreateIpHost?.Invoke();
 			});
 
@@ -286,6 +302,12 @@ internal static class OnlineUiHomeDrawer
 			() =>
 			{
 				ctx.State.Error = null;
+				if (!steam.IsInitialized && !ctx.State.IpNoticeAcknowledged)
+				{
+					ctx.State.Error = ctx.T("ip.notice_required");
+					return;
+				}
+
 				ctx.JoinIp?.Invoke(config.JoinAddress.Trim(), config.JoinPort);
 			});
 

@@ -41,6 +41,16 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
 		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+		if (!Boolean(opened, "opened"))
+		{
+			// An earlier case may have left the game's own view mid-close; one clean close and a
+			// second ask is the game's path, and the settle keeps the two asks in different frames.
+			context.Note("the first open answered false: " + Raw(opened));
+			await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+		}
+
 		context.Read("medical-open", opened);
 		Require(Boolean(opened, "opened"), "the remote medical view did not open");
 		Require(Boolean(opened, "nativeOpen"), "the game's own wound view did not open");

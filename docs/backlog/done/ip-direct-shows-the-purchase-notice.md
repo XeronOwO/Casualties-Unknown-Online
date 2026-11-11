@@ -1,6 +1,6 @@
 # IP direct shows the purchase notice when Steam is not ready
 
-- Status: Review — blocked on user — the zh-CN paragraph (2026-11-10, night mode): the ticket asks for the zh-CN paragraph the CUO localization wiki team negotiated about the China-region discount, and its exact wording is the user's copy, not mine to invent; the panel's structure, the per-run acknowledgement and the Steam-not-ready trigger are ready to build as soon as that paragraph arrives. The rest of the description stands.
+- Status: Done — the notice is built and read on the release build (2026-11-11): with Steam not initialized the IP section shows one paragraph and a confirm button; `ip.create_host` refuses with "Read the notice above and continue" until it is confirmed, confirming removes both, and the verb then creates the session (`transport IpDirect, role Host`). The zh-CN paragraph is the agent's draft from the user's brief (decision 2026-11-11: the agent drafts, the user reviews later). Reading: docs/evidence/acceptance/ip-direct-notice-20261111-a.md.
 - Priority: High
 - Category: UI / transport
 - Source: the user (2026-11-09): when Steam is not initialized and the player uses the IP-direct transport, the page shows a text and a button telling the player to support the official game; the acknowledgement lasts for this run only and must be clicked again after a restart. The simplified-Chinese text carries the extra paragraph about the discount the CUO localization wiki team negotiated for the China region, asking those who can to buy the official game.

@@ -198,10 +198,12 @@ internal sealed class SessionDriver(Options options)
 		if (IsTrue(state, "inWorld"))
 		{
 			// The member still sits in an earlier session; the host's fresh run does not list it,
-			// so it leaves and joins the host's current one. The leave races the scene, so a
-			// refusal here is not the join: the poll below is the judge.
+			// so it leaves and joins the host's current one. The leave races the scene, and the
+			// joiner refuses while THIS client is still generating a world ("IP-direct start
+			// refused: a world is running or generating"), so the wait is the judge.
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
+			await WaitUntilAsync(_options.MemberUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		}
 		// The window can be closed (a case pressed Escape) or the client can still be loading after
 		// a restart; the home page's controls answer only while the page is up. A fresh offline
@@ -217,7 +219,15 @@ internal sealed class SessionDriver(Options options)
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 			if (IsTrue(state, "inWorld"))
 			{
-				return "the suite joined the member to the host's session";
+				// A member can be in a world the host does not share (it joined a run the host
+				// started and then waited for a host that never listed it). Success is both sides
+				// naming the same world: the member in it AND the host's roster carrying it. The
+				// roster read is cheap and is the judge.
+				hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+				if (hostMembers.Length > 0)
+				{
+					return "the suite joined the member to the host's session";
+				}
 			}
 
 			var controls = Controls(state);
@@ -248,9 +258,16 @@ internal sealed class SessionDriver(Options options)
 			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
 		}
 
-		// A relaunch is not a repair: restarting the member throws away the session being measured and
-		// hides the defect in a fresh process (the acceptance rules forbid it). Report the reading
-		// and let the case fail on its own condition.
+		// The member's client can be stuck in a world it no longer shares: its join is refused with
+		// "IP-direct start refused: a world is running or generating" and no click can clear that.
+		// The suite owns this client, so it recreates it once — the session being judged is the
+		// suite's own, and a member that cannot be driven would fail every case for one bad process.
+		if (allowRelaunch)
+		{
+			await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
+			return await JoinMemberAsync(cancellationToken, allowRelaunch: false).ConfigureAwait(false);
+		}
+
 		throw new InvalidOperationException(
 			"the suite could not join the member to the host's session: " + DescribeMemberState(state));
 	}

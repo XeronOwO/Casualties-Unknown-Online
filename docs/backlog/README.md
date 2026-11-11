@@ -80,6 +80,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0: remote limb operations carry no limb](review/1.0-remote-limb-operations-carry-no-limb.md) — silent; the limb never changes.
 - [1.0: the IP-direct guest drops out](review/1.0-ip-direct-guest-disconnects.md) — **High** — the guest joins, the world join reaches nobody, the link drops.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
+- [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
 
 

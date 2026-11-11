@@ -1391,4 +1391,5 @@ docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md | keep | claim |
 docs/backlog/review/host-cannot-host-after-continue.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-remote-limb-operations-carry-no-limb.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-ip-direct-guest-disconnects.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/1.0-transport-handover-identity.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/ip-direct-notice-20261111-a.md | keep | claim | docs/backlog/done/ip-direct-shows-the-purchase-notice.md

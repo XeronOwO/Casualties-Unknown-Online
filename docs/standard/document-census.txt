@@ -1376,7 +1376,7 @@ docs/design/game/fluids-and-climate.md | keep | claim | docs/design/game/README.
 docs/design/game/ui-and-settings.md | keep | claim | docs/design/game/README.md
 docs/design/game/console-and-save.md | keep | claim | docs/design/game/README.md
 docs/design/game/principles.md | keep | claim | docs/design/game/README.md
-docs/backlog/review/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/ip-direct-shows-the-purchase-notice.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-item-customization-truth.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-prosthetics.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-run-settings-extended.md | keep | claim | docs/backlog/README.md
@@ -1391,3 +1391,4 @@ docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md | keep | claim |
 docs/backlog/review/host-cannot-host-after-continue.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-remote-limb-operations-carry-no-limb.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-ip-direct-guest-disconnects.md | keep | claim | docs/backlog/README.md
+docs/evidence/acceptance/ip-direct-notice-20261111-a.md | keep | claim | docs/backlog/done/ip-direct-shows-the-purchase-notice.md

@@ -79,7 +79,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 - [1.0: remote limb operations carry no limb](review/1.0-remote-limb-operations-carry-no-limb.md) — silent; the limb never changes.
 - [1.0: the IP-direct guest drops out](review/1.0-ip-direct-guest-disconnects.md) — **High** — the guest joins, the world join reaches nobody, the link drops.
-- [IP direct shows the purchase notice when Steam is not ready](review/ip-direct-shows-the-purchase-notice.md) — **High** — the notice every IP run shows.
 - [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 
 
@@ -131,6 +130,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapt the mod to the game's 1.0 release](done/adapt-to-1.0.md) — **Highest** — the release build is read end to end; the rest is user decisions.
 - [The overlay's buttons are silent](done/overlay-buttons-are-silent.md) — **Medium** — every control plays the game's own click.
 - [1.0: a capability installs and comes off as a unit](done/1.0-capability-install-units.md) — **High** — an optional capability turned off is gone.
+- [IP direct shows the purchase notice when Steam is not ready](done/ip-direct-shows-the-purchase-notice.md) — **High** — IP runs ask first.
 
 - [1.0: a customized item reaches the other clients](done/1.0-item-customization-truth.md) — **Highest** — the display shows the owner's label and colour.
 - [1.0: layers beyond the fifth need no adapter change](done/1.0-layers-beyond-the-fifth.md) — **Medium** — the depth is data; nothing caps it.

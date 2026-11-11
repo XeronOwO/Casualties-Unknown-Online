@@ -1,3 +1,4 @@
+using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
@@ -35,10 +36,10 @@ internal sealed class WorldsPageCase : AcceptanceCase
 		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 	}
 
-	private static string Page(System.Text.Json.JsonElement state) =>
-		state is { ValueKind: System.Text.Json.JsonValueKind.Object } element
+	private static string Page(JsonElement state) =>
+		state is { ValueKind: JsonValueKind.Object } element
 			&& element.TryGetProperty("page", out var page)
-			&& page.ValueKind == System.Text.Json.JsonValueKind.String
+			&& page.ValueKind == JsonValueKind.String
 			? page.GetString() ?? ""
 			: "";
 

@@ -594,12 +594,10 @@ internal sealed class SessionDriver(Options options)
 	/// <c>drive-in-process.ps1</c> used to send is expanded here and evaluated by the game's own evaluator.
 	/// No process is started per action.
 	/// </summary>
-	public async Task<JsonElement?> LogTailAsync(string url, string match, int count, CancellationToken cancellationToken)
-	{
+	public async Task<JsonElement?> LogTailAsync(string url, string match, int count, CancellationToken cancellationToken) =>
 		// The last lines of a client's own BepInEx log that contain the match: a case judges the
 		// target's side of a relayed effect from the target's own file, not from the host's answer.
-		return await ActionAsync(url, "log-tail", cancellationToken, ("-Text", count.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
-	}
+		await ActionAsync(url, "log-tail", cancellationToken, ("-Text", count.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
 
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{

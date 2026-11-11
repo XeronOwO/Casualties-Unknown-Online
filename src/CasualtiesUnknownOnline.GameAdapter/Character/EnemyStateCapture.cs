@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -26,6 +27,14 @@ internal sealed class EnemyStateCapture(ILogger<EnemySyncCoordinator> log)
 	private readonly Dictionary<BuildingEntity, NetVector2> _matchHints = [];
 
 	/// <summary>
+	/// The id a peer can CREATE each enemy by, resolved once per entity. <c>BuildingEntity.id</c>
+	/// is the entity's class id; for a trader that is <c>trader</c>, while the game's own prefabs
+	/// are <c>trader1</c>..<c>trader3</c> (<c>WorldGeneration.cs:4808</c>). The instantiated object
+	/// keeps the resource name in its own name (<c>trader2(Clone)</c>).
+	/// </summary>
+	private readonly Dictionary<BuildingEntity, string> _prefabIds = [];
+
+	/// <summary>
 	/// Record the MATCH HINT once at the first bind — where the host first saw the
 	/// animal. It is a reuse hint for the guest's adoption, never an identity: a
 	/// row the hint cannot place is materialized at the host's current position, so
@@ -34,9 +43,52 @@ internal sealed class EnemyStateCapture(ILogger<EnemySyncCoordinator> log)
 	internal void RecordMatchHint(BuildingEntity entity, NetVector2 hint) => _matchHints[entity] = hint;
 
 	/// <summary>Drop one dead entity's hint (the binding is being removed; the dictionary must not keep a destroyed key).</summary>
-	internal void Forget(BuildingEntity entity) => _matchHints.Remove(entity);
+	internal void Forget(BuildingEntity entity)
+	{
+		_matchHints.Remove(entity);
+		_prefabIds.Remove(entity);
+	}
 
-	internal void Clear() => _matchHints.Clear();
+	internal void Clear()
+	{
+		_matchHints.Clear();
+		_prefabIds.Clear();
+	}
+
+	/// <summary>
+	/// The id a peer can create this enemy by. The class id is used when the game can load it;
+	/// otherwise the object's own prefab name is tried (a trader's object is named
+	/// <c>trader2(Clone)</c> while its class id is <c>trader</c>), and the class id stays the
+	/// fallback so a mod-registered template keeps its own id.
+	/// </summary>
+	private string CreatablePrefabId(BuildingEntity entity)
+	{
+		if (_prefabIds.TryGetValue(entity, out var cached))
+		{
+			return cached;
+		}
+
+		var id = entity.id;
+		var resolved = id;
+		if (Resources.Load(id) == null)
+		{
+			var name = entity.gameObject.name;
+			const string cloneSuffix = "(Clone)";
+			if (name.EndsWith(cloneSuffix, StringComparison.Ordinal))
+			{
+				name = name.Substring(0, name.Length - cloneSuffix.Length).TrimEnd();
+			}
+
+			if (name.Length > 0 && !string.Equals(name, id, StringComparison.Ordinal) && Resources.Load(name) != null)
+			{
+				resolved = name;
+				_log.LogInformation("[Enemy] {Enemy} prefab id resolved to its prefab name {Name}: the class id {Id} has no resource to create.", id, name, id);
+			}
+		}
+
+		_prefabIds[entity] = resolved;
+		return resolved;
+	}
 
 	/// <summary>
 	/// Turn one live host enemy into its presentation DTO: transform state,
@@ -81,7 +133,7 @@ internal sealed class EnemyStateCapture(ILogger<EnemySyncCoordinator> log)
 			Rotation = entity.transform.eulerAngles.z,
 			Health = entity.health,
 			Stunned = EnemyStunPresentation.IsStunned(entity),
-			PrefabId = entity.id,
+			PrefabId = CreatablePrefabId(entity),
 			RuntimeSpawned = runtimeSpawn,
 			// The host's own copy carries the creation identity when this animal
 			// rode the entity-creation channel. Publishing it is what lets the
@@ -98,3 +150,4 @@ internal sealed class EnemyStateCapture(ILogger<EnemySyncCoordinator> log)
 		};
 	}
 }
+

@@ -201,10 +201,7 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 		return _member;
 	}
 
-	public async Task<JsonElement?> MemberLogTailAsync(string match, int count, CancellationToken cancellationToken)
-	{
-		return await Session.LogTailAsync(Session.MemberUrl, match, count, cancellationToken).ConfigureAwait(false);
-	}
+	public async Task<JsonElement?> MemberLogTailAsync(string match, int count, CancellationToken cancellationToken) => await Session.LogTailAsync(Session.MemberUrl, match, count, cancellationToken).ConfigureAwait(false);
 
 	public async Task<JsonElement?> MemberRecipeAsync(string name, CancellationToken cancellationToken, params (string Key, string Value)[] args)
 	{

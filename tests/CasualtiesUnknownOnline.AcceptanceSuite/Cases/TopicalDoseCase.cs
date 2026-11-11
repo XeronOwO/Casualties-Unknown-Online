@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -57,12 +58,32 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
 		// Where the two actually stand: the reading that names a blocked use later, if it happens.
-		var host = await context.RecipeAsync("body-read", cancellationToken);
+		var host = await context.WaitForHostBodyAsync(cancellationToken);
 		context.Read("host-body", host);
 		var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken);
 		context.Read("member-body", memberBody);
 
+		// The member joined a running world and stands at its own pod; the medical view and the use
+		// request both need the member within the host's reach, so it is placed on the host's point.
+		var (hostX, hostY) = Position(host);
+		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(host));
+		var placed = await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", hostX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture)));
+		context.Note("member placed: " + Raw(placed));
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
 		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+		if (!Boolean(opened, "opened"))
+		{
+			// The chart case closes its own view; the game can still be in the close animation when
+			// this case asks for a fresh open. One clean close and a second ask is the game's path.
+			context.Note("the first open answered false: " + Raw(opened));
+			await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
+		}
+
 		context.Read("medical-open", opened);
 		Require(Boolean(opened, "opened"), "the member's medical view did not open");
 
@@ -101,6 +122,19 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		Require(afterDisinfection >= 290, $"the dose did not reach the member's limb (disinfection {beforeDisinfection} -> {afterDisinfection})");
 	}
 
+	private static (double X, double Y) Position(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("localBody", out var body)
+			|| body.ValueKind != JsonValueKind.Object)
+		{
+			return (0, 0);
+		}
+
+		var x = body.TryGetProperty("positionX", out var px) && px.TryGetDouble(out var dx) ? dx : 0;
+		var y = body.TryGetProperty("positionY", out var py) && py.TryGetDouble(out var dy) ? dy : 0;
+		return (x, y);
+	}
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
 	private static bool Boolean(JsonElement? reading, string property) =>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -171,6 +172,32 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	{
 		var dictionary = args.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
 		return Host.RecipeAsync(name, dictionary, cancellationToken);
+	}
+
+	/// <summary>
+	/// The host's own body is the anchor every placement reads. The run's start answers before the
+	/// body exists, and a case that read a zero position would place the member at the world origin.
+	/// </summary>
+	public async Task<JsonElement?> WaitForHostBodyAsync(CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(30))
+		{
+			var body = await RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+			if (body is { ValueKind: JsonValueKind.Object } element
+				&& element.TryGetProperty("localBody", out var local)
+				&& local.ValueKind == JsonValueKind.Object
+				&& local.TryGetProperty("positionX", out var px) && px.TryGetDouble(out var x)
+				&& local.TryGetProperty("positionY", out var py) && py.TryGetDouble(out var y)
+				&& (x != 0 || y > 0))
+			{
+				return body;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
+		return null;
 	}
 
 	public void Read(string key, JsonElement? reading)

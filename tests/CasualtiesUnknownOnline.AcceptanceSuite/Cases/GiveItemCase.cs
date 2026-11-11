@@ -18,7 +18,7 @@ internal sealed class GiveItemCase : AcceptanceCase
 		// The receiver's own client runs the pickup, so it must stand within reach of the dropped
 		// object: the member is placed on the host's own point (both are in-world and idle). An
 		// offset would be enough for the line of sight, but a pickup is a reach, not a look.
-		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		var hostBody = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		context.Read("host-body", hostBody);
 		var (hostX, hostY) = Position(hostBody);
 		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(hostBody));

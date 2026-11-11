@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -25,6 +26,20 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		var healed = await context.RecipeAsync("native-heal", cancellationToken);
 		context.Note("host heal: " + Raw(healed));
 
+		// A member that joined a running world stands at its own pod; the game's own wound view opens
+		// on a body the viewer can see, so the member is placed on the host's own point first (the
+		// placement `GiveItemCase` proves).
+		var hostBody = await context.WaitForHostBodyAsync(cancellationToken);
+		context.Read("host-body", hostBody);
+		Require(hostBody is not null, "the host's body never reached a world position");
+		var (hostX, hostY) = Position(hostBody);
+		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(hostBody));
+		var placed = await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", hostX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture)));
+		context.Note("member placed: " + Raw(placed));
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
 		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
 		context.Read("medical-open", opened);
 		Require(Boolean(opened, "opened"), "the remote medical view did not open");
@@ -45,6 +60,20 @@ internal sealed class MedicalChartCase : AcceptanceCase
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
+
+	private static (double X, double Y) Position(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("localBody", out var body)
+			|| body.ValueKind != JsonValueKind.Object)
+		{
+			return (0, 0);
+		}
+
+		var x = body.TryGetProperty("positionX", out var px) && px.TryGetDouble(out var dx) ? dx : 0;
+		var y = body.TryGetProperty("positionY", out var py) && py.TryGetDouble(out var dy) ? dy : 0;
+		return (x, y);
+	}
 
 	private static bool Boolean(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

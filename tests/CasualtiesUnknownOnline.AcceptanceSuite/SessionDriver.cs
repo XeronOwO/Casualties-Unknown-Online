@@ -55,15 +55,13 @@ internal sealed class SessionDriver(Options options)
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld"))
 		{
-			// A world left over from a dead session has no host to join: the menu says so by
-			// naming no role. Leave it and start the suite's own.
-			if (string.Equals(StringValue(state, "role"), "Host", StringComparison.Ordinal))
-			{
-				return "the host was already in a world";
-			}
-
+			// A world that is already running belongs to an earlier session: its roster may be empty
+			// (a run whose members never joined), and the cases would then read a world nobody
+			// shares. The suite starts its own run every time; leaving before the first case costs
+			// one load and is never done mid-case.
 			await TryActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			await WaitUntilAsync(_options.HostUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		}
 
 		// A run needs the host's IP session first: at the menu, switch the transport and create
@@ -117,8 +115,12 @@ internal sealed class SessionDriver(Options options)
 		// Join the member to the session BEFORE the run starts: both players then enter the world
 		// together. A member that joins a running world spawns at its own pod, which is how a later
 		// case found the pair out of each other's line of sight.
-		await JoinSessionBeforeRunAsync(cancellationToken).ConfigureAwait(false);
-
+		// The pre-run join (both players enter together) is the defect filed as
+		// `docs/backlog/review/1.0-member-waits-for-a-host-that-waits-for-it.md`: the session accepts
+		// the member, the run start drops it again, and both gates wait for each other. Until that
+		// side is decided, the fixture uses the order the manual sessions proved: the host starts the
+		// run, the member joins the running world (and may spawn at its own pod — a case that needs
+		// the pair together places the member, as `GiveItemCase` does).
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < StartBudget)

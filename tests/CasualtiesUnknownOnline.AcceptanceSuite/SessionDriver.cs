@@ -277,10 +277,50 @@ internal sealed class SessionDriver(Options options)
 		+ $"page={StringValue(state, "page")}, controls={string.Join(",", Controls(state))}";
 
 	/// <summary>Quits the member's client, starts it again through the launcher, and waits for its driver.</summary>
-	private async Task RelaunchMemberAsync(CancellationToken cancellationToken)
+	private Task RelaunchMemberAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.MemberUrl, "guest", cancellationToken);
+
+	private Task RelaunchHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
+
+	private async Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
 	{
-		await TryActionAsync(_options.MemberUrl, "quit", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromSeconds(4), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(url, "quit", cancellationToken).ConfigureAwait(false);
+		// The launcher reuses a client that is still running, so the quit must be observed: a game
+		// whose main thread is stuck in a world that never finishes generating ignores
+		// Application.Quit (measured: `IP-direct start refused: a world is running or generating`
+		// kept looping while the process stayed alive). The suite owns the client it started, so it
+		// asks the client for its own pid and reclaims it — no duplicate process is ever started.
+		var gone = Stopwatch.StartNew();
+		while (gone.Elapsed < TimeSpan.FromSeconds(20))
+		{
+			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+			try
+			{
+				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+				break;
+			}
+		}
+
+		try
+		{
+			var pidAnswer = await ActionAsync(url, "pid", cancellationToken).ConfigureAwait(false);
+			if (pidAnswer.ValueKind == JsonValueKind.Object
+				&& pidAnswer.TryGetProperty("pid", out var pidValue)
+				&& pidValue.ValueKind == JsonValueKind.Number
+				&& pidValue.TryGetInt32(out var pid))
+			{
+				using var client = Process.GetProcessById(pid);
+				client.Kill(entireProcessTree: true);
+				await client.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+			}
+		}
+		catch (Exception)
+		{
+			// The client may have exited on its own; the launcher answers next.
+		}
+
 		var launcher = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "launch-clients.ps1");
 		var start = new ProcessStartInfo("pwsh")
 		{
@@ -292,7 +332,7 @@ internal sealed class SessionDriver(Options options)
 		start.ArgumentList.Add("-File");
 		start.ArgumentList.Add(launcher);
 		start.ArgumentList.Add("-Only");
-		start.ArgumentList.Add("guest");
+		start.ArgumentList.Add(only);
 		start.ArgumentList.Add("-NoJoin");
 		if (!string.IsNullOrEmpty(_options.GameDir))
 		{
@@ -300,7 +340,7 @@ internal sealed class SessionDriver(Options options)
 			start.ArgumentList.Add(_options.GameDir!);
 		}
 
-		using var process = Process.Start(start) ?? throw new InvalidOperationException("could not start the acceptance launcher for the member");
+using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
 		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
@@ -309,7 +349,7 @@ internal sealed class SessionDriver(Options options)
 			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
 			try
 			{
-				await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
 				return;
 			}
 			catch (Exception)
@@ -317,7 +357,71 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
-		throw new InvalidOperationException("the suite relaunched the member but its driver never answered: " + output.Trim());
+		throw new InvalidOperationException($"the suite relaunched the {only} but its driver never answered: " + output.Trim());
+	}
+
+	/// <summary>
+	/// The pair a run is judged on. When the host stops listening (its transport logs a disconnect
+	/// loop, its roster stays empty and no member can join it), clicking cannot restore the session —
+	/// the host process itself has to be recreated. The suite owns both clients, so it recreates the
+	/// host once and builds a fresh session before the cases start; the reading is on
+	/// `docs/backlog/in-progress/1.0-acceptance-suite.md`.
+	/// </summary>
+	public async Task<(string HostNote, string MemberNote)> EnsurePairAsync(CancellationToken cancellationToken)
+	{
+		string hostNote;
+		try
+		{
+			hostNote = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// No host is running at all (a previous run reclaimed it): the launcher starts one.
+			await RelaunchHostAsync(cancellationToken).ConfigureAwait(false);
+			hostNote = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		}
+
+		string memberNote;
+		try
+		{
+			memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
+			try
+			{
+				memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+			}
+			catch (Exception)
+			{
+				memberNote = await RecoverPairAsync(cancellationToken).ConfigureAwait(false);
+				return (hostNote, memberNote);
+			}
+		}
+
+		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		if (members.Length > 0)
+		{
+			return (hostNote, memberNote);
+		}
+
+		memberNote = await RecoverPairAsync(cancellationToken).ConfigureAwait(false);
+		return (hostNote, memberNote);
+	}
+
+	private async Task<string> RecoverPairAsync(CancellationToken cancellationToken)
+	{
+		await RelaunchHostAsync(cancellationToken).ConfigureAwait(false);
+		await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		if (members.Length == 0)
+		{
+			throw new InvalidOperationException("the host's roster stayed empty after the host was recreated and the run restarted");
+		}
+
+		return memberNote + " (after the host was recreated)";
 	}
 
 	/// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>

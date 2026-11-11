@@ -46,8 +46,7 @@ internal static partial class Program
 		Directory.CreateDirectory(outputDirectory);
 		var results = new List<CaseResult>();
 		var session = new SessionDriver(options);
-		var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
-		var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
+		var (sessionNote, memberNote) = await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
 		// The host names its members only once the member's own scene report has landed, which can
 		// trail the join by a beat: poll briefly instead of reading once and losing the id.
 		string[] members = [];

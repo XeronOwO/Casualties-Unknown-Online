@@ -478,5 +478,14 @@
 		return finish(fields);
 	}
 
+	if (command == "pid") {
+		// The suite owns the clients it launches; a game whose main thread is stuck (a world that
+		// never finishes generating) ignores Application.Quit, and the suite can only reclaim it by
+		// its own pid. The value is the game process, not the socket's thread.
+		putRaw(fields, escape, "ok", "true");
+		putRaw(fields, escape, "pid", System.Diagnostics.Process.GetCurrentProcess().Id.ToString());
+		return finish(fields);
+	}
+
 	return fail(escape, "unknown-command", command);
 })())

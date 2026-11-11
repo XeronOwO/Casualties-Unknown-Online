@@ -49,7 +49,7 @@
   "ip.address": "地址：",
   "ip.port": "端口：",
   "ip.join": "加入 IP",
-  "ip.notice_body": "Steam 未就绪。你仍然可以用 IP 直连和买了游戏的朋友一起玩——这里不检查你手里有没有正版。但如果条件允许，请支持正式版：CUO 汉化组的 Wiki 页面整理了中国区折扣。",
+  "ip.notice_body": "Steam 未就绪。你仍然可以用 IP 直连和买了正版的朋友一起玩。如果条件允许，请支持正版游戏——未知伤亡的汉化 Wiki 团队好不容易谈下了国区优惠，大家都希望有条件的人尽量支持一下正版。",
   "ip.notice_confirm": "我有正版，继续",
   "ip.notice_required": "请先阅读上面的说明并确认。",
   "ip.leave": "离开 IP 直连",

@@ -1,6 +1,6 @@
 # IP direct shows the purchase notice when Steam is not ready
 
-- Status: Done — the notice is built and read on the release build (2026-11-11): with Steam not initialized the IP section shows one paragraph and a confirm button; `ip.create_host` refuses with "Read the notice above and continue" until it is confirmed, confirming removes both, and the verb then creates the session (`transport IpDirect, role Host`). The zh-CN paragraph is the agent's draft from the user's brief (decision 2026-11-11: the agent drafts, the user reviews later). Reading: docs/evidence/acceptance/ip-direct-notice-20261111-a.md.
+- Status: Done — the notice is built and read on the release build (2026-11-11, wording corrected the same day to the user's own meaning: with Steam not initialized the IP section shows one paragraph and a confirm button; `ip.create_host` refuses with "Read the notice above and continue" until it is confirmed, confirming removes both, and the verb then creates the session (`transport IpDirect, role Host`). The zh-CN paragraph is the agent's draft from the user's brief (decision 2026-11-11: the agent drafts, the user reviews later). Reading: docs/evidence/acceptance/ip-direct-notice-20261111-a.md.
 - Priority: High
 - Category: UI / transport
 - Source: the user (2026-11-09): when Steam is not initialized and the player uses the IP-direct transport, the page shows a text and a button telling the player to support the official game; the acknowledgement lasts for this run only and must be clicked again after a restart. The simplified-Chinese text carries the extra paragraph about the discount the CUO localization wiki team negotiated for the China region, asking those who can to buy the official game.
@@ -31,3 +31,8 @@
 ## Open questions
 
 - The exact licensing signal the panel may ask (the Steam app id's `BIsSubscribedApp` vs the transport's own state) is read from the 1.0 code before the design is fixed; the fallback is "Steam not initialized", which the user's report names.
+
+## Wording correction (2026-11-11)
+
+The first draft carried two sentences the user never asked for (a claim that no licence is checked, and a wiki-page phrasing). The user's own words: the Steam-not-ready notice asks the player to support the official game; the simplified-Chinese version adds that the Chinese localization wiki team worked hard to arrange a discount for the China region, and everyone hopes those who can will support the game. Both catalogue texts were rewritten to that meaning and the build re-read (gates 834/0).
+

@@ -49,7 +49,7 @@
   "ip.address": "Address:",
   "ip.port": "Port:",
   "ip.join": "Join IP",
-  "ip.notice_body": "Steam is not ready. IP direct still lets you play with friends who own the game - it does not check whether you own a copy. If you can, please support the official release; the CUO localization wiki lists the China-region discount.",
+  "ip.notice_body": "Steam is not ready. IP direct still lets you play with friends who own the game. If you can, please support the official release - the Chinese localization wiki team worked hard to arrange a discount for the China region, and everyone hopes those who can will buy the game.",
   "ip.notice_confirm": "I own a copy - continue",
   "ip.notice_required": "Read the notice above and continue first.",
   "ip.leave": "Leave IP Direct",

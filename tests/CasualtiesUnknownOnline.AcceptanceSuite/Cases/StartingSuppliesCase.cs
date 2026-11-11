@@ -16,14 +16,17 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The kit is granted by the host's coordinator once the new character stands in the world;
-		// the member's own carried items are the marker. The read is bounded, not a fixed sleep.
+		// the member's own carried items are the marker. The count alone is not the row — the game's
+		// own decay can take a unit before the read — so the case asks for the kit's fixed contents.
+		var ids = string.Empty;
 		var carried = 0;
-		for (var wait = 0; wait < 40 && carried < 4; wait++)
+		for (var wait = 0; wait < 40; wait++)
 		{
 			var items = await context.MemberRecipeAsync("container-read", cancellationToken, ("mode", "local"), ("guest", "")).ConfigureAwait(false);
 			context.Read("member-items", items);
 			carried = CountCarried(items);
-			if (carried >= 4)
+			ids = Ids(items);
+			if (carried >= 3 && IsStartingKit(ids))
 			{
 				break;
 			}
@@ -31,7 +34,38 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
-		Require(carried >= 4, $"the member carries {carried} item(s), not the game's starting kit");
+		Require(
+			carried >= 3 && IsStartingKit(ids),
+			$"the member carries {carried} item(s) [{ids}], not the game's starting kit");
+	}
+
+	/// <summary>The game's own starting-supply table (`StartingSupplyPolicy`, setting 1 "light").</summary>
+	private static readonly string[] StartingKit = ["emergencylight", "lantern", "dogfood", "waterbottle", "trashbag"];
+
+	private static bool IsStartingKit(string ids) =>
+		ids.Length > 0 && ids.Split(',', StringSplitOptions.RemoveEmptyEntries).All(StartingKit.Contains);
+
+	private static string Ids(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("items", out var items)
+			|| items.ValueKind != JsonValueKind.Array)
+		{
+			return string.Empty;
+		}
+
+		var types = new List<string>();
+		foreach (var item in items.EnumerateArray())
+		{
+			if (item.ValueKind == JsonValueKind.Object
+				&& item.TryGetProperty("type", out var type)
+				&& type.ValueKind == JsonValueKind.String)
+			{
+				types.Add(type.GetString() ?? string.Empty);
+			}
+		}
+
+		return string.Join(",", types);
 	}
 
 	private static int CountCarried(JsonElement? reading)

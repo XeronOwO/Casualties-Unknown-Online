@@ -95,6 +95,11 @@ internal sealed class SessionDriver(Options options)
 		}
 		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 
+		// Join the member to the session BEFORE the run starts: both players then enter the world
+		// together. A member that joins a running world spawns at its own pod, which is how a later
+		// case found the pair out of each other's line of sight.
+		await JoinSessionBeforeRunAsync(cancellationToken).ConfigureAwait(false);
+
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < StartBudget)
@@ -119,6 +124,47 @@ internal sealed class SessionDriver(Options options)
 	/// budget runs out, the suite relaunches the member once and tries again: the session it
 	/// judges is the suite's, so the suite may recreate the client too.
 	/// </summary>
+	/// <summary>
+	/// The member joins the host's session while the host is still at the menu, so both players
+	/// enter the run together. Success is the session role, not the world: the world starts after.
+	/// </summary>
+	private async Task<string> JoinSessionBeforeRunAsync(CancellationToken cancellationToken)
+	{
+		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < JoinBudget)
+		{
+			var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			{
+				return "the member joined the session before the run";
+			}
+
+			var controls = Controls(state);
+			if (controls.Contains("ip.notice_confirm"))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.join"))
+			{
+				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("home.transport.ip"))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the member could not join the session before the run");
+	}
+
 	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);

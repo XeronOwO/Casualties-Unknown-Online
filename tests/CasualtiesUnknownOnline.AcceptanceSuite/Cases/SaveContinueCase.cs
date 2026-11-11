@@ -47,6 +47,17 @@ internal sealed class SaveContinueCase : AcceptanceCase
 
 		Require(inWorld, "the host did not enter the restored world");
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
+
+		// The member followed the host out of the world; the continued world needs it back before a
+		// later case reads the pair, and the host's refreshed member id replaces the old one.
+		var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		context.Note("member after continue: " + rejoined);
+		var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		if (members.Length > 0)
+		{
+			context.UseMember(members[0]);
+			context.Note("member id after continue: " + members[0]);
+		}
 	}
 
 	private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);

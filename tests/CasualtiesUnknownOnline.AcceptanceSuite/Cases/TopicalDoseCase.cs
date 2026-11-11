@@ -94,8 +94,10 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("release", released);
 		Require(Boolean(released, "ok"), "the release answered not-ok");
 
-		// The dose lands on the member's own client; under the all-suite load the apply can trail the
-		// release by more than a second, so the marker is polled instead of read once.
+		// The game SETS the limb's disinfection from the dose (10 ml -> `SetDisinfect(300 * clamp01(ml * 0.1))`),
+		// so the reading is the absolute marker the formula names, not a rise: a limb an earlier case
+		// already treated starts high, and a rise-only check would fail on a correct dose (measured:
+		// 263.173 -> 297.236, a correct 10 ml dose refused by the old assertion).
 		JsonElement? after = null;
 		var afterDisinfection = beforeDisinfection;
 		for (var settle = 0; settle < 12; settle++)
@@ -103,7 +105,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
 			afterDisinfection = Number(after, "disinfectionTime");
-			if (afterDisinfection - beforeDisinfection >= 200)
+			if (afterDisinfection >= 290)
 			{
 				break;
 			}
@@ -111,10 +113,9 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		context.Read("member-limb-after", after);
 
-		// A 10 ml relief cream sets SetDisinfect(300 * clamp01(ml * 0.1)) — the marker jumps to
-		// about 300 from zero. The case accepts a rise of at least 200, so a partly-consumed bottle
-		// (a smaller measured dose) still passes while nothing-at-all cannot.
-		Require(afterDisinfection - beforeDisinfection >= 200, $"the dose did not reach the member's limb (disinfection {beforeDisinfection} -> {afterDisinfection})");
+		// A 10 ml relief cream sets the marker to about 300; 290 leaves room for a partly-consumed
+		// bottle while nothing-at-all cannot reach it.
+		Require(afterDisinfection >= 290, $"the dose did not reach the member's limb (disinfection {beforeDisinfection} -> {afterDisinfection})");
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

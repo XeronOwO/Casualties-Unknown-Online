@@ -236,6 +236,34 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 		}
 	}
 
+	/// <summary>
+	/// The member's own bag, emptied through its client's drop entry: a member that survived an
+	/// earlier case carries whatever it picked up, and a full bag refuses the next pickup.
+	/// </summary>
+	public async Task ClearMemberBodyAsync(CancellationToken cancellationToken)
+	{
+		var bag = await MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		Read("member-body-items", bag);
+		if (bag is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("ids", out var ids)
+			|| ids.ValueKind != JsonValueKind.String)
+		{
+			return;
+		}
+
+		foreach (var entry in (ids.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
+		{
+			var slot = entry.Split(':', 2)[0];
+			if (!int.TryParse(slot, out _))
+			{
+				continue;
+			}
+
+			await MemberRecipeAsync("item-drop-hand", cancellationToken, ("slot", slot)).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		if (_member is not null)

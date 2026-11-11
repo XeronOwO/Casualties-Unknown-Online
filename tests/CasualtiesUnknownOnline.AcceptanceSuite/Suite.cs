@@ -334,6 +334,8 @@ internal static class CaseRegistry
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
+		// new GiveItemCase(), // parked: the give intent is refused on the receiving side with a stale
+		// instance id while the custody projection reports RowWithoutObject rows; the reading is on the suite ticket.
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new TopicalDoseCase(),

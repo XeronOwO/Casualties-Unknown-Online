@@ -133,6 +133,13 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("member-limb-after", after);
 		context.Note("measured: " + measured);
 
+		// The host's own copy of the member's body is the other half of the comparison: the adapter
+		// ran the native action there, so its marker must be set even when the treated client's is not.
+		var hostCopy = await context.RecipeAsync("limb-read", cancellationToken, ("source", "display"), ("limb", "3"), ("target", context.MemberId));
+		context.Read("host-copy-limb-after", hostCopy);
+		var hostCopyDisinfection = Number(hostCopy, "disinfectionTime");
+		context.Note($"host copy disinfection {hostCopyDisinfection}, member own {afterDisinfection}");
+
 		Require(measured.Contains("paincream", StringComparison.Ordinal) && measured.Contains("ml", StringComparison.Ordinal),
 			"the adapter did not measure the cream on the member's limb: " + measured);
 		Require(measured.Contains("limb 3", StringComparison.Ordinal),

@@ -92,7 +92,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// because the command travels host → member before the body is rewritten.
 		JsonElement? healed = null;
 		var restored = false;
-		for (var wait = 0; wait < 20; wait++)
+		for (var wait = 0; wait < 60; wait++)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			healed = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);

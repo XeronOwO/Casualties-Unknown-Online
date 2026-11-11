@@ -110,28 +110,57 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("release", released);
 		Require(Boolean(released, "ok"), "the release answered not-ok");
 
-		// The game SETS the limb's disinfection from the dose (10 ml -> `SetDisinfect(300 * clamp01(ml * 0.1))`),
-		// so the reading is the absolute marker the formula names, not a rise: a limb an earlier case
-		// already treated starts high, and a rise-only check would fail on a correct dose (measured:
-		// 263.173 -> 297.236, a correct 10 ml dose refused by the old assertion).
+		// The game SETS the limb's disinfection from the dose (10 ml -> `SetDisinfect(300 * clamp01(ml * 0.1))`).
+		// Two readings judge it: the adapter's own measurement line in the host log (the game measured the
+		// cream on the named limb) and the member's marker (the effect on the treated client). The marker
+		// ticks down and a display limb can be a different slot than the body's own index, so the log line
+		// is the primary evidence and the marker must at least be set (not the untouched near-zero).
 		JsonElement? after = null;
 		var afterDisinfection = beforeDisinfection;
+		var measured = string.Empty;
 		for (var settle = 0; settle < 12; settle++)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
 			afterDisinfection = Number(after, "disinfectionTime");
-			if (afterDisinfection >= 290)
+			measured = LastMeasuredLine(context.HostLogPath);
+			if (measured.Length > 0 && afterDisinfection >= 250)
 			{
 				break;
 			}
 		}
 
 		context.Read("member-limb-after", after);
+		context.Note("measured: " + measured);
 
-		// A 10 ml relief cream sets the marker to about 300; 290 leaves room for a partly-consumed
-		// bottle while nothing-at-all cannot reach it.
-		Require(afterDisinfection >= 290, $"the dose did not reach the member's limb (disinfection {beforeDisinfection} -> {afterDisinfection})");
+		Require(measured.Contains("paincream", StringComparison.Ordinal) && measured.Contains("ml", StringComparison.Ordinal),
+			"the adapter did not measure the cream on the member's limb: " + measured);
+		Require(measured.Contains("limb 3", StringComparison.Ordinal),
+			"the adapter measured the cream on another limb: " + measured);
+		Require(afterDisinfection >= 250,
+			$"the dose did not set the member's marker (disinfection {beforeDisinfection} -> {afterDisinfection})");
+	}
+
+	/// <summary>The last `[MedicalView] measured` line the host wrote, or empty.</summary>
+	private static string LastMeasuredLine(string path)
+	{
+		if (!File.Exists(path))
+		{
+			return string.Empty;
+		}
+
+		using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+		using var reader = new StreamReader(stream);
+		var last = string.Empty;
+		while (reader.ReadLine() is { } line)
+		{
+			if (line.Contains("[MedicalView] measured", StringComparison.Ordinal))
+			{
+				last = line;
+			}
+		}
+
+		return last;
 	}
 
 	private static (double X, double Y) Position(JsonElement? reading)

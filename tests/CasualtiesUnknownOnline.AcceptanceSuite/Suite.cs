@@ -405,6 +405,9 @@ internal static class CaseRegistry
 		new TraderCase(),
 		new ProstheticCase(),
 		new RunSettingsCase(),
+		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds
+		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
+		// the reading is on the suite ticket.
 		new TopicalDoseCase(),
 		// new ConsoleHealCase(), // parked: the relayed reset is answered as applied while the member's
 		// own limb stays partial in an aged session; the reading is on the suite ticket.

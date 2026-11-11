@@ -29,6 +29,10 @@ internal sealed class SessionDriver(Options options)
 
 	public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
 	{
+		// Never leave a world that is still loading: the host's start gate would wait for a member
+		// that has just been sent back to the menu, and the window the player sees is a frozen
+		// loading line nobody can explain. Wait until the world is up and the gate has released.
+		await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 		await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < TimeSpan.FromSeconds(20))
@@ -132,6 +136,13 @@ internal sealed class SessionDriver(Options options)
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 		}
+		else if (hostMembers.Length == 0 && !string.Equals(StringValue(state, "role"), "None", StringComparison.Ordinal))
+		{
+			// The host names no member and the member is out of the world while it still believes
+			// it is a guest: its session is the dead one the host's restart replaced. Leaving it is
+			// the only way to reach the host's current session — the join below is the judge.
+			await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+		}
 
 		// The window can be closed (a case pressed Escape) or the client can still be loading after
 		// a restart; the home page's controls answer only while the page is up. A fresh offline
@@ -157,27 +168,29 @@ internal sealed class SessionDriver(Options options)
 			}
 			else if (controls.Contains("ip.join"))
 			{
-				if (controls.Contains("home.transport.ip"))
-				{
-					await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
-				}
-
 				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
 				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
 				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("home.transport.ip"))
+			{
+				// The Steam home page is up: its transport switch leads to the IP-direct controls.
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
 			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
 		}
 
-		if (!allowRelaunch)
-		{
-			throw new InvalidOperationException("the suite could not join the member to the host's session");
-		}
-
-		await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
-		return await JoinMemberAsync(cancellationToken, allowRelaunch: false).ConfigureAwait(false);
+		// A relaunch is not a repair: restarting the member throws away the session being measured and
+		// hides the defect in a fresh process (the acceptance rules forbid it). Report the reading
+		// and let the case fail on its own condition.
+		throw new InvalidOperationException(
+			"the suite could not join the member to the host's session: " + DescribeMemberState(state));
 	}
+
+	private static string DescribeMemberState(JsonElement state) =>
+		$"role={StringValue(state, "role")}, active={StringValue(state, "active")}, inWorld={StringValue(state, "inWorld")}, "
+		+ $"page={StringValue(state, "page")}, controls={string.Join(",", Controls(state))}";
 
 	/// <summary>Quits the member's client, starts it again through the launcher, and waits for its driver.</summary>
 	private async Task RelaunchMemberAsync(CancellationToken cancellationToken)

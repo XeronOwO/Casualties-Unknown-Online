@@ -60,6 +60,18 @@ internal static partial class Program
 		Console.WriteLine($"member\t{memberNote}");
 		foreach (var acceptanceCase in selected)
 		{
+			// The member's id is the HOST's view of it, and that view exists only once the handshake
+			// and the member's own scene report have landed. Read it when the case needs it, not
+			// once at startup: a read taken too early asked every medical case for --member.
+			if (options.MemberId is null)
+			{
+				var currentMembers = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+				if (currentMembers.Length > 0)
+				{
+					options = options with { MemberId = currentMembers[0] };
+				}
+			}
+
 			results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Note}");
 		}

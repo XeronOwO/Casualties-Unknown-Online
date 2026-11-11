@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -8,6 +7,13 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// member's own client reads the dose's marker rise, and the host's panel names the same limb. A row
 /// from the medical sweep (`save-mid-run-consistent-cut`'s topical half and the 1.0 regression's
 /// batch 1), proven on the release build over the sandboxed IP-direct session.
+///
+/// <para>
+/// The case stages nothing the game would not do: the two players stand where they spawned, the
+/// doctor carries a cream, and the view does the work. It waits for BOTH clients to report they are
+/// in the world before it reads anything — an action taken mid-load reads the pod's inside on one
+/// side and the surface on the other, which is what made an earlier version blame the terrain.
+/// </para>
 /// </summary>
 internal sealed class TopicalDoseCase : AcceptanceCase
 {
@@ -15,48 +21,22 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The member's own client is the patient: it receives the dose and reads its limb.
+		// Both sides must be in the world and the host's start gate released before any reading:
+		// the two clients join at different moments, so the pair is only comparable once both land.
+		var hostReady = await context.Session
+			.WaitUntilAsync(context.Session.HostUrl, state => SessionDriver.StateTrue(state, "inWorld") && !SessionDriver.StateTrue(state, "gateWaiting"), TimeSpan.FromSeconds(60), cancellationToken)
+			.ConfigureAwait(false);
+		context.Read("host-state", hostReady);
+		Require(SessionDriver.StateTrue(hostReady, "inWorld"), "the host is not in a world");
+
+		var memberReady = await context.Session
+			.WaitUntilAsync(context.Session.MemberUrl, state => SessionDriver.StateTrue(state, "inWorld"), TimeSpan.FromSeconds(60), cancellationToken)
+			.ConfigureAwait(false);
+		context.Read("member-state", memberReady);
+		Require(SessionDriver.StateTrue(memberReady, "inWorld"), "the member is not in the world");
+
 		var member = await context.MemberAsync(cancellationToken).ConfigureAwait(false);
-		_ = member;
-
-		// A long-lived world can leave the surface a pit over a cave; the pair then stands inside
-		// terrain and the interaction gate blocks every use. The case starts from a fresh run so
-		// the two bodies spawn where the game puts them.
-		JsonElement? memberLeft = null;
-		try
-		{
-			memberLeft = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-		}
-		catch (Exception)
-		{
-			// A member already at the menu has nothing to leave; the restart below is the reset.
-		}
-		context.Note("member left its old world: " + Raw(memberLeft));
-		var restarted = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
-		context.Note("session: " + restarted);
-		// The host's start-run and the member's join can cross: the member's old world can answer
-		// "already in a world" while the host is still leaving. Retry the join until the fresh run
-		// lists a member, up to 30 s.
-		var members = Array.Empty<string>();
-		for (var attempt = 0; attempt < 6; attempt++)
-		{
-			var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
-			context.Note("member rejoin attempt " + attempt + ": " + rejoined);
-			await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
-			members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-			if (members.Length > 0)
-			{
-				break;
-			}
-		}
-
-		if (members.Length == 0)
-		{
-			throw new AssertionException("the fresh run names no member to treat");
-		}
-
-		context.UseMember(members[0]);
-		context.Note("member: " + members[0]);
+		context.Note("member: " + member);
 
 		// The chart opens on a closed view from a living viewer.
 		var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
@@ -64,12 +44,8 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		var healed = await context.RecipeAsync("native-heal", cancellationToken);
 		context.Note("host heal: " + Raw(healed));
 
-		// The doctor carries the cream; the create path gives it a filled container (the give verb's
-		// defect on the demo is gone on 1.0: either path now hands a full bottle, but create is the
-		// one the case can assert without a slot scan).
-		// The release path picks a carried item by slot; the case makes the cream the FIRST free
-		// slot by emptying the bag through the player's own drop entry, so the item the release
-		// carries is the cream and not a leftover from an earlier case.
+		// The doctor carries the cream; the release path picks a carried item by slot, so the bag is
+		// emptied through the player's own drop entry and the cream becomes the item the release finds.
 		var bag = await context.RecipeAsync("body-items", cancellationToken);
 		context.Read("body-items", bag);
 		if (bag is { ValueKind: JsonValueKind.Object } bagElement
@@ -79,11 +55,13 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			foreach (var entry in (idsElement.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
 			{
 				var slot = entry.Split(':', 2)[0];
-				if (int.TryParse(slot, out var slotIndex))
+				if (!int.TryParse(slot, out _))
 				{
-					await context.RecipeAsync("item-drop-hand", cancellationToken, ("slot", slot));
-					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+					continue;
 				}
+
+				await context.RecipeAsync("item-drop-hand", cancellationToken, ("slot", slot)).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -91,68 +69,21 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("paincream", cream);
 		Require(Boolean(cream, "ok"), "the host could not take a paincream");
 
-		// The interaction gate is a Ground linecast: the member joins at its own spawn and a floor
-		// between the pair blocks the use. The fixture moves the member beside the doctor first.
-		var host = await context.RecipeAsync("body-read", cancellationToken);
-		context.Read("host-body", host);
-		JsonElement localBody = default;
-		if (host is { ValueKind: JsonValueKind.Object } hostElement && hostElement.TryGetProperty("localBody", out var bodyElement))
-		{
-			localBody = bodyElement;
-		}
-		else
-		{
-			throw new AssertionException("the host body reading has no localBody: " + Raw(host));
-		}
-
-		// The session can say in-world before the host body spawns; the body is the truth.
-		for (var wait = 0; wait < 40; wait++) { var probe = await context.RecipeAsync("body-read", cancellationToken); if (probe is { } value && value.ValueKind == JsonValueKind.Object && value.TryGetProperty("localBody", out var b) && b.ValueKind == JsonValueKind.Object && Number(b, "positionY") > 0) { localBody = b; break; } await Task.Delay(500, cancellationToken); }
-
-		// The host can spawn inside the shelter cave while the member lands on the surface; bring the
-		// host up to the member level (a point the member already stands on) before the dose.
-		var memberRead = await context.MemberRecipeAsync("body-read", cancellationToken);
-		if (memberRead is { } memberValue && memberValue.ValueKind == JsonValueKind.Object && memberValue.TryGetProperty("localBody", out var surfaceBody) && surfaceBody.ValueKind == JsonValueKind.Object)
-		{
-			var targetY = Number(surfaceBody, "positionY");
-			if (targetY is > 0 and < 600 && Number(localBody, "positionY") < targetY - 2)
-			{
-				var rise = await context.RecipeAsync("teleport", cancellationToken, ("x", Number(surfaceBody, "positionX").ToString("0.###", CultureInfo.InvariantCulture)), ("y", targetY.ToString("0.###", CultureInfo.InvariantCulture)));
-				context.Note("host rose to the member level: " + Raw(rise));
-				await Task.Delay(1500, cancellationToken);
-			}
-		}
-
-		var hostX = Number(localBody, "positionX");
-		var hostY = Number(localBody, "positionY");
-		var moved = await context.MemberRecipeAsync("teleport", cancellationToken, ("x", (hostX + 1).ToString("0.###", CultureInfo.InvariantCulture)), ("y", hostY.ToString("0.###", CultureInfo.InvariantCulture)));
-		context.Note("member teleport: " + Raw(moved));
-		for (var settle = 0; settle < 12; settle++)
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-			var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken);
-			if (memberBody is { ValueKind: JsonValueKind.Object } memberElement
-				&& memberElement.TryGetProperty("localBody", out var memberLocal)
-				&& memberLocal.TryGetProperty("positionX", out var memberX)
-				&& memberLocal.TryGetProperty("positionY", out var memberY)
-				&& Math.Abs(memberX.GetDouble() - (hostX + 1)) < 2
-				&& Math.Abs(memberY.GetDouble() - hostY) < 2)
-			{
-				context.Note("member settled beside the doctor after " + ((settle + 1) * 500) + " ms");
-				break;
-			}
-		}
-
 		// A freshly created container is filled by its own Awake on the next frame; a use request in
 		// the same frame finds an empty bottle and is refused as "no usable consumable".
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
-		var creamAgain = await context.RecipeAsync("item-provide", cancellationToken, ("type", "paincream"), ("mode", "create"));
-		context.Note("cream after the pair settled: " + Raw(creamAgain));
+		// Where the two actually stand: the reading that names a blocked use later, if it happens.
+		var host = await context.RecipeAsync("body-read", cancellationToken);
+		context.Read("host-body", host);
+		var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken);
+		context.Read("member-body", memberBody);
+
 		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", context.MemberId), ("name", ""));
 		context.Read("medical-open", opened);
 		Require(Boolean(opened, "opened"), "the member's medical view did not open");
 
-		// The member's own limb 0, before the dose.
+		// The member's own limb, before the dose.
 		var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
 		context.Read("member-limb-before", before);
 		var beforeDisinfection = Number(before, "disinfectionTime");
@@ -163,8 +94,8 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("release", released);
 		Require(Boolean(released, "ok"), "the release answered not-ok");
 
-		// The dose lands on the member's own client; under the all-suite load the apply can
-		// trail the release by more than a second, so the marker is polled instead of read once.
+		// The dose lands on the member's own client; under the all-suite load the apply can trail the
+		// release by more than a second, so the marker is polled instead of read once.
 		JsonElement? after = null;
 		var afterDisinfection = beforeDisinfection;
 		for (var settle = 0; settle < 12; settle++)
@@ -199,7 +130,6 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		&& value.ValueKind == JsonValueKind.Number
 			? value.GetDouble()
 			: throw new AssertionException($"the reading has no number '{property}': {Raw(reading)}");
-
 
 	private static void Require(bool condition, string message)
 	{

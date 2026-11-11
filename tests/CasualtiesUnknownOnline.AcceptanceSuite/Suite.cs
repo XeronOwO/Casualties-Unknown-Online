@@ -47,12 +47,9 @@ internal static partial class Program
 		var session = new SessionDriver(options);
 		var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
 		var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
+		// One read: the driver answers the host's current membership, and a case that needs the
+		// member reads it again when it runs. No sleep loop — a missing member is reported.
 		var members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
-		for (var attempt = 0; attempt < 20 && members.Length == 0; attempt++)
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
-			members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
-		}
 
 		if (members.Length > 0)
 		{

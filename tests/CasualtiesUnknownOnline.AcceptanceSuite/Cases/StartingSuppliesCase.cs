@@ -19,15 +19,11 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 		{
 			var left = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			context.Note("member left its world: " + Raw(left));
-			for (var wait = 0; wait < 12 && !outOfWorld; wait++)
-			{
-				await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-				var state = await context.Session.ActionAsync(context.Session.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-				outOfWorld = state is { ValueKind: JsonValueKind.Object } element
-					&& element.TryGetProperty("result", out var result)
-					&& result.TryGetProperty("inWorld", out var inWorld)
-					&& inWorld.ValueKind == JsonValueKind.False;
-			}
+			var settled = await context.Session
+				.WaitUntilAsync(context.Session.MemberUrl, state => !SessionDriver.StateTrue(state, "inWorld"), TimeSpan.FromSeconds(15), cancellationToken)
+				.ConfigureAwait(false);
+			context.Read("member-state", settled);
+			outOfWorld = !SessionDriver.StateTrue(settled, "inWorld");
 		}
 
 		Require(outOfWorld, "the member is still in its old world after leaving");

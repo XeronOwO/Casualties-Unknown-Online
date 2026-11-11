@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite;
 
@@ -60,6 +61,7 @@ internal sealed class SessionDriver(Options options)
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 		// The window reopens on the tab it last showed; the transport controls live on Home.
 		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
 		try
 		{
 			// A host that still holds an IP session offers no transport switch; the run starts
@@ -130,10 +132,10 @@ internal sealed class SessionDriver(Options options)
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 		// The window reopens on the tab it last showed; the join controls live on Home.
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
-		// A member that still holds a session shows its leave control instead of the join fields;
-		// leaving first is best-effort, because a member at the menu has nothing to leave.
-		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+		// Never click the session's leave control here: leaving the IP session tears the transport
+		// down (the game disconnects on purpose), so the member would rejoin through a fresh
+		// connection on every run. Leaving the world is enough — the session survives it.
 		try
 		{
 			// A member that still holds an IP session offers no transport switch; its join uses
@@ -216,16 +218,102 @@ internal sealed class SessionDriver(Options options)
 	public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-		if (state.ValueKind != JsonValueKind.Object
-			|| !state.TryGetProperty("result", out var result)
-			|| !result.TryGetProperty("members", out var members)
-			|| members.ValueKind != JsonValueKind.Array)
+		if (state.ValueKind != JsonValueKind.Object)
+		{
+			return [];
+		}
+
+		// The driver answers its state facts at the top level; an older wrapper kept them under
+		// result, so both shapes are accepted.
+		var hasMembers = state.TryGetProperty("members", out var members);
+		if (!hasMembers
+			&& (!state.TryGetProperty("result", out var result) || !result.TryGetProperty("members", out members)))
+		{
+			return [];
+		}
+
+		if (members.ValueKind != JsonValueKind.Array)
 		{
 			return [];
 		}
 
 		return [.. members.EnumerateArray().Select(member => member.ValueKind == JsonValueKind.String ? member.GetString() ?? string.Empty : member.ToString())];
 	}
+
+	/// <summary>
+	/// Loads one committed eval declaration into a client: probe the type, send the source when it is
+	/// absent (the evaluator takes a type at most once), probe again. The declaration's own
+	/// <c>// declares: &lt;type&gt;</c> line names what to ask about.
+	/// </summary>
+	private static async Task<JsonElement> DeclareAsync(DriverClient driver, string name, string source, CancellationToken cancellationToken)
+	{
+		var directory = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations");
+		if (string.IsNullOrEmpty(source))
+		{
+			source = await File.ReadAllTextAsync(Path.Combine(directory, name + ".cs"), cancellationToken).ConfigureAwait(false);
+		}
+
+		var match = Regex.Match(source, "(?m)^// declares: ([A-Za-z_][A-Za-z0-9_.]*)[ \t]*\r?$");
+		if (!match.Success)
+		{
+			throw new InvalidOperationException($"the eval declaration '{name}' carries no '// declares: <type>' line");
+		}
+
+		var check = (await File.ReadAllTextAsync(Path.Combine(directory, "check-declared.cs"), cancellationToken).ConfigureAwait(false))
+			.Replace("{{s:type}}", "\"" + match.Groups[1].Value + "\"", StringComparison.Ordinal);
+		var probe = await driver.EvalAsync(check, "declare:" + name + " (probe)", cancellationToken).ConfigureAwait(false);
+		if (Declared(probe))
+		{
+			return JsonSerializer.SerializeToElement(new { ok = true, declared = true, sent = false });
+		}
+
+		await driver.EvalAsync(source, "declare:" + name + " (load)", cancellationToken, allowNoValue: true).ConfigureAwait(false);
+		var verify = await driver.EvalAsync(check, "declare:" + name + " (verify)", cancellationToken).ConfigureAwait(false);
+		if (!Declared(verify))
+		{
+			throw new InvalidOperationException($"the eval declaration '{name}' was sent but the type is still not in the client's evaluator");
+		}
+
+		return JsonSerializer.SerializeToElement(new { ok = true, declared = true, sent = true });
+	}
+
+	/// <summary>
+	/// Reads a client's state until the condition holds, or the budget runs out, and returns the last
+	/// state either way. The game applies a click on its own update, so a read taken in the same
+	/// call that clicked can be one frame early; this is a bounded read loop, not a fixed sleep.
+	/// </summary>
+	public async Task<JsonElement> WaitUntilAsync(string url, Func<JsonElement, bool> until, TimeSpan budget, CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		var state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+		while (!until(state) && deadline.Elapsed < budget)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+		}
+
+		return state;
+	}
+
+	/// <summary>One boolean of a state answer, at the top level or under the older result wrapper.</summary>
+	internal static bool StateTrue(JsonElement state, string name)
+	{
+		if (state.ValueKind != JsonValueKind.Object)
+		{
+			return false;
+		}
+
+		return Truth(state, name)
+			|| (state.TryGetProperty("result", out var result) && Truth(result, name));
+
+		static bool Truth(JsonElement element, string property) =>
+			element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
+	}
+
+	private static bool Declared(JsonElement? answer) =>
+		answer is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("declared", out var declared)
+			&& declared.ValueKind == JsonValueKind.True;
 
 	/// <summary>Runs one driver action against one client and returns its JSON answer.</summary>
 	private async Task TryActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
@@ -267,6 +355,13 @@ internal sealed class SessionDriver(Options options)
 			driver = new DriverClient(url);
 			await driver.ConnectAsync(cancellationToken).ConfigureAwait(false);
 			_drivers[url] = driver;
+		}
+
+		// A declaration is not a driver command: it is the source the evaluator must be given, then
+		// probed. The PowerShell driver composed these two frames; the suite composes them here.
+		if (string.Equals(action, "declare", StringComparison.OrdinalIgnoreCase))
+		{
+			return await DeclareAsync(driver, argument, text, cancellationToken).ConfigureAwait(false);
 		}
 
 		var answer = await driver.EvalAsync(DriverSnippet(action, argument, text), action, cancellationToken).ConfigureAwait(false);

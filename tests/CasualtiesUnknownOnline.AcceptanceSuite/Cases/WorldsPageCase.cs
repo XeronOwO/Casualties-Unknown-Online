@@ -13,8 +13,15 @@ internal sealed class WorldsPageCase : AcceptanceCase
 	{
 		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-		await context.Session.ActionAsync(context.Session.HostUrl, "goto-page", cancellationToken, ("-Page", "worlds")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.worlds")).ConfigureAwait(false);
+
+		// The page is open when the window says so; the dump below is only the page the state names.
+		var state = await context.Session
+			.WaitUntilAsync(context.Session.HostUrl, candidate => Page(candidate).Contains("World", StringComparison.OrdinalIgnoreCase), TimeSpan.FromSeconds(5), cancellationToken)
+			.ConfigureAwait(false);
+		context.Read("state", state);
+		var page = Page(state);
+		Require(page.Contains("World", StringComparison.OrdinalIgnoreCase), "the worlds page did not open (page: '" + page + "')");
 
 		var dump = await context.RecipeAsync("cuo-ui-dump", cancellationToken).ConfigureAwait(false);
 		context.Read("dump", dump);
@@ -27,6 +34,13 @@ internal sealed class WorldsPageCase : AcceptanceCase
 		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 	}
+
+	private static string Page(System.Text.Json.JsonElement state) =>
+		state is { ValueKind: System.Text.Json.JsonValueKind.Object } element
+			&& element.TryGetProperty("page", out var page)
+			&& page.ValueKind == System.Text.Json.JsonValueKind.String
+			? page.GetString() ?? ""
+			: "";
 
 	private static void Require(bool condition, string message)
 	{

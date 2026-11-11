@@ -228,6 +228,18 @@ internal sealed class SessionDriver(Options options)
 				{
 					return "the suite joined the member to the host's session";
 				}
+
+				// The ghost: the menu is up (page Home, no role) while the world presence still says
+				// in world, so every join answers "a world is running or generating" (measured on the
+				// boxed member). The window offers no leave control there; the driver's own leave is
+				// the only way out of a world the window does not show.
+				var ghostControls = Controls(state);
+				if (!ghostControls.Contains("home.leave") && string.Equals(StringValue(state, "page"), "Home", StringComparison.Ordinal))
+				{
+					await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+					await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
+					continue;
+				}
 			}
 
 			var controls = Controls(state);
@@ -341,7 +353,7 @@ internal sealed class SessionDriver(Options options)
 			start.ArgumentList.Add(_options.GameDir!);
 		}
 
-using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
+		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
 		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();

@@ -84,12 +84,58 @@ internal static partial class Program
 
 			results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Note}");
+			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
+			{
+				await ProbeFingerprintAsync(options, acceptanceCase.Name).ConfigureAwait(false);
+			}
 		}
 
 		var reportPath = Path.Combine(outputDirectory, "report.md");
 		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results)).ConfigureAwait(false);
 		Console.WriteLine($"report: {reportPath}");
 		return results.All(result => result.Passed) ? 0 : 1;
+	}
+
+	/// <summary>
+	/// Diagnostic (CUO_SUITE_PROBE=1): after each case, both clients re-capture the product's own
+	/// block-table fingerprint and the two totals are printed, so the case that moves the host's
+	/// table without the member's names itself.
+	/// </summary>
+	private static async Task ProbeFingerprintAsync(Options options, string label)
+	{
+		await using var host = new DriverClient(options.HostUrl);
+		await host.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+		await host.RecipeAsync("world-fingerprint", new Dictionary<string, string>(StringComparer.Ordinal), CancellationToken.None).ConfigureAwait(false);
+		await using var member = new DriverClient(options.MemberUrl);
+		await member.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+		await member.RecipeAsync("world-fingerprint", new Dictionary<string, string>(StringComparer.Ordinal), CancellationToken.None).ConfigureAwait(false);
+		var session = new SessionDriver(options);
+		var hostTail = await session.ActionAsync(options.HostUrl, "log-tail", CancellationToken.None, ("-Argument", "[WorldFingerprint]"), ("-Text", "1")).ConfigureAwait(false);
+		var memberTail = await session.ActionAsync(options.MemberUrl, "log-tail", CancellationToken.None, ("-Argument", "[WorldFingerprint]"), ("-Text", "1")).ConfigureAwait(false);
+		Console.WriteLine($"probe\t{label}\thost={FingerprintTotal(hostTail)}\tmember={FingerprintTotal(memberTail)}");
+	}
+
+	private static string FingerprintTotal(JsonElement answer)
+	{
+		var line = answer is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("line0", out var value)
+			&& value.ValueKind == JsonValueKind.String
+				? value.GetString() ?? string.Empty
+				: string.Empty;
+		var at = line.LastIndexOf("total ", StringComparison.OrdinalIgnoreCase);
+		if (at < 0)
+		{
+			return "-";
+		}
+
+		var start = at + "total ".Length;
+		var end = start;
+		while (end < line.Length && char.IsLetterOrDigit(line[end]))
+		{
+			end++;
+		}
+
+		return end > start ? line[start..end] : "-";
 	}
 
 	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory)

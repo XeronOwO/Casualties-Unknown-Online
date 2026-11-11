@@ -75,27 +75,38 @@ internal sealed class LockpickCase : AcceptanceCase
 		}
 
 		// The game reads the pointer every frame, and a separate move/press leaves a frame in which
-		// the hand falls back to the real mouse. One eval stages the pointer and presses in the same
-		// frame; keep pressing until the game's own turn progress reaches its completion value.
+		// the hand falls back to the real mouse. One eval stages the pointer and presses; the key then
+		// STAYS DOWN, because the hand only advances the lock while GetKey is true (a press+release
+		// answers GetKeyDown for one frame and leaves GetKey false — measured 2026-11-12).
 		// The recorder only keeps what it saw from a start, so the unlock sound is recorded from
 		// the first press.
 		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start")).ConfigureAwait(false);
-		var progress = 0.0;
-		for (var attempt = 0; attempt < 30 && progress < 0.99; attempt++)
+		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
+		try
 		{
-			var pressed = await context.RecipeAsync("lockpick-press", cancellationToken,
-				("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
-				("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture))).ConfigureAwait(false);
-			context.Read("press", pressed);
-			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
-			var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-			progress = NumberOr(probe, "lockProgress", progress);
-			context.Note($"press {attempt}: progress={progress:0.###} started={Boolean(probe, "handStarted")}");
-		}
+			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "hold")).ConfigureAwait(false);
+			var progress = 0.0;
+			for (var tick = 0; tick < 40; tick++)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				progress = NumberOr(probe, "lockProgress", progress);
+				var kind = StringValue(probe, "kind");
+				if (progress >= 0.99 || !Boolean(probe, "hasMain") || string.Equals(kind, "none", StringComparison.Ordinal))
+				{
+					break;
+				}
+			}
 
-		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
-		var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-		context.Read("live", live);
+			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+			context.Read("live", live);
+			context.Note($"progress {progress:0.###}");
+		}
+		finally
+		{
+			// Never leave the attack key down: the next case would read a held button.
+			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
+		}
 
 		var sounds = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "unlock")).ConfigureAwait(false);
 		context.Read("sounds", sounds);
@@ -137,6 +148,13 @@ internal sealed class LockpickCase : AcceptanceCase
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
+
+	private static string StringValue(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.String
+			? value.GetString() ?? string.Empty
+			: string.Empty;
 
 	private static void Require(bool condition, string message)
 	{

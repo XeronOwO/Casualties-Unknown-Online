@@ -416,8 +416,9 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
-		// new LockpickCase(), // parked: the hand read is named on the suite ticket; the corrected
-		// aim has not been pressed on a fresh lockable yet.
+		// new LockpickCase(), // parked: the held press completes the lock (unlock@ fired on a live
+		// world, 2026-11-12), but the suite's fresh run spawns with no lockable in reach; the reading is
+		// on the suite ticket.
 	];
 }
 

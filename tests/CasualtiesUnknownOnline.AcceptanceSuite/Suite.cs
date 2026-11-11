@@ -47,9 +47,19 @@ internal static partial class Program
 		var session = new SessionDriver(options);
 		var sessionNote = await session.EnsureInWorldAsync(CancellationToken.None).ConfigureAwait(false);
 		var memberNote = await session.EnsureMemberAsync(CancellationToken.None).ConfigureAwait(false);
-		// One read: the driver answers the host's current membership, and a case that needs the
-		// member reads it again when it runs. No sleep loop — a missing member is reported.
-		var members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+		// The host names its members only once the member's own scene report has landed, which can
+		// trail the join by a beat: poll briefly instead of reading once and losing the id.
+		string[] members = [];
+		for (var wait = 0; wait < 30; wait++)
+		{
+			members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+			if (members.Length > 0)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
+		}
 
 		if (members.Length > 0)
 		{
@@ -337,6 +347,7 @@ internal static class CaseRegistry
 		new GiveItemCase(),
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
+		new TraderCase(),
 		new TopicalDoseCase(),
 		// new ConsoleHealCase(), // parked: the relayed reset is answered as applied while the member's
 		// own limb stays partial in an aged session; the reading is on the suite ticket.

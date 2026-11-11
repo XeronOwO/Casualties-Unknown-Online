@@ -182,14 +182,6 @@ internal sealed class SessionDriver(Options options)
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 		}
-		else if (hostMembers.Length == 0 && !string.Equals(StringValue(state, "role"), "None", StringComparison.Ordinal))
-		{
-			// The host names no member and the member is out of the world while it still believes
-			// it is a guest: its session is the dead one the host's restart replaced. Leaving it is
-			// the only way to reach the host's current session — the join below is the judge.
-			await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
-		}
-
 		// The window can be closed (a case pressed Escape) or the client can still be loading after
 		// a restart; the home page's controls answer only while the page is up. A fresh offline
 		// client shows the notice INSTEAD of the join controls, so the loop acts on what the state
@@ -208,7 +200,15 @@ internal sealed class SessionDriver(Options options)
 			}
 
 			var controls = Controls(state);
-			if (controls.Contains("ip.notice_confirm"))
+			if (controls.Contains("home.leave"))
+			{
+				// The member still holds a session the host's fresh run does not name (a guest of
+				// the run the restart replaced). Leaving it is the only way to reach the current
+				// session; the join below is the judge, so a refusal here is not reported.
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.notice_confirm"))
 			{
 				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
 			}

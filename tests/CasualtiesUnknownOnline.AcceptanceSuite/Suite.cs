@@ -506,8 +506,8 @@ internal static class CaseRegistry
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
-		// new EnemyPairingCase(), // parked 2026-11-12: the counts read (member 865, host 47) and the
-		// member's own log says it generated its own layer — review/1.0-guest-generates-its-own-layer.md. // parked 2026-11-12: the member scene holds 791 animals where the host
+		// new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22
+		// unresolved and aligned=False — review/1.0-enemy-roster-adopts-unresolved-rows.md. // parked 2026-11-12: the member scene holds 791 animals where the host
 		// holds 39 — the block-table divergence on a second surface (review/1.0-block-table-diverges-between-clients.md).
 		new SaveContinueCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
@@ -519,6 +519,8 @@ internal static class CaseRegistry
 }
 
 internal sealed class AssertionException(string message) : Exception(message);
+
+
 
 
 

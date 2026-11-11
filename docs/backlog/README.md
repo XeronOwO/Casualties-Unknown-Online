@@ -82,7 +82,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The host's `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the relay says applied; the body stays.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
-- [A guest generates its own layer](review/1.0-guest-generates-its-own-layer.md) — **High** — the member generated its own fauna.
+- [The enemy roster adopts unresolved rows](review/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — 22 of the host's 47 rows stay unbound.
 
 
 
@@ -517,5 +517,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Watchlist
 
 - [Architecture watchlist](watchlist/architecture-watchlist.md) — files near the 600-line gate.
+
 
 

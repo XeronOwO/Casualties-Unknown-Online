@@ -79,7 +79,7 @@ internal sealed class WorldCharacterBinder(
 				sharers.Add(peer.PeerId);
 			}
 
-			collected.Add(new SavedCharacter(key, data));
+			collected.Add(new SavedCharacter(key, data, peer.DisplayName));
 		}
 
 		var notCarried = new List<string>();
@@ -138,13 +138,12 @@ internal sealed class WorldCharacterBinder(
 		}
 		else if (space != live)
 		{
-			// The two key spaces are separate (§2): a world written over IP-direct is
-			// never claimed over Steam, even when a Steam persona happens to spell the
-			// same name. Every key stays unclaimed — that player joins as a NEW
-			// character (decision 162), and the files stay for a later claim. It is a
-			// LOSS for this session, not a benign absence, so it is named as one.
-			log.LogWarning("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return new WorldCharacterClaimPlan(space, [], stored, [$"the snapshot was written in the {space} key space and this session runs {live}, so none of its {stored.Count} stored character(s) was claimed (decision 162)"]);
+			// A transport handover (2026-11-11): the snapshot was written in one key
+			// space and this session runs the other. Keys do not cross spaces (§2), so
+			// no key claims its file — but a player who switched transports keeps their
+			// character when the archive can name them unambiguously; the adoption pass
+			// below decides that by display name.
+			log.LogWarning("The snapshot's key space {Stored} differs from the live transport {Live}; claims are made by display name only (transport handover).", space, live);
 		}
 
 		var peers = PresentPeers();
@@ -173,6 +172,24 @@ internal sealed class WorldCharacterBinder(
 
 			unclaimed.Add(character);
 			log.LogInformation("Character {PlayerKey} has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.", character.PlayerKey);
+		}
+
+		// Transport handover: a stored character whose key nobody claims is adopted by a
+		// present peer when EXACTLY one peer matches its display name and that peer has no
+		// character yet. Two matching characters, two matching peers or a nameless file
+		// adopt nothing — decision 162's new-character default stays.
+		var peersWithCharacter = new HashSet<ulong>(claimed.Select(row => row.PeerId));
+		var (adopted, ambiguous) = CharacterAdoption.Resolve(unclaimed, peers, peersWithCharacter);
+		foreach (var peerId in ambiguous)
+		{
+			log.LogWarning("Player {Peer} matches more than one unclaimed character by display name; none is adopted — the match must be unambiguous.", peerId);
+		}
+
+		foreach (var (character, peerId) in adopted)
+		{
+			claimed.Add((character, peerId));
+			unclaimed.Remove(character);
+			log.LogInformation("Character {PlayerKey} was adopted by player {Peer} across the transport key space (display name match, transport handover).", character.PlayerKey, peerId);
 		}
 
 		return new WorldCharacterClaimPlan(space, claimed, unclaimed, refusals);

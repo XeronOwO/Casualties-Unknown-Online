@@ -97,19 +97,20 @@ public class WorldContinueLocalCharacterTests
 	}
 
 	[Fact]
-	public void Continue_WithoutALocalClaim_HandsNoLocalCharacter()
+	public void Continue_TransportsHandOverTheNameKeyWhoseNameMatches()
 	{
-		// A world written over IP-direct is a different key space (§2): continued
-		// over Steam, the stored key is claimed by nobody, so the local player must
-		// join as a NEW character (decision 162) — the outcome must not invent one.
+		// The player carries one identity across transport switches (2026-11-11): a world
+		// written over IP-direct stores a display-name key, and continuing it over Steam
+		// hands that character to the local player when the name matches and no other peer
+		// does — the progress a transport failure must not cost.
 		using var fixture = WorldSaveFixture.Create("continue-local-character-ipdirect", ipDirect: true, displayName: "Host Name");
 		CutAtLayerEnd(fixture, hostInstanceId: 100, guestInstanceId: null);
 
 		using var restarted = fixture.Restart("continue-local-character-ipdirect-restart", displayName: "Host Name");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		Assert.Null(outcome.LocalCharacter);
-		Assert.Null(restarted.Characters.GetHostCharacterData());
+		Assert.NotNull(outcome.LocalCharacter);
+		Assert.NotNull(restarted.Characters.GetHostCharacterData());
 	}
 
 	// ---- helpers ----

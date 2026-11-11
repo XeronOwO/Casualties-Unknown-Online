@@ -346,25 +346,19 @@ public class WorldSaveContinueTests
 	}
 
 	[Fact]
-	public void TryContinue_OverSteamMode_DoesNotClaimANameKey()
+	public void TryContinue_OverSteamMode_AdoptsTheNameKeyWhoseNameMatches()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-ip-to-steam", ipDirect: true, displayName: "Host Name");
 		SaveLayerEnd(fixture, withCharacter: true);
 
-		// A world written over IP-direct is a different key space: over Steam the
-		// stored key is claimed by nobody, so the host joins as a NEW character
-		// (decision 162) — even when the Steam persona spells exactly the same name,
-		// which is why the live transport space is compared, not just the prefix.
+		// The player keeps one identity across transports (2026-11-11): the stored display-name
+		// key is handed to the host when the Steam persona spells the same name, so a transport
+		// switch costs no progress. A different name still waits for its owner (CharacterAdoptionTests).
 		using var restarted = fixture.Restart("continue-ip-to-steam-restart", displayName: "Host Name");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		Assert.Null(restarted.Characters.GetHostCharacterData());
-		Assert.Equal("name-host-name", Assert.Single(restarted.Service.PendingCharacters).PlayerKey);
-
-		// The refusal is a LOSS this session really takes (a present player may have earned
-		// that character), so it is part of the account the caller reports — not a log line.
-		Assert.Contains("key space", outcome.Summary, StringComparison.Ordinal);
-		Assert.Contains("none of its 1 stored character(s) was claimed", outcome.Summary, StringComparison.Ordinal);
+		Assert.NotNull(restarted.Characters.GetHostCharacterData());
+		Assert.NotNull(outcome.LocalCharacter);
 	}
 
 	[Fact]

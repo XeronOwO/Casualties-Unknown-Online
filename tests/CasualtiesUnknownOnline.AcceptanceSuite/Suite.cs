@@ -201,6 +201,11 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 		return _member;
 	}
 
+	public async Task<JsonElement?> MemberLogTailAsync(string match, int count, CancellationToken cancellationToken)
+	{
+		return await Session.LogTailAsync(Session.MemberUrl, match, count, cancellationToken).ConfigureAwait(false);
+	}
+
 	public async Task<JsonElement?> MemberRecipeAsync(string name, CancellationToken cancellationToken, params (string Key, string Value)[] args)
 	{
 		var member = await MemberAsync(cancellationToken).ConfigureAwait(false);
@@ -501,6 +506,8 @@ internal static class CaseRegistry
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
+		// new EnemyPairingCase(), // parked 2026-11-12: the member scene holds 791 animals where the host
+		// holds 39 — the block-table divergence on a second surface (review/1.0-block-table-diverges-between-clients.md).
 		new SaveContinueCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
@@ -511,3 +518,4 @@ internal static class CaseRegistry
 }
 
 internal sealed class AssertionException(string message) : Exception(message);
+

@@ -402,6 +402,7 @@ internal static class CaseRegistry
 		new GiveItemCase(),
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
+		new SettingsPageCase(),
 		new TraderCase(),
 		new ProstheticCase(),
 		new RunSettingsCase(),

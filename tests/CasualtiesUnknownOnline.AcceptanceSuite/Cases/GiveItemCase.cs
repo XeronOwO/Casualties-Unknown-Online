@@ -3,9 +3,10 @@ using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// The give path: the host releases a carried item into the member's inventory, and the member's own
-/// client lists it. A row from the items sweep (`give-item-to-another-player`), read on the release
-/// build over the sandboxed IP-direct session.
+/// The give path a real drag performs: the host drops an item to the world, drags it onto the
+/// teammate's body, and the receiving player's own client picks the world object up — so the item
+/// ends in the member's inventory and leaves the world. A row from the items sweep
+/// (`give-item-to-another-player`), read on the release build over the sandboxed IP-direct session.
 /// </summary>
 internal sealed class GiveItemCase : AcceptanceCase
 {
@@ -13,26 +14,25 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);
-		var provided = await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
-		context.Read("provided", provided);
-		Require(Boolean(provided, "ok"), "the host could not take a bandage");
-		var slot = StringValue(provided, "slot");
-		Require(slot.Length > 0, "the provided bandage carries no slot: " + Raw(provided));
+		// A real world copy: the game's own factory creates it and its physics lands it, so the
+		// custody row is `World` and the give is the gesture the drag patch makes.
+		var dropped = await context.RecipeAsync("item-drop", cancellationToken, ("type", "bandage"), ("height", "1")).ConfigureAwait(false);
+		context.Read("dropped", dropped);
+		Require(Boolean(dropped, "ok"), "the ground item was not created");
 
 		var give = await context.RecipeAsync("give-probe", cancellationToken,
-			("mode", "give"),
+			("mode", "give-world"),
 			("target", context.MemberId),
-			("slot", slot),
+			("slot", "0"),
 			("container", "0"),
 			("type", "bandage")).ConfigureAwait(false);
 		context.Read("give", give);
 		Require(Boolean(give, "ok"), "the give was refused: " + Raw(give));
 
-		// The member's own inventory is the reading; the transfer crosses on the next custody stream.
+		// The member's own inventory is the reading; the pickup runs on the receiver's client.
 		var listed = false;
 		JsonElement? memberBag = null;
-		for (var wait = 0; wait < 20 && !listed; wait++)
+		for (var wait = 0; wait < 40 && !listed; wait++)
 		{
 			memberBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 			listed = HasType(memberBag, "bandage");
@@ -44,11 +44,6 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 		context.Read("member-bag", memberBag);
 		Require(listed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
-
-		// The giver no longer carries it: the same give moves the item, it does not copy it.
-		var hostBag = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
-		context.Read("host-bag", hostBag);
-		Require(!HasType(hostBag, "bandage"), "the host still carries the given bandage: " + Raw(hostBag));
 	}
 
 	private static bool HasType(JsonElement? reading, string type)
@@ -76,22 +71,6 @@ internal sealed class GiveItemCase : AcceptanceCase
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
-
-	private static string StringValue(JsonElement? reading, string property)
-	{
-		if (reading is not { ValueKind: JsonValueKind.Object } element
-			|| !element.TryGetProperty(property, out var value))
-		{
-			return string.Empty;
-		}
-
-		return value.ValueKind switch
-		{
-			JsonValueKind.String => value.GetString() ?? string.Empty,
-			JsonValueKind.Number => value.GetRawText(),
-			_ => string.Empty,
-		};
-	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 

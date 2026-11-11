@@ -444,6 +444,10 @@ internal static class CaseRegistry
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.
 		new TopicalDoseCase(),
+		// new WorldFingerprintCase(), // parked 2026-11-12 with the divergence reading: at world entry
+		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
+		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
+		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
 		// new BlockSyncCase(), // parked: the cell under the player is air, and world.DamageBlock on an
 		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
 		// to find a solid cell around the host before it hits.

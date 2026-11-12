@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the enemy row judges a removal the member's own count reflects
-- [ ] Native parity — the blast is the game's own `WorldGeneration.CreateExplosion` on the host's authoritative copy
-- [ ] Native parity probe — the host's `healthAfter` answers the kill
-- [ ] Entry mapping — the row enters through the host's blast and leaves through the member's own `enemy-count`
-- [ ] Mechanism inventory — the enemies domain's cross-client rows are `enemy-pairing` (roster) and this one (removal)
-- [ ] Whole-family audit — the member's count is judged as a fall, not arithmetic, because the scene gains and loses animals on its own
-- [ ] Self-check table — gates 834/0 and the full suite 28/28 green this cycle
-- [ ] Verification design — the case passes alone and inside the order
-- [ ] Plan approved by the user — night mode: convert one row per slice, commit and push
-- [ ] Structure review done — the case follows the suite's own case shape and duplicates only its two-line helpers
+- [ ] Design comprehension — the removal path must finish its work after a throw in any one step
+- [ ] Native parity — the game creates a clone's parent with the member's world entry and destroys it with the exit
+- [ ] Native parity probe — the host's log at a removal answers the pair
+- [ ] Entry mapping — `HostKickService.Kick` → `RemoveGuestMember` → `EntitySyncService.OnMemberRemoved` → `RemoteSceneChanged` → `OnRemoteSceneChanged` (`src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs:395`)
+- [ ] Mechanism inventory — both clone-destroy sites in the file carried the unguarded parent (`:405-409`, `:150-153`); both are fixed
+- [ ] Whole-family audit — the guard now removes the cache entry first, then destroys, and handles a missing parent
+- [ ] Self-check table — build 0 errors, gates 834/0
+- [ ] Verification design — a Unity clone cannot be unit-tested; the row is the live log pair at a removal
+- [ ] Plan approved by the user — night mode: fix or file every finding with its reading
+- [ ] Structure review done — the fix stays inside the renderer; no new type, no interface change
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

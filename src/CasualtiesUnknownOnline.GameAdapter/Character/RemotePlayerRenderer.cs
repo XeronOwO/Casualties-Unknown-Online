@@ -149,7 +149,11 @@ internal sealed class RemotePlayerRenderer(
 		{
 			if (clone != null)
 			{
-				Object.Destroy(clone.transform.parent.gameObject);
+				// Same parent guard as the removal path: a clone whose parent is already gone still
+				// answers `clone != null`, and dereferencing the missing parent throws out of the
+				// teardown (measured 2026-11-13 on the removal path; this site shares the shape).
+				var parent = clone.transform.parent;
+				Object.Destroy(parent != null ? parent.gameObject : clone.gameObject);
 			}
 		}
 
@@ -402,10 +406,19 @@ internal sealed class RemotePlayerRenderer(
 			EndCloneFailureRuns(steamId);
 		}
 
-		if (!inWorld && _remoteClones.TryGetValue(steamId, out var clone) && clone != null) // Unity object — ==
+		if (!inWorld && _remoteClones.TryGetValue(steamId, out var clone)) // Unity object — ==
 		{
-			Object.Destroy(clone.transform.parent.gameObject);
+			// Drop the entry before destroying anything: a throw between the two would leave a clone
+			// the renderer believes in, and every later tick would retry the removal. The parent can be
+			// gone already (the scene change that precedes a removal destroys it first), and a clone
+			// whose parent is gone still answers `clone != null` — the Unity null check covers the
+			// clone, not its parent (measured 2026-11-13: the host threw here on every removal).
 			_remoteClones.Remove(steamId);
+			if (clone != null)
+			{
+				var parent = clone.transform.parent;
+				Object.Destroy(parent != null ? parent.gameObject : clone.gameObject);
+			}
 		}
 
 		_log.LogInformation(inWorld

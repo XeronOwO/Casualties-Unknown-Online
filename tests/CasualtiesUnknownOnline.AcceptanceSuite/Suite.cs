@@ -564,6 +564,7 @@ internal static class CaseRegistry
 		new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22
 		// unresolved and aligned=False — review/1.0-enemy-roster-adopts-unresolved-rows.md. // parked 2026-11-12: the member scene holds 791 animals where the host
 		// holds 39 — the block-table divergence on a second surface (review/1.0-block-table-diverges-between-clients.md).
+		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
 		new SaveContinueCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.

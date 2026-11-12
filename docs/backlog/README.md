@@ -80,6 +80,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
+- [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
@@ -131,7 +132,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
-- [1.0: `/heal @a` leaves the member unchanged](done/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset lands; the member reads it restored.
 - [Adapt the mod to the game's 1.0 release](done/adapt-to-1.0.md) — **Highest** — the release build is read end to end; the rest is user decisions.
 - [A trader's copy is created by its own prefab id](done/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — the roster adopts aligned with 0 unresolved.
 - [1.0: remote limb operations carry no limb](done/1.0-remote-limb-operations-carry-no-limb.md) — the dose lands on the patient, read on both clients.

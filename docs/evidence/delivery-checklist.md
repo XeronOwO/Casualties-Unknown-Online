@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the sweep's table must name the cases that actually run
-- [ ] Native parity — no product change
-- [ ] Native parity probe — the table's claims match the registry
-- [ ] Entry mapping — each batch names its cases
-- [ ] Mechanism inventory — crafting is carried by `crafting`; the panel's open is parked
-- [ ] Whole-family audit — the sounds batch now names both green cases
-- [ ] Self-check table — the last full run read 23/23
-- [ ] Verification design — the table's rows point at case names
-- [ ] Plan approved by the user — night mode: a record correction, no decision
-- [ ] Structure review done — one table edit, no code
+- [ ] Design comprehension — the starting kit is granted on a character's first world entry
+- [ ] Native parity — the reading is the game's own container on the member's client
+- [ ] Native parity probe — the member's own bag read ≥ 4 items after the fresh run
+- [ ] Entry mapping — the entry is the member's own `container-read` after the case's own restart
+- [ ] Mechanism inventory — a long-lived session's kit is consumed; a fresh run grants a new one
+- [ ] Whole-family audit — the case runs first so later cases share its fresh character
+- [ ] Self-check table — 24/24 green in one run
+- [ ] Verification design — the member's own bag is the judge
+- [ ] Plan approved by the user — night mode: a parked row converted, no product decision
+- [ ] Structure review done — one registry move and the case's own restart
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

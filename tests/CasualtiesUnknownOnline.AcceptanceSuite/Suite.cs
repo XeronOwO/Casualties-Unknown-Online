@@ -505,7 +505,7 @@ internal static class CaseRegistry
 		// any case runs (measured: 0 items). The row needs a character that has never entered a world,
 		// which means its own session; it stays out of the all-suite run until the suite owns a
 		// per-case launch. The reading is on docs/backlog/in-progress/1.0-acceptance-suite.md.
-		// new StartingSuppliesCase(),
+		new StartingSuppliesCase(), // the kit is granted on a character's first world entry; the case restarts the run first
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),

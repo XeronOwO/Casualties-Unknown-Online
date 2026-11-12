@@ -85,6 +85,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
+- [A member's removal throws in the renderer](review/1.0-member-removal-throws-in-the-renderer.md) — **High** — the clone's parent goes first; the host throws.
 
 
 

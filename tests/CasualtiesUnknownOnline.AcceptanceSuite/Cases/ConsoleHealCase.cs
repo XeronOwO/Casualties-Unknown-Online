@@ -105,6 +105,12 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		var answer = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
 		context.Read("console-answer", answer);
 
+		// The member's own trace goes beside the reading: the host's chain can be green while the
+		// member's body never ran the reset (the 2026-11-13 reading), so the case names which side
+		// the reset reached before it judges the limb.
+		var trace = await context.Session.LogTailAsync(context.Session.MemberUrl, "HealReset", 20, cancellationToken).ConfigureAwait(false);
+		context.Read("member-heal-trace", trace);
+
 		// The heal is applied on the member's client: the member's own limb is the judge, polled
 		// because the command travels host → member before the body is rewritten.
 		JsonElement? healed = null;

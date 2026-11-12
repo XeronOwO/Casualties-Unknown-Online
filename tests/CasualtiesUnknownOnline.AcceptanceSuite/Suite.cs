@@ -520,7 +520,7 @@ internal static class CaseRegistry
 		// precondition before the damage path is re-read. Reading on 1.0-acceptance-suite.md. // parked: the cell under the player is air, and world.DamageBlock on an
 		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
 		// to find a solid cell around the host before it hits.
-		// new ConsoleHealCase(), // parked again 2026-11-13 01:30: the full-suite run read skinHealth 0.334, pain 83.36,
+		new ConsoleHealCase(), // un-parked 2026-11-13 01:50 with the member's own trace beside the reading; re-parked 2026-11-13 01:30: the full-suite run read skinHealth 0.334, pain 83.36,
 		// dislocated true after the host's /heal @a answered applied:true — the reset lands and the seeded wound's own
 		// tick re-damages before the read. The earlier 17/17 pass was a single race, not a fix. Reading on the suite ticket.
 		// un-parked 2026-11-13: the suite owns the member now (the stale-session

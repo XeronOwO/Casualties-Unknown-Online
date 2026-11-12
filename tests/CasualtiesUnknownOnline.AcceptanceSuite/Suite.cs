@@ -497,7 +497,8 @@ internal static class CaseRegistry
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
 		// (a row the sweep lists under the unhooked item families).
 		new LayerPanelCase(),
-		new CraftingCase(), // the crafting entry the game itself calls: a starting-material recipe is made and the product count grows // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
+		new CraftingCase(),
+		new WorldCensusCase(), // the host's own generated world: its building objects, counted by prefab // the crafting entry the game itself calls: a starting-material recipe is made and the product count grows // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
 		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),
@@ -519,7 +520,10 @@ internal static class CaseRegistry
 		// precondition before the damage path is re-read. Reading on 1.0-acceptance-suite.md. // parked: the cell under the player is air, and world.DamageBlock on an
 		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
 		// to find a solid cell around the host before it hits.
-		new ConsoleHealCase(), // un-parked 2026-11-13: the suite owns the member now (the stale-session
+		// new ConsoleHealCase(), // parked again 2026-11-13 01:30: the full-suite run read skinHealth 0.334, pain 83.36,
+		// dislocated true after the host's /heal @a answered applied:true — the reset lands and the seeded wound's own
+		// tick re-damages before the read. The earlier 17/17 pass was a single race, not a fix. Reading on the suite ticket.
+		// un-parked 2026-11-13: the suite owns the member now (the stale-session
 		// reading of 2026-11-12 judged a member the host's world never adopted); the row's judge is
 		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.

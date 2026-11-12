@@ -65,7 +65,7 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		{
 			for (var offset = 0; offset <= 10; offset++)
 			{
-				foreach (var x in offset == 0 ? new[] { startX } : new[] { startX - offset, startX + offset })
+				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
 				{
 					var y = startY - depth;
 					var read = await context.RecipeAsync("block-read-at", cancellationToken,

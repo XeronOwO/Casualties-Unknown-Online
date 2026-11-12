@@ -1,1 +1,7 @@
-{}
+{
+	"CasualtiesUnknownOnline.GameAdapter.World.BlockBreakSync": {
+		"Lines": 688,
+		"BoolFlags": 2,
+		"Ticket": "docs/backlog/in-progress/split-block-break-remote-apply.md"
+	}
+}

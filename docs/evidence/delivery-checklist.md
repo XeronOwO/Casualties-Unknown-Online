@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — a relay that reaches a generating guest is dropped with no recovery path
-- [ ] Native parity — the branch is the product's own guard, quoted verbatim
-- [ ] Native parity probe — the suite's break lands while the member's world still generates
-- [ ] Entry mapping — the entry is `WorldEventSync.BindToSession` → `OnRemoteBlockDamaged`
-- [ ] Mechanism inventory — only a breaker keeps a pending entry; a guest has none
-- [ ] Whole-family audit — the finding is on the divergence ticket with three options and a recommendation
-- [ ] Self-check table — the drop leaves no warning line on the member
-- [ ] Verification design — the fix buffers the relay and applies it when the world is whole
-- [ ] Plan approved by the user — night mode: the question is written into the ticket with options; the queue continues
-- [ ] Structure review done — no code changed this cycle
+- [ ] Design comprehension — a relay that reaches a generating world is dropped with no recovery; the fix holds it
+- [ ] Native parity — the held relay is applied through the same apply path a whole world uses
+- [ ] Native parity probe — the host's trace showed the send (`FlushPendingBlockBreak Committed(0+0)`) while the member's cell stayed stale
+- [ ] Entry mapping — the entry is `WorldEventSync.BindToSession` → `BlockBreakSync.OnRemoteBlockDamaged`
+- [ ] Mechanism inventory — the guest branch, the stale refusal and the bounded queue are the three shapes
+- [ ] Whole-family audit — the recorded ceiling names its owning ticket
+- [ ] Self-check table — build 0 errors, gates 834/0, unit 6650/0 this cycle
+- [ ] Verification design — the `block-sync` case is the judge after this change
+- [ ] Plan approved by the user — night mode: the fix follows the ticket's recommendation (buffer, apply when whole)
+- [ ] Structure review done — one new top-level type file, the ceiling recorded with its owner
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

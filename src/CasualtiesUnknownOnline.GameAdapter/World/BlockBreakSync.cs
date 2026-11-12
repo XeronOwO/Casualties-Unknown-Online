@@ -61,6 +61,20 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	private readonly BlockBreakArbitration _arbitration = new();
 
+	/// <summary>
+	/// Relays that reached this side while its world was (re)generating. Every cell belongs to the
+	/// previous layer until generation finishes, so the report cannot be applied on arrival — and a
+	/// guest has no pending entry to re-report it (only a breaker does), which made dropping it a
+	/// permanent divergence. Held in arrival order and applied once the world is whole; cleared with
+	/// the world on <see cref="ResetPending"/>.
+	/// </summary>
+	private readonly List<DeferredRemoteReport> _deferredReports = [];
+
+	/// <summary>The deferred queue's cost guard: a session whose world never finishes generating must not grow it without bound.</summary>
+	private const int DeferredReportCap = 256;
+
+
+
 	private const float RecentBrokenTtl = 3f;
 
 	/// <summary>
@@ -83,6 +97,8 @@ internal sealed class BlockBreakSync(
 	/// <summary>Pump: expire break records without a consuming BlockDamaged (quake/environment air writes, a breaker that disconnected mid-operation) and accepted-break records past the re-report window. The 1 s throttle is this side's cost guard — the expiry decisions live in the machine.</summary>
 	internal void Update()
 	{
+		DrainDeferredReports();
+
 		if ((_arbitration.Count == 0 && _arbitration.AcceptedCount == 0) || Time.unscaledTime - _lastBrokenCleanup <= 1f)
 		{
 			return;
@@ -90,6 +106,30 @@ internal sealed class BlockBreakSync(
 
 		_lastBrokenCleanup = Time.unscaledTime;
 		_arbitration.PurgeStale(Time.unscaledTime, RecentBrokenTtl, AcceptedBreakTtl);
+	}
+
+	/// <summary>
+	/// Applies the relays held while the world was generating, in arrival order, once the world is
+	/// whole again. A report that still finds a generating world stays queued (the drain stops there,
+	/// keeping the order); the world's own scene change clears the queue through
+	/// <see cref="ResetPending"/>.
+	/// </summary>
+	private void DrainDeferredReports()
+	{
+		while (_deferredReports.Count > 0)
+		{
+			if (WorldGeneration.world == null || HarmonyTraverse.IsGenerating())
+			{
+				return;
+			}
+
+			var report = _deferredReports[0];
+			_deferredReports.RemoveAt(0);
+			_log.LogInformation(
+				"[BlockBreak] applying the relay held while the world generated: ({X},{Y}) from {Sender}, {Remaining} still queued.",
+				report.X, report.Y, report.Sender, _deferredReports.Count);
+			ApplyRemoteReport(report.Sender, report.X, report.Y, report.Dmg, report.MetalBonus, report.Drops, report.BuildingDrops, WorldGenerationRelation.Current);
+		}
 	}
 
 	/// <summary>
@@ -204,6 +244,12 @@ internal sealed class BlockBreakSync(
 	internal void ResetPending()
 	{
 		_arbitration.Reset();
+		if (_deferredReports.Count > 0)
+		{
+			_log.LogInformation("[BlockBreak] the world was left — dropping {Count} held relay(s) with it.", _deferredReports.Count);
+			_deferredReports.Clear();
+		}
+
 		if (_breakState.TryReset(out var op))
 		{
 			_trace.End(op, 0, "ResetPending", "Cancelled", "WorldLeft");
@@ -239,10 +285,58 @@ internal sealed class BlockBreakSync(
 		var world = WorldGeneration.world;
 		if (world == null || HarmonyTraverse.IsGenerating()) // Unity objects/traverse — ==
 		{
-			// While (re)generating, every cell belongs to the previous layer — the
-			// same reason the air-write half drops its reports here. The reporter's
-			// pending entry survives, so its fallback re-reports once the world is
-			// whole again.
+			// Every cell belongs to the previous layer until generation finishes. A report stamped
+			// STALE belongs to another generation and is refused exactly as before; anything else
+			// (the current generation's relay, or one arriving while this side is still generating
+			// the same world) is HELD: a guest has no pending entry to re-report it, so dropping it
+			// left the cell stale on this side for the whole session (measured 2026-11-13).
+			if (generation == WorldGenerationRelation.Stale)
+			{
+				RefuseStaleReport(sender, x, y, drops, buildingDrops);
+				return;
+			}
+
+			DeferReport(sender, x, y, dmg, metalBonus, drops, buildingDrops);
+			return;
+		}
+
+		ApplyRemoteReport(sender, x, y, dmg, metalBonus, drops, buildingDrops, generation);
+	}
+
+	/// <summary>Refuses a report that belongs to another world generation, naming the side's consequence (the host rolls its drops back; a guest never materializes them).</summary>
+	private void RefuseStaleReport(ulong sender, int x, int y, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	{
+		if (IsHostMode)
+		{
+			_log.LogWarning("[BlockBreak] {Sender}'s report at ({X},{Y}) belongs to another world generation — not applied; its drops are refused with it.", sender, x, y);
+			_dropJudge.RefuseAll(sender, new Vector2Int(x, y), "the report belongs to another world generation", drops, buildingDrops);
+		}
+		else
+		{
+			_log.LogWarning("[BlockBreak] the host's relay at ({X},{Y}) belongs to another world generation — not applied and its drops not materialized.", x, y);
+		}
+	}
+
+	/// <summary>Holds a relay that arrived while this side's world was generating; the oldest is dropped with a warning when the cost guard is reached.</summary>
+	private void DeferReport(ulong sender, int x, int y, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
+	{
+		if (_deferredReports.Count >= DeferredReportCap)
+		{
+			var dropped = _deferredReports[0];
+			_deferredReports.RemoveAt(0);
+			_log.LogWarning("[BlockBreak] the held-report queue is full — dropping the oldest relay at ({X},{Y}) from {Sender}.", dropped.X, dropped.Y, dropped.Sender);
+		}
+
+		_deferredReports.Add(new DeferredRemoteReport(sender, x, y, dmg, metalBonus, drops, buildingDrops));
+		_log.LogInformation("[BlockBreak] a relay at ({X},{Y}) from {Sender} arrived while the world generates — held until it is whole ({Count} queued).", x, y, sender, _deferredReports.Count);
+	}
+
+	/// <summary>The apply path for one relay (the host arbitrates and relays; a guest applies): runs only against a whole world.</summary>
+	private void ApplyRemoteReport(ulong sender, int x, int y, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops, WorldGenerationRelation generation)
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity objects — ==
+		{
 			return;
 		}
 

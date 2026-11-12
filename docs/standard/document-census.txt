@@ -1398,3 +1398,4 @@ docs/evidence/acceptance/ip-direct-notice-20261111-a.md | keep | claim | docs/ba
 docs/backlog/review/1.0-member-waits-for-a-host-that-waits-for-it.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-enemy-roster-adopts-unresolved-rows.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-pinyin-search-finds-no-chinese-name.md | keep | claim | docs/backlog/README.md
+docs/backlog/in-progress/split-block-break-remote-apply.md | keep | claim | docs/backlog/README.md

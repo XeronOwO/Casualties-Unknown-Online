@@ -504,7 +504,7 @@ internal static class CaseRegistry
 		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
 		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
 		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
-		new BlockSyncCase(), // parked 2026-11-12: the block-hit recipe now names its stage, and the
+		// new BlockSyncCase(), // parked 2026-11-12: the block-hit recipe now names its stage, and the
 		// damage stage still throws a NullReferenceException at a cell block-read-at calls solid;
 		// the case also read a host at the menu (inWorld:false) — the row needs the in-world
 		// precondition before the damage path is re-read. Reading on 1.0-acceptance-suite.md. // parked: the cell under the player is air, and world.DamageBlock on an

@@ -122,8 +122,14 @@ internal sealed class SessionDriver(Options options)
 		// side is decided, the fixture uses the order the manual sessions proved: the host starts the
 		// run, the member joins the running world (and may spawn at its own pod — a case that needs
 		// the pair together places the member, as `GiveItemCase` does).
-		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
-		var deadline = Stopwatch.StartNew();
+		// The member joins the SESSION before the run starts, so the run's world join reaches it: a
+		// member that joins a running world keeps its own pod and never receives the item or clone
+		// stream (measured 2026-11-12: the host logged `World join sent to 0 member(s)` while the
+		// member sat in a world with an empty bag and no clone).
+		// Parked 2026-11-12: the join is refused or dies at the menu — the member's own log ends the
+		// session after 15 s of silence ("No frame from the host"), the host pings only while its
+		// session is active and the guest never confirms. See `1.0-member-waits-for-a-host-that-waits-for-it.md`.
+		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < StartBudget)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
@@ -152,16 +158,32 @@ internal sealed class SessionDriver(Options options)
 	/// </summary>
 	private async Task<string> JoinSessionBeforeRunAsync(CancellationToken cancellationToken)
 	{
+		// The member's client can still hold the previous run (a role Guest and a world of its own):
+		// it then answers `role Guest` immediately while the host's new session knows nothing of it.
+		// A member that is in a world — or whose session predates this run — leaves first, so the
+		// host's run start can carry it into the world (measured 2026-11-12: the pair looked joined
+		// while the member's bag and clone stream stayed empty).
+		var memberState = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(memberState, "inWorld") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal))
+		{
+			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			await WaitUntilAsync(_options.MemberUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+		}
+
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 
+		var before = await HandshakeCountAsync(cancellationToken).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < JoinBudget)
 		{
 			var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal)
+				&& await HandshakeCountAsync(cancellationToken).ConfigureAwait(false) > before)
 			{
+				// The host's own handshake line is the confirmation that THIS session knows the member;
+				// a stale Guest role alone was the reading that made the pair look joined.
 				return "the member joined the session before the run";
 			}
 
@@ -388,6 +410,27 @@ internal sealed class SessionDriver(Options options)
 	/// </summary>
 	public async Task<(string HostNote, string MemberNote)> EnsurePairAsync(CancellationToken cancellationToken)
 	{
+		// The member's client keeps the previous run (a Guest role and its own world) and a stale
+		// session answers "already in a world" while the host's new run knows nothing of it: every
+		// cross-player reading then comes back empty (measured 2026-11-12 — an empty bag, no clone,
+		// no dose line, all of them a member the host's world never adopted). The suite owns this
+		// client, so it recreates it once before the run rather than trusting a leftover session.
+		JsonElement? memberBefore;
+		try
+		{
+			memberBefore = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// A client that is down is not a stale session: the join path relaunches it when it must.
+			memberBefore = null;
+		}
+		if (memberBefore is { } memberState
+			&& (IsTrue(memberState, "inWorld") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal)))
+		{
+			await RelaunchAsync(_options.MemberUrl, "guest", cancellationToken).ConfigureAwait(false);
+		}
+
 		string hostNote;
 		try
 		{
@@ -493,6 +536,28 @@ internal sealed class SessionDriver(Options options)
 
 		return confirmed;
 	}
+
+	/// <summary>
+	/// How many handshake confirmations the host's log carries. A join this run must make the count
+	/// grow: the role alone says the client believes it joined, the host's line says the session does.
+	/// </summary>
+	private async Task<int> HandshakeCountAsync(CancellationToken cancellationToken)
+	{
+		var tail = await LogTailAsync(_options.HostUrl, "Handshake confirmed end-to-end with", 200, cancellationToken).ConfigureAwait(false);
+		if (tail is not { ValueKind: JsonValueKind.Object } answer
+			|| !answer.TryGetProperty("count", out var countElement))
+		{
+			return 0;
+		}
+
+		return countElement.ValueKind switch
+		{
+			JsonValueKind.Number when countElement.TryGetInt32(out var number) => number,
+			JsonValueKind.String when int.TryParse(countElement.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+			_ => 0,
+		};
+	}
+
 	public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);

@@ -241,6 +241,9 @@ function Ensure-SandboxService() {
 	return $false
 }
 function Ensure-BoxSteam([string]$Box) {
+	# An offline IP-direct pair never needs Steam in a box: the accounts there do not own the game, and
+	# the session runs over IP direct. The caller declares that with -AllowOfflineSteam (2026-11-12).
+	if ($AllowOfflineSteam) { Write-Run "$Box steam not started (offline IP direct: -AllowOfflineSteam)"; return }
 	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { return }
 	Write-Run "$Box has no Steam; starting it (never restarting one that runs)"
 	Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", $SteamExe) -WindowStyle Hidden
@@ -401,3 +404,4 @@ while ([DateTime]::UtcNow -lt $deadline) {
 }
 Write-Run "all in world: $allIn"
 if (-not $allIn) { exit 9 }
+

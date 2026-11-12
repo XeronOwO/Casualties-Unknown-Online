@@ -349,6 +349,10 @@ internal sealed class SessionDriver(Options options)
 		start.ArgumentList.Add(only);
 		start.ArgumentList.Add("-NoJoin");
 		start.ArgumentList.Add("-Restart");
+
+		// The boxed clients' Steam accounts do not own the game: the pair runs offline over IP direct,
+		// and a box must never be told to start its own Steam (measured 2026-11-12, the user's report).
+		start.ArgumentList.Add("-AllowOfflineSteam");
 		if (!string.IsNullOrEmpty(_options.GameDir))
 		{
 			start.ArgumentList.Add("-GameDir");

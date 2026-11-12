@@ -54,9 +54,11 @@ internal sealed class BlockSyncCase : AcceptanceCase
 
 		// Break it with the game's own damage path, then read both clients: the member's copy must
 		// agree with the host's after the sync.
-		var broken = await context.RecipeAsync("block-hit", cancellationToken,
-			("dx", found.Dx.ToString(CultureInfo.InvariantCulture)),
-			("dy", found.Dy.ToString(CultureInfo.InvariantCulture)),
+		// Absolute cell: the relative block-hit path throws inside the game when the body-relative
+		// cell resolves unevenly; the absolute break is the same native DamageBlock entry.
+		var broken = await context.RecipeAsync("block-break-at", cancellationToken,
+			("x", x.ToString(CultureInfo.InvariantCulture)),
+			("y", y.ToString(CultureInfo.InvariantCulture)),
 			("dmg", "1000")).ConfigureAwait(false);
 		context.Read("host-break", broken);
 		var after = Integer(broken, "blockAfter");
@@ -123,3 +125,4 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		}
 	}
 }
+

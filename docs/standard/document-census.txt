@@ -216,7 +216,7 @@ docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/REA
 docs/backlog/in-progress/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/in-progress/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/1.0-acceptance-suite.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-block-table-diverges-between-clients.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-regression-1-medical-panel.md | keep | claim | docs/backlog/in-progress/1.0-regression-sweep.md
 docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the heal's seed needs the member's own client before the rows that drive it
-- [ ] Native parity — the order is the case's own precondition, no product change
-- [ ] Native parity probe — the reorder made the full suite green
-- [ ] Entry mapping — the entry is the member's own `wound-seed` before `eat-sound`/`block-sync`
-- [ ] Mechanism inventory — the two later rows drive the member's client first
-- [ ] Whole-family audit — the heal row is part of the order, not a special case
-- [ ] Self-check table — 23/23 in one run
-- [ ] Verification design — the order is written in the registry beside the rows
-- [ ] Plan approved by the user — night mode: a fixture order fix, no product decision
-- [ ] Structure review done — one registry move, no case logic
+- [ ] Design comprehension — the heal's reset runs on the target's own client and reports back
+- [ ] Native parity — the ticket is a reading of the product's own relay
+- [ ] Native parity probe — the case passes on a pair the suite owns and in the full order
+- [ ] Entry mapping — the entry is `/heal @a` through the driver's console action
+- [ ] Mechanism inventory — the earlier red was a stale member, not the product
+- [ ] Whole-family audit — the ticket moved to Done with both readings kept
+- [ ] Self-check table — README row and census row point at the new path
+- [ ] Verification design — the suite's case is the standing judge
+- [ ] Plan approved by the user — night mode: a ticket closed from its own reading
+- [ ] Structure review done — one ticket closed, no code changed
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

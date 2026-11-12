@@ -535,8 +535,8 @@ internal static class CaseRegistry
 		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
 		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
 		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
-		new EatSoundCase(), // a host's own eat plays on the member's machine
-		new BlockSyncCase(), // a break the host applies reaches the member's own block table
+		// the block and eat rows run after the heal: both drive the member's own client and the heal's
+		// seed needs the member's body untouched (the order effect measured 2026-11-13 02:30).
 		// (parked note kept below: the case searches every solid cell within two cells
 		// of the host (twelve found) and the game's own break path changes none of them — every cell
 		// reads `block 14, damage -1`, the life pod's own indestructible shell. The row needs a fixture
@@ -554,6 +554,8 @@ internal static class CaseRegistry
 		// reading of 2026-11-12 judged a member the host's world never adopted); the row's judge is
 		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
+		new EatSoundCase(), // a host's own eat plays on the member's machine
+		new BlockSyncCase(), // a break the host applies reaches the member's own block table
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
 		new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22

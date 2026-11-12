@@ -3,17 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-
-- [ ] Design comprehension — the mine's explosion removes buildings, not the block table
-- [ ] Native parity — the crate is the game's own `containercrate` prefab, removed by the game's own explosion
-- [ ] Native parity probe — the census's `containercrate` group falls on the host and then on the member
-- [ ] Entry mapping — the row enters through `trap-stage` + `trap-trigger` and leaves through each client's own `world-object-census`
-- [ ] Mechanism inventory — the world batch's trap row is this one; `block-sync` already covers the terrain path
-- [ ] Whole-family audit — the witness is per-client, so the member's own copy is judged, not the host's report
-- [ ] Self-check table — build 0 errors, gates 834/0, suite 29 passed 0 failed
-- [ ] Verification design — the row passes alone and inside the order
-- [ ] Plan approved by the user — night mode: one row per slice, commit and push
-- [ ] Structure review done — the case reuses the shared breakable-cell finder; no new helper duplicated
+- [ ] Design comprehension — the row proves the member's own client shows the line with elapsed time, not a mirror of the host's
+- [ ] Native parity — the line is the game's own RadiationLine; the fixture writes the layer limit and time, nothing else
+- [ ] Native parity probe — the member's own radiation-line-state carries active and timeGone
+- [ ] Entry mapping — the row enters through layer-limit-set + layer-time-set and leaves through each client's own radiation-line-state
+- [ ] Mechanism inventory — WorldGeneration activates the line only past maxTimePerLayer; the case restores 10800 at the end
+- [ ] Whole-family audit — the elapsed-time clock starts when the member's client sees the activation, so the first active read can carry 0; the poll covers that same read on every client
+- [ ] Self-check table — build 0 errors, gates 834/0, tests 6650/0, the case alone PASS
+- [ ] Verification design — the case failed on the deployed build with timeGone 0, the poll was added, the case then passed alone
+- [ ] Plan approved by the user — night mode: file or fix the finding with its reading and move to the next row
+- [ ] Structure review done — the poll reuses WaitActiveAsync and the case's own helpers; no new helper
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

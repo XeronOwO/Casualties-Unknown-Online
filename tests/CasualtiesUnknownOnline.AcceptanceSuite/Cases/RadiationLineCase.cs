@@ -29,7 +29,20 @@ internal sealed class RadiationLineCase : AcceptanceCase
 		context.Read("host-line", hostState);
 		Require(Boolean(hostState, "active"), "the host's line never activated: " + Raw(hostState));
 
-		var memberState = await WaitActiveAsync(context, true, cancellationToken).ConfigureAwait(false);
+		// The member's own line starts its clock when its client sees the activation, so the first
+		// active read can still carry timeGone 0; the elapsed time is what the row proves.
+		JsonElement? memberState = null;
+		for (var wait = 0; wait < 20; wait++)
+		{
+			memberState = await WaitActiveAsync(context, true, cancellationToken).ConfigureAwait(false);
+			if (Boolean(memberState, "active") && Number(memberState, "timeGone") > 0)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("member-line", memberState);
 		Require(Boolean(memberState, "active"), "the member's own client never shows the line: " + Raw(memberState));
 		Require(Number(memberState, "timeGone") > 0, "the member's line has no elapsed time: " + Raw(memberState));

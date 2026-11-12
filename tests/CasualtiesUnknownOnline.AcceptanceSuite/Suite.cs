@@ -592,6 +592,7 @@ internal static class CaseRegistry
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		new EatSoundCase(), // a host's own eat plays on the member's machine
 		new BlockSyncCase(), // a break the host applies reaches the member's own block table
+		new MineBlastCase(), // a mine the host fires destroys a building on the member's own copy
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
 		new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22

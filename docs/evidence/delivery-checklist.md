@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the block relay lands asynchronously, so a one-shot member read is a race
-- [ ] Native parity — a trader is an animal row in the enemy table, and its blast answer is a refusal path
-- [ ] Native parity probe — the mine explosion does not carve its own cell (block 2 before and after)
-- [ ] Entry mapping — the mine row's entry is `trap-stage` + `trap-trigger`, its witness must be a building
-- [ ] Mechanism inventory — the breakable-cell scan is now shared (`CaseContext.FindBreakableCellAsync`) by `BlockSyncCase` and the mine row
-- [ ] Whole-family audit — both fixture flakes in the run (block-sync's single read, enemy-kill's trader pick) are fixed together
-- [ ] Self-check table — build 0 errors, gates 834/0, suite 28 passed 0 failed
-- [ ] Verification design — the suite's own report is the judge
-- [ ] Plan approved by the user — night mode: rows converted with readings, commits per slice
-- [ ] Structure review done — the second caller of the finder pulled it into the context
+- [ ] Design comprehension — the mine's explosion removes buildings, not the block table
+- [ ] Native parity — the crate is the game's own `containercrate` prefab, removed by the game's own explosion
+- [ ] Native parity probe — the census's `containercrate` group falls on the host and then on the member
+- [ ] Entry mapping — the row enters through `trap-stage` + `trap-trigger` and leaves through each client's own `world-object-census`
+- [ ] Mechanism inventory — the world batch's trap row is this one; `block-sync` already covers the terrain path
+- [ ] Whole-family audit — the witness is per-client, so the member's own copy is judged, not the host's report
+- [ ] Self-check table — build 0 errors, gates 834/0, suite 29 passed 0 failed
+- [ ] Verification design — the row passes alone and inside the order
+- [ ] Plan approved by the user — night mode: one row per slice, commit and push
+- [ ] Structure review done — the case reuses the shared breakable-cell finder; no new helper duplicated
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

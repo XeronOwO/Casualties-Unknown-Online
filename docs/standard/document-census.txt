@@ -1390,7 +1390,7 @@ docs/backlog/done/1.0-layers-beyond-the-fifth.md | keep | claim | docs/backlog/R
 docs/evidence/acceptance/1.0-run-ending-20261110-a.md | keep | claim | docs/backlog/done/1.0-endings-authority.md
 docs/backlog/done/1.0-capability-install-units.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/overlay-buttons-are-silent-20261110.md | keep | claim | docs/backlog/done/overlay-buttons-are-silent.md
-docs/backlog/review/host-cannot-host-after-continue.md | keep | claim | docs/backlog/README.md
+docs/backlog/in-progress/host-cannot-host-after-continue.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-remote-limb-operations-carry-no-limb.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-ip-direct-guest-disconnects.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-transport-handover-identity.md | keep | claim | docs/backlog/README.md

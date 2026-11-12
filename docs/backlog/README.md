@@ -77,8 +77,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
+- [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
-- [Host cannot host after a continue](review/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The host's `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the relay says applied; the body stays.
@@ -518,4 +518,3 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Watchlist
 
 - [Architecture watchlist](watchlist/architecture-watchlist.md) — files near the 600-line gate.
-

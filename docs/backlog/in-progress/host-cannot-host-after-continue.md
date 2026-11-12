@@ -1,13 +1,11 @@
 # A host cannot start a session after entering a world
 
-- Status: Review — blocked on user — a product decision. A host who continues a world first and hosts second is refused
-  on 1.0 IP direct (`IP-direct start refused: a world is running or generating`), and the world has already loaded in
-  the host's own key space, so a later session cannot adopt the restored characters (`Continue restored world … with
-  damage: the snapshot was written in the IpDirect key space and this session runs Steam, so none of its 2 stored
-  character(s) was claimed (decision 162)`). The decision to make: when the player picks Continue as the host, create
-  the lobby/IP session first automatically, or allow a session to start inside a running world. The reading is
-  `docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md` and the layer-end section of
-  `docs/backlog/in-progress/adapt-to-1.0.md`.
+- Status: In progress — the user chose option 2 (2026-11-11): the experience comes first, so a host
+  may turn a running world into a multiplayer room as long as the save is CUO's own (never the
+  vanilla save). A host who continues a world first and hosts second is refused on 1.0 IP direct
+  (`IP-direct start refused: a world is running or generating`), and the world has already loaded in
+  the host's own key space. The reading is `docs/evidence/acceptance/adapt-to-1.0-ip-direct-20261109.md`
+  and the layer-end section of `docs/backlog/in-progress/adapt-to-1.0.md`.
 - Priority: High
 - Category: Session / save
 - Source: found while reading the layer-end continue on the sandboxed 1.0 session (2026-11-10).

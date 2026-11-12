@@ -134,7 +134,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A trader's copy is created by its own prefab id](done/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — the roster adopts aligned with 0 unresolved.
 - [1.0: remote limb operations carry no limb](done/1.0-remote-limb-operations-carry-no-limb.md) — the dose lands on the patient, read on both clients.
 - [1.0: the IP-direct guest drops out](done/1.0-ip-direct-guest-disconnects.md) — **High** — a stale box build, synced by the suite.
-- [1.0: the host's `/heal @a` leaves the member unchanged](done/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset lands on the target (17/17 suite).
+- [The host's `/heal @a` leaves the member unchanged](done/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset lands on the target.
 - [The overlay's buttons are silent](done/overlay-buttons-are-silent.md) — **Medium** — every control plays the game's own click.
 - [1.0: a capability installs and comes off as a unit](done/1.0-capability-install-units.md) — **High** — an optional capability turned off is gone.
 - [IP direct shows the purchase notice when Steam is not ready](done/ip-direct-shows-the-purchase-notice.md) — **High** — IP runs ask first.

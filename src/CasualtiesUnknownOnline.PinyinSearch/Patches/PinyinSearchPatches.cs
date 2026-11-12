@@ -54,6 +54,15 @@ internal static class PinyinSearchPatches
 				return true;
 			}
 
+			// One line per distinct query names the exact string this build feeds the filter (an id, a
+			// localized name, or something else), so a pinyin query that finds nothing can be diagnosed
+			// from the log without another build.
+			if (!string.Equals(_probedValue, value, StringComparison.Ordinal))
+			{
+				_probedValue = value;
+				PinyinSearchGate.Log?.LogInfo($"[Pinyin] probe filter='{value}' instance='{__instance}'.");
+			}
+
 			if (NameSearchMatcher.Matches(__instance, value))
 			{
 				PinyinSearchGate.Log?.LogInfo($"[Pinyin] extended match: '{value}' matched '{__instance}'.");
@@ -63,5 +72,7 @@ internal static class PinyinSearchPatches
 
 			return true;
 		}
+
+		private static string _probedValue = string.Empty;
 	}
 }

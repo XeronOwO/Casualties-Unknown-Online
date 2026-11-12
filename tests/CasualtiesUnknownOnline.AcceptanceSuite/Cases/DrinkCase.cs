@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -49,7 +50,7 @@ internal sealed class DrinkCase : AcceptanceCase
 		return value.ValueKind switch
 		{
 			JsonValueKind.Number => value.GetInt64(),
-			JsonValueKind.String when long.TryParse(value.GetString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed) => parsed,
+			JsonValueKind.String when long.TryParse(value.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
 			_ => -1,
 		};
 	}

@@ -45,8 +45,8 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		Require(solidCells.Count > 0, "no solid block within two cells of the host: " + Raw(await ReadBlockAsync(context, false, bodyX, bodyY, cancellationToken).ConfigureAwait(false)));
 		context.Note($"solid cells near the host: {solidCells.Count}");
 
-		int x = 0;
-		int y = 0;
+		var x = 0;
+		var y = 0;
 		long foundBlock = 0;
 		JsonElement? broken = null;
 		foreach (var cell in solidCells)

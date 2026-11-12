@@ -4,17 +4,17 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the root cause read on the release decompile; no design changed
-- [ ] Native parity — no native behaviour changed; the reading is the game's own filter call
-- [ ] Native parity probe — no probe ran this cycle; the next probe is named on the ticket
-- [ ] Entry mapping — the entry is the crafting panel's search field, read through `crafting-search`
-- [ ] Mechanism inventory — the patch, the filter line and the locale lookups are named
-- [ ] Whole-family audit — both branches (English literal, pinyin) are recorded
-- [ ] Self-check table — the ticket records both readings and the decompile lines
-- [ ] Verification design — one recipe call per branch, judged on `rowCount`
-- [ ] Plan approved by the user — night mode: the finding is filed with three options and a recommendation
-- [ ] Structure review done — no code changed; the fix belongs to the pinyin mod
-- [ ] Build + dotnet format + dotnet test normative gates pass — documentation-only cycle
+- [ ] Design comprehension — the filter's own string is the question; the probe answers it without guessing
+- [ ] Native parity — the patch touches only the game's `string.Contains` inside the refresh scope
+- [ ] Native parity probe — one line per distinct query names the instance the matcher receives
+- [ ] Entry mapping — the entry is the crafting panel's search field
+- [ ] Mechanism inventory — the refresh, the filter line, the locale lookups and the patch are named
+- [ ] Whole-family audit — both branches (English literal, pinyin) are read by the same probe
+- [ ] Self-check table — the ticket records the readings, the decompile lines and the options
+- [ ] Verification design — deploy, query `cuiruo`, read the probe line and the row count
+- [ ] Plan approved by the user — night mode: a diagnostic line only, no product decision
+- [ ] Structure review done — the probe is one static field and one log line inside the existing patch
+- [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit
       (build → deploy → two-client acceptance per `docs/acceptance/`), outside the

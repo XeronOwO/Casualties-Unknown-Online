@@ -496,6 +496,8 @@ internal static class CaseRegistry
 		new TraderCase(),
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
 		// (a row the sweep lists under the unhooked item families).
+		new LayerPanelCase(), // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
+		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),
 		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds

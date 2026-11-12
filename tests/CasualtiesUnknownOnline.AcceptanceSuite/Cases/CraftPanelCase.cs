@@ -16,6 +16,12 @@ internal sealed class CraftPanelCase : AcceptanceCase
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
+		// The game's own Escape closes the CUO window; the craft screen's own open throws while that
+		// window is up (measured 2026-11-13), so the row closes it first and lets the game settle.
+		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
+		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
 		var opened = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "open"), ("index", "0")).ConfigureAwait(false);
 		context.Read("panel-open", opened);
 		Require(Boolean(opened, "ok") == true, "the crafting panel could not be opened: " + Raw(opened));

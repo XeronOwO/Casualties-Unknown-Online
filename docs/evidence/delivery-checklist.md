@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the crafting panel's own entry is `PlayerCamera.OpenCraftScreen`; the attempt names where it throws
+- [ ] Design comprehension — the craft screen's own open path is the recipe's direct call; where it throws is now named
 - [ ] Native parity — no native behaviour changed
 - [ ] Native parity probe — one recipe call, one failure reading
-- [ ] Entry mapping — the entry is the game's own craft screen
-- [ ] Mechanism inventory — the CUO window is named as the likely precondition
-- [ ] Whole-family audit — the case is parked with its reading, not deleted
-- [ ] Self-check table — the ticket records the reading
-- [ ] Verification design — the next attempt closes the window before the open
-- [ ] Plan approved by the user — night mode: a parking with its cause, no product decision
-- [ ] Structure review done — the case stays beside the others and is switched off by one comment
+- [ ] Entry mapping — the entry is `PlayerCamera.OpenCraftScreen`
+- [ ] Mechanism inventory — the recipe's own call is the suspect, not the CUO window
+- [ ] Whole-family audit — the case stays parked with both readings
+- [ ] Self-check table — both readings recorded
+- [ ] Verification design — the next step is inside the recipe
+- [ ] Plan approved by the user — night mode: a park with its cause, no product decision
+- [ ] Structure review done — one registry comment switches the case off
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the poll rules the tick out; the snapshot is the new candidate
+- [ ] Design comprehension — the host's log proves the chain on the host's side; the member's own trace is the gap
 - [ ] Native parity — no native behaviour changed
-- [ ] Native parity probe — the case's own poll is the probe
+- [ ] Native parity probe — the host log is the probe
 - [ ] Entry mapping — the entry is the console verb `/heal @a`
-- [ ] Mechanism inventory — `Limb.ImpactDamage` leaves no ticking component
-- [ ] Whole-family audit — the reset's landing and the persistent value are both recorded
-- [ ] Self-check table — before/after reads and the 15 s poll are on the ticket
-- [ ] Verification design — the next probe logs the limb writes and the applied report
-- [ ] Plan approved by the user — night mode: the reading is filed, no product decision asked
-- [ ] Structure review done — the candidate owner is the host's snapshot path
+- [ ] Mechanism inventory — the applied handler, the store and the member's own body are named
+- [ ] Whole-family audit — the host's chain and the member's missing trace are both recorded
+- [ ] Self-check table — both logs are quoted
+- [ ] Verification design — the case records the member's log tail beside the reading
+- [ ] Plan approved by the user — night mode: the next probe is named, no product decision
+- [ ] Structure review done — the probe uses the existing `log-tail` action
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

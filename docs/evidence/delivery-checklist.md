@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the pause is the client's own and the container ramps the clock a frame after the field is set
-- [ ] Native parity — the row writes the same `PauseHandler.main.isPaused` field the ESC handler toggles, and reads the game's own `Time.timeScale`
-- [ ] Native parity probe — the toggle itself does nothing from the evaluator while every guard reads clear
-- [ ] Entry mapping — the case enters through `pause-set` and judges `time-scale-read` on both clients
-- [ ] Mechanism inventory — one recipe added, one case re-registered, one ticket note
-- [ ] Whole-family audit — the row joins `world-clock`; both read the game's own clock field
-- [ ] Self-check table — build 0 errors, gates 834/0, suite 27/27 this cycle
-- [ ] Verification design — the row is judged by the clock value and by the member's own `paused`
-- [ ] Plan approved by the user — night mode: the sweep row conversion is the goal's own queue
-- [ ] Structure review done — the case keeps its own file and the toggle limit is named in its comment
+- [ ] Design comprehension — a live client with a dead session is not what `EnsurePairAsync`'s relaunch repairs
+- [ ] Native parity — the batch's fixture rule is now a `-Restart` cycle before a full run
+- [ ] Native parity probe — the same tree read 22/5 then 27/27, so the difference is the pair, not the code
+- [ ] Entry mapping — the reading is on the suite ticket beside the case list
+- [ ] Mechanism inventory — documentation-only; no case or recipe changed
+- [ ] Whole-family audit — the degraded-pair signature names both families it broke (UI rows and the world request)
+- [ ] Self-check table — gates 834/0 this cycle
+- [ ] Verification design — the recovery is judged by a full green run after the restart
+- [ ] Plan approved by the user — night mode: a fixture lesson lands on its ticket and the queue continues
+- [ ] Structure review done — the lesson is one ticket section, no new rule file
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

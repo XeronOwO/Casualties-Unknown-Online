@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the panel's open ends in `RefreshRecipeList`, which reads the recipes the mods hook
-- [ ] Native parity — the throw's surface is named in the game's own code
-- [ ] Native parity probe — the open throws even with the CUO window closed
-- [ ] Entry mapping — the entry is `PlayerCamera.OpenCraftScreen` → `RefreshRecipeList`
-- [ ] Mechanism inventory — two mods read the same recipe list; the next step is a bisect
-- [ ] Whole-family audit — the row stays parked with its narrowed cause
-- [ ] Self-check table — the throw names the call chain
-- [ ] Verification design — bisect the mods' hooks on the next attempt
-- [ ] Plan approved by the user — night mode: a park with its cause, no product decision
-- [ ] Structure review done — no code changed this cycle
+- [ ] Design comprehension — an eat's sound is played on the body's own client and relayed to the other
+- [ ] Native parity — the cross-client sound is the game's own call name
+- [ ] Native parity probe — the member's recorder carried the eat after the host used the snack
+- [ ] Entry mapping — the entry is the host's own `item-use` from its hand and the member's recorder
+- [ ] Mechanism inventory — the snack comes from `item-provide mode=create`; the hand is used via `item-use`
+- [ ] Whole-family audit — the sounds domain now has a cross-client case beside the UI sound row
+- [ ] Self-check table — the run's own readings; two intermittent reds recorded
+- [ ] Verification design — the member's own recorder is the judge
+- [ ] Plan approved by the user — night mode: a sweep row converted, no product decision
+- [ ] Structure review done — the case sits beside the others and reuses the helpers
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

@@ -61,9 +61,9 @@ internal sealed class BlockSyncCase : AcceptanceCase
 	{
 		// The life pod's own shell is block 14 with no BlockInfo row; the terrain around and below
 		// the pod is ordinary soil. Scan a narrow band under and beside the host.
-		for (var depth = 0; depth < 14; depth++)
+		for (var depth = 0; depth < 24; depth++)
 		{
-			for (var offset = 0; offset <= 4; offset++)
+			for (var offset = 0; offset <= 10; offset++)
 			{
 				foreach (var x in offset == 0 ? new[] { startX } : new[] { startX - offset, startX + offset })
 				{

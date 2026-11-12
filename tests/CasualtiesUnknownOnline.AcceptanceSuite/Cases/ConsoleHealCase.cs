@@ -82,6 +82,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// is applied by the target's own frame, and a heal sent in the same frame lands FIRST (the
 		// wound then reopens over the healed body — measured: a heal answered applied and stored while
 		// the member's limb read 0.309). The case waits for the wound before it heals.
+		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 		var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
 		context.Read("member-wound", seeded);
 		JsonElement? wounded = null;

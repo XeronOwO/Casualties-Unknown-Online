@@ -261,6 +261,27 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	/// `objects=0 mismatches=407`, then `objects=407 mismatches=0` seconds later). The case waits for
 	/// the host's own custody line to report convergence AFTER the case started reading the log.
 	/// </summary>
+	/// <summary>Waits until the member's own client reports a spawned body (the seeded limbs live on it).</summary>
+	public async Task WaitForMemberBodyAsync(CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; attempt < 30; attempt++)
+		{
+			var state = await MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+			if (state is { ValueKind: JsonValueKind.Object } body
+				&& body.TryGetProperty("localBody", out var local)
+				&& local.ValueKind == JsonValueKind.Object
+				&& local.TryGetProperty("positionY", out var y)
+				&& y.ValueKind == JsonValueKind.Number
+				&& y.GetDouble() != 0)
+			{
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the member's own body did not spawn");
+	}
 	public async Task WaitForCustodyAsync(CancellationToken cancellationToken)
 	{
 		var path = HostLogPath;
@@ -514,6 +535,7 @@ internal static class CaseRegistry
 		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
 		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
 		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
+		new EatSoundCase(), // a host's own eat plays on the member's machine
 		new BlockSyncCase(), // a break the host applies reaches the member's own block table
 		// (parked note kept below: the case searches every solid cell within two cells
 		// of the host (twelve found) and the game's own break path changes none of them — every cell

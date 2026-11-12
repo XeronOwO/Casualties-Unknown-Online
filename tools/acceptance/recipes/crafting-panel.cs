@@ -32,6 +32,33 @@
 	if (panel == null) { return "{\"ok\":false,\"error\":\"no-panel\"}"; }
 	var selectedField = cameraType.GetField("selectedRecipe", F);
 	var selected = selectedField == null ? -1 : (int)selectedField.GetValue(camera);
+	if (mode == "probe") {
+		// Names the recipes whose own product sprite throws inside RefreshRecipeList (the 1.0 panel
+		// cannot open while one such recipe is visible). Reflection only.
+		var probeRecipes = findType("Recipes");
+		var probeList = probeRecipes == null ? null : probeRecipes.GetField("recipes", F)?.GetValue(null) as System.Collections.IList;
+		if (probeList == null) { return "{\"ok\":false,\"error\":\"no-recipes\"}"; }
+		var bad = new System.Collections.Generic.List<string>();
+		var checkedCount = 0;
+		for (var i = 0; i < probeList.Count && checkedCount < 400; i++) {
+			var probeRecipe = probeList[i];
+			if (probeRecipe == null) { continue; }
+			checkedCount++;
+			try {
+				probeRecipe.GetType().GetProperty("resultSprite", F)?.GetValue(probeRecipe);
+			} catch (System.Exception ex) {
+				var inner = ex.InnerException ?? ex;
+				var probeResult = probeRecipe.GetType().GetField("result", F)?.GetValue(probeRecipe);
+				var probeId = probeResult == null ? "<none>" : System.Convert.ToString(probeResult.GetType().GetField("id", F)?.GetValue(probeResult));
+				bad.Add(probeId + "|" + inner.GetType().Name);
+			}
+		}
+		var probeText = "{\"ok\":true,\"checked\":" + checkedCount + ",\"badCount\":" + bad.Count + ",\"badIds\":[";
+		for (var b = 0; b < bad.Count && b < 20; b++) { if (b > 0) { probeText += ","; } probeText += "\"" + bad[b].Replace("\\", "/").Replace("\"", "'") + "\""; }
+		probeText += "]}";
+		return probeText;
+	}
+
 	if (mode == "close") {
 		if (panel.activeSelf) {
 			cameraType.GetMethod("OpenCraftScreen", F).Invoke(camera, null);

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the pause call is refused while the handler's own three guards hold; the probe read every guard clear and the toggle still did nothing
-- [ ] Native parity — the two recipes read the game's own `PauseHandler.main`, `isPaused`, `disallowPause` and `Time.timeScale`
-- [ ] Native parity probe — `pause-probe` called `TogglePause` and read the handler's own field in the same eval: `before false, after false, pausedProperty false, exception ""`
-- [ ] Entry mapping — the row enters through `PauseHandler.TogglePause` and reads `pause-state`
-- [ ] Mechanism inventory — the slice adds two read-only instruments and one reading; nothing under `src/` changed
-- [ ] Whole-family audit — the pause row belongs to the world-acceleration family; `world-clock` passes
-- [ ] Self-check table — gates 834/0 this cycle
-- [ ] Verification design — the next probe is the pause container's own `Update` against the handler field, named on the ticket
-- [ ] Plan approved by the user — night mode: a refused row is parked with its reading and the queue continues
-- [ ] Structure review done — the instruments are read-only recipes with their own header and return contract
+- [ ] Design comprehension — the pause is the client's own and the container ramps the clock a frame after the field is set
+- [ ] Native parity — the row writes the same `PauseHandler.main.isPaused` field the ESC handler toggles, and reads the game's own `Time.timeScale`
+- [ ] Native parity probe — the toggle itself does nothing from the evaluator while every guard reads clear
+- [ ] Entry mapping — the case enters through `pause-set` and judges `time-scale-read` on both clients
+- [ ] Mechanism inventory — one recipe added, one case re-registered, one ticket note
+- [ ] Whole-family audit — the row joins `world-clock`; both read the game's own clock field
+- [ ] Self-check table — build 0 errors, gates 834/0, suite 27/27 this cycle
+- [ ] Verification design — the row is judged by the clock value and by the member's own `paused`
+- [ ] Plan approved by the user — night mode: the sweep row conversion is the goal's own queue
+- [ ] Structure review done — the case keeps its own file and the toggle limit is named in its comment
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

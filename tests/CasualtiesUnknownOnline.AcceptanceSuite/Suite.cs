@@ -515,10 +515,7 @@ internal static class CaseRegistry
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run
 		new WorldClockCase(), // the run's clock is the host's: a requested speed reaches the member
-		// new PauseClockCase(), // parked 2026-11-13 04:45: the game's own `PauseHandler.TogglePause` refuses
-		// (`paused:false, timeScale:1`) even after the game's own Escape closes the CUO window — either its
-		// `SettingsMenu.instance` or its `disallowPause` gate is set on the suite's fresh run. Reading on
-		// 1.0-acceptance-suite.md; the row needs a recipe that names which gate refused before it can be judged.
+		new PauseClockCase(), // a pause is the client's own: the host's clock stops, the member's keeps running
 		new CloneProbeCase(),
 		new TraderCase(),
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused

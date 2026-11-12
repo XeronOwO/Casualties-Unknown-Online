@@ -565,9 +565,10 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
-		new LockpickCase(), // the held press completes the lock; the row needs a lockable within the fresh run's reach`r`n		// parked note: the held press completes the lock (unlock@ fired on a live
-		// world, 2026-11-12), but the suite's fresh run spawns with no lockable in reach; the reading is
-		// on the suite ticket.
+		// new LockpickCase(), // parked 2026-11-13 02:55: in the suite's own run the hand reaches the band with the
+		// button down (magnitude 225.2) but the game's own started flag never sets and no unlock plays; the
+		// standalone run at 01:05 did complete (`lockProgress 0.612`, `unlock@10046.9`). The reading is on the
+		// suite ticket.
 	];
 }
 

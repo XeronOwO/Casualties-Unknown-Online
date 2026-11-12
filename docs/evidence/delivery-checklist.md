@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the lock's completion needs the game's own `handStarted` while the button is held
-- [ ] Native parity — the reading is the game's own minigame state
-- [ ] Native parity probe — the hand reaches the band (225.2) with the button down; `handStarted` stays false
-- [ ] Entry mapping — the entry is the held press through `lockpick-hold` and the game's own update
-- [ ] Mechanism inventory — the standalone run completed; the suite's fresh run does not
-- [ ] Whole-family audit — the row stays parked with the new reading
-- [ ] Self-check table — the report's own `aim`/`live`/`progress` lines
-- [ ] Verification design — read the aim's `correctAngle` against the hand's angle next
-- [ ] Plan approved by the user — night mode: a park with its cause, no product decision
-- [ ] Structure review done — the case stays beside the others, switched off by one comment
+- [ ] Design comprehension — a host's block break is reported to the member's own table
+- [ ] Native parity — the reading is the game's own block table on each client
+- [ ] Native parity probe — the host read `blockAfter 0` at `(4, 503)`; the member still read `block 2`
+- [ ] Entry mapping — the entry is the absolute cell on both clients
+- [ ] Mechanism inventory — the row passed earlier in the night, so the report reaches the member only sometimes
+- [ ] Whole-family audit — the lapse is recorded on the divergence ticket, not hidden
+- [ ] Self-check table — both readings quoted with their absolute cell
+- [ ] Verification design — read the host's own break report beside the member's table on a failing run
+- [ ] Plan approved by the user — night mode: a finding filed with its reading, no product decision
+- [ ] Structure review done — the case stays in the order and is not weakened
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

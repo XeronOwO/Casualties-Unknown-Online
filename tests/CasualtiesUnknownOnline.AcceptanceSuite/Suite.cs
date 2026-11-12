@@ -61,6 +61,14 @@ internal static partial class Program
 			await Task.Delay(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
 		}
 
+		// The roster can carry a row from a session that is gone; the host's own handshake line
+		// names the member that actually joined, so the cases address that id.
+		var confirmedMember = await session.ConfirmedMemberIdAsync(CancellationToken.None).ConfigureAwait(false);
+		if (confirmedMember is not null)
+		{
+			members = [confirmedMember];
+		}
+
 		if (members.Length > 0)
 		{
 			options = options with { MemberId = members[0] };

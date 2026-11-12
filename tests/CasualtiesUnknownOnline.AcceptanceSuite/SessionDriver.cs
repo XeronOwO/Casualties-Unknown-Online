@@ -420,11 +420,20 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-		if (members.Length > 0)
+		var confirmed = await ConfirmedMemberIdAsync(cancellationToken).ConfigureAwait(false);
+		if (confirmed is not null && members.Contains(confirmed, StringComparer.Ordinal))
 		{
 			return (hostNote, memberNote);
 		}
 
+		if (confirmed is null && members.Length > 0)
+		{
+			// No handshake line to judge by (an older host build): the roster is the best reading.
+			return (hostNote, memberNote);
+		}
+
+		// The roster can carry a row from a session that is gone; a member whose id the host never
+		// confirmed is not in this world, whatever its own client believes (measured 2026-11-12).
 		memberNote = await RecoverPairAsync(cancellationToken).ConfigureAwait(false);
 		return (hostNote, memberNote);
 	}
@@ -444,6 +453,46 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	/// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>
+	/// <summary>
+	/// The member the host's own log last confirmed in a handshake. The roster can still carry a
+	/// row from a session that is gone (measured 2026-11-12: every cross-player case addressed a
+	/// stale id while the member sat in its own world), so the cases address this id instead.
+	/// </summary>
+	public async Task<string?> ConfirmedMemberIdAsync(CancellationToken cancellationToken)
+	{
+		var tail = await LogTailAsync(_options.HostUrl, "Handshake confirmed end-to-end with", 5, cancellationToken).ConfigureAwait(false);
+		if (tail is not { ValueKind: JsonValueKind.Object } answer
+			|| !answer.TryGetProperty("count", out var countElement))
+		{
+			return null;
+		}
+
+		// The driver answers a JSON frame's fields as strings; accept both shapes.
+		var count = countElement.ValueKind switch
+		{
+			JsonValueKind.Number when countElement.TryGetInt32(out var number) => number,
+			JsonValueKind.String when int.TryParse(countElement.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+			_ => 0,
+		};
+
+		string? confirmed = null;
+		for (var index = 0; index < count; index++)
+		{
+			if (!answer.TryGetProperty($"line{index}", out var lineElement) || lineElement.ValueKind != JsonValueKind.String)
+			{
+				continue;
+			}
+
+			var line = lineElement.GetString() ?? string.Empty;
+			var marker = line.LastIndexOf(' ');
+			if (marker > 0 && ulong.TryParse(line[(marker + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out var peer))
+			{
+				confirmed = peer.ToString(CultureInfo.InvariantCulture);
+			}
+		}
+
+		return confirmed;
+	}
 	public async Task<string[]> ReadMembersAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -748,6 +797,7 @@ internal sealed class SessionDriver(Options options)
 		return false;
 	}
 }
+
 
 
 

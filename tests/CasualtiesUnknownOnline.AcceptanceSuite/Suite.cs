@@ -510,7 +510,9 @@ internal static class CaseRegistry
 		// precondition before the damage path is re-read. Reading on 1.0-acceptance-suite.md. // parked: the cell under the player is air, and world.DamageBlock on an
 		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
 		// to find a solid cell around the host before it hits.
-		// new ConsoleHealCase(), // parked: the reset is applied and stored, then the wound's parts read back (2026-11-12)
+		new ConsoleHealCase(), // un-parked 2026-11-13: the suite owns the member now (the stale-session
+		// reading of 2026-11-12 judged a member the host's world never adopted); the row's judge is
+		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.

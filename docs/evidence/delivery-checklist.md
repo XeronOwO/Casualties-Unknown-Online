@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the world census reads the host's own generated world; no design changed
+- [ ] Design comprehension — the reopened ticket names the reset's own order against the wound tick
 - [ ] Native parity — no native behaviour changed
-- [ ] Native parity probe — the case ran alone and inside the full suite
-- [ ] Entry mapping — the world domain's entry is the host's own generated world
-- [ ] Mechanism inventory — one reading per case, named in the report
-- [ ] Whole-family audit — the new case plus the console-heal recurrence were both read this cycle
-- [ ] Self-check table — the ticket records both readings
-- [ ] Verification design — one recipe call, judged on `total ≥ 1`
-- [ ] Plan approved by the user — night mode: a new case and a parking, no product decision
-- [ ] Structure review done — the case is a small class beside the others, using the shared context
+- [ ] Native parity probe — the reading is the two limb reads from the same run
+- [ ] Entry mapping — the entry is the console verb `/heal @a`
+- [ ] Mechanism inventory — `LocalBodyReset.Reset`'s order and the wound tick are named
+- [ ] Whole-family audit — the recurrence is recorded beside the earlier pass
+- [ ] Self-check table — the ticket carries the before/after limb reads
+- [ ] Verification design — the case re-un-parks only when the reset clears the wound state
+- [ ] Plan approved by the user — night mode: a finding reopened with its reading
+- [ ] Structure review done — the fix belongs to `LocalBodyReset`, not the fixture
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

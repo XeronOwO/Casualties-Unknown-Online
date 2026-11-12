@@ -150,12 +150,28 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		// The member's own client is the treated side: its log names the received stack when the dose
 		// reached it. Without that line the host measured a copy and the body never took the dose —
-		// the delivery half, which is a different reading from the marker.
-		var memberAnswer = await context.Session
-			.ActionAsync(context.Session.MemberUrl, "log-tail", cancellationToken, ("-Argument", "local body received"), ("-Text", "3"))
-			.ConfigureAwait(false);
-		context.Read("member-received", memberAnswer);
-		var recovered = memberAnswer.GetRawText();
+		// the delivery half, which is a different reading from the marker. The line is written by the
+		// member's own client after the release, so the read polls the tail before it judges.
+		var recovered = string.Empty;
+		for (var attempt = 0; attempt < 8; attempt += 1)
+		{
+			var memberAnswer = await context.Session
+				.ActionAsync(context.Session.MemberUrl, "log-tail", cancellationToken, ("-Argument", "local body received"), ("-Text", "3"))
+				.ConfigureAwait(false);
+			recovered = memberAnswer.GetRawText();
+			if (recovered.Contains("local body received", StringComparison.Ordinal))
+			{
+				if (attempt == 0)
+				{
+					context.Read("member-received", memberAnswer);
+				}
+
+				break;
+			}
+
+			context.Read($"member-received-{attempt}", memberAnswer);
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
 
 		// The host's own copy of the member's body is the other half of the comparison: the adapter
 		// ran the native action there, so its marker must be set even when the treated client's is not.

@@ -513,6 +513,7 @@ internal static class CaseRegistry
 		new OverlaySoundCase(),
 		new WorldsPageCase(),
 		new SettingsPageCase(),
+		new ConsoleCompletionCase(), // the console offers only the commands the player can run
 		new CloneProbeCase(),
 		new TraderCase(),
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused

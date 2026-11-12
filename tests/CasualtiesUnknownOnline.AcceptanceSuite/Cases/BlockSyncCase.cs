@@ -60,22 +60,23 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		CaseContext context, int startX, int startY, CancellationToken cancellationToken)
 	{
 		// The life pod's own shell is block 14 with no BlockInfo row; the terrain around and below
-		// the pod is ordinary soil. Scan a narrow band under and beside the host.
-		for (var depth = 0; depth < 24; depth++)
+		// the pod is ordinary soil, but a host that spawned inside the pod's cave sees air below it
+		// and the shell on every side (measured 2026-11-13: 504 cells, all 0 or 14), so the band
+		// reaches above the body as well and widens before it gives up.
+		for (var y = startY + 24; y >= startY - 40; y--)
 		{
-			for (var offset = 0; offset <= 10; offset++)
+			for (var offset = 0; offset <= 16; offset++)
 			{
 				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
 				{
-					var y = startY - depth;
 					var read = await context.RecipeAsync("block-read-at", cancellationToken,
 						("x", x.ToString(CultureInfo.InvariantCulture)),
 						("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-					context.Read("scan " + x + "," + y, read);
 					var block = Number(read, "block");
 					// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
 					if (block is not null && block.Value != 0 && block.Value != 14)
 					{
+						context.Read("scan " + x + "," + y, read);
 						return (x, y, (int)block.Value);
 					}
 				}

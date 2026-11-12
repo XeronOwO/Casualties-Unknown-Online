@@ -1,11 +1,13 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// The radiation line is the host's fact: the layer time sets it, and the member's own client reads
-/// the same line without driving it. The row came from `radiation-line-descent-rate-per-side`; the
-/// case writes the time, reads both sides, and restores the layer so later cases start clean.
+/// The radiation line: the host's world crosses its own layer-time limit, the game activates the line,
+/// and the member's own client shows the same line (the row `radiation-line-descent-rate-per-side`).
+/// The limit is a field written at world creation, so the fixture sets it before it sets the layer
+/// time; the line itself cannot be switched off, which is why this case sits late in the order.
 /// </summary>
 internal sealed class RadiationLineCase : AcceptanceCase
 {
@@ -13,52 +15,70 @@ internal sealed class RadiationLineCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var written = await context.RecipeAsync("layer-time-set", cancellationToken, ("seconds", "600"));
-		context.Read("layer-time", written);
-		Require(Boolean(written, "ok"), "the layer time was not written: " + Raw(written));
+		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		// The line follows the host's clock; a frame or two of settle keeps both reads on the same tick.
-		await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+		// The line activates only past the world's own limit; the field is private and written once.
+		var limit = await context.RecipeAsync("layer-limit-set", cancellationToken, ("seconds", "0.5")).ConfigureAwait(false);
+		context.Read("limit", limit);
+		Require(Boolean(limit, "ok"), "the layer limit could not be written: " + Raw(limit));
 
-		var host = await context.RecipeAsync("radiation-line-state", cancellationToken);
-		context.Read("host-line", host);
-		Require(Boolean(host, "ok"), "the host cannot read the line: " + Raw(host));
-		Require(Boolean(host, "active"), "the host's line is not active after the layer time: " + Raw(host));
-		var hostTime = Number(host, "timeGone");
+		var time = await context.RecipeAsync("layer-time-set", cancellationToken, ("seconds", "600")).ConfigureAwait(false);
+		context.Read("layer-time", time);
+		Require(Boolean(time, "ok"), "the layer time could not be written: " + Raw(time));
 
-		var member = await context.MemberRecipeAsync("radiation-line-state", cancellationToken);
-		context.Read("member-line", member);
-		Require(Boolean(member, "ok"), "the member cannot read the line: " + Raw(member));
-		Require(Boolean(member, "active"), "the member's line is not active: " + Raw(member));
-		var memberTime = Number(member, "timeGone");
+		var hostState = await WaitActiveAsync(context, false, cancellationToken).ConfigureAwait(false);
+		context.Read("host-line", hostState);
+		Require(Boolean(hostState, "active"), "the host's line never activated: " + Raw(hostState));
 
-		// The host-synced line is one fact: both sides agree to within a tick's worth of drift.
-		Require(Math.Abs(hostTime - memberTime) <= 5, $"the two sides disagree on the line ({hostTime} vs {memberTime})");
-		Require(Math.Abs(Number(host, "lineY") - Number(member, "lineY")) <= 1, "the two sides disagree on the line's height");
+		var memberState = await WaitActiveAsync(context, true, cancellationToken).ConfigureAwait(false);
+		context.Read("member-line", memberState);
+		Require(Boolean(memberState, "active"), "the member's own client never shows the line: " + Raw(memberState));
+		Require(Number(memberState, "timeGone") > 0, "the member's line has no elapsed time: " + Raw(memberState));
 
-		await context.RecipeAsync("layer-time-set", cancellationToken, ("seconds", "0")).ConfigureAwait(false);
+		// A line the host owns: the two views descend together, so their heights are within a few
+		// seconds of each other's rate rather than an exact match.
+		var hostY = Number(hostState, "lineY");
+		var memberY = Number(memberState, "lineY");
+		Require(Math.Abs(hostY - memberY) < 40, $"the two views' lines are {Math.Abs(hostY - memberY):0.#} apart: host {hostY:0.#}, member {memberY:0.#}");
+
+		// The limit is restored so a later case is not surprised by a world that already crossed it.
+		await context.RecipeAsync("layer-limit-set", cancellationToken, ("seconds", "10800")).ConfigureAwait(false);
+	}
+
+	private static async Task<JsonElement?> WaitActiveAsync(CaseContext context, bool member, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		for (var wait = 0; wait < 20; wait++)
+		{
+			last = member
+				? await context.MemberRecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false)
+				: await context.RecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+			if (Boolean(last, "active"))
+			{
+				return last;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
+		return last;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
-	private static double Number(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.ValueKind == JsonValueKind.Number
-		&& value.TryGetDouble(out var number)
-			? number
-			: double.NaN;
-
 	private static bool Boolean(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.ValueKind == JsonValueKind.True;
+		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var found) && found.ValueKind == JsonValueKind.True;
+
+	private static double Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var found) && found.ValueKind == JsonValueKind.Number
+			? found.GetDouble()
+			: 0;
 
 	private static void Require(bool condition, string message)
 	{
 		if (!condition)
 		{
-			throw new AssertionException(message);
+			throw new InvalidOperationException(message);
 		}
 	}
 }

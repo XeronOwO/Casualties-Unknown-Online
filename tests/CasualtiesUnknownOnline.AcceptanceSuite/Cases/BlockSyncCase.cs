@@ -4,133 +4,116 @@ using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// A block the host breaks is gone on the member's own client at the same cell: the block row from
-/// the world domain of the sweep (the block mutation reaches the guest and the re-report agrees).
-/// The cell is FOUND first: the one under the player can be air, and the game's own DamageBlock
-/// dereferences the block, so an air cell answers a NullReferenceException instead of a row.
+/// A block mutation the host makes reaches the member: the host breaks one real terrain block below
+/// its own body (a cell whose block id the game's own <c>BlockInfo</c> table names, never the life
+/// pod's shell, which has no info row and makes <c>WorldGeneration.DamageBlock</c> throw), and the
+/// member's own world reads the same cell changed. The row is the world-block domain's cross-client
+/// half: a break the host applies is the member's block table changing too.
 /// </summary>
 internal sealed class BlockSyncCase : AcceptanceCase
 {
-	private static readonly (int Dx, int Dy)[] Offsets =
-	[
-		(0, 0), (0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1),
-		(0, -2), (0, 2), (-2, 0), (2, 0),
-	];
-
 	public override string Name => "block-sync";
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
+		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
+
 		var body = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
-		context.Read("host-body", body);
-		var bodyX = (int)Math.Floor(Number(body, "positionX"));
-		var bodyY = (int)Math.Floor(Number(body, "positionY"));
+		context.Read("body", body);
+		var localBody = body is { ValueKind: JsonValueKind.Object } bodyElement
+		&& bodyElement.TryGetProperty("localBody", out var bodyValue)
+			? bodyValue
+			: (JsonElement?)null;
+		var bodyX = Number(localBody, "positionX");
+		var bodyY = Number(localBody, "positionY");
+		Require(bodyX is not null && bodyY is not null, "the host body has no position: " + Raw(body));
 
-		// The solid cells beside the host, found with the absolute read; the air cell under the player
-		// throws inside the game's own DamageBlock. A solid cell is not necessarily BREAKABLE (the life
-		// pod's own shell is not), so the case tries the solid cells in turn and judges the first one the
-		// game's damage path actually changes.
-		var solidCells = new List<(int X, int Y, long Block)>();
-		foreach (var offset in Offsets)
-		{
-			var probe = await ReadBlockAsync(context, false, bodyX + offset.Dx, bodyY + offset.Dy, cancellationToken).ConfigureAwait(false);
-			var value = Integer(probe, "block");
-			if (value != 0)
-			{
-				solidCells.Add((bodyX + offset.Dx, bodyY + offset.Dy, value));
-			}
-		}
+		var cellX = (int)Math.Floor(bodyX!.Value);
+		var cellY = (int)Math.Floor(bodyY!.Value) - 1;
+		var target = await FindBreakableCellAsync(context, cellX, cellY, cancellationToken).ConfigureAwait(false);
+		Require(target is not null, "no breakable terrain cell was found below the host at (" + cellX + ", " + cellY + ")");
 
-		Require(solidCells.Count > 0, "no solid block within two cells of the host: " + Raw(await ReadBlockAsync(context, false, bodyX, bodyY, cancellationToken).ConfigureAwait(false)));
-		context.Note($"solid cells near the host: {solidCells.Count}");
+		var (targetX, targetY, blockBefore) = target!.Value;
+		context.Read("target", JsonDocument.Parse("{\"x\":" + targetX + ",\"y\":" + targetY + ",\"block\":" + blockBefore + "}").RootElement.Clone());
 
-		var x = 0;
-		var y = 0;
-		long foundBlock = 0;
-		JsonElement? broken = null;
-		foreach (var cell in solidCells)
-		{
-			var before = await ReadBlockAsync(context, false, cell.X, cell.Y, cancellationToken).ConfigureAwait(false);
-			context.Read("host-before", before);
-			var attempt = await context.RecipeAsync("block-break-at", cancellationToken,
-				("x", cell.X.ToString(CultureInfo.InvariantCulture)),
-				("y", cell.Y.ToString(CultureInfo.InvariantCulture)),
-				("dmg", "1000")).ConfigureAwait(false);
-			context.Read("host-break", attempt);
-			if (Integer(attempt, "blockAfter") != cell.Block)
-			{
-				x = cell.X;
-				y = cell.Y;
-				foundBlock = cell.Block;
-				broken = attempt;
-				break;
-			}
-		}
+		var broken = await context.RecipeAsync("block-break-at", cancellationToken,
+			("x", targetX.ToString(CultureInfo.InvariantCulture)),
+			("y", targetY.ToString(CultureInfo.InvariantCulture)),
+			("dmg", "1000")).ConfigureAwait(false);
+		context.Read("host break", broken);
+		Require(Boolean(broken, "ok") == true, "the host's block break failed: " + Raw(broken));
+		var blockAfter = Number(broken, "blockAfter");
+		Require(blockAfter is not null && blockAfter.Value != blockBefore, "the host's own world did not change the block: " + Raw(broken));
 
-		Require(broken is not null, "no solid cell near the host took damage from the game's own break path");
-		var after = Integer(broken, "blockAfter");
-		Require(after != foundBlock, "the block did not change: " + Raw(broken));
-
-		var hostAfter = await WaitForBlockAsync(context, false, cancellationToken, x, y, value => value != foundBlock).ConfigureAwait(false);
-		context.Read("host-after", hostAfter);
-		var memberAfter = await WaitForBlockAsync(context, true, cancellationToken, x, y, value => value != foundBlock).ConfigureAwait(false);
-		context.Read("member-after", memberAfter);
-		Require(Integer(memberAfter, "block") != foundBlock, "the member's client still shows the block the host broke: " + Raw(memberAfter));
+		var memberRead = await context.MemberRecipeAsync("block-read-at", cancellationToken,
+			("x", targetX.ToString(CultureInfo.InvariantCulture)),
+			("y", targetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		context.Read("member read", memberRead);
+		Require(Boolean(memberRead, "ok") == true, "the member could not read the cell: " + Raw(memberRead));
+		var memberBlock = Number(memberRead, "block");
+		Require(memberBlock is not null && memberBlock.Value == blockAfter!.Value,
+			"the member still reads block " + memberBlock + " where the host now has " + blockAfter + ": " + Raw(memberRead));
 	}
 
-	private static async Task<JsonElement?> WaitForBlockAsync(CaseContext context, bool member, CancellationToken cancellationToken, int x, int y, Func<long, bool> predicate)
+	private static async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(
+		CaseContext context, int startX, int startY, CancellationToken cancellationToken)
 	{
-		JsonElement? last = null;
-		for (var wait = 0; wait < 20; wait++)
+		// The life pod's own shell is block 14 with no BlockInfo row; the terrain around and below
+		// the pod is ordinary soil. Scan a narrow band under and beside the host.
+		for (var depth = 0; depth < 14; depth++)
 		{
-			last = await ReadBlockAsync(context, member, x, y, cancellationToken).ConfigureAwait(false);
-			if (predicate(Integer(last, "block")))
+			for (var offset = 0; offset <= 4; offset++)
 			{
-				return last;
+				foreach (var x in offset == 0 ? new[] { startX } : new[] { startX - offset, startX + offset })
+				{
+					var y = startY - depth;
+					var read = await context.RecipeAsync("block-read-at", cancellationToken,
+						("x", x.ToString(CultureInfo.InvariantCulture)),
+						("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					context.Read("scan " + x + "," + y, read);
+					var block = Number(read, "block");
+					// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
+					if (block is not null && block.Value != 0 && block.Value != 14)
+					{
+						return (x, y, (int)block.Value);
+					}
+				}
 			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
-		return last;
-	}
-
-	private static async Task<JsonElement?> ReadBlockAsync(CaseContext context, bool member, int x, int y, CancellationToken cancellationToken)
-	{
-		return member
-			? await context.MemberRecipeAsync("block-read-at", cancellationToken, ("x", x.ToString(CultureInfo.InvariantCulture)), ("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false)
-			: await context.RecipeAsync("block-read-at", cancellationToken, ("x", x.ToString(CultureInfo.InvariantCulture)), ("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		return null;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
-	private static string Text(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var found) && found.ValueKind == JsonValueKind.String
-			? found.GetString() ?? ""
-			: "";
+	private static bool? Boolean(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element || !element.TryGetProperty(property, out var value))
+		{
+			return null;
+		}
 
-	private static long Integer(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var found)
-			? found.ValueKind switch
-			{
-				JsonValueKind.Number => found.GetInt64(),
-				JsonValueKind.String => long.TryParse(found.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0,
-				_ => 0,
-			}
-			: 0;
+		return value.ValueKind switch
+		{
+			JsonValueKind.True => true,
+			JsonValueKind.False => false,
+			_ => null,
+		};
+	}
 
-	private static double Number(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var found) && found.ValueKind == JsonValueKind.Number
-			? found.GetDouble()
-			: 0;
+	private static double? Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: null;
 
 	private static void Require(bool condition, string message)
 	{
 		if (!condition)
 		{
-			throw new InvalidOperationException(message);
+			throw new AssertionException(message);
 		}
 	}
 }
-

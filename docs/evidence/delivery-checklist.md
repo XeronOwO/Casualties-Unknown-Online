@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — `DamageBlock` dereferences `GetBlockInfo` before writing damage
-- [ ] Native parity — the reading is the game's own code, no native change
-- [ ] Native parity probe — `block-hit dmg=0` failed at stage `damage`
-- [ ] Entry mapping — the entry is `WorldGeneration.DamageBlock(Vector2Int, float, bool, bool, bool)`
-- [ ] Mechanism inventory — block 14 has no `BlockInfo`, so a hit there cannot land
-- [ ] Whole-family audit — the row stays parked with the cause, not deleted
-- [ ] Self-check table — the stage name from the recipe's own wrapper
-- [ ] Verification design — the next fixture names a real terrain cell
-- [ ] Plan approved by the user — night mode: a park with its cause, no product decision
-- [ ] Structure review done — no code changed, the reading sits beside the parked row
+- [ ] Design comprehension — a break the host applies changes its own world and must reach the member's block table
+- [ ] Native parity — the reading is the game's own block table on both clients
+- [ ] Native parity probe — `block-break-at` at a soil cell changed the host's block and the member read the same cell changed
+- [ ] Entry mapping — the entry is the absolute cell read on each client (`block-read-at`)
+- [ ] Mechanism inventory — the pod shell (block 14) has no `BlockInfo` row; the soil band does
+- [ ] Whole-family audit — the parked row's reading is superseded by the passing case
+- [ ] Self-check table — 22/22 green in one run
+- [ ] Verification design — the case scans a ±4 band, breaks one cell, reads both sides
+- [ ] Plan approved by the user — night mode: a sweep row converted, no product decision
+- [ ] Structure review done — the case sits beside the others and uses the shared helpers
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

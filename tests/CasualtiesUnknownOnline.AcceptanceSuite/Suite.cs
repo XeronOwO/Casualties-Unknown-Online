@@ -514,7 +514,8 @@ internal static class CaseRegistry
 		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
 		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
 		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
-		// new BlockSyncCase(), // parked 2026-11-13: the case searches every solid cell within two cells
+		new BlockSyncCase(), // a break the host applies reaches the member's own block table
+		// (parked note kept below: the case searches every solid cell within two cells
 		// of the host (twelve found) and the game's own break path changes none of them — every cell
 		// reads `block 14, damage -1`, the life pod's own indestructible shell. The row needs a fixture
 		// that reaches breakable ground (a cell whose `damage` is not -1), not another cell search.

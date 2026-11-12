@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -322,11 +323,43 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	/// Empties the player's body slots through the game's own drop entry, so a case that needs a
 	/// fresh item has somewhere to put it. Every case that provides an item owns its own room.
 	/// </summary>
+	/// <summary>
+	/// The nearest cell around the given point that the game's own damage path can change: block 0 is air and
+	/// block 14 is the life pod's shell, whose BlockInfo row does not exist, so a damage call on it throws.
+	/// The band reaches above the body as well — a host that spawned inside the pod's cave sees air below it
+	/// and the shell on every side (measured 2026-11-13).
+	/// </summary>
+	public async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(int startX, int startY, CancellationToken cancellationToken)
+	{
+		for (var y = startY + 24; y >= startY - 40; y--)
+		{
+			for (var offset = 0; offset <= 16; offset++)
+			{
+				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
+				{
+					var read = await RecipeAsync("block-read-at", cancellationToken,
+						("x", x.ToString(CultureInfo.InvariantCulture)),
+						("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					var block = read is { ValueKind: JsonValueKind.Object } element
+						&& element.TryGetProperty("block", out var value) && value.ValueKind == JsonValueKind.Number
+							? value.GetDouble()
+							: (double?)null;
+					if (block is not null && block.Value != 0 && block.Value != 14)
+					{
+						Read("scan " + x + "," + y, read);
+						return (x, y, (int)block.Value);
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
 	public async Task ClearBodyAsync(CancellationToken cancellationToken)
 	{
 		var bag = await RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
-		Read("body-items", bag);
-		if (bag is not { ValueKind: JsonValueKind.Object } element
+		Read("body-items", bag);		if (bag is not { ValueKind: JsonValueKind.Object } element
 			|| !element.TryGetProperty("ids", out var ids)
 			|| ids.ValueKind != JsonValueKind.String)
 		{

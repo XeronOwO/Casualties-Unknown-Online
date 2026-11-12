@@ -46,12 +46,25 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		var blockAfter = Number(broken, "blockAfter");
 		Require(blockAfter is not null && blockAfter.Value != blockBefore, "the host's own world did not change the block: " + Raw(broken));
 
-		var memberRead = await context.MemberRecipeAsync("block-read-at", cancellationToken,
-			("x", targetX.ToString(CultureInfo.InvariantCulture)),
-			("y", targetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		context.Read("member read", memberRead);
+		// The relay lands asynchronously: the member's own read is polled, not taken once.
+		JsonElement? memberRead = null;
+		double? memberBlock = null;
+		for (var attempt = 0; attempt < 12; attempt++)
+		{
+			memberRead = await context.MemberRecipeAsync("block-read-at", cancellationToken,
+				("x", targetX.ToString(CultureInfo.InvariantCulture)),
+				("y", targetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			memberBlock = Number(memberRead, "block");
+			if (memberBlock is not null && memberBlock.Value == blockAfter!.Value)
+			{
+				context.Read("member read", memberRead);
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
 		Require(Boolean(memberRead, "ok") == true, "the member could not read the cell: " + Raw(memberRead));
-		var memberBlock = Number(memberRead, "block");
 		Require(memberBlock is not null && memberBlock.Value == blockAfter!.Value,
 			"the member still reads block " + memberBlock + " where the host now has " + blockAfter + ": " + Raw(memberRead));
 	}

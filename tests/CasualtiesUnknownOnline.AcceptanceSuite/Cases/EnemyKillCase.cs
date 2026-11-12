@@ -75,6 +75,14 @@ internal sealed class EnemyKillCase : AcceptanceCase
 				continue;
 			}
 
+			var idText = id.GetString() ?? string.Empty;
+			// A trader is an animal row too, and the blast's answer for it is a refusal path: the row kills
+			// a creature, not the merchant the member may need.
+			if (idText.StartsWith("trader", StringComparison.Ordinal))
+			{
+				continue;
+			}
+
 			var d = distance.GetDouble();
 			if (d < SafeBodyDistance)
 			{
@@ -83,7 +91,7 @@ internal sealed class EnemyKillCase : AcceptanceCase
 
 			if (best is null || d < best.Value.Distance)
 			{
-				best = (id.GetString() ?? string.Empty, d);
+				best = (idText, d);
 			}
 		}
 

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the craft screen's own open path is the recipe's direct call; where it throws is now named
-- [ ] Native parity — no native behaviour changed
-- [ ] Native parity probe — one recipe call, one failure reading
-- [ ] Entry mapping — the entry is `PlayerCamera.OpenCraftScreen`
-- [ ] Mechanism inventory — the recipe's own call is the suspect, not the CUO window
-- [ ] Whole-family audit — the case stays parked with both readings
-- [ ] Self-check table — both readings recorded
-- [ ] Verification design — the next step is inside the recipe
+- [ ] Design comprehension — `DamageBlock` dereferences `GetBlockInfo` before writing damage
+- [ ] Native parity — the reading is the game's own code, no native change
+- [ ] Native parity probe — `block-hit dmg=0` failed at stage `damage`
+- [ ] Entry mapping — the entry is `WorldGeneration.DamageBlock(Vector2Int, float, bool, bool, bool)`
+- [ ] Mechanism inventory — block 14 has no `BlockInfo`, so a hit there cannot land
+- [ ] Whole-family audit — the row stays parked with the cause, not deleted
+- [ ] Self-check table — the stage name from the recipe's own wrapper
+- [ ] Verification design — the next fixture names a real terrain cell
 - [ ] Plan approved by the user — night mode: a park with its cause, no product decision
-- [ ] Structure review done — one registry comment switches the case off
+- [ ] Structure review done — no code changed, the reading sits beside the parked row
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

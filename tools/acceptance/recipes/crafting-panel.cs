@@ -54,7 +54,20 @@
 		}
 		if (index < 0) { return "{\"ok\":false,\"error\":\"no-flimsyknife-recipe\"}"; }
 		if (!panel.activeSelf) {
-			cameraType.GetMethod("OpenCraftScreen", F).Invoke(camera, null);
+			try { cameraType.GetMethod("OpenCraftScreen", F).Invoke(camera, null); }
+			catch (System.Exception ex) {
+				var inner = ex.InnerException ?? ex;
+				var text = inner.GetType().Name + ": " + inner.Message;
+				var wv = cameraType.GetField("woundView", F)?.GetValue(camera);
+				var bodyField = cameraType.GetField("body", F)?.GetValue(camera);
+				var worldType = findType("WorldGeneration");
+				var world = worldType?.GetField("world", F | System.Reflection.BindingFlags.Static)?.GetValue(null);
+				text += " | woundView=" + (wv == null ? "null" : "set") + " body=" + (bodyField == null ? "null" : "set") + " world=" + (world == null ? "null" : "set");
+				var frames = (inner.StackTrace ?? "").Split('\n');
+				for (var f = 0; f < frames.Length && f < 3; f++) { text += " | " + frames[f].Trim(); }
+				if (text.Length > 300) { text = text.Substring(0, 300); }
+				return "{\"ok\":false,\"error\":\"open-threw\",\"detail\":\"" + text.Replace("\\", "/").Replace("\"", "'") + "\"}";
+			}
 		}
 		// The open re-selects a row of the visible category (RefreshRecipeList), so the fixture's selection is set AFTER
 		// the open and the panel's own detail refresh is called - the same method the row click calls.

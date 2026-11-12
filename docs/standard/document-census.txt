@@ -1400,3 +1400,4 @@ docs/backlog/done/1.0-enemy-roster-adopts-unresolved-rows.md | keep | claim | do
 docs/backlog/review/1.0-pinyin-search-finds-no-chinese-name.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/split-block-break-remote-apply.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-member-removal-throws-in-the-renderer.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/1.0-crafting-screen-throws-on-a-recipe-sprite.md | keep | claim | docs/backlog/README.md

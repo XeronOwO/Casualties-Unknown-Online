@@ -1,5 +1,6 @@
 # CUO Backlog
 
+
 DevOps-style issue/requirement backlog. Every item has its own ticket file under one
 status folder; moving a ticket to another folder is the status transition.
 
@@ -82,7 +83,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The host's `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the relay says applied; the body stays.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
-- [The enemy roster adopts unresolved rows](review/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — 22 of the host's 47 rows stay unbound.
 
 
 
@@ -131,6 +131,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 - [Adapt the mod to the game's 1.0 release](done/adapt-to-1.0.md) — **Highest** — the release build is read end to end; the rest is user decisions.
+- [A trader's copy is created by its own prefab id](done/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — the roster adopts aligned with 0 unresolved.
 - [1.0: remote limb operations carry no limb](done/1.0-remote-limb-operations-carry-no-limb.md) — the dose lands on the patient, read on both clients.
 - [1.0: the IP-direct guest drops out](done/1.0-ip-direct-guest-disconnects.md) — **High** — a stale box build, synced by the suite.
 - [The overlay's buttons are silent](done/overlay-buttons-are-silent.md) — **Medium** — every control plays the game's own click.
@@ -517,6 +518,4 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Watchlist
 
 - [Architecture watchlist](watchlist/architecture-watchlist.md) — files near the 600-line gate.
-
-
 

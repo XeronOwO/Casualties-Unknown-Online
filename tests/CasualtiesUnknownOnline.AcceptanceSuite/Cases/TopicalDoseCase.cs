@@ -94,8 +94,16 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("medical-open", opened);
 		Require(Boolean(opened, "opened"), "the member's medical view did not open");
 
-		// The member's own limb, before the dose.
+		// The member's own limb, before the dose. A healthy limb takes no cream at all (the game's own
+		// use path skips it), so a wound is seeded first — the dose must land on a wound the view shows.
 		var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+		if (Number(before, "skinHealth") >= 99 && Number(before, "bleedAmount") <= 0.05)
+		{
+			var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "3"), ("force", "300"), ("infection", "0"));
+			context.Note("seeded the wound: " + Raw(seeded));
+			before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+		}
+
 		context.Read("member-limb-before", before);
 		var beforeDisinfection = Number(before, "disinfectionTime");
 
@@ -228,4 +236,5 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		}
 	}
 }
+
 

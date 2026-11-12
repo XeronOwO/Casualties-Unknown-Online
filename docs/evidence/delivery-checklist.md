@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the game's `TogglePause` refuses when its settings menu exists or `disallowPause` holds
-- [ ] Native parity — the pause call is the same one the ESC handler makes, and the clock is the game's own `Time.timeScale`
-- [ ] Native parity probe — two toggles after the game's own Escape both refused, so the row cannot be judged until the refusing gate is named
-- [ ] Entry mapping — `pause-clock` entered through `PauseHandler.TogglePause` and read `time-scale-read` on both clients
-- [ ] Mechanism inventory — the slice parks one case and records two heal probes; nothing under `src/` changed
-- [ ] Whole-family audit — the pause row belongs to the world-acceleration family; its siblings (`world-clock`) pass
+- [ ] Design comprehension — the pause call is refused while the handler's own three guards hold; the probe read every guard clear and the toggle still did nothing
+- [ ] Native parity — the two recipes read the game's own `PauseHandler.main`, `isPaused`, `disallowPause` and `Time.timeScale`
+- [ ] Native parity probe — `pause-probe` called `TogglePause` and read the handler's own field in the same eval: `before false, after false, pausedProperty false, exception ""`
+- [ ] Entry mapping — the row enters through `PauseHandler.TogglePause` and reads `pause-state`
+- [ ] Mechanism inventory — the slice adds two read-only instruments and one reading; nothing under `src/` changed
+- [ ] Whole-family audit — the pause row belongs to the world-acceleration family; `world-clock` passes
 - [ ] Self-check table — gates 834/0 this cycle
-- [ ] Verification design — the case would judge `paused` and `timeScale` on the host plus the member's own `paused`
+- [ ] Verification design — the next probe is the pause container's own `Update` against the handler field, named on the ticket
 - [ ] Plan approved by the user — night mode: a refused row is parked with its reading and the queue continues
-- [ ] Structure review done — one new case file kept for the next attempt, one registry comment
+- [ ] Structure review done — the instruments are read-only recipes with their own header and return contract
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

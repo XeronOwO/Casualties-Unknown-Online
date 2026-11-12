@@ -494,6 +494,8 @@ internal static class CaseRegistry
 		new SettingsPageCase(),
 		new CloneProbeCase(),
 		new TraderCase(),
+		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
+		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),
 		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds

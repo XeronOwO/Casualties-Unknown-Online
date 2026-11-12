@@ -80,7 +80,7 @@ internal sealed class LockpickCase : AcceptanceCase
 		// answers GetKeyDown for one frame and leaves GetKey false — measured 2026-11-12).
 		// The recorder only keeps what it saw from a start, so the unlock sound is recorded from
 		// the first press.
-		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start")).ConfigureAwait(false);
+		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "unlock")).ConfigureAwait(false);
 		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
 		try
 		{

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — the console's registry and buffer are the service the UI reads; the row asks the service, not a copy
-- [ ] Native parity — `block-sync` breaks a cell through the game's own `WorldGeneration` path and reads it back through the same one
-- [ ] Native parity probe — the earlier suite run read `no breakable cell` at `(0, 496)`: 504 scanned cells were air and the pod's shell
-- [ ] Entry mapping — `console-completion` enters through the driver's recipe path on the host's own client
-- [ ] Mechanism inventory — the slice touches one new case, one scan and one poll
-- [ ] Whole-family audit — the new row's family is the console/session batch; its other rows already pass or are parked with readings
-- [ ] Self-check table — build 0 errors, gates 834/0, suite 25/25 this cycle
-- [ ] Verification design — the row is judged by the service's own answers and by the member's own log line
+- [ ] Design comprehension — the run's clock is the host's and a member's request reaches it through the production `WorldTimeRequest` send
+- [ ] Native parity — the speed is the game's own `PlayerCamera.curTimeScale`, the field the HUD's icon row reads
+- [ ] Native parity probe — the host-side `world-time-request` never sends (`sent: false`, role `Host`); only a guest's request is sent
+- [ ] Entry mapping — the row enters through `IWorldTimeControl.SendRequest` on the member and reads both clients' `time-scale-read`
+- [ ] Mechanism inventory — the slice adds one case; nothing else changed
+- [ ] Whole-family audit — the row's family is the save batch's world-time rows; its sibling rows already pass or are named
+- [ ] Self-check table — build 0 errors, gates 834/0 this cycle
+- [ ] Verification design — the row is judged by both clients' own speed fields after a request and after the restore
 - [ ] Plan approved by the user — night mode: the sweep row conversion is the goal's own queue
-- [ ] Structure review done — one new case file, no new type outside `Cases/`, the registry line added
+- [ ] Structure review done — one new case file, no new type outside `Cases/`, one registry line
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

@@ -514,6 +514,7 @@ internal static class CaseRegistry
 		new WorldsPageCase(),
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run
+		new WorldClockCase(), // the run's clock is the host's: a requested speed reaches the member
 		new CloneProbeCase(),
 		new TraderCase(),
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused

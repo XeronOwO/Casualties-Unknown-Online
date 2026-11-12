@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the panel's refresh walks every recipe and reads its product sprite, so one missing prefab closes the whole screen
-- [ ] Native parity — the probe reads the game's own static list and the game's own getter; nothing is replaced
-- [ ] Native parity probe — the failing id is example.dressing with a NullReferenceException
-- [ ] Entry mapping — the row enters through crafting-panel mode=probe and leaves through its badIds list
-- [ ] Mechanism inventory — Recipe.cs:18 loads the product prefab by id; the recipe's own id has no loadable prefab in 1.0
-- [ ] Whole-family audit — 137 of 138 recipes load; the single bad entry is the one the panel's refresh hits first
-- [ ] Self-check table — build 0 errors, gates 834/0
-- [ ] Verification design — the probe names the recipe instead of inferring it from a stack; the ticket carries both readings
-- [ ] Plan approved by the user — night mode: file the finding with its reading and move to the next row
-- [ ] Structure review done — the probe lives in the existing recipe's mode branch; no new file kept
+- [ ] Design comprehension — each client generates and evolves its own terrain; CUO relays breaks, not generation
+- [ ] Native parity — the digests are the game's own block table read by the product's fingerprint recipe
+- [ ] Native parity probe — host and member agree on seven chunks and differ on the band the host explored
+- [ ] Entry mapping — the row enters through world-fingerprint and leaves through each client's own log line
+- [ ] Mechanism inventory — the earlier per-cell dump placed the difference at rows 983-1023, columns ~480-540
+- [ ] Whole-family audit — the relay covers breaks; generation is per-client by the game's own design
+- [ ] Self-check table — gates 834/0, language clean
+- [ ] Verification design — the refinement is a reading (both recaptures), not an inference
+- [ ] Plan approved by the user — night mode: record the finding and the product question, park, move on
+- [ ] Structure review done — no code change; the ticket carries the question and the recommendation
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

@@ -498,7 +498,10 @@ internal static class CaseRegistry
 		// (a row the sweep lists under the unhooked item families).
 		new LayerPanelCase(),
 		new CraftingCase(),
-		new WorldCensusCase(), // the host's own generated world: its building objects, counted by prefab // the crafting entry the game itself calls: a starting-material recipe is made and the product count grows // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
+		new WorldCensusCase(),
+		// new CraftPanelCase(), // parked 2026-11-13 01:57: crafting-panel mode=open throws inside the game's own
+		// PlayerCamera.OpenCraftScreen (runtimeException, no detail) while the CUO window is up — the panel open needs the
+		// window closed first; the reading is on the suite ticket. // the host's own generated world: its building objects, counted by prefab // the crafting entry the game itself calls: a starting-material recipe is made and the product count grows // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
 		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),

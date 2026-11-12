@@ -85,7 +85,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
 - [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
-- [A member's removal throws in the renderer](review/1.0-member-removal-throws-in-the-renderer.md) — **High** — the clone's parent goes first; the host throws.
 
 
 
@@ -133,6 +132,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [A member's removal throws in the renderer](done/1.0-member-removal-throws-in-the-renderer.md) — **High** — read at a leave.
 - [Adapt the mod to the game's 1.0 release](done/adapt-to-1.0.md) — **Highest** — the release build is read end to end; the rest is user decisions.
 - [A trader's copy is created by its own prefab id](done/1.0-enemy-roster-adopts-unresolved-rows.md) — **High** — the roster adopts aligned with 0 unresolved.
 - [1.0: remote limb operations carry no limb](done/1.0-remote-limb-operations-carry-no-limb.md) — the dose lands on the patient, read on both clients.

@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — a host's block break is reported to the member's own table
-- [ ] Native parity — the reading is the game's own block table on each client
-- [ ] Native parity probe — the host read `blockAfter 0` at `(4, 503)`; the member still read `block 2`
-- [ ] Entry mapping — the entry is the absolute cell on both clients
-- [ ] Mechanism inventory — the row passed earlier in the night, so the report reaches the member only sometimes
-- [ ] Whole-family audit — the lapse is recorded on the divergence ticket, not hidden
-- [ ] Self-check table — both readings quoted with their absolute cell
-- [ ] Verification design — read the host's own break report beside the member's table on a failing run
-- [ ] Plan approved by the user — night mode: a finding filed with its reading, no product decision
-- [ ] Structure review done — the case stays in the order and is not weakened
+- [ ] Design comprehension — the host detects the break and flushes one BlockDamaged report; the member applies it
+- [ ] Native parity — both logs are the product's own trace channel
+- [ ] Native parity probe — the host's `FlushPendingBlockBreak result=Committed(0+0)` proves the send
+- [ ] Entry mapping — the entry is `WorldGeneration.DamageBlock` → `OnBlockDamaged` → `FlushPendingBlockBreak`
+- [ ] Mechanism inventory — the member's own log has no remote-apply line for the cell
+- [ ] Whole-family audit — the finding is on the divergence ticket with both sides quoted
+- [ ] Self-check table — the timestamps and op ids are quoted
+- [ ] Verification design — instrument the member's remote-apply branch next
+- [ ] Plan approved by the user — night mode: a finding with its evidence, no product decision
+- [ ] Structure review done — no code changed this cycle
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

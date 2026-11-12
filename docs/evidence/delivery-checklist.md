@@ -4,16 +4,16 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
 
-- [ ] Design comprehension — an eat's sound is played on the body's own client and relayed to the other
-- [ ] Native parity — the cross-client sound is the game's own call name
-- [ ] Native parity probe — the member's recorder carried the eat after the host used the snack
-- [ ] Entry mapping — the entry is the host's own `item-use` from its hand and the member's recorder
-- [ ] Mechanism inventory — the snack comes from `item-provide mode=create`; the hand is used via `item-use`
-- [ ] Whole-family audit — the sounds domain now has a cross-client case beside the UI sound row
-- [ ] Self-check table — the run's own readings; two intermittent reds recorded
-- [ ] Verification design — the member's own recorder is the judge
-- [ ] Plan approved by the user — night mode: a sweep row converted, no product decision
-- [ ] Structure review done — the case sits beside the others and reuses the helpers
+- [ ] Design comprehension — the seed's throw is inside the member's own limb `ImpactDamage`, not the host
+- [ ] Native parity — the reading is the game's own limb call
+- [ ] Native parity probe — four retries at 750 ms did not clear it
+- [ ] Entry mapping — the entry is the member's own `wound-seed` on limb 0
+- [ ] Mechanism inventory — the case passes alone, fails after the medical rows
+- [ ] Whole-family audit — the row stays open with the order hypothesis named
+- [ ] Self-check table — the retries are in the case and the failure text is unchanged
+- [ ] Verification design — move the case earlier or reset the member's body first
+- [ ] Plan approved by the user — night mode: a park with its cause, no product decision
+- [ ] Structure review done — the retry lives in the case, not the recipe
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: run by the agent after the commit

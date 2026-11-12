@@ -83,7 +83,22 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// wound then reopens over the healed body — measured: a heal answered applied and stored while
 		// the member's limb read 0.309). The case waits for the wound before it heals.
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
-		var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
+		// The seed dereferences the limb's own body, and a member that joined a moment ago can still be
+		// between frames (a null inside ImpactDamage). Retry before calling it a finding.
+		JsonElement? seeded = null;
+		for (var seedAttempt = 0; seedAttempt < 4; seedAttempt++)
+		{
+			try
+			{
+				seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
+				break;
+			}
+			catch (Exception) when (seedAttempt < 3)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+			}
+		}
+
 		context.Read("member-wound", seeded);
 		JsonElement? wounded = null;
 		var woundLanded = false;

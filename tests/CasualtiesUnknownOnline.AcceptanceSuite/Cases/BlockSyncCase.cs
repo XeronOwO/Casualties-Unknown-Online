@@ -27,40 +27,48 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		var bodyX = (int)Math.Floor(Number(body, "positionX"));
 		var bodyY = (int)Math.Floor(Number(body, "positionY"));
 
-		// The solid cell beside the host, found with the absolute read; the air cell under the player
-		// throws inside the game's own DamageBlock.
-		var found = (Dx: 0, Dy: 0);
-		var foundBlock = 0L;
+		// The solid cells beside the host, found with the absolute read; the air cell under the player
+		// throws inside the game's own DamageBlock. A solid cell is not necessarily BREAKABLE (the life
+		// pod's own shell is not), so the case tries the solid cells in turn and judges the first one the
+		// game's damage path actually changes.
+		var solidCells = new List<(int X, int Y, long Block)>();
 		foreach (var offset in Offsets)
 		{
 			var probe = await ReadBlockAsync(context, false, bodyX + offset.Dx, bodyY + offset.Dy, cancellationToken).ConfigureAwait(false);
 			var value = Integer(probe, "block");
 			if (value != 0)
 			{
-				found = offset;
-				foundBlock = value;
-				break;
+				solidCells.Add((bodyX + offset.Dx, bodyY + offset.Dy, value));
 			}
-
 		}
 
-		Require(foundBlock != 0, "no solid block within two cells of the host: " + Raw(await ReadBlockAsync(context, false, bodyX, bodyY, cancellationToken).ConfigureAwait(false)));
-		context.Note($"solid cell at offset ({found.Dx},{found.Dy}) with block {foundBlock}");
+		Require(solidCells.Count > 0, "no solid block within two cells of the host: " + Raw(await ReadBlockAsync(context, false, bodyX, bodyY, cancellationToken).ConfigureAwait(false)));
+		context.Note($"solid cells near the host: {solidCells.Count}");
 
-		var x = bodyX + found.Dx;
-		var y = bodyY + found.Dy;
-		var before = await ReadBlockAsync(context, false, x, y, cancellationToken).ConfigureAwait(false);
-		context.Read("host-before", before);
+		int x = 0;
+		int y = 0;
+		long foundBlock = 0;
+		JsonElement? broken = null;
+		foreach (var cell in solidCells)
+		{
+			var before = await ReadBlockAsync(context, false, cell.X, cell.Y, cancellationToken).ConfigureAwait(false);
+			context.Read("host-before", before);
+			var attempt = await context.RecipeAsync("block-break-at", cancellationToken,
+				("x", cell.X.ToString(CultureInfo.InvariantCulture)),
+				("y", cell.Y.ToString(CultureInfo.InvariantCulture)),
+				("dmg", "1000")).ConfigureAwait(false);
+			context.Read("host-break", attempt);
+			if (Integer(attempt, "blockAfter") != cell.Block)
+			{
+				x = cell.X;
+				y = cell.Y;
+				foundBlock = cell.Block;
+				broken = attempt;
+				break;
+			}
+		}
 
-		// Break it with the game's own damage path, then read both clients: the member's copy must
-		// agree with the host's after the sync.
-		// Absolute cell: the relative block-hit path throws inside the game when the body-relative
-		// cell resolves unevenly; the absolute break is the same native DamageBlock entry.
-		var broken = await context.RecipeAsync("block-break-at", cancellationToken,
-			("x", x.ToString(CultureInfo.InvariantCulture)),
-			("y", y.ToString(CultureInfo.InvariantCulture)),
-			("dmg", "1000")).ConfigureAwait(false);
-		context.Read("host-break", broken);
+		Require(broken is not null, "no solid cell near the host took damage from the game's own break path");
 		var after = Integer(broken, "blockAfter");
 		Require(after != foundBlock, "the block did not change: " + Raw(broken));
 

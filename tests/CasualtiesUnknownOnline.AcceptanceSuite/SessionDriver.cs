@@ -142,7 +142,7 @@ internal sealed class SessionDriver(Options options)
 		state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld") && string.Equals(StringValue(reached, "reached"), "true", StringComparison.Ordinal))
 		{
-			return "the suite started a fresh run";
+			return "the suite started a fresh run (the host answered in-world after " + StringValue(reached, "waitedMs") + " ms)";
 		}
 		var startDeadline = Stopwatch.StartNew();
 		while (startDeadline.Elapsed < StartBudget)

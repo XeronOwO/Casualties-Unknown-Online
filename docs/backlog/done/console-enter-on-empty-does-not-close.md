@@ -44,3 +44,17 @@ in the plain-chat opener or after the prefix is deleted.
 Row 3 was the last one and needed an OS-level key: a real `/` (VK 191) with the window focused first opened the overlay on a captured frame, and Escape closed it. The frames are `console-key-open.png` and `console-key-closed.png` in the acceptance frames directory.
 
 The close frame also shows the cost that belongs to a DIFFERENT ticket: Escape reached the game too, so the pause menu came up behind the console that had just closed. The overlay consumes the event for IMGUI (`evt.Use()`) but the game reads its own `Input.GetKeyDown`, which a consumed IMGUI event does not stop. That is filed as `todo/escape-closing-the-console-also-opens-the-pause-menu.md` rather than fixed inside this ticket, whose subject is Enter on an empty line.
+## The 2026-11-13 regression, and the fix that holds
+
+The row above passed on the SESSION rule: the batch recipe called `ConsoleInputSession.SubmitOrClose` directly, so it
+could not see the player's key routing. In the real game Enter on an empty box left the console up: the game's own IMGUI
+text field takes the key before the console's OnGUI handler runs, so `HandleKey` never sees it.
+
+- Reading through the overlay's own handler (`tools/acceptance/recipes/console-enter.cs` now drives
+  `CommandConsoleOverlay.HandleKey` with an IMGUI keyboard event instead of calling the session rule): `wasOpen true,
+  consumed true, isOpenAfter false` — the handler was right, the routing was not.
+- Fix (`src/CasualtiesUnknownOnline.Plugin/OnlineUiHost.cs`): the empty-line close reads `Input.GetKeyDown(Return)`
+  in the same `Update` that already reads Return to OPEN the console, and closes only while the line is empty
+  (`OnlineUiOverlay.IsCommandConsoleEmpty`); a line with text still submits.
+- Live reading on `0.1.0+b520885e3` deployed: the user pressed Enter on an empty console and it closed (their own
+  answer this round). Commits `b520885e3` (the fix), `b722491f3` (the cycle record).

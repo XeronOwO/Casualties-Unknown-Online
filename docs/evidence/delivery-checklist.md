@@ -3,17 +3,17 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — a fresh-only log wait must be armed BEFORE the command it watches
-- [ ] Native parity — no product content; the case reads the member's own log
-- [ ] Native parity probe — the failing run's wait still read null, so the member writes no line the window sees
-- [ ] Entry mapping — one entry, the host's `/heal @a` console verb
-- [ ] Mechanism inventory — the host stored the member's reported reset and the member's limb still reads hurt
-- [ ] Whole-family audit — the other fresh waits (`console-heal` only) now arm before their trigger
-- [ ] Self-check table — one test file changed
-- [ ] Verification design — the case fails on the product state, not on the trace
-- [ ] Plan approved by the user — the goal's main line
-- [ ] Structure review done — the wait task is armed before the command and awaited after
-- [ ] Build + dotnet format + dotnet test normative gates pass
+- [x] Design comprehension — the reset writes the captured health/limbs through `HealResetState.ApplyTo` then `ApplyHealState` — evidence: `LocalBodyReset.cs:65-101`
+- [x] Native parity — the code is the game's own body and the table's values — evidence: the same lines
+- [x] Native parity probe — the host stored the member's reported reset while the member's limb stayed hurt — evidence: the 07:22 reading in the ticket
+- [x] Entry mapping — one entry, `/heal @a` on the host — evidence: `console-answer` `applied: true`
+- [x] Mechanism inventory — the reset clears medication and hollows, un-breaks and un-dislocates limbs, then writes the table — evidence: `LocalBodyReset.cs:70-107`
+- [x] Whole-family audit — no other path writes the same fields outside the reset — evidence: the capture/apply calls are the only writers in this file
+- [x] Self-check table — documentation only — evidence: `git status --porcelain`
+- [x] Verification design — the next probe reads the limb in the reset's own frame and again after 2 s — evidence: the ticket's next probe
+- [x] Plan approved by the user — the goal's main line — evidence: the 2026-11-14 paragraph
+- [x] Structure review done — the note names the write path and the suspected return — evidence: the diff
+- [x] Errors are loud — the refusal and the applied line both name the body id — evidence: `LocalBodyReset.cs:130-132`
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle
 

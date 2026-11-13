@@ -269,6 +269,44 @@
 		return finish(fields);
 	}
 
+	if (command == "select-character") {
+		System.Type preRunType = null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && preRunType == null; i++) {
+			preRunType = loaded[i].GetType("PreRunScript", false);
+		}
+		if (preRunType == null) {
+			return fail(escape, "no-prerun-type", "the game's PreRunScript type is not loaded in this process");
+		}
+		object preRun = null;
+		var instanceProperty = preRunType.GetProperty("instance", staticFlags);
+		if (instanceProperty != null) { preRun = instanceProperty.GetValue(null, null); }
+		if (preRun == null) {
+			var instanceField = preRunType.GetField("instance", staticFlags);
+			if (instanceField != null) { preRun = instanceField.GetValue(null); }
+		}
+		if (preRun == null) {
+			return fail(escape, "no-prerun-instance", "the game's start screen is not loaded in this client yet");
+		}
+		int choice;
+		if (!int.TryParse(argument, out choice) || choice < 0 || choice > 2) {
+			return fail(escape, "bad-character", "the choice must be 0, 1 or 2");
+		}
+		var selectCharacter = findMethodWith(preRun, "SelectCharacter", 1);
+		if (selectCharacter == null) { return fail(escape, "no-select-character", "PreRunScript.SelectCharacter was not found"); }
+		try { selectCharacter.Invoke(preRun, new object[] { choice }); }
+		catch (System.Exception exception) { return fail(escape, "select-character-failed", unwrap(exception)); }
+		var startRun = findMethodWith(preRun, "StartRun", 0);
+		if (startRun == null) { return fail(escape, "no-start-run", "PreRunScript.StartRun was not found"); }
+		try { startRun.Invoke(preRun, null); }
+		catch (System.Exception exception) { return fail(escape, "start-run-failed", unwrap(exception)); }
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "character", choice.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putRaw(fields, escape, "inWorld", presence != null && presence.IsInWorldOrGenerating ? "true" : "false");
+		return finish(fields);
+	}
+
 	if (command == "continue-run") {
 		System.Type preRunType = null;
 		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();

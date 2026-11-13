@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'console-arrow', 'quit', 'recipe', 'declare')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'console-arrow', 'quit', 'recipe', 'declare', 'select-character')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -635,6 +635,23 @@ function Invoke-DriverAction {
 				Start-Sleep -Milliseconds $RetryDelayMs
 			}
 			return New-DriverFailure -ActionName $ActionName -Code 'join-not-entered' -Detail "the join was applied but the client did not settle into lobby $target" -Last $last
+		}
+		'select-character' {
+			if ([string]::IsNullOrWhiteSpace($Text)) { return New-DriverFailure -ActionName $ActionName -Code 'bad-character' -Detail 'pass the character index 0, 1 or 2 with -Text' -Last $null }
+			$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $state.ok) { return New-DriverFailure -ActionName $ActionName -Code $state.error -Detail $state.detail -Last $state }
+			if ($state.inWorld) { return New-DriverSuccess -ActionName $ActionName -Step $state }
+			$selected = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'select-character' -Argument $Text -TextValue '' -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $selected.ok) { return New-DriverFailure -ActionName $ActionName -Code $selected.error -Detail $selected.detail -Last $selected }
+			$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+			$last = $selected
+			while ($stopwatch.ElapsedMilliseconds -lt (Get-RemainingBudget -Clock $clock -BudgetMs $BudgetMs)) {
+				$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+				$last = $state
+				if ($state.inWorld -or $state.gateWaiting) { return New-DriverSuccess -ActionName $ActionName -Step $state }
+				Start-Sleep -Milliseconds $RetryDelayMs
+			}
+			return New-DriverFailure -ActionName $ActionName -Code 'run-not-started' -Detail 'SelectCharacter and StartRun were called but the world never started generating' -Last $last
 		}
 		'start-run' {
 			$state = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs

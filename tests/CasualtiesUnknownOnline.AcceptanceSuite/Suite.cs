@@ -605,8 +605,11 @@ internal static class CaseRegistry
 		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
 		new SaveContinueCase(),
-		new RemoteRemovalCase(),
-		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart // the member leaves: the host's own copy goes and says so, then the member rejoins
+		// Parked 2026-11-14: the probe's marker (`RemoteCloneRender`) is item-side — with the member
+		// in the world the host read cloneCount 8 and playerCount 0 — so the case cannot see the
+		// displayed body it means to judge. Needs an instrument on the renderer's own body clone.
+		// new RemoteRemovalCase(),
+		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
 		// new LockpickCase(), // parked 2026-11-13 02:55: in the suite's own run the hand reaches the band with the

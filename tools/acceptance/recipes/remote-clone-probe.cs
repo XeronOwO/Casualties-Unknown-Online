@@ -1,6 +1,6 @@
 // recipe: remote-clone-probe
 // args: mode=s
-// returns: ok, mode, cloneCount, cloneType, componentCount, components, facing, error, detail
+// returns: ok, mode, cloneCount, playerCount, cloneType, componentCount, components, facing, error, detail
 //
 // Names the real type behind a remote player's clone and the facing data it carries — the reading the pose/head-orientation ticket
 // stopped at: a `Body` scan found no remote body on either client, so the host's view of the teammate is rendered by something else
@@ -48,7 +48,18 @@
 		}
 	}
 
+	var playerCount = 0;
+	for (var c = 0; c < found.Length; c++) {
+		var candidate = found[c] as UnityEngine.Component;
+		if (candidate == null) { continue; }
+		var parts = candidate.GetComponents<UnityEngine.Component>();
+		for (var p = 0; p < parts.Length; p++) {
+			if (parts[p] != null && parts[p].GetType().Name == "Body") { playerCount++; break; }
+		}
+	}
+
 	return "{\"ok\":true,\"mode\":\"" + mode + "\",\"cloneCount\":" + found.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"playerCount\":" + playerCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"cloneType\":\"" + cloneType.Name + "\",\"componentCount\":" + components.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"components\":\"" + names + "\",\"facing\":\"" + facing + "\"}";
 }))()

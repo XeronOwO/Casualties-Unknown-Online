@@ -20,7 +20,7 @@ internal sealed class RemoteRemovalCase : AcceptanceCase
 
 		var before = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "components")).ConfigureAwait(false);
 		context.Read("host clone probe before", before);
-		Require(CloneCount(before) >= 1, "the host shows no displayed copy of the member before the leave: " + Raw(before));
+		Require(PlayerCount(before) >= 1, "the host shows no displayed copy of the member before the leave: " + Raw(before));
 
 		var left = await context.Session.ActionAsync(context.Session.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 		context.Read("member leave", left);
@@ -29,7 +29,7 @@ internal sealed class RemoteRemovalCase : AcceptanceCase
 		for (var attempt = 0; attempt < 20; attempt++)
 		{
 			after = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "components")).ConfigureAwait(false);
-			if (CloneCount(after) == 0)
+			if (PlayerCount(after) == 0)
 			{
 				break;
 			}
@@ -38,7 +38,7 @@ internal sealed class RemoteRemovalCase : AcceptanceCase
 		}
 
 		context.Read("host clone probe after", after);
-		Require(CloneCount(after) == 0, "the host still shows the member's copy after it left: " + Raw(after));
+		Require(PlayerCount(after) == 0, "the host still shows the member's copy after it left: " + Raw(after));
 
 		var trace = await context.Session.LogTailAsync(context.Session.HostUrl, "Remote not in world", 10, cancellationToken).ConfigureAwait(false);
 		context.Read("host removal trace", trace);
@@ -50,6 +50,16 @@ internal sealed class RemoteRemovalCase : AcceptanceCase
 
 		var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 		context.Notes.Add("member rejoin: " + rejoined);
+	}
+
+	private static double PlayerCount(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } root || !root.TryGetProperty("playerCount", out var count))
+		{
+			return -1;
+		}
+
+		return count.ValueKind == JsonValueKind.Number ? count.GetDouble() : -1;
 	}
 
 	private static double CloneCount(JsonElement? reading)

@@ -555,11 +555,12 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 
 		// A session that no lobby owns cannot be rebuilt by a returning host: IP-direct has no lobby
 		// event at all, so a kept role would leave the client a ghost — back at the menu with role
-		// Guest, refusing every join until the process restarts (measured 2026-11-14). The question is
-		// the Steam lobby itself, not the cached id: the IP-direct path still carries a session id, and
-		// a cached id that is not 0 kept the role (the teardown line read "lobby 1"). A Steam outage
-		// inside the same lobby still keeps the role, which is what the comment above protects.
-		if (_identity.Role != SessionRole.None && (_currentLobbyId == 0 || _steam.GetLobbyOwner() == 0))
+		// Guest, refusing every join until the process restarts (measured 2026-11-14). Three facts
+		// together mean "no lobby owns this": no cached lobby, Steam not initialized at all (the IP
+		// path on a client without the game in Steam), or a cached lobby Steam no longer owns. The
+		// teardown line read "lobby 1" with Steam off, so the cached id alone can never decide it.
+		if (_identity.Role != SessionRole.None
+			&& (_currentLobbyId == 0 || !_steam.IsInitialized || _steam.GetLobbyOwner() == 0))
 		{
 			_identity.Role = SessionRole.None;
 			_log.LogInformation("No lobby owns this session — role cleared.");

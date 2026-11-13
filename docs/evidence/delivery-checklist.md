@@ -3,18 +3,18 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the live reading that failed was the identify step, not the wire: the Body component sits on a CHILD of the character object (`RemoteBodyFactory`'s own comment: the proxy patches query `GetComponent<RemoteBodyDriver>()` on "the Body (which is a CHILD of the root clone)"), so `body.gameObject.name` never held the character's name
-- [ ] Native parity — the table is now read from the character OBJECT's own name (`body.transform.root.name`), which is the instantiated prefab the game spawns, with Unity's `(Clone)` suffix ignored; the spawn table itself was re-read from `PlayerCamera.SpawnCharacter` (0 Experiment, 1 Milky, else Dune)
-- [ ] Native parity probe — the probe is the decompiled `SpawnCharacter`: `if (chr == 0) Experiment; if (chr != 1) Dune; return Milky;` — the same three paths `CharacterIndex.PrefabPath` names
-- [ ] Entry mapping — the capture reads `body.transform.root.name` (owner) and the factory compares `local.transform.root.name` (viewer); both are the instantiated character objects, never the child Body
-- [ ] Mechanism inventory — the clone source is now named by the RENDERER (`RemotePlayerRenderer.cs` after the clone is registered), because `RemoteBodyFactory.CreateRemoteBody` is covered by `LogVolumeGateTests` (a repeatable diagnostic inside it must ask a window first); the factory returns the source through `out string source` instead
-- [ ] Whole-family audit — a wrong character still has to be visible: the source string names the loaded prefab OR the fallback ("the viewer's own body (the member's character prefab did not load)"), and the renderer prints it per member
-- [ ] Self-check table — the suffix case is pinned (`IndexOfName("Milky (Clone)")` = 1) and the earlier four facts still pass; build 0 errors, gates 834/0
-- [ ] Verification design — the live row reruns the same setup: host character forced to Dune (`lastchar_h2474283127` = 2 before launch), a fresh run, and each client's log must name the OTHER player's character (`Remote body for <id> built from Special/Characters/<name>`)
-- [ ] Plan approved by the user — the user ordered the work and the queue continues on the same item
-- [ ] Structure review done — no new type: the fix stays inside `CharacterIndex` (one name-reading function) and the factory's existing out-parameter pattern
+- [ ] Design comprehension — the cycle records the live reading on the ticket: what the wire carries, what the two clients' logs said, and which half of the row is still open
+- [ ] Native parity — the reading quotes the game's own behaviour that blocked the fixture: `PlayerCamera.Awake` writes `PlayerPrefs["lastchar"]` from `PreRunScript.characterSelected` instead of reading it (decompile), and the run start re-initialises the field
+- [ ] Native parity probe — the probe recipe sets the field the pre-run screen's portrait writes and reports the prefab the game's spawn table names (`ok, index 2, spawn Special/Characters/Dune`)
+- [ ] Entry mapping — the reading names each entry it used: the capture (`body.transform.root.name`), the clone factory (`RemoteBodyFactory.PrefabFor`), the renderer's line, the run start (driver `start-run`)
+- [ ] Mechanism inventory — the two earlier misreadings are both named with their evidence (the Body child name; the pref being written, not read), so the next attempt does not repeat them
+- [ ] Whole-family audit — the row's remaining blocker is a fixture capability, not a product defect: the pre-run screen's portrait is the game's own entry, and the fixture does not drive it yet
+- [ ] Self-check table — the code slice it verifies is committed and green (`42f51c708`, `fdacf27fc`: build 0 errors, gates 834/0, focused 4/4) and this cycle changes only the ticket and one recipe
+- [ ] Verification design — the next reading is named: drive the pre-run character screen, start the run, and each client's log must name the other's character
+- [ ] Plan approved by the user — the user ordered the feature and the queue continues on the same item
+- [ ] Structure review done — no source change in this cycle; the recipe is a fixture file the driver gate accepts (header, args, a returned value)
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: the live two-character reading is rerun after this commit
+- [ ] Release-cycle deployment/acceptance: row 1 stays open on the pre-run screen fixture
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

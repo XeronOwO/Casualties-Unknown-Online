@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — four tickets filed from the reference comparison, each naming the design page that owns its surface: character spawn (`docs/design/game/README.md` + `saves-and-recovery.md`), consent (`permissions-and-commands.md` + `items/README.md`), rule toggles (`permissions-and-commands.md` + `game/README.md`), death stats (`observability.md` + `console-and-save.md`)
-- [ ] Native parity — every ticket quotes the game's own mechanism it sits on: `PreRunScript.characterSelected`/`PlayerCamera.SpawnCharacter` for the character, `ItemUseTargetPolicy` for the target gate, `PlayerPushService`/`CarriagePatchBridge` for the toggles, the revive log line for the counter
-- [ ] Native parity probe — the probe for the comparison was the ripgrep pass over `src/` with the game's own names (`characterSelected`, `SpawnCharacter`, `NapVariant`, `Nameplate`, `RemoteBackpackAccess`): the first two are absent, the last three present
-- [ ] Entry mapping — each ticket names its entry path and file:line: `RemoteBodyFactory.cs:54-69` (clone template), `PlayerItemUseExecution`/`NativeSolidFoodEat` (the hand-feed path), `HostRuleSet.cs` (the rule set the toggles join), the respawn path (`RespawnCoordinator`)
-- [ ] Mechanism inventory — the comparison was re-run with ripgrep after the first pass was wrong: `grep Skill`, `grep Nap`, `grep Nameplate`, `grep RemoteBackpackAccess`, `grep Consent` — the first four exist, the fifth finds only comments
-- [ ] Whole-family audit — the tickets that touch the rule surface (toggles, consent) say they join `IHostRules`/`HostRuleSet` and are announced like every rule; the character ticket says the id rides the character snapshot instead
-- [ ] Self-check table — gates 834/0 after the four tickets, their index rows and census rows landed; the build was untouched (documentation only)
-- [ ] Verification design — each ticket carries acceptance rows with a reading that fails today (the clone's source object, the consent pending state, the refused push, the count after two deaths)
-- [ ] Plan approved by the user — the user ordered the tickets and the work ("file the tickets, then start" - translated) after the corrected comparison
-- [ ] Structure review done — no code changed; the four tickets add one surface each and name the existing owner, so no new type or module is introduced by filing
+- [ ] Design comprehension — the character ticket now carries the step-2 design: the player's action (pick a portrait on the pre-run screen), the game's own chain (`PreRunScript.SelectCharacter` → `PlayerCamera.Awake` → `SpawnCharacter` → `Utils.Create("Special/Characters/…")`, quoted with file:line from `reversing/release-1.0`), and how the remote clone reaches the same prefab
+- [ ] Native parity — the design uses the game's own prefab path (`Special/Characters/<name>`) and its own choice field, never a stand-in sprite or a renamed local body
+- [ ] Native parity probe — the probe is the compiled spawn table read from the decompile: `PlayerCamera.SpawnCharacter` maps 0/1/2 to Experiment/Milky/Dune (`PlayerCamera.cs:781-792`), and `PreRunScript.SelectCharacter` stores the index (`PreRunScript.cs:270-272`)
+- [ ] Entry mapping — the entries named: the owner's capture (`CharacterDataCapture.Capture`), the wire (`CharacterDataMsg`, tag 7), the clone (`RemoteBodyFactory.CreateRemoteBody` called from `RemotePlayerRenderer.cs:182` with the snapshot already in hand at `:198`)
+- [ ] Mechanism inventory — every consumer of the clone: the renderer's cache (`_remoteClones`), the host-vitals attach, the clone-inventory and limb application, and `RemoteCharacterDisplayProjection` — the design keeps all four and only changes the template and the cache key
+- [ ] Whole-family audit — a second live body is the family risk: `Utils.Create`'s scene-side effects are refused in the design (plain `Resources.Load` + `Instantiate`), and the existing collider/effect stripping applies to any prefab
+- [ ] Self-check table — the design is documentation only; gates 834/0 in the previous cycle and no source file changed in this one
+- [ ] Verification design — the acceptance rows name a reading that fails today (the clone's source object per client) and the re-join/save rows that prove the id rides the snapshot
+- [ ] Plan approved by the user — the user ordered the tickets and the work ("file the tickets, then start" — translated)
+- [ ] Structure review done — no type is introduced by the design itself; the implementation names one pure mapping (index → prefab name) and one factory parameter
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance: not applicable — this cycle changed no deployable artifact
 

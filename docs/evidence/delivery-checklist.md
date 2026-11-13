@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the wait reads only lines written after it starts, so a trigger whose effect lands before the wait's evaluation needs the history read
-- [ ] Native parity — no game content; the two instruments are the client's own log file (fresh tail) and its history
-- [ ] Native parity probe — `console-heal` passes on a fresh line; `save-continue` passes on the history read
-- [ ] Entry mapping — the cases reach the driver only through `SessionDriver`
-- [ ] Mechanism inventory — one mechanism, two instruments: fresh tail (armed before the event) and whole-file history (the event may precede the call)
-- [ ] Whole-family audit — the remaining polling waits in the suite are state polls (`limb-read`, `state`), not log reads; they stay polls of the game's own state
-- [ ] Self-check table — suite build 0 errors; `save-continue` PASS after the revert; gates 834/0
-- [ ] Verification design — each instrument is judged by the case that needs it, with the line in the report
-- [ ] Plan approved by the user — the goal's main line: an event-driven acceptance project
-- [ ] Structure review done — no new type; the contract is written on the ticket that owns the suite
-- [ ] Build + dotnet format + dotnet test normative gates pass — suite build 0 errors, gates 834/0
+- [ ] Design comprehension — `remote-removal`'s red is a probe-family question, not a body leftover
+- [ ] Native parity — no game content touched; the note names the next probe
+- [ ] Native parity probe — the probe's own reading (`cloneCount 4`, components listed) is the evidence
+- [ ] Entry mapping — one entry, the suite's `remote-clone-probe` reading
+- [ ] Mechanism inventory — the case counts every `RemoteCloneRender`, items included
+- [ ] Whole-family audit — the other cases that count clones (`clone-probe`) read the same probe and pass, so the probe itself answers
+- [ ] Self-check table — tree clean, nothing deployed
+- [ ] Verification design — the next probe is named: item clones versus the host's own items
+- [ ] Plan approved by the user — the goal's main line: the suite carries the regression
+- [ ] Structure review done — a reading, not a fix; the fix waits for the probe
+- [ ] Build + dotnet format + dotnet test normative gates pass — no code change this cycle; gates were green at the last run
 
-- [ ] Release-cycle deployment/acceptance: both readings taken on the deployed pair
+- [ ] Release-cycle deployment/acceptance: nothing deployed this cycle
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

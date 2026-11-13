@@ -268,6 +268,12 @@ internal sealed class OnlineUiHost
 				_onlineUi.OpenCommandConsole(plainChat: true);
 			}
 		}
+		// The game's own IMGUI field can take the Return before the console's OnGUI handler sees it (measured
+		// 2026-11-13), so the empty-line close reads the same key here as the opener above does.
+		if (_onlineUi.IsCommandConsoleEmpty && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+		{
+			_onlineUi.CloseCommandConsole();
+		}
 
 		_locationPingInput.TryHandle();
 

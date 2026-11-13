@@ -46,7 +46,14 @@
 		if (trimmed.Length > 0) { setInput.Invoke(session, new object[] { "", null }); }
 	}
 	var emptied = (inputProperty == null ? "" : (inputProperty.GetValue(session, null) as string)) ?? "";
-	var consumed = (bool)submitOrClose.Invoke(session, null);
+	// The row drives the OVERLAY's own key handler, not the session rule: calling SubmitOrClose directly proved the rule
+	// and hid the routing (the player's Enter never closed the box; measured 2026-11-13). HandleKey is the same switch a
+	// real key press takes inside OnGUI.
+	var handleKey = console.GetType().GetMethod("HandleKey", Flags);
+	var evt = new UnityEngine.Event();
+	evt.type = UnityEngine.EventType.KeyDown;
+	evt.keyCode = UnityEngine.KeyCode.Return;
+	var consumed = handleKey != null && (bool)handleKey.Invoke(console, new object[] { evt });
 	var nowOpen = (bool)openProperty.GetValue(session, null);
 	return "{\"ok\":true"
 		+ ",\"marker\":" + marker.ToString(System.Globalization.CultureInfo.InvariantCulture)

@@ -56,6 +56,9 @@ internal sealed class CommandConsoleOverlay
 
 	internal bool IsOpen => _session.IsOpen;
 
+	/// <summary>True while the console's line holds nothing but whitespace: the state Enter closes.</summary>
+	internal bool IsEmpty => !_session.IsOpen || _session.Input.Trim().Length == 0;
+
 	/// <summary>
 	/// Open the input. <paramref name="plainChat"/> opens it EMPTY as ordinary chat instead of pre-filling the
 	/// command prefix; the opener is remembered so the very key-down that opened it is swallowed on the first

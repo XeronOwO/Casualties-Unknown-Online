@@ -195,6 +195,12 @@ internal sealed class OnlineUiOverlay
 
 	internal bool IsCommandConsoleOpen => _commandOverlay.IsOpen;
 
+	/// <summary>True while the command console holds an empty line: the state Enter must close (the row a player reaches by deleting the prefix).</summary>
+	internal bool IsCommandConsoleEmpty => _commandOverlay.IsOpen && _commandOverlay.IsEmpty;
+
+	/// <summary>Closes the command console from the host's own key read (the IMGUI event can be consumed by the game's text field first).</summary>
+	internal void CloseCommandConsole() => _commandOverlay.Close();
+
 	/// <summary>Opens the standalone command console and closes every other CUO surface so the input state is modal. <paramref name="plainChat"/> is the Enter opener: the same surface with an empty field.</summary>
 	internal void OpenCommandConsole(bool plainChat = false)
 	{

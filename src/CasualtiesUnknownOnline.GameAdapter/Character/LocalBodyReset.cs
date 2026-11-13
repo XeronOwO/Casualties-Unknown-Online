@@ -128,8 +128,8 @@ internal sealed class LocalBodyReset(
 
 			_characterDataSync.ReportInventoryChanged(body);
 			log.LogInformation(
-				"[HealReset] local body reset: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}.",
-				wasDead, restoredLimbs, hollowCleared);
+				"[HealReset] local body reset: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, bodyId={BodyId}.",
+				wasDead, restoredLimbs, hollowCleared, body.GetInstanceID());
 			return LocalBodyResetOutcome.AppliedNow(wasDead, restoredLimbs, hollowCleared);
 		}
 	}

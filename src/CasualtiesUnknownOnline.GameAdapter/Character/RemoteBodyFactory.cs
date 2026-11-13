@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
@@ -36,6 +37,46 @@ internal static class RemoteBodyFactory
 	/// <summary>Why an attempt failed when the template cloned but carries no Body component.</summary>
 	internal const string NoBodyComponentWhy = "no Body component in \"Experiment\" clone";
 
+	/// <summary>Why a clone fell back to the viewer's own body: the member's character prefab did not load on this client.</summary>
+	internal const string NoCharacterPrefabWhy = "the member's character prefab did not load; the viewer's body is used";
+
+	/// <summary>
+	/// The prefab a remote clone instantiates: the character the member's snapshot names when this
+	/// client can load it and it is not the viewer's own; otherwise the local body. A load failure
+	/// falls back to the local body and names itself — a wrong character must be visible in the
+	/// evidence, not silently the old body.
+	/// </summary>
+	private static GameObject? PrefabFor(int character, GameObject? local, PlayerEntity remote, LogRepetitionGuard failures, ILogger log, out string source)
+	{
+		source = "the viewer's own body";
+		if (character == CharacterIndex.Unknown)
+		{
+			return local;
+		}
+
+		var localIndex = local == null ? CharacterIndex.Unknown : CharacterIndex.IndexOfName(local.name);
+		if (localIndex == character)
+		{
+			return local;
+		}
+
+		var path = CharacterIndex.PrefabPath(character);
+		var prefab = path == null ? null : Resources.Load<GameObject>(path);
+		if (prefab != null)
+		{
+			source = path!;
+			return prefab;
+		}
+
+		if (failures.TryLog(new RemoteCloneFailureKey(NoCharacterPrefabWhy, remote.SteamId), null, out var repeat))
+		{
+			log.LogWarning(FailureLine, NoCharacterPrefabWhy, remote.SteamId, repeat);
+		}
+
+		source = "the viewer's own body (the member's character prefab did not load)";
+		return local;
+	}
+
 	/// <summary>
 	/// One clone attempt's line, written only when its window still reports this subject. The window's
 	/// index is printed so a reader can tell a first line from the third identical one, and the caller
@@ -44,15 +85,17 @@ internal static class RemoteBodyFactory
 	private const string FailureLine = "Remote body: {Why} for {SteamId} (repeat {Repeat}).";
 
 	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log,
-		bool hostSimulated = false)
+		bool hostSimulated = false, int character = CharacterIndex.Unknown)
 	{
 		// 1.0 renamed the player object: the demo's scene object was "Experiment", and in the
 		// release the local player's own body object is the template (measured 2026-11-10: the
 		// demo name resolves to null in a 1.0 world and every remote body logged "not found",
 		// so no teammate was ever rendered). The live player object is preferred; the old name
-		// stays as the fallback for a scene that still carries it.
+		// stays as the fallback for a scene that still carries it. When the member's snapshot
+		// names another character, that character's own prefab is the template instead.
 		var camera = PlayerCamera.main;
-		var template = camera != null && camera.body != null ? camera.body.gameObject : GameObject.Find("Experiment");
+		var local = camera != null && camera.body != null ? camera.body.gameObject : GameObject.Find("Experiment");
+		var template = PrefabFor(character, local, remote, failures, log, out var source);
 		if (template == null) // Unity object — == (is null misses destroyed)
 		{
 			// Asked per frame per member: the line is written INSIDE the ask, so one
@@ -81,6 +124,10 @@ internal static class RemoteBodyFactory
 
 			return null;
 		}
+
+		// Which prefab this clone came from is the one fact a wrong character shows in, so it is named
+		// on creation rather than left to the visual.
+		log.LogInformation("Remote body for {SteamId} built from {Source}.", remote.SteamId, source);
 
 		body.transform.position = anchor;
 		body.targetLookPos = new Vector2(1000f, 460f);

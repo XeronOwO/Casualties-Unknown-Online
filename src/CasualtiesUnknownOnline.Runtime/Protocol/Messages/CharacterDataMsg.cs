@@ -107,6 +107,16 @@ public sealed class CharacterDataMsg
 	public WorldGenerationMsg? Generation { get; set; }
 
 	/// <summary>
+	/// The player character this snapshot belongs to, wire-encoded as index + 1
+	/// (0 = not reported — the same encoding rule <see cref="HandSlot"/> follows).
+	/// The index is the game's own spawn table (<c>PlayerCamera.SpawnCharacter</c>,
+	/// release 1.0): 0 Experiment, 1 Milky, 2 Dune. A remote clone renders the
+	/// character this names instead of the viewer's own body.
+	/// </summary>
+	[ProtoMember(13)]
+	public int Character { get; set; }
+
+	/// <summary>
 	/// LOCAL-ONLY mutation counter, never serialized (no <c>ProtoMember</c>): the host's stored
 	/// snapshot is mutated in place by the event appliers (a bite, a limb latch, an injury), and a
 	/// host clone's input map must notice that mutation even though the object reference did not

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using MapsterMapper;
 
@@ -34,6 +35,9 @@ internal static class CharacterDataCapture
 			// Wire encoding is handSlot + 1 (0 = none) — protobuf-net omits
 			// 0-valued ints, and hand slot 0 is valid (see CharacterDataMsg.HandSlot).
 			HandSlot = body.handSlot + 1,
+			// The character the body was spawned as; the remote clone renders this one instead of
+			// the viewer's own body (see CharacterIndex).
+			Character = CharacterIndex.ToWire(CharacterIndex.OfBody(body.gameObject.name, PreRunScript.characterSelected)),
 			// The reconnect restore returns the character to its LEAVE spot, not
 			// the fresh world's landing spot.
 			Position = new NetVector2Msg(body.transform.position.x, body.transform.position.y),

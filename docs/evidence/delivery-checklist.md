@@ -3,18 +3,18 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the character ticket now carries the step-2 design: the player's action (pick a portrait on the pre-run screen), the game's own chain (`PreRunScript.SelectCharacter` → `PlayerCamera.Awake` → `SpawnCharacter` → `Utils.Create("Special/Characters/…")`, quoted with file:line from `reversing/release-1.0`), and how the remote clone reaches the same prefab
-- [ ] Native parity — the design uses the game's own prefab path (`Special/Characters/<name>`) and its own choice field, never a stand-in sprite or a renamed local body
-- [ ] Native parity probe — the probe is the compiled spawn table read from the decompile: `PlayerCamera.SpawnCharacter` maps 0/1/2 to Experiment/Milky/Dune (`PlayerCamera.cs:781-792`), and `PreRunScript.SelectCharacter` stores the index (`PreRunScript.cs:270-272`)
-- [ ] Entry mapping — the entries named: the owner's capture (`CharacterDataCapture.Capture`), the wire (`CharacterDataMsg`, tag 7), the clone (`RemoteBodyFactory.CreateRemoteBody` called from `RemotePlayerRenderer.cs:182` with the snapshot already in hand at `:198`)
-- [ ] Mechanism inventory — every consumer of the clone: the renderer's cache (`_remoteClones`), the host-vitals attach, the clone-inventory and limb application, and `RemoteCharacterDisplayProjection` — the design keeps all four and only changes the template and the cache key
-- [ ] Whole-family audit — a second live body is the family risk: `Utils.Create`'s scene-side effects are refused in the design (plain `Resources.Load` + `Instantiate`), and the existing collider/effect stripping applies to any prefab
-- [ ] Self-check table — the design is documentation only; gates 834/0 in the previous cycle and no source file changed in this one
-- [ ] Verification design — the acceptance rows name a reading that fails today (the clone's source object per client) and the re-join/save rows that prove the id rides the snapshot
-- [ ] Plan approved by the user — the user ordered the tickets and the work ("file the tickets, then start" — translated)
-- [ ] Structure review done — no type is introduced by the design itself; the implementation names one pure mapping (index → prefab name) and one factory parameter
+- [ ] Design comprehension — the slice implements the ticket's step-2 design: the character rides the character snapshot (`CharacterDataMsg.Character`, tag 13, index + 1), the renderer hands it to the clone factory, the factory loads the member's own character prefab
+- [ ] Native parity — the table is the game's own spawn table (`PlayerCamera.SpawnCharacter`: 0 Experiment, 1 Milky, 2 Dune) and the prefab is loaded with `Resources.Load` + `Instantiate`, the same pair `Utils.Create` uses, so the clone is the real character object
+- [ ] Native parity probe — the probe read the decompile: `Utils.Create(string id, Vector2 pos, float rot)` is `Object.Instantiate(Resources.Load(id), pos, Quaternion.Euler(...))` with no scene-side effect, which is why the factory may load a prefab directly
+- [ ] Entry mapping — the chain: `CharacterDataCapture.Capture` (owner) → `CharacterDataMsg.Character` → `CharacterDataSync.CloneData` → `RemotePlayerRenderer.Update` → `RemoteBodyFactory.CreateRemoteBody(..., character)`; the chain is in the ticket with file:line
+- [ ] Mechanism inventory — every consumer of the clone template: the renderer's cache (now keyed by character through `_cloneCharacters`), the host-vitals attach, the clone inventory, the limb application and the display projection; all four keep working on the new template
+- [ ] Whole-family audit — a wrong character must be visible: the factory logs the source prefab on creation and names a fallback (`the viewer's own body (the member's character prefab did not load)`) instead of silently keeping the old body
+- [ ] Self-check table — the pure part is a Runtime type with four facts (`CharacterIndexTests`: round trip, unknown, prefab paths, body-name fallback) and the wire comment names the encoding rule
+- [ ] Verification design — the live row: two clients on different characters start a run and each client's log names the prefab its clone was built from (`Remote body for <id> built from Special/Characters/<name>`), which the ticket's acceptance row 1 reads
+- [ ] Plan approved by the user — the user ordered the work ("file the tickets, then start" — translated)
+- [ ] Structure review done — one public Runtime type (`CharacterIndex`) holds the table, the wire form and the name reading; the adapter keeps only the Unity-side choice (which GameObject to instantiate)
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: not applicable — this cycle changed no deployable artifact
+- [ ] Release-cycle deployment/acceptance: the live two-character reading is run after this commit (deploy, launch, read both logs)
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

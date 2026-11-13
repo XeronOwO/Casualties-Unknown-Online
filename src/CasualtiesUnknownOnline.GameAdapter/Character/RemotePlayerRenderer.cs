@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -40,6 +41,7 @@ internal sealed class RemotePlayerRenderer(
 	private readonly CarriedRiderPresenter _carriedRider = new(session, playerInteraction);
 
 	private readonly Dictionary<ulong, Body> _remoteClones = [];
+	private readonly Dictionary<ulong, int> _cloneCharacters = [];
 	private long _nextCloneLogMs;
 
 	/// <summary>
@@ -175,18 +177,32 @@ internal sealed class RemotePlayerRenderer(
 				continue; // in a menu/loading — no clone
 			}
 
+			var character = _characterData.CloneData.TryGetValue(remote.SteamId, out var known)
+				? CharacterIndex.FromWire(known.Character)
+				: CharacterIndex.Unknown;
+
+			// A member who changed character gets a new clone instead of a stale body: the snapshot's
+			// character arrives after the first report, so the first clone may still be the local body.
+			if (_remoteClones.TryGetValue(remote.SteamId, out var existing) && existing != null
+				&& _cloneCharacters.TryGetValue(remote.SteamId, out var built) && built != character)
+			{
+				Object.Destroy(existing);
+				_remoteClones.Remove(remote.SteamId);
+			}
+
 			// == null on Unity objects — a scene reload destroys the clone and
 			// reference-comparison would miss it; retry creation next frame.
 			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
 			{
 				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _cloneFailures, _log,
-					hostSimulated: _session.Role == SessionRole.Host);
+					hostSimulated: _session.Role == SessionRole.Host, character: character);
 				if (clone == null)
 				{
 					continue; // template unavailable — retry next frame
 				}
 
 				_remoteClones[remote.SteamId] = clone;
+				_cloneCharacters[remote.SteamId] = character;
 				// The host's clone is also the model: attach the fixed-step driver before the
 				// initial snapshot is applied, so the limb apply already knows to preserve the
 				// owned values. Guests never attach one.

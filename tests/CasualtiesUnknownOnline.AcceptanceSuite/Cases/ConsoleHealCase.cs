@@ -123,24 +123,12 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 
 		// The member's own trace goes beside the reading: the host's chain can be green while the
 		// member's body never ran the reset (the 2026-11-13 reading), so the case names which side
-		// the reset reached before it judges the limb. The trace is polled for the reset line itself,
-		// so the limb is read after the body was rewritten, not before it.
-		JsonElement? trace = null;
-		var resetSeen = false;
-		for (var wait = 0; wait < 20; wait++)
-		{
-			trace = await context.Session.LogTailAsync(context.Session.MemberUrl, "HealReset", 20, cancellationToken).ConfigureAwait(false);
-			resetSeen = trace is { ValueKind: JsonValueKind.Object } traceElement
-				&& traceElement.GetRawText().Contains("local body reset", StringComparison.Ordinal);
-			if (resetSeen)
-			{
-				break;
-			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-		}
-
-		context.Read("member-heal-trace", trace);
+		// the reset reached before it judges the limb. The wait is a measurement of the member's own
+		// log line — the client polls its own file and answers when the reset landed, so no caller
+		// sleep stands between the command and the reading.
+		var resetLine = await context.Session.WaitForLogAsync(context.Session.MemberUrl, "local body reset", 15_000, cancellationToken).ConfigureAwait(false);
+		var resetSeen = resetLine is not null;
+		context.Read("member-reset-line", JsonDocument.Parse(JsonSerializer.Serialize(resetLine)).RootElement.Clone());
 		context.Note("member saw the reset: " + resetSeen);
 
 		// The heal is applied on the member's client: the member's own limb is the judge, polled

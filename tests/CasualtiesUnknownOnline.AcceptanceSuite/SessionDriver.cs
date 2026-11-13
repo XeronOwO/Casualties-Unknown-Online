@@ -734,6 +734,25 @@ internal sealed class SessionDriver(Options options)
 		// target's side of a relayed effect from the target's own file, not from the host's answer.
 		await ActionAsync(url, "log-tail", cancellationToken, ("-Text", count.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
 
+	/// <summary>
+	/// Wait inside the client until its own log carries the match, or the budget expires: a case that
+	/// needs a game event to have happened reads it here instead of sleeping and asking again. Returns
+	/// the matching line (the last one written), or null when the budget ran out.
+	/// </summary>
+	public async Task<string?> WaitForLogAsync(string url, string match, int budgetMs, CancellationToken cancellationToken)
+	{
+		var answer = await ActionAsync(url, "wait-log", cancellationToken, ("-Text", budgetMs.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
+		if (answer is not { ValueKind: JsonValueKind.Object } value
+			|| !value.TryGetProperty("line", out var line)
+			|| line.ValueKind != JsonValueKind.String)
+		{
+			return null;
+		}
+
+		var text = line.GetString();
+		return string.IsNullOrEmpty(text) ? null : text;
+	}
+
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{
 		var argument = string.Empty;

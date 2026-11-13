@@ -563,6 +563,37 @@
 		return finish(fields);
 	}
 
+	if (command == "wait-log") {
+		// Block until THIS client's own log carries ARGUMENT (`text` is the budget in ms). The suite's
+		// waits are measurements of a game event: the reader polls inside the client instead of the
+		// caller sleeping and re-asking. Answers found=false at the budget, never earlier.
+		var waitLogPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		var budgetMs = 15000;
+		int.TryParse(text, out budgetMs);
+		if (budgetMs < 100) { budgetMs = 100; }
+		var started = System.Environment.TickCount;
+		var found = "";
+		while (System.Environment.TickCount - started < budgetMs) {
+			if (System.IO.File.Exists(waitLogPath)) {
+				using (var stream = new System.IO.FileStream(waitLogPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+				using (var reader = new System.IO.StreamReader(stream)) {
+					string line;
+					while ((line = reader.ReadLine()) != null) {
+						if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) >= 0) { found = line; }
+					}
+				}
+			}
+			if (found.Length > 0) { break; }
+			System.Threading.Thread.Sleep(100);
+		}
+
+		putText(fields, escape, "ok", "true");
+		putText(fields, escape, "found", found.Length > 0 ? "true" : "false");
+		putText(fields, escape, "waitedMs", (System.Environment.TickCount - started).ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putText(fields, escape, "line", found);
+		return finish(fields);
+	}
+
 	return fail(escape, "unknown-command", command);
 })())
 

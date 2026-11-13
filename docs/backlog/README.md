@@ -87,7 +87,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
 - [The crafting screen cannot open](review/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — the game's own refresh throws on a recipe product.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
-- [A remote player carries no character](review/1.0-remote-players-carry-no-character.md) — **High** — the clone takes the viewer's body.
 - [A teammate can feed you without asking](review/1.0-cross-player-item-use-has-no-consent.md) — **High** — the target is never asked.
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 - [Nobody counts a player's deaths](review/1.0-player-death-stats-missing.md) — **Low** — the run keeps no per-player count.
@@ -281,6 +280,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Treatment gore presentation carried](done/treatment-gore-presentation-carried.md) — **Low** — pins re-run: 30 + 29 green.
 - [Tab opens the backpack then closes](done/tab-backpack-open-close-immediately.md) — **Medium** — real Tab press; stays open.
 - [Remote player medical panel](done/remote-player-medical-panel.md) — **Medium** — native WoundView reuse; read on frames.
+- [A remote player carries no character](done/1.0-remote-players-carry-no-character.md) — **High** — the clone takes the member's own character; both rows read.
 - [Turret stray fire after reload](done/turret-stray-fire-after-reload.md) — **Medium** — transient trap replay removed; tests re-run.
 - [The host decides enemy hits on remote players](done/enemy-hit-determination-local.md) — **High** — the victim judges its own hit.
 - [The id resume reads one source](done/id-resume-sources-still-unseeded.md) — **Medium** — both id carriers seed the one namespace.

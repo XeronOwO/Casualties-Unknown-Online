@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the reset writes the captured health/limbs through `HealResetState.ApplyTo` then `ApplyHealState`
-- [ ] Native parity — the code is the game's own body and the table's values
-- [ ] Native parity probe — the host stored the member's reported reset while the member's limb stayed hurt
+- [ ] Design comprehension — the reset's own frame is the only place a healthy limb proves the write
+- [ ] Native parity — no product content; the case reads the member's own body
+- [ ] Native parity probe — three runs read `skinHealth 100, bleedAmount 0, pain 0, muscleHealth 100` at the reset
 - [ ] Entry mapping — one entry, `/heal @a` on the host
-- [ ] Mechanism inventory — the reset clears medication and hollows, un-breaks and un-dislocates limbs, then writes the table
-- [ ] Whole-family audit — no other path writes the same fields outside the reset
-- [ ] Self-check table — documentation only
-- [ ] Verification design — the next probe reads the limb in the reset's own frame and again after 2 s
+- [ ] Mechanism inventory — a healthy immediate read means the flake is a run where the reset never lands, not a returning wound
+- [ ] Whole-family audit — no other case reads the same frame
+- [ ] Self-check table — one test file changed
+- [ ] Verification design — three consecutive runs with the immediate read
 - [ ] Plan approved by the user — the goal's main line
-- [ ] Structure review done — the note names the write path and the suspected return
+- [ ] Structure review done — the read sits between the wait and the poll
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle

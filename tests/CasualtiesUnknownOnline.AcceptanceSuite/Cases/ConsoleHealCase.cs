@@ -134,8 +134,12 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		context.Read("member-reset-line", JsonDocument.Parse(JsonSerializer.Serialize(resetLine)).RootElement.Clone());
 		context.Note("member saw the reset: " + resetSeen);
 
-		// The heal is applied on the member's client: the member's own limb is the judge, polled
-		// because the command travels host → member before the body is rewritten.
+		// The reset's own frame: read the limb the moment the member's client reports it, so a value
+		// that is healthy here and hurt later separates "the reset never wrote" from "the damage
+		// comes back" (the 2026-11-14 reading has both shapes in the ticket).
+		var immediate = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+		context.Read("member-limb-at-reset", immediate);
+
 		JsonElement? healed = null;
 		var restored = false;
 		for (var wait = 0; wait < 60; wait++)

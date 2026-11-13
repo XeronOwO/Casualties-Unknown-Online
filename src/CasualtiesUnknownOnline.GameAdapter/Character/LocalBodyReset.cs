@@ -128,8 +128,9 @@ internal sealed class LocalBodyReset(
 
 			_characterDataSync.ReportInventoryChanged(body);
 			log.LogInformation(
-				"[HealReset] local body reset: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, bodyId={BodyId}.",
-				wasDead, restoredLimbs, hollowCleared, body.GetInstanceID());
+				"[HealReset] local body reset: wasDead={WasDead}, restoredLimbs={Limbs}, hollowCleared={Hollow}, bodyId={BodyId}, cameraId={CameraId}.",
+				wasDead, restoredLimbs, hollowCleared, body.GetInstanceID(),
+				PlayerCamera.main != null && PlayerCamera.main.body != null ? PlayerCamera.main.body.GetInstanceID() : 0);
 			return LocalBodyResetOutcome.AppliedNow(wasDead, restoredLimbs, hollowCleared);
 		}
 	}

@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the reset's log names the body it wrote and whether any limb was restored
-- [ ] Native parity — no product content; the ticket records a live reading
-- [ ] Native parity probe — a failing run reproduced on the first attempt with the member's full chain
-- [ ] Entry mapping — one entry, the host's `/heal @a` console verb
-- [ ] Mechanism inventory — the reset executes on body -6516 and restores nothing while the displayed limb keeps its damage
-- [ ] Whole-family audit — no other ticket names this body identity
-- [ ] Self-check table — one ticket changed
-- [ ] Verification design — the probe compares the reset's body id with the displayed body's
+- [ ] Design comprehension — the reset line now names both the body it wrote and the body the camera reads
+- [ ] Native parity — no new behaviour; one log field on the game's own reset path
+- [ ] Native parity probe — build 0 errors, gates 834/0
+- [ ] Entry mapping — one entry, `LocalBodyReset.Reset` called by the member's own instruction handler
+- [ ] Mechanism inventory — the ids compared on the member's own client answer the ticket's next probe
+- [ ] Whole-family audit — no other log line needs the camera id
+- [ ] Self-check table — one src file changed
+- [ ] Verification design — a live heal reads the line with both ids
 - [ ] Plan approved by the user — the goal's main line
-- [ ] Structure review done — the reading goes on the ticket, not into code
+- [ ] Structure review done — the field sits on the existing line, no new branch
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: nothing deployed this cycle
+- [ ] Release-cycle deployment/acceptance: deployed after the commit and judged by a live heal
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

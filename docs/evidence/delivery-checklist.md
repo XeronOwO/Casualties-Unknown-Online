@@ -3,22 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the session end keeps the Role so a returning host can rebuild the same lobby; IP-direct has no lobby event, so a kept role becomes a ghost
-- [ ] Native parity — not a game action: this is CUO's own identity state, so the parity question is which lobby owns the identity
-- [ ] Native parity probe — the ghost was read on the boxed guest before the fix: `role=Guest, inWorld=false, page=Home`, `leave-world` answers without changing the role
-- [ ] Entry mapping — `EndSession()` → `TeardownSession(leaveLobby: false)` → the new branch; a guest's watchdog calls the same `EndSession`
-- [ ] Mechanism inventory — the Role is assigned in four places (host lobby create, host lobby enter, guest lobby enter, and reset on lobby leave); the new branch is the only one that clears it for a transport with no lobby
-- [ ] Whole-family audit — every consumer of `Role` (12 call sites across the adapter) reads it as "whose authority am I", so a cleared role after a dead session is the correct answer for all of them
-- [ ] Self-check table — build 0 errors; unit suite 6652/0 (two new facts); normative gates 834/0 after the new ticket's Design section landed; `dotnet format` ran
-- [ ] Verification design — the two unit facts judge the branch (a lobby keeps the role, no lobby clears it); the live row is the boxed guest rejoining a new session without a restart
-- [ ] Plan approved by the user — the user ordered a root-cause fix instead of the fixture's forced restart; the ticket carries the options and the recommendation
-- [ ] Structure review done — no new type; one branch and one log line in the session end path; the file stays under its ceiling
+- [ ] Design comprehension — four tickets filed from the reference comparison, each naming the design page that owns its surface: character spawn (`docs/design/game/README.md` + `saves-and-recovery.md`), consent (`permissions-and-commands.md` + `items/README.md`), rule toggles (`permissions-and-commands.md` + `game/README.md`), death stats (`observability.md` + `console-and-save.md`)
+- [ ] Native parity — every ticket quotes the game's own mechanism it sits on: `PreRunScript.characterSelected`/`PlayerCamera.SpawnCharacter` for the character, `ItemUseTargetPolicy` for the target gate, `PlayerPushService`/`CarriagePatchBridge` for the toggles, the revive log line for the counter
+- [ ] Native parity probe — the probe for the comparison was the ripgrep pass over `src/` with the game's own names (`characterSelected`, `SpawnCharacter`, `NapVariant`, `Nameplate`, `RemoteBackpackAccess`): the first two are absent, the last three present
+- [ ] Entry mapping — each ticket names its entry path and file:line: `RemoteBodyFactory.cs:54-69` (clone template), `PlayerItemUseExecution`/`NativeSolidFoodEat` (the hand-feed path), `HostRuleSet.cs` (the rule set the toggles join), the respawn path (`RespawnCoordinator`)
+- [ ] Mechanism inventory — the comparison was re-run with ripgrep after the first pass was wrong: `grep Skill`, `grep Nap`, `grep Nameplate`, `grep RemoteBackpackAccess`, `grep Consent` — the first four exist, the fifth finds only comments
+- [ ] Whole-family audit — the tickets that touch the rule surface (toggles, consent) say they join `IHostRules`/`HostRuleSet` and are announced like every rule; the character ticket says the id rides the character snapshot instead
+- [ ] Self-check table — gates 834/0 after the four tickets, their index rows and census rows landed; the build was untouched (documentation only)
+- [ ] Verification design — each ticket carries acceptance rows with a reading that fails today (the clone's source object, the consent pending state, the refused push, the count after two deaths)
+- [ ] Plan approved by the user — the user ordered the tickets and the work ("file the tickets, then start" - translated) after the corrected comparison
+- [ ] Structure review done — no code changed; the four tickets add one surface each and name the existing owner, so no new type or module is introduced by filing
 - [ ] Build + dotnet format + dotnet test normative gates pass
+- [ ] Release-cycle deployment/acceptance: not applicable — this cycle changed no deployable artifact
 
-- [ ] Release-cycle deployment/acceptance: run by the agent after the commit
-      (build → deploy → two-client acceptance per `docs/acceptance/`), outside the
-      development commit gate; simulation/static evidence is the feature development
-      verification standard.
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is
       exactly what the gate exists to catch)

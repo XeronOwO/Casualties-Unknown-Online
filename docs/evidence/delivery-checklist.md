@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the `bodies` branch fails to compile, and a fresh client fails the same way, so the cache theory was wrong
-- [ ] Native parity — no game content; the probe file is back at HEAD
-- [ ] Native parity probe — the fresh-client call is the evidence
-- [ ] Entry mapping — one entry, the driver's recipe action
-- [ ] Mechanism inventory — the failure is the branch's source, not a cache
-- [ ] Whole-family audit — the earlier `typeof(Body)` failure had the same signature; the next attempt isolates the construct in its own recipe
-- [ ] Self-check table — tree reverted; only the ticket changed
-- [ ] Verification design — the bisect recipe names one construct at a time
+- [ ] Design comprehension — the recipe's wrapper closes `}))()`: my earlier `})())` was the real cause of every `returned no value`
+- [ ] Native parity — no game content; the probe reads the game's own body type from the instance
+- [ ] Native parity probe — the answer names the missing local body, the game's own state
+- [ ] Entry mapping — one entry: the driver's recipe action on `ws://127.0.0.1:18590`
+- [ ] Mechanism inventory — the probe counts bodies of the local body's type and excludes the local one
+- [ ] Whole-family audit — the two earlier failures (`typeof(Body)`, the multi-line branch) had the same paren defect, so the "cache" and "compiler" theories are both withdrawn
+- [ ] Self-check table — one new recipe file; the other files are at HEAD
+- [ ] Verification design — the next read is on a started run (the probe needs a body)
 - [ ] Plan approved by the user — the goal's main line: the suite carries the regression
-- [ ] Structure review done — a corrected reading; the probe stays at HEAD
+- [ ] Structure review done — the probe is its own recipe, so the working probe stays untouched
 - [ ] Build + dotnet format + dotnet test normative gates pass — no code change this cycle
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle

@@ -50,6 +50,11 @@ param(
 	# finishes generating) answers no action at all, so the reuse check would hide it; -Restart stops
 	# exactly the clients this run names and starts them again.
 	[switch]$Restart,
+	# Start the third client (Steam2) as well. The default is the two-client pair a co-op row needs:
+	# a default that also started Steam2 made every ordinary launch wait for a third endpoint, and a
+	# Steam2 that failed to boot held the launch its whole budget (measured 2026-11-13: 300 s of wait
+	# on a pair that was already up in 4).
+	[switch]$All,
 	[int]$SteamGraceSeconds = 60,
 	[int]$ReadyTimeoutSeconds = 300
 )
@@ -291,7 +296,7 @@ function Restart-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
 #
 # -Only narrows the run to ONE client: a row that is the client's own (an input patch, a UI frame, a console line) needs no lobby, and a single
 # client touches neither the other boxes nor the network. The sandbox service is only ensured when a BOXED client is in the run.
-$clients = if ($Only) { @($Only) } else { @('host', 'guest', 'alt') }
+$clients = if ($Only) { @($Only) } elseif ($All) { @('host', 'guest', 'alt') } else { @('host', 'guest') }
 $needsSandbox = @($clients | Where-Object { $_ -ne 'host' }).Count -gt 0
 if ($needsSandbox -and -not (Ensure-SandboxService)) { Write-Run 'FAIL: the sandbox cannot start, so no boxed client can come up'; exit 7 }
 
@@ -389,10 +394,17 @@ foreach ($client in @($clients | Where-Object { $_ -ne 'host' })) {
 	}
 }
 
-if ($Only) { Write-Run "$Only up" } else { Write-Run 'all three up' }
+if ($Only) { Write-Run "$Only up" } else { Write-Run (($clients -join ', ') + ' up (endpoints answered)') }
 
 # A single-client run has no lobby to join and no world to enter: the endpoint that answered IS the deliverable.
 if ($Only -or $NoJoin) { exit 0 }
+if ($AllowOfflineSteam) {
+	# No Steam means no lobby to create and no world to enter: the caller (the suite, or a driver
+	# script) makes the IP-direct session. Without this the launch ended in "FAIL: no lobby id" after
+	# the endpoints were already up (measured 2026-11-13).
+	Write-Run 'offline IP direct: no lobby to create; the endpoints are the deliverable'
+	exit 0
+}
 $lobbyAnswer = Invoke-Driver 'host' 'create-lobby'
 $lobby = [string]$lobbyAnswer.result.lobby
 if ([string]::IsNullOrWhiteSpace($lobby)) { Write-Run 'FAIL: no lobby id'; exit 6 }

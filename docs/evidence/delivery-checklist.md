@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the cycle records the live reading on the ticket: the wire carries the chosen character (`CharacterDataMsg` tag 13, index + 1) and each client's log names the clone's prefab; both rows are read
-- [ ] Native parity — the reading quotes the game's own chain: `PreRunScript.SelectCharacter(int)` (`PreRunScript.cs:270`) writes the field the portrait writes, `PreRunScript.cs:55` resets it to 0 in the screen's own `Awake`, and `PlayerCamera.SpawnCharacter` (`PlayerCamera.cs:781-792`) names Experiment/Milky/Dune
-- [ ] Native parity probe — the driver's new `select-character` action calls `SelectCharacter(2)` then `StartRun()` on the same instance and answered `ok, inWorld true`, the host running as IP-direct Host with the gate naming the guest
-- [ ] Entry mapping — the entries it used: the pre-run screen (`PreRunScript.SelectCharacter`/`StartRun`), the capture (`CharacterDataCapture` with `body.transform.root.name` and `PreRunScript.characterSelected`), the clone factory (`RemoteBodyFactory.PrefabFor`), the renderer's line
-- [ ] Mechanism inventory — both earlier misreadings are named with their evidence: the Body child name (fixed in `fdacf27fc` to the character object's root) and the pref being written rather than read (the earlier live reading)
-- [ ] Whole-family audit — the remaining blocker was a fixture capability, not a product defect: the fixture could not drive the game's own pre-run screen; the new driver action drives it
-- [ ] Self-check table — the code slice is committed and green: `42f51c708`, `fdacf27fc` (build 0 errors, gates 834/0, focused 4/4, unit 6656/0) and the fixture action `29758c5af`
-- [ ] Verification design — the different-character row was read: the host picked Dune and the guest's log reads `Remote body for 1 built from Special/Characters/Dune.`; the host's log reads `Remote body for 1606099369604407560 built from Special/Characters/Experiment.`
-- [ ] Plan approved by the user — the user ordered the feature and the fix, and the queue continues on the same main line
-- [ ] Structure review done — no `src/` change in this cycle; the new driver action lives in `tools/acceptance/driver/InProcessDriver.cs` with its wrapper branch, and the acceptance driver gate accepts it
-- [ ] Build + dotnet format + dotnet test normative gates pass — at `29758c5af`: build 0 errors, gates 834/0, `dotnet format` no diff
+- [ ] Design comprehension — the cycle's row is a session end without a lobby event: the host clicks leave-session, the member's own state must read role None
+- [ ] Native parity — the game's own session end path is `SessionService.TeardownSession` (`SessionService.cs:522-567`); the clearing branch at `:560-564` requires `Role != None && _currentLobbyId == 0`
+- [ ] Native parity probe — the member's own log names the teardown and the kept role: `Session ended (role Guest kept).` with no `No lobby owns this session — role cleared.`
+- [ ] Entry mapping — the entries used: the host's own `home.leave` control, the member's `state` action through the suite's driver, and the member's own log line
+- [ ] Mechanism inventory — the misreading named: the first attempt used `leave-world` and expected a session end; a world leave keeps the session alive (`active: true, role: Guest`), which is a different row
+- [ ] Whole-family audit — the family is "a session that ends with no lobby owner": IP-direct has no lobby callback at all, so the branch's `_currentLobbyId == 0` condition is the one to read next; no second entry is left untested in this cycle
+- [ ] Self-check table — the case runs on the deployed build (`fdacf27fc`-era) and fails at its first requirement; the failure is the finding, not a fixture error
+- [ ] Verification design — the next probe names both values at the teardown (role and `_currentLobbyId`) in one log line; the fix is not re-opened until that reading exists
+- [ ] Plan approved by the user — the user's main line is to finish the remaining tickets, and this is one of them
+- [ ] Structure review done — no `src/` change in this cycle: the case is a test file, the launcher fast path is a tool script; the suite builds and the case runs
+- [ ] Build + dotnet format + dotnet test normative gates pass — gates 834 passed, 0 failed, exit 0
 
-- [ ] Release-cycle deployment/acceptance: row 1 stays open on the pre-run screen fixture
+- [ ] Release-cycle deployment/acceptance: the role row reads None only after the next probe's fix
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

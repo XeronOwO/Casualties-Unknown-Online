@@ -38,7 +38,13 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 		WireEvents();
 	}
 
-	public bool IsIpDirectActive => _ipDirectActive;
+	/// <summary>
+	/// Whether IP direct is the current transport. A selection alone is not enough: the transport's
+	/// own liveness answers, because a session that ended leaves the selection behind (measured
+	/// 2026-11-14: the window still offered "leave session" after the host left, which hid the join
+	/// controls the next session needs).
+	/// </summary>
+	public bool IsIpDirectActive => _ipDirectActive && _ipDirectTransport.IsRunning;
 
 	// ---- ITransportIdentity (§2: which key space a save is written in) ----
 

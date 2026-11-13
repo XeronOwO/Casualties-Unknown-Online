@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the case's rejoin step: after the host's second session, the member's window must offer the IP join; it offers `home.leave` instead while its state reads role None
-- [ ] Native parity — the case drives the driver's own `state`/`click` actions; no game assembly touched
-- [ ] Native parity probe — the state's `controls` array is the window's built rows, so a missing `ip.join` means the drawer did not build the IP section
-- [ ] Entry mapping — the rejoin's entries: open-window, tab.home, ip.notice_confirm, ip.address/ip.port, ip.join; the case now settles 400 ms after tab.home and re-clicks ip.join every third second
-- [ ] Mechanism inventory — the same class of misread as before: the poll compared `inWorld` as text; it now uses the shared `IsTrue`
-- [ ] Whole-family audit — the suite has one `IsTrue` helper; grep for `"true"` comparisons in the cases found this site only
-- [ ] Self-check table — build 0 errors; the case still fails, now with the window's stale session flag named
-- [ ] Verification design — the row closes when the member reads role Guest and inWorld after joining the host's second session without a relaunch
-- [ ] Plan approved by the user — the goal's main line: finish the remaining tickets, one measured row at a time
-- [ ] Structure review done — two edits in the case that owns the row; no shared change
-- [ ] Build + dotnet format + dotnet test normative gates pass — the solution built 0 errors this cycle; gates 834/0 and unit 6658/0 ran on the same sources a step earlier
+- [ ] Design comprehension — the window's leave button and hidden join controls read `ctx.IpDirectActive = _router.IsIpDirectActive`; the router answered a SELECTION (`_ipDirectActive`, set by `UseIpDirect()` and never reset), so after a session ended the window still said "in an IP-direct session"
+- [ ] Native parity — no game content involved; the chain is the drawer → the window state → the router’s answer
+- [ ] Native parity probe — the member's window offered `home.leave` with `role None, lobby 0` (a stale selection), read on the deployed `cf4a00172`
+- [ ] Entry mapping — every reader of `IsIpDirectActive`: the drawer's session/leave rows, the member-list drawer, the network drawer, `OnlineUiHost`’s two assignments, and `CuoNetworkRouter.SendTo`’s transport choice; all now read the same live fact
+- [ ] Mechanism inventory — the misreadings named: the flag is a selection, the transport’s `IsRunning` is the fact; the router already exposed `IsRunning` (`IpDirectTransport.cs:388`)
+- [ ] Whole-family audit — the stale-selection shape exists only in this flag; `IsConnected` (peer-scoped) and `IsActive` (identity) are separate facts already fixed
+- [ ] Self-check table — build 0 warnings / 0 errors; unit 6658/0; gates 834/0; `dotnet format` no diff
+- [ ] Verification design — the row closes when the member re-opens the window after the host leaves and the join controls are offered; the suite’s `role-clearing` reads it
+- [ ] Plan approved by the user — the goal’s main line: finish the remaining tickets, one measured row at a time
+- [ ] Structure review done — one property changed to compose two existing facts; no new type, no new event
+- [ ] Build + dotnet format + dotnet test normative gates pass — build 0/0, unit 6658/0, gates 834/0, format 0
 
-- [ ] Release-cycle deployment/acceptance: the case was driven on the deployed build; the row stays open
+- [ ] Release-cycle deployment/acceptance: the fix is deployed and the row is re-read on the pair in the next cycle
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

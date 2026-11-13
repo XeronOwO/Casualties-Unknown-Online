@@ -50,7 +50,24 @@
 				var inner = ex.InnerException ?? ex;
 				var probeResult = probeRecipe.GetType().GetField("result", F)?.GetValue(probeRecipe);
 				var probeId = probeResult == null ? "<none>" : System.Convert.ToString(probeResult.GetType().GetField("id", F)?.GetValue(probeResult));
-				bad.Add(probeId + "|" + inner.GetType().Name);
+				var probeAmount = probeResult == null ? "<none>" : System.Convert.ToString(probeResult.GetType().GetField("amount", F)?.GetValue(probeResult));
+				var probeItems = probeRecipe.GetType().GetField("items", F)?.GetValue(probeRecipe) as System.Collections.IList;
+				var needs = "";
+				if (probeItems != null) {
+					for (var n = 0; n < probeItems.Count; n++) {
+						var ing = probeItems[n];
+						if (ing == null) { continue; }
+						var specificId = System.Convert.ToString(ing.GetType().GetField("specificId", F)?.GetValue(ing));
+						var specific = System.Convert.ToString(ing.GetType().GetField("specific", F)?.GetValue(ing));
+						if (n > 0) { needs += ","; }
+						needs += specificId + "|specific=" + specific;
+					}
+				}
+				var needs2 = "";
+				needs2 += "|visible=" + System.Convert.ToString(probeRecipe.GetType().GetProperty("visible", F)?.GetValue(probeRecipe));
+				needs2 += "|INT=" + System.Convert.ToString(probeRecipe.GetType().GetField("INT", F)?.GetValue(probeRecipe));
+				needs2 += "|specialKnown=" + System.Convert.ToString(probeRecipe.GetType().GetField("specialKnown", F)?.GetValue(probeRecipe));
+				bad.Add(probeId + "|" + inner.GetType().Name + "|amount=" + probeAmount + "|needs=" + needs + needs2);
 			}
 		}
 		var probeText = "{\"ok\":true,\"checked\":" + checkedCount + ",\"badCount\":" + bad.Count + ",\"badIds\":[";

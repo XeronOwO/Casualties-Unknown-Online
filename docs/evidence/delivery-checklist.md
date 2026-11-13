@@ -3,17 +3,17 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the removal case's marker is item-side, so the case never saw the displayed body it judges
-- [ ] Native parity — no game content; the probe now separates clones carrying a `Body` from the rest
-- [ ] Native parity probe — the probe's own answer is the evidence
-- [ ] Entry mapping — one entry, the suite's probe recipe
-- [ ] Mechanism inventory — one mechanism: `RemoteCloneRender` marks cloned items, not the player body
-- [ ] Whole-family audit — `clone-probe` (the other clone case) reads the same probe and passes, so the probe answers
-- [ ] Self-check table — suite builds 0 errors; `--list` no longer names `remote-removal`
-- [ ] Verification design — the case is parked with its reading until the body-clone instrument exists
+- [ ] Design comprehension — the recipe channel caches a failed compile per recipe name, so one bad edit poisons every mode
+- [ ] Native parity — no game content touched this cycle; the recipe was reverted
+- [ ] Native parity probe — the failing calls' own answers are the evidence
+- [ ] Entry mapping — one entry, the driver's recipe action
+- [ ] Mechanism inventory — one mechanism: a per-name compiled-recipe cache in the client, invalidated only by a restart
+- [ ] Whole-family audit — the earlier `select-character` "no value" had the same shape (an edit the channel could not take)
+- [ ] Self-check table — tree reverted, only the ticket line changed
+- [ ] Verification design — the next attempt restarts the host after the edit, then calls the recipe once
 - [ ] Plan approved by the user — the goal's main line: the suite carries the regression
-- [ ] Structure review done — a probe field and a parked case; no product change
-- [ ] Build + dotnet format + dotnet test normative gates pass — suite build 0 errors, gates 834/0
+- [ ] Structure review done — a reading, not a fix
+- [ ] Build + dotnet format + dotnet test normative gates pass — no code change; gates last green
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle
 

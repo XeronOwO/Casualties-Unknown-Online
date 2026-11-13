@@ -48,6 +48,10 @@ internal static partial class Program
 		var results = new List<CaseResult>();
 		var session = new SessionDriver(options);
 		var (sessionNote, memberNote) = await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+		if (session.MemberRelaunches > 0)
+		{
+			memberNote += $" (the member was recreated {session.MemberRelaunches} time(s) to join: a ghost world it could not leave is a finding)";
+		}
 		// The host names its members only once the member's own scene report has landed, which can
 		// trail the join by a beat: poll briefly instead of reading once and losing the id.
 		string[] members = [];
@@ -359,7 +363,7 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	public async Task ClearBodyAsync(CancellationToken cancellationToken)
 	{
 		var bag = await RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
-		Read("body-items", bag);		if (bag is not { ValueKind: JsonValueKind.Object } element
+		Read("body-items", bag); if (bag is not { ValueKind: JsonValueKind.Object } element
 			|| !element.TryGetProperty("ids", out var ids)
 			|| ids.ValueKind != JsonValueKind.String)
 		{

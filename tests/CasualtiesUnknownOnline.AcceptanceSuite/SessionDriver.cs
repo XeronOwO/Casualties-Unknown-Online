@@ -298,8 +298,11 @@ internal sealed class SessionDriver(Options options)
 		// "IP-direct start refused: a world is running or generating" and no click can clear that.
 		// The suite owns this client, so it recreates it once — the session being judged is the
 		// suite's own, and a member that cannot be driven would fail every case for one bad process.
+		// This is a FALLBACK, not a repair: the leave-world branch above is what should clear the
+		// ghost world, so every trigger is a finding and is named in the report.
 		if (allowRelaunch)
 		{
+			MemberRelaunches++;
 			await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
 			return await JoinMemberAsync(cancellationToken, allowRelaunch: false).ConfigureAwait(false);
 		}
@@ -311,6 +314,9 @@ internal sealed class SessionDriver(Options options)
 	private static string DescribeMemberState(JsonElement state) =>
 		$"role={StringValue(state, "role")}, active={StringValue(state, "active")}, inWorld={StringValue(state, "inWorld")}, "
 		+ $"page={StringValue(state, "page")}, controls={string.Join(",", Controls(state))}";
+
+	/// <summary>How many times the member had to be recreated to join (0 is the healthy reading; every trigger is a finding).</summary>
+	public int MemberRelaunches { get; private set; }
 
 	/// <summary>Quits the member's client, starts it again through the launcher, and waits for its driver.</summary>
 	private Task RelaunchMemberAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.MemberUrl, "guest", cancellationToken);

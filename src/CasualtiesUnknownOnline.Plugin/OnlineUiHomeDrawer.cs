@@ -97,7 +97,10 @@ internal static class OnlineUiHomeDrawer
 		// line and every archive carry the whole stamp, this row carries the short one.
 		page.Muted(ctx.F("home.build", BuildIdentity.Short(BuildIdentity.Of(typeof(OnlineUiHomeDrawer).Assembly))));
 
-		if (ctx.IpDirectActive || steam.CurrentLobbyId != 0)
+		// The leave button belongs to a live session, never to a cached id: an IP-direct guest that
+		// ended a session keeps the synthetic lobby id 1, and reading that as "in a session" hid the
+		// join controls it needed most (2026-11-14: role Guest, active false, no join on the page).
+		if (ctx.IpDirectActive || (steam.CurrentLobbyId != 0 && steam.GetLobbyOwner() != 0) || session.SessionActive)
 		{
 			var leaveLabel = session.Role == SessionRole.Host ? ctx.T("lobby.close_room") : ctx.T("lobby.leave_lobby");
 			page.Button(

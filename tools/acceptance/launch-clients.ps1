@@ -341,6 +341,7 @@ $roots = @{ 'guest' = $GuestRoot; 'alt' = $AltRoot }
 $restarted = @{}
 
 $ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
+Write-Run ("endpoints ready=" + $ready)
 foreach ($client in @($clients)) {
 	if ($ready -and -not (Test-Endpoint $client)) {
 		# The port answered but this is not our plug-in (another listener): treat as not ready and keep waiting.
@@ -350,15 +351,23 @@ foreach ($client in @($clients)) {
 
 if (-not $ready) {
 	# Give each box whose game died before answering exactly one restart, then wait again inside what is left of the deadline.
+	$restartCount = 0
 	foreach ($client in @('guest', 'alt')) {
 		if (Test-Port $client) { continue }
 		if (@(Get-BoxProcesses $boxes[$client] 'CasualtiesUnknown').Count -eq 0) {
 			$restarted[$client] = $true
+			$restartCount++
 			Restart-BoxGame $boxes[$client] $client $roots[$client]
 		}
 	}
 
-	$ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
+	if ($restartCount -eq 0) {
+		# Nothing died, so a second full wait would only spend the budget on a client that is not coming.
+		Write-Run 'no boxed game died; not waiting a second round'
+	} else {
+		$ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
+		Write-Run ("endpoints after the box restart: ready=" + $ready)
+	}
 }
 
 $missing = @($clients | Where-Object { -not (Test-Port $_) })

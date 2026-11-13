@@ -83,6 +83,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 - [The member waits for a host that waits for it](review/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the pre-run join closes both gates.
+- [A guest keeps its role after the session ends](review/1.0-a-guest-keeps-its-role-after-the-session-ends.md) — **High** — the ghost needs a restart.
 - [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
 - [The crafting screen cannot open](review/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — the game's own refresh throws on a recipe product.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.

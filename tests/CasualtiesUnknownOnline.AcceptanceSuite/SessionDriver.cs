@@ -266,6 +266,17 @@ internal sealed class SessionDriver(Options options)
 			}
 
 			var controls = Controls(state);
+			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal) && !IsTrue(state, "inWorld"))
+			{
+				// A Guest role with no world is the leftover of a session whose host went away: the
+				// client's own watchdog ends it, but until then every join is refused or ignored
+				// (measured 2026-11-13: role=Guest, inWorld empty, host roster empty). The driver's own
+				// leave is the only way out; the join below is the judge.
+				await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+				continue;
+			}
+
 			if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
 			{
 				// A member that holds a session the host's fresh run does not name (a guest of the

@@ -3,17 +3,17 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the recipe channel caches a failed compile per recipe name, so one bad edit poisons every mode
-- [ ] Native parity — no game content touched this cycle; the recipe was reverted
-- [ ] Native parity probe — the failing calls' own answers are the evidence
+- [ ] Design comprehension — the `bodies` branch fails to compile, and a fresh client fails the same way, so the cache theory was wrong
+- [ ] Native parity — no game content; the probe file is back at HEAD
+- [ ] Native parity probe — the fresh-client call is the evidence
 - [ ] Entry mapping — one entry, the driver's recipe action
-- [ ] Mechanism inventory — one mechanism: a per-name compiled-recipe cache in the client, invalidated only by a restart
-- [ ] Whole-family audit — the earlier `select-character` "no value" had the same shape (an edit the channel could not take)
-- [ ] Self-check table — tree reverted, only the ticket line changed
-- [ ] Verification design — the next attempt restarts the host after the edit, then calls the recipe once
+- [ ] Mechanism inventory — the failure is the branch's source, not a cache
+- [ ] Whole-family audit — the earlier `typeof(Body)` failure had the same signature; the next attempt isolates the construct in its own recipe
+- [ ] Self-check table — tree reverted; only the ticket changed
+- [ ] Verification design — the bisect recipe names one construct at a time
 - [ ] Plan approved by the user — the goal's main line: the suite carries the regression
-- [ ] Structure review done — a reading, not a fix
-- [ ] Build + dotnet format + dotnet test normative gates pass — no code change; gates last green
+- [ ] Structure review done — a corrected reading; the probe stays at HEAD
+- [ ] Build + dotnet format + dotnet test normative gates pass — no code change this cycle
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle
 

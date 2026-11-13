@@ -117,16 +117,19 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		context.Read("member-limb-wounded", wounded);
 		Require(woundLanded, "the wound seed did not land on the member's limb: " + Raw(wounded));
 
+		// The member's own trace goes beside the reading: the host's chain can be green while the
+		// member's body never ran the reset (the 2026-11-13 reading), so the case names which side
+		// the reset reached before it judges the limb. The wait is ARMED BEFORE the command: it only
+		// looks at lines the client writes from now on, so arming it after the command would read
+		// the reset it was meant to see as a line that never came (measured 2026-11-14: null while
+		// the member's log carried the reset).
+		var resetWait = context.Session.WaitForLogAsync(context.Session.MemberUrl, "local body reset", 15_000, cancellationToken);
+
 		// The host runs the console verb; its answer is the reading that the command was accepted.
 		var answer = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
 		context.Read("console-answer", answer);
 
-		// The member's own trace goes beside the reading: the host's chain can be green while the
-		// member's body never ran the reset (the 2026-11-13 reading), so the case names which side
-		// the reset reached before it judges the limb. The wait is a measurement of the member's own
-		// log line — the client polls its own file and answers when the reset landed, so no caller
-		// sleep stands between the command and the reading.
-		var resetLine = await context.Session.WaitForLogAsync(context.Session.MemberUrl, "local body reset", 15_000, cancellationToken).ConfigureAwait(false);
+		var resetLine = await resetWait.ConfigureAwait(false);
 		var resetSeen = resetLine is not null;
 		context.Read("member-reset-line", JsonDocument.Parse(JsonSerializer.Serialize(resetLine)).RootElement.Clone());
 		context.Note("member saw the reset: " + resetSeen);

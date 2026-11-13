@@ -331,6 +331,12 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 		}
 		else
 		{
+			if (HostSteamId == 0)
+			{
+				// No session: nothing to ping (the heartbeat runs at the menu too).
+				return;
+			}
+
 			_traffic.RecordPingSent(HostSteamId, msg.Ticks, _time.NowMs);
 			_sender.Send(HostSteamId, NetMsg.Ping, msg);
 		}
@@ -350,18 +356,32 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 		// Without this a late joiner never gets host→guest traffic and its
 		// handshake dies (5003 connect timeout).
 		_peerMaintenance.SendPeerWarmup();
+
+		// The heartbeat does not depend on the world: a session that is holding a
+		// transition (leave → menu → start) still owns its peers, and a guest that
+		// hears nothing for three intervals ends the session locally
+		// (GuestHostSilenceWatchdog). Measured 2026-11-14: joining a session before
+		// the run left the guest without a frame for 15 s and it left the session.
+		var nowMs = _time.NowMs;
+		if (_nextPingMs == 0)
+		{
+			// The heartbeat starts one interval in: a session that has just been
+			// created owes its peers nothing yet, and a measurement that counts the
+			// frames of an entry window must not see a ping on its first tick.
+			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
+		}
+
+		if (nowMs >= _nextPingMs)
+		{
+			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
+			RequestPing();
+		}
+
 		if (!SessionActive)
 		{
 			_peerMaintenance.RetryHandshakeIfNeeded();
 			_peerMaintenance.CheckPeerPresence();
 			return;
-		}
-
-		var nowMs = _time.NowMs;
-		if (nowMs >= _nextPingMs)
-		{
-			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
-			RequestPing();
 		}
 
 		// The entity-sync decisions and the 20 Hz stream run in

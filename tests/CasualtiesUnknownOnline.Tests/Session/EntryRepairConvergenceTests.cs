@@ -51,8 +51,14 @@ public class EntryRepairConvergenceTests
 		var answerBytes = 0L;
 		w.G1.Transport.MessageReceived += (_, frame) =>
 		{
-			frames.Add((NetMsg)frame[0]);
-			answerBytes += frame.Length;
+			var kind = (NetMsg)frame[0];
+			frames.Add(kind);
+			if (kind != NetMsg.Ping)
+			{
+				// The heartbeat crosses this window (it runs outside the world now), and a
+				// ping is not part of the entry answer the size measures.
+				answerBytes += frame.Length;
+			}
 		};
 
 		// The adapter half's trigger: the runtime event the Game Adapter re-fans-out its entry

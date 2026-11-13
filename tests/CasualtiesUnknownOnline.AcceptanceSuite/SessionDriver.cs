@@ -61,7 +61,7 @@ internal sealed class SessionDriver(Options options)
 			// shares. The suite starts its own run every time; leaving before the first case costs
 			// one load and is never done mid-case.
 			await TryActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await WaitUntilAsync(_options.HostUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+			await WaitWorldExitAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		}
 
@@ -182,7 +182,7 @@ internal sealed class SessionDriver(Options options)
 		if (IsTrue(memberState, "inWorld") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal))
 		{
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await WaitUntilAsync(_options.MemberUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+			await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
 		}
 
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
@@ -224,6 +224,13 @@ internal sealed class SessionDriver(Options options)
 		throw new InvalidOperationException("the member could not join the session before the run");
 	}
 
+
+	// The leave waits used to poll the caller side; the client now answers when its own world is gone.
+	private async Task<bool> WaitWorldExitAsync(string url, CancellationToken cancellationToken)
+	{
+		var answer = await ActionAsync(url, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
+		return string.Equals(StringValue(answer, "reached"), "true", StringComparison.Ordinal);
+	}
 	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -240,7 +247,7 @@ internal sealed class SessionDriver(Options options)
 			// joiner refuses while THIS client is still generating a world ("IP-direct start
 			// refused: a world is running or generating"), so the wait is the judge.
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await WaitUntilAsync(_options.MemberUrl, candidate => !IsTrue(candidate, "inWorld"), TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+			await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		}
 		// The window can be closed (a case pressed Escape) or the client can still be loading after

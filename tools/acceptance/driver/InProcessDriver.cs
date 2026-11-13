@@ -614,6 +614,7 @@
 		var stateReached = false;
 		while (System.Environment.TickCount - stateStarted < stateBudgetMs) {
 			if (argument == "inWorld" && presence != null && presence.IsInWorldOrGenerating) { stateReached = true; break; }
+			if (argument == "notInWorld" && (presence == null || !presence.IsInWorldOrGenerating)) { stateReached = true; break; }
 			System.Threading.Thread.Sleep(100);
 		}
 

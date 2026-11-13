@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the heal row must know whether the body it reads is the body the reset wrote
-- [ ] Native parity — no game content; the case reads the game's own Body instance
-- [ ] Native parity probe — two readers on the member's client name the same instance when the heal lands
-- [ ] Entry mapping — the reset path is the product's `LocalBodyReset.Reset`, called from the heal reset handler
-- [ ] Mechanism inventory — the limb read covers local/saved/display sources and now names its body
-- [ ] Whole-family audit — the same instance identity question applies to every body-side report; only the heal row reads a body back today
-- [ ] Self-check table — two files changed, both instrumentation
-- [ ] Verification design — build, unit, gates, format, then the pair
-- [ ] Plan approved by the user — the goal's main line (finish the backlog, make the suite event-driven)
-- [ ] Structure review done — the id travels as a log field and a recipe field, no new type
+- [ ] Design comprehension — the body-id read needs an instrument that compiles in the driver's expression form
+- [ ] Native parity — no product content; the recipe reads the game's own Body
+- [ ] Native parity probe — the reverted recipe compiles and answers on a live client
+- [ ] Entry mapping — the heal row's limb read is the only reader
+- [ ] Mechanism inventory — the probe's `bodyId` must travel as a `// returns` field and compile; the failed edit changed both at once
+- [ ] Whole-family audit — no other recipe uses `GetInstanceID`
+- [ ] Self-check table — one file reverted to its last working revision
+- [ ] Verification design — the live guest answers the recipe
+- [ ] Plan approved by the user — the goal's main line
+- [ ] Structure review done — the revert drops the unproven field rather than keeping a broken recipe
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle

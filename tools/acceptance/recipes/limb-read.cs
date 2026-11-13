@@ -1,7 +1,7 @@
 // recipe: limb-read
 // args: source=s limb=n target=s
 // serves: medical-state-names-no-kind, cross-player-item-use-random-determinism, heal-cheat-command-state-reset
-// returns: ok, source, limb, bodyId, skinHealth, bleedAmount, pain, muscleHealth, shrapnel, hasShrapnel, splinted,
+// returns: ok, source, limb, skinHealth, bleedAmount, pain, muscleHealth, shrapnel, hasShrapnel, splinted,
 //          dislocated, dismembered, isHead, isVital, distanceToHeart, components, error, detail
 //
 // Reads ONE limb through the surface a row names, so a run compares what each side actually holds
@@ -49,10 +49,8 @@
 
 	if (source == "local" || source == "display") {
 		var body = (Body)null;
-	var bodyId = 0;
 		if (source == "local") {
 			body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
-		bodyId = body != null ? body.GetInstanceID() : 0;
 			if (body == null) { return "{\"ok\":false,\"error\":\"no-local-body\"}"; }
 		} else {
 			// The view type is looked up by NAME rather than by field, so a rename of the static cannot
@@ -124,7 +122,7 @@
 	}
 
 	return "{\"ok\":true,\"source\":\"" + source + "\",\"limb\":" + limbIndex
-		+ ",\"bodyId\":" + bodyId + ",\"skinHealth\":" + num(skin) + ",\"bleedAmount\":" + num(bleed) + ",\"pain\":" + num(pain)
+		+ ",\"skinHealth\":" + num(skin) + ",\"bleedAmount\":" + num(bleed) + ",\"pain\":" + num(pain)
 		+ ",\"muscleHealth\":" + num(muscle) + ",\"shrapnel\":" + shrapnel
 		+ ",\"hasShrapnel\":" + (hasShrapnel ? "true" : "false")
 		+ ",\"blockedBleeding\":" + (blockedBleeding ? "true" : "false")

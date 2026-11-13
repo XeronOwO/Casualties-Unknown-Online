@@ -129,8 +129,23 @@ internal sealed class SessionDriver(Options options)
 		// Parked 2026-11-12: the join is refused or dies at the menu — the member's own log ends the
 		// session after 15 s of silence ("No frame from the host"), the host pings only while its
 		// session is active and the guest never confirms. See `1.0-member-waits-for-a-host-that-waits-for-it.md`.
-		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false); var deadline = Stopwatch.StartNew();
-		while (deadline.Elapsed < StartBudget)
+		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
+
+		// The wait is a measurement made in the client that owns the fact: the driver blocks on its
+		// own presence and answers how long it took, instead of this caller sleeping and re-asking.
+		var reached = await ActionAsync(
+			_options.HostUrl,
+			"wait-state",
+			cancellationToken,
+			("-Control", "inWorld"),
+			("-Text", "20000")).ConfigureAwait(false);
+		state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "inWorld") && string.Equals(StringValue(reached, "reached"), "true", StringComparison.Ordinal))
+		{
+			return "the suite started a fresh run";
+		}
+		var startDeadline = Stopwatch.StartNew();
+		while (startDeadline.Elapsed < StartBudget)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
 			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);

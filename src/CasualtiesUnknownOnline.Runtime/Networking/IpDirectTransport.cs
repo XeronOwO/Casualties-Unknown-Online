@@ -159,7 +159,7 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 				_running = true;
 			}
 
-			StartReadLoop(IpDirectTransport.HostPeerId, client, stream);
+			StartReadLoop(connection);
 		}
 		catch (Exception ex)
 		{
@@ -315,7 +315,7 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 					_connections[peerId] = connection;
 				}
 
-				StartReadLoop(peerId, client, stream);
+				StartReadLoop(connection);
 				log.LogInformation("IP direct guest {Peer} connected from {Endpoint}.",
 					peerId, client.Client.RemoteEndPoint);
 			}
@@ -334,18 +334,20 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 		}
 	}
 
-	private void StartReadLoop(ulong peerId, TcpClient client, NetworkStream stream)
+	private void StartReadLoop(IpConnection connection)
 	{
-		var thread = new Thread(() => ReadLoop(peerId, client, stream))
+		var thread = new Thread(() => ReadLoop(connection))
 		{
 			IsBackground = true,
-			Name = $"CUO-IpRead-{peerId}",
+			Name = $"CUO-IpRead-{connection.PeerId}",
 		};
 		thread.Start();
 	}
 
-	private void ReadLoop(ulong peerId, TcpClient client, NetworkStream stream)
+	private void ReadLoop(IpConnection connection)
 	{
+		var peerId = connection.PeerId;
+		var stream = connection.Stream;
 		try
 		{
 			while (_running)
@@ -378,7 +380,7 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 		}
 		finally
 		{
-			DisconnectPeer(peerId);
+			DisconnectPeer(peerId, connection);
 		}
 	}
 
@@ -391,17 +393,31 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 		}
 	}
 
-	private void DisconnectPeer(ulong peerId)
+	/// <summary>
+	/// Drops the connection held for <paramref name="peerId"/>. With
+	/// <paramref name="expected"/> the removal happens only when the entry IS that connection:
+	/// a read loop that ends after its peer reconnected must not remove the fresh entry, and
+	/// must not report the peer as gone (measured 2026-11-14: a guest joining the host's second
+	/// session ended the new session when the first loop's cleanup removed the new link).
+	/// </summary>
+	private void DisconnectPeer(ulong peerId, IpConnection? expected = null)
 	{
+		IpConnection? victim = null;
 		lock (_sync)
 		{
-			if (_connections.TryGetValue(peerId, out var connection))
+			if (_connections.TryGetValue(peerId, out var current) && (expected is null || ReferenceEquals(current, expected)))
 			{
 				_connections.Remove(peerId);
-				connection.Close();
+				victim = current;
 			}
 		}
 
+		if (victim is null)
+		{
+			return;
+		}
+
+		victim.Close();
 		_disconnected.Enqueue(peerId);
 	}
 

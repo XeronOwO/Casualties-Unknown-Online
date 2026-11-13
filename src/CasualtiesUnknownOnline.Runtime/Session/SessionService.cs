@@ -553,6 +553,16 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
 		}
 
+		// A session that no lobby owns cannot be rebuilt by a returning host: IP-direct has no lobby
+		// event at all, so a kept role would leave the client a ghost — back at the menu with role
+		// Guest, refusing every join until the process restarts (measured 2026-11-13). A Steam outage
+		// inside the same lobby still keeps the role, which is what the comment above protects.
+		if (_identity.Role != SessionRole.None && _currentLobbyId == 0)
+		{
+			_identity.Role = SessionRole.None;
+			_log.LogInformation("No lobby owns this session — role cleared.");
+		}
+
 		_traffic.Reset(); // per-session traffic and peer-health diagnostics are not reused across lobbies
 	}
 

@@ -60,7 +60,7 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		var hostSecond = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		context.Read("host second session", hostSecond);
 		Require(Text(hostSecond, "role") == "Host", "the host did not open a second session: " + Raw(hostSecond));
-		Require(Text(hostSecond, "inWorld") == "true", "the host's second run did not enter the world: " + Raw(hostSecond));
+		Require(IsTrue(hostSecond, "inWorld"), "the host's second run did not enter the world: " + Raw(hostSecond));
 
 		await context.Session.ActionAsync(context.Session.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
@@ -84,7 +84,7 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		context.Read("member second session", memberSecond);
 		Require(Text(memberSecond, "role") == "Guest",
 			"the member did not rejoin the host's second session without a restart: " + Raw(memberSecond));
-		Require(Text(memberSecond, "inWorld") == "true",
+		Require(IsTrue(memberSecond, "inWorld"),
 			"the member joined the second session but never entered its world: " + Raw(memberSecond));
 		context.Notes.Add("the member recreated by the fixture: " + context.Session.MemberRelaunches.ToString(CultureInfo.InvariantCulture));
 	}
@@ -93,6 +93,12 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty(property, out var value)
 			? value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString()
 			: string.Empty;
+
+	// JsonElement.ToString() renders a JSON true as "True"; the state's booleans are compared by kind.
+	private static bool IsTrue(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 

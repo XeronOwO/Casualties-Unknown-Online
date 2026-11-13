@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — this cycle only records a measured row on an existing ticket; the design it refers to is the transport-backed identity rule landed in `b5a4a7812` (the IP-direct lobby IS the transport)
-- [ ] Native parity — the row's reading names the game's own state fields (`role`, `inWorld`, `gateText`) as the client reports them; no native class is claimed
-- [ ] Native parity probe — the deploy was verified (`Deployment matches this tree's build output`) before the row ran, so the build that answered is the tree's
-- [ ] Entry mapping — the reading comes from the suite's own `role-clearing` case through the driver's `state` action on both clients; no other entry was used
-- [ ] Mechanism inventory — the documented misreading is the case's own predicate (`the host's second run did not enter the world` while the state reads `inWorld true` with the pre-run gate text); it is named on the ticket as the next slice
-- [ ] Whole-family audit — the docs touched: one review ticket; the README index row and the census row are unchanged because the ticket does not move
-- [ ] Self-check table — docs-only cycle: no build, no test, no format (the AGENTS.md rule); `tools/check-language.ps1 -WorkingTree` reads clean
-- [ ] Verification design — the row's two halves: the member's role after the host leaves (read green) and the member's join to the host's second session (named as the next slice, not claimed)
-- [ ] Plan approved by the user — the goal's main line: finish the remaining backlog tickets, one measured row at a time
-- [ ] Structure review done — the record is appended to the ticket that owns the finding; no new page, no duplicated rule
-- [ ] Build + dotnet format + dotnet test normative gates pass — docs-only cycle, so build/format/tests are skipped by the documented exception; the last full run this session was build 0 errors, unit `6658/0`, gates `834/0`, format 0
+- [ ] Design comprehension — the row's two halves: the member's role after the host leaves (read green on `b5a4a7812`) and the member's join to the host's second session (the case's boolean predicate was wrong; the join then ran and the member entered before its session ended)
+- [ ] Native parity — the predicate read `JsonElement.ToString()` for a JSON boolean, which renders "True", so `inWorld` was judged false while the state carried `true`; the game's own `state` action is the only source
+- [ ] Native parity probe — the host's second-session state read `inWorld true, gateText waiting for the rest of the players`, proving the world did start
+- [ ] Entry mapping — the case's entries: the driver's `state` action on both clients, `click` on `ip.create_host`/`ip.join`, `start-run`; no other entry
+- [ ] Mechanism inventory — the misreadings named: a JSON boolean through `ToString()`, and the member's return-to-menu after the join (its own `In the world without the save authority (a guest)` line)
+- [ ] Whole-family audit — the case is the only place that compares `state` booleans as text; the other cases use the shared helpers, and a grep of `AcceptanceSuite/Cases` for `"true"` shows only this one site
+- [ ] Self-check table — build 0 errors; the case ran (0 passed, 1 failed on the member's join); no production code changed
+- [ ] Verification design — the row closes when the member reads `role Guest` and `inWorld true` after joining the host's second session; the current failure names the join's own end
+- [ ] Plan approved by the user — the goal's main line: finish the remaining tickets, one measured row at a time
+- [ ] Structure review done — the fix is one private helper with the reason in a comment, in the case that owns the predicate; no shared change
+- [ ] Build + dotnet format + dotnet test normative gates pass — the last full run this session was build 0 errors, unit `6658/0`, gates `834/0`, format 0; this cycle changed one test case only
 
-- [ ] Release-cycle deployment/acceptance: the row was driven on the deployed build; this line stays for the row's second half
+- [ ] Release-cycle deployment/acceptance: the row was driven on the deployed build; its second half stays open
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

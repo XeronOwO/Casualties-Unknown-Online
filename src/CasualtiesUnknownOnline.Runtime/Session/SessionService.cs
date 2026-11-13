@@ -563,6 +563,11 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			_log.LogInformation("No lobby owns this session — role cleared.");
 		}
 
+		// One line that names every value the clearing branch above decides on: a ghost role is read
+		// from the log alone, including the path that kept it (measured 2026-11-14: the branch did not
+		// fire on the IP-direct end path, and the log named neither the role nor the lobby id).
+		_log.LogInformation("Session teardown finished: role {Role}, lobby {LobbyId}, active {Active}.", Role, _currentLobbyId, SessionActive);
+
 		_traffic.Reset(); // per-session traffic and peer-health diagnostics are not reused across lobbies
 	}
 

@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the member's session ended by the watchdog because the OLD link's cleanup removed the NEW connection's entry: `ReadLoop`'s `finally` called `DisconnectPeer(peerId)` unconditionally, and the guest's fresh link is registered under the same key (`HostPeerId = 1`)
-- [ ] Native parity — no game assembly touched; the change is CUO's own transport cleanup
-- [ ] Native parity probe — `IsConnected(peerId)` returns `_connections.ContainsKey`, so a stale loop deleting the fresh entry makes the watchdog's grace answer "down"
-- [ ] Entry mapping — every path that drops a connection: the read loop's finally, the send failure, `Disconnect()`; the send failure and the wholesale disconnect keep their unconditional removal
-- [ ] Mechanism inventory — the class of defect is "a cleanup keyed by peer id removes a replacement connection"; the guard `ReferenceEquals(current, expected)` closes it for both the guest's host link and the host's member links
-- [ ] Whole-family audit — one more site would have the shape if a peer id were reused for two live connections; the host rejects a duplicate peer id at accept (`IpDirectTransport.cs:309`), so the read loop is the only owner
-- [ ] Self-check table — build 0 warnings/0 errors; gates `834/0`; unit `6658/0`; no behaviour change for a peer that is genuinely gone (the removal still happens, the notification still fires)
-- [ ] Verification design — the row closes when a guest joins the host's second session and its own log carries no `link ended` line; the fix is judged from that log
+- [ ] Design comprehension — the case's rejoin step: after the host's second session, the member's window must offer the IP join; it offers `home.leave` instead while its state reads role None
+- [ ] Native parity — the case drives the driver's own `state`/`click` actions; no game assembly touched
+- [ ] Native parity probe — the state's `controls` array is the window's built rows, so a missing `ip.join` means the drawer did not build the IP section
+- [ ] Entry mapping — the rejoin's entries: open-window, tab.home, ip.notice_confirm, ip.address/ip.port, ip.join; the case now settles 400 ms after tab.home and re-clicks ip.join every third second
+- [ ] Mechanism inventory — the same class of misread as before: the poll compared `inWorld` as text; it now uses the shared `IsTrue`
+- [ ] Whole-family audit — the suite has one `IsTrue` helper; grep for `"true"` comparisons in the cases found this site only
+- [ ] Self-check table — build 0 errors; the case still fails, now with the window's stale session flag named
+- [ ] Verification design — the row closes when the member reads role Guest and inWorld after joining the host's second session without a relaunch
 - [ ] Plan approved by the user — the goal's main line: finish the remaining tickets, one measured row at a time
-- [ ] Structure review done — the guard lives in the one method that owns the map; the loop hands its own connection in, so no second notion of identity
-- [ ] Build + dotnet format + dotnet test normative gates pass — build 0/0, gates 834/0, unit 6658/0
+- [ ] Structure review done — two edits in the case that owns the row; no shared change
+- [ ] Build + dotnet format + dotnet test normative gates pass — the solution built 0 errors this cycle; gates 834/0 and unit 6658/0 ran on the same sources a step earlier
 
-- [ ] Release-cycle deployment/acceptance: the fix is not yet deployed or read on the pair
+- [ ] Release-cycle deployment/acceptance: the case was driven on the deployed build; the row stays open
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

@@ -64,6 +64,7 @@ internal sealed class RoleClearingCase : AcceptanceCase
 
 		await context.Session.ActionAsync(context.Session.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
@@ -73,9 +74,16 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		for (var attempt = 0; attempt < 40; attempt++)
 		{
 			memberSecond = await context.Session.ActionAsync(context.Session.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-			if (Text(memberSecond, "role") == "Guest" && Text(memberSecond, "inWorld") == "true")
+			if (Text(memberSecond, "role") == "Guest" && IsTrue(memberSecond, "inWorld"))
 			{
 				break;
+			}
+
+			if (attempt % 6 == 5)
+			{
+				// The member's window may still be building the IP section when the first click lands (measured
+				// 2026-11-14: the state offered no ip control yet); ask again before giving up.
+				await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
 			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);

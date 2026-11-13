@@ -564,22 +564,31 @@
 	}
 
 	if (command == "wait-log") {
-		// Block until THIS client's own log carries ARGUMENT (`text` is the budget in ms). The suite's
-		// waits are measurements of a game event: the reader polls inside the client instead of the
-		// caller sleeping and re-asking. Answers found=false at the budget, never earlier.
+		// Block until THIS client's own log carries ARGUMENT (`text` is the budget in ms). Only lines
+		// written after the call started count: a line from an earlier run is not this run's event.
+		// The suite's waits are measurements of a game event: the reader polls inside the client
+		// instead of the caller sleeping and re-asking. Answers found=false at the budget.
 		var waitLogPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
 		var budgetMs = 15000;
 		int.TryParse(text, out budgetMs);
 		if (budgetMs < 100) { budgetMs = 100; }
+		var startOffset = 0L;
+		if (System.IO.File.Exists(waitLogPath)) {
+			startOffset = new System.IO.FileInfo(waitLogPath).Length;
+		}
+
 		var started = System.Environment.TickCount;
 		var found = "";
 		while (System.Environment.TickCount - started < budgetMs) {
 			if (System.IO.File.Exists(waitLogPath)) {
 				using (var stream = new System.IO.FileStream(waitLogPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
 				using (var reader = new System.IO.StreamReader(stream)) {
-					string line;
-					while ((line = reader.ReadLine()) != null) {
-						if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) >= 0) { found = line; }
+					if (startOffset <= stream.Length) {
+						stream.Seek(startOffset, System.IO.SeekOrigin.Begin);
+						string line;
+						while ((line = reader.ReadLine()) != null) {
+							if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) >= 0) { found = line; }
+						}
 					}
 				}
 			}

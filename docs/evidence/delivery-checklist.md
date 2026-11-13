@@ -3,18 +3,18 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the slice implements the ticket's step-2 design: the character rides the character snapshot (`CharacterDataMsg.Character`, tag 13, index + 1), the renderer hands it to the clone factory, the factory loads the member's own character prefab
-- [ ] Native parity — the table is the game's own spawn table (`PlayerCamera.SpawnCharacter`: 0 Experiment, 1 Milky, 2 Dune) and the prefab is loaded with `Resources.Load` + `Instantiate`, the same pair `Utils.Create` uses, so the clone is the real character object
-- [ ] Native parity probe — the probe read the decompile: `Utils.Create(string id, Vector2 pos, float rot)` is `Object.Instantiate(Resources.Load(id), pos, Quaternion.Euler(...))` with no scene-side effect, which is why the factory may load a prefab directly
-- [ ] Entry mapping — the chain: `CharacterDataCapture.Capture` (owner) → `CharacterDataMsg.Character` → `CharacterDataSync.CloneData` → `RemotePlayerRenderer.Update` → `RemoteBodyFactory.CreateRemoteBody(..., character)`; the chain is in the ticket with file:line
-- [ ] Mechanism inventory — every consumer of the clone template: the renderer's cache (now keyed by character through `_cloneCharacters`), the host-vitals attach, the clone inventory, the limb application and the display projection; all four keep working on the new template
-- [ ] Whole-family audit — a wrong character must be visible: the factory logs the source prefab on creation and names a fallback (`the viewer's own body (the member's character prefab did not load)`) instead of silently keeping the old body
-- [ ] Self-check table — the pure part is a Runtime type with four facts (`CharacterIndexTests`: round trip, unknown, prefab paths, body-name fallback) and the wire comment names the encoding rule
-- [ ] Verification design — the live row: two clients on different characters start a run and each client's log names the prefab its clone was built from (`Remote body for <id> built from Special/Characters/<name>`), which the ticket's acceptance row 1 reads
-- [ ] Plan approved by the user — the user ordered the work ("file the tickets, then start" — translated)
-- [ ] Structure review done — one public Runtime type (`CharacterIndex`) holds the table, the wire form and the name reading; the adapter keeps only the Unity-side choice (which GameObject to instantiate)
+- [ ] Design comprehension — the live reading that failed was the identify step, not the wire: the Body component sits on a CHILD of the character object (`RemoteBodyFactory`'s own comment: the proxy patches query `GetComponent<RemoteBodyDriver>()` on "the Body (which is a CHILD of the root clone)"), so `body.gameObject.name` never held the character's name
+- [ ] Native parity — the table is now read from the character OBJECT's own name (`body.transform.root.name`), which is the instantiated prefab the game spawns, with Unity's `(Clone)` suffix ignored; the spawn table itself was re-read from `PlayerCamera.SpawnCharacter` (0 Experiment, 1 Milky, else Dune)
+- [ ] Native parity probe — the probe is the decompiled `SpawnCharacter`: `if (chr == 0) Experiment; if (chr != 1) Dune; return Milky;` — the same three paths `CharacterIndex.PrefabPath` names
+- [ ] Entry mapping — the capture reads `body.transform.root.name` (owner) and the factory compares `local.transform.root.name` (viewer); both are the instantiated character objects, never the child Body
+- [ ] Mechanism inventory — the clone source is now named by the RENDERER (`RemotePlayerRenderer.cs` after the clone is registered), because `RemoteBodyFactory.CreateRemoteBody` is covered by `LogVolumeGateTests` (a repeatable diagnostic inside it must ask a window first); the factory returns the source through `out string source` instead
+- [ ] Whole-family audit — a wrong character still has to be visible: the source string names the loaded prefab OR the fallback ("the viewer's own body (the member's character prefab did not load)"), and the renderer prints it per member
+- [ ] Self-check table — the suffix case is pinned (`IndexOfName("Milky (Clone)")` = 1) and the earlier four facts still pass; build 0 errors, gates 834/0
+- [ ] Verification design — the live row reruns the same setup: host character forced to Dune (`lastchar_h2474283127` = 2 before launch), a fresh run, and each client's log must name the OTHER player's character (`Remote body for <id> built from Special/Characters/<name>`)
+- [ ] Plan approved by the user — the user ordered the work and the queue continues on the same item
+- [ ] Structure review done — no new type: the fix stays inside `CharacterIndex` (one name-reading function) and the factory's existing out-parameter pattern
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: the live two-character reading is run after this commit (deploy, launch, read both logs)
+- [ ] Release-cycle deployment/acceptance: the live two-character reading is rerun after this commit
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

@@ -54,7 +54,7 @@ internal static class RemoteBodyFactory
 			return local;
 		}
 
-		var localIndex = local == null ? CharacterIndex.Unknown : CharacterIndex.IndexOfName(local.name);
+		var localIndex = local == null ? CharacterIndex.Unknown : CharacterIndex.IndexOfName(local.transform.root.name);
 		if (localIndex == character)
 		{
 			return local;
@@ -85,7 +85,7 @@ internal static class RemoteBodyFactory
 	private const string FailureLine = "Remote body: {Why} for {SteamId} (repeat {Repeat}).";
 
 	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, LogRepetitionGuard failures, ILogger log,
-		bool hostSimulated = false, int character = CharacterIndex.Unknown)
+		out string source, bool hostSimulated = false, int character = CharacterIndex.Unknown)
 	{
 		// 1.0 renamed the player object: the demo's scene object was "Experiment", and in the
 		// release the local player's own body object is the template (measured 2026-11-10: the
@@ -95,7 +95,7 @@ internal static class RemoteBodyFactory
 		// names another character, that character's own prefab is the template instead.
 		var camera = PlayerCamera.main;
 		var local = camera != null && camera.body != null ? camera.body.gameObject : GameObject.Find("Experiment");
-		var template = PrefabFor(character, local, remote, failures, log, out var source);
+		var template = PrefabFor(character, local, remote, failures, log, out source);
 		if (template == null) // Unity object — == (is null misses destroyed)
 		{
 			// Asked per frame per member: the line is written INSIDE the ask, so one
@@ -124,10 +124,6 @@ internal static class RemoteBodyFactory
 
 			return null;
 		}
-
-		// Which prefab this clone came from is the one fact a wrong character shows in, so it is named
-		// on creation rather than left to the visual.
-		log.LogInformation("Remote body for {SteamId} built from {Source}.", remote.SteamId, source);
 
 		body.transform.position = anchor;
 		body.targetLookPos = new Vector2(1000f, 460f);

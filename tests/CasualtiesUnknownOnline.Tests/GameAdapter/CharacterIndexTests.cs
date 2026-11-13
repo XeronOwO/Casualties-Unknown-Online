@@ -45,9 +45,11 @@ public sealed class CharacterIndexTests
 	[Fact]
 	public void TheBodyNameWinsAndTheStoredChoiceIsOnlyAFallback()
 	{
-		// The game instantiates the character's prefab, so the body carries that prefab's name.
+		// The game instantiates the character's prefab, so the object is named after it (the local
+		// player's root object); Unity's instantiate suffix is ignored.
 		Assert.Equal(2, CharacterIndex.OfBody("Dune", 0));
 		Assert.Equal(0, CharacterIndex.OfBody("Experiment", 2));
+		Assert.Equal(1, CharacterIndex.OfBody("Milky (Clone)", 0));
 
 		// A renamed body falls back to the choice the pre-run screen stored.
 		Assert.Equal(1, CharacterIndex.OfBody("Character_1A2B", 1));

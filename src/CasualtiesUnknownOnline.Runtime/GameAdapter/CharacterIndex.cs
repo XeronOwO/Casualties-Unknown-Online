@@ -1,3 +1,5 @@
+using System;
+
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 
 /// <summary>
@@ -35,14 +37,30 @@ public static class CharacterIndex
 	/// <summary>The index a wire value names, or <see cref="Unknown"/> for 0 or a level this build does not know.</summary>
 	public static int FromWire(int wire) => wire >= 1 && wire <= Count ? wire - 1 : Unknown;
 
-	/// <summary>The index a body's own object name names (the game instantiates the character's prefab under that name), or <see cref="Unknown"/>.</summary>
-	public static int IndexOfName(string? name) => name switch
+	/// <summary>
+	/// The index a character object's own name names (the game instantiates the character's prefab, so
+	/// the object is named after it; Unity's instantiate suffix is ignored), or <see cref="Unknown"/>.
+	/// </summary>
+	public static int IndexOfName(string? name)
 	{
-		"Experiment" => 0,
-		"Milky" => 1,
-		"Dune" => 2,
-		_ => Unknown,
-	};
+		if (name is null)
+		{
+			return Unknown;
+		}
+
+		const string CloneSuffix = "(Clone)";
+		var bare = name.EndsWith(CloneSuffix, StringComparison.Ordinal)
+			? name.Substring(0, name.Length - CloneSuffix.Length).TrimEnd()
+			: name;
+
+		return bare switch
+		{
+			"Experiment" => 0,
+			"Milky" => 1,
+			"Dune" => 2,
+			_ => Unknown,
+		};
+	}
 
 	/// <summary>
 	/// The character a body belongs to: its object name first, then the choice the pre-run screen

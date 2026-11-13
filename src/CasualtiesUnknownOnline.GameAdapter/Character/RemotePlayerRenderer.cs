@@ -195,7 +195,7 @@ internal sealed class RemotePlayerRenderer(
 			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
 			{
 				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _cloneFailures, _log,
-					hostSimulated: _session.Role == SessionRole.Host, character: character);
+					out var source, hostSimulated: _session.Role == SessionRole.Host, character: character);
 				if (clone == null)
 				{
 					continue; // template unavailable — retry next frame
@@ -203,6 +203,8 @@ internal sealed class RemotePlayerRenderer(
 
 				_remoteClones[remote.SteamId] = clone;
 				_cloneCharacters[remote.SteamId] = character;
+				// Which prefab the clone came from is the one fact a wrong character shows in.
+				_log.LogInformation("Remote body for {SteamId} built from {Source}.", remote.SteamId, source);
 				// The host's clone is also the model: attach the fixed-step driver before the
 				// initial snapshot is applied, so the limb apply already knows to preserve the
 				// owned values. Guests never attach one.

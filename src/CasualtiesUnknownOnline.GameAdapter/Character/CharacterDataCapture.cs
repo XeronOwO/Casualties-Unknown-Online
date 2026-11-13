@@ -37,7 +37,7 @@ internal static class CharacterDataCapture
 			HandSlot = body.handSlot + 1,
 			// The character the body was spawned as; the remote clone renders this one instead of
 			// the viewer's own body (see CharacterIndex).
-			Character = CharacterIndex.ToWire(CharacterIndex.OfBody(body.gameObject.name, PreRunScript.characterSelected)),
+			Character = CharacterIndex.ToWire(CharacterIndex.OfBody(body.transform.root.name, PreRunScript.characterSelected)),
 			// The reconnect restore returns the character to its LEAVE spot, not
 			// the fresh world's landing spot.
 			Position = new NetVector2Msg(body.transform.position.x, body.transform.position.y),

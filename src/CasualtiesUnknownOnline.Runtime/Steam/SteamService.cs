@@ -34,6 +34,8 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 	public bool IsActive => _lobby.IsInLobby;
 
+	public bool EndsWithTheSession => false;
+
 	/// <summary>
 	/// SteamID of the lobby owner — the authority in a star network. Never
 	/// guessed from the member list (with 3+ members "first non-self" is not

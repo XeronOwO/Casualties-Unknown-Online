@@ -553,6 +553,15 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
 		}
 
+		// A transport-backed identity (IP direct) has no lobby that can outlive the session: the
+		// connection IS the room, so the session's end must end it. Without this the synthetic lobby
+		// stays "entered" (id 1) while the host is gone, the role survives, and the client is a ghost
+		// at the menu, refusing every join until the process restarts (measured 2026-11-14).
+		if (_identity.Role != SessionRole.None && _steam.EndsWithTheSession)
+		{
+			_steam.LeaveLobby(); // fires LobbyLeft, which clears _currentLobbyId
+		}
+
 		// A session that no lobby owns cannot be rebuilt by a returning host: IP-direct has no Steam
 		// lobby at all (its service hard-codes IsInitialized true and a host owner), so the fact that
 		// decides here is the service's own activity — the transport is still joined or it is not.

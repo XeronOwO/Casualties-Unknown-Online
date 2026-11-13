@@ -3,17 +3,17 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the ghost role survives because the IP-direct service reports "still a lobby" after its transport ended; the teardown now asks the service's own activity
-- [ ] Native parity — the IP-direct service hard-codes `IsInitialized` true and a host owner (`IpDirectSteamService.cs:24,44`), so neither fact can decide; its `IsActive` follows the transport
-- [ ] Native parity probe — the teardown line read `role Guest, lobby 1, active False` after the previous condition, proving the old facts never decide on this path
-- [ ] Entry mapping — the entries: `ISteamService.IsActive` (interface + three implementations + the test fake), the teardown branch, the suite's `role-clearing` case
-- [ ] Mechanism inventory — the misreadings named: the cached lobby id is not the lobby, and the IP service's initialized/owner facts are constants
-- [ ] Whole-family audit — the family is every `ISteamService` implementation: `SteamService` (live lobby), `IpDirectSteamService` (transport), `CuoNetworkRouter` (delegates), the fake (settable); the build is green across all
-- [ ] Self-check table — build 0 errors, unit 6656/0 (one flaky red on a first run, green on the rerun), gates 834/0, format 0
-- [ ] Verification design — after the deploy the `role-clearing` case must read `role None` on the member and join the host's second session without a restart
-- [ ] Plan approved by the user — the user's main line is to finish the remaining tickets
-- [ ] Structure review done — one interface member with a documented meaning, implemented by delegation; the decision point stays in the teardown
-- [ ] Build + dotnet format + dotnet test normative gates pass — build 0 errors, unit 6656/0, gates 834/0, format 0
+- [ ] Design comprehension — a transport-backed identity has no lobby that can outlive the session: the IP-direct "lobby" IS the TCP transport, so the session's end must end it; a Steam lobby outlives the session so a returning host rebuilds it
+- [ ] Native parity — `IpDirectSteamService.cs:24` hard-codes `IsInitialized => true` and `:44` `GetLobbyOwner() => HostPeerId`, so neither fact can decide ownership; `LeaveLobby() => Disconnect()` (~:145) sets `_isActive = false` and fires `LobbyLeft`
+- [ ] Native parity probe — the live teardown read `Session teardown finished: role Guest, lobby 1, active False.` with the transport still joined (`IsActive` true), proving neither `_currentLobbyId == 0` nor `!IsActive` can fire on the IP-direct end path
+- [ ] Entry mapping — the entries: `ISteamService.EndsWithTheSession` (interface + `SteamService` false + `IpDirectSteamService` true + `CuoNetworkRouter` delegation + `FakeSteamService` settable), `SessionService.TeardownSession` (the new branch before the clearing condition), and the fact family `SessionRoleClearingTests` (4 facts)
+- [ ] Mechanism inventory — the misreadings named: the cached lobby id is not a lobby, the IP service's initialized/owner facts are constants, and `LeaveLobby` is the only way the transport identity ends
+- [ ] Whole-family audit — the family is every `ISteamService` implementation: `SteamService` (live lobby, keeps the role), `IpDirectSteamService` (transport, ends with the session), `CuoNetworkRouter` (delegates by the active transport), `FakeSteamService` (settable, counting-only leave); build 0 errors across all
+- [ ] Self-check table — build 0 errors, unit `6658/0` (two interim reds were the fake's new side effect changing two returning-host tests; both reverted to their own contract), gates `834/0`, `dotnet format` no diff
+- [ ] Verification design — after the deploy the `role-clearing` case must read `role None` on the member after the host leaves the session, then the member joins the host's second session without a restart
+- [ ] Plan approved by the user — the user's main line is to finish the remaining backlog tickets (m48245's goal edit)
+- [ ] Structure review done — one interface member with a documented meaning, delegation in the router, the decision kept in the teardown; the fake stays a counting stand-in so the returning-host tests keep their own contract
+- [ ] Build + dotnet format + dotnet test normative gates pass — build 0 errors, unit `6658/0`, gates `834/0`, format 0
 
 - [ ] Release-cycle deployment/acceptance: the role row is judged on the deployed build by this deploy
 

@@ -28,6 +28,9 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 	/// <summary>True while an IP-direct host/guest session is established.</summary>
 	public bool IsActive => _isActive;
 
+	/// <summary>This identity IS the transport: leaving the session ends it.</summary>
+	public bool EndsWithTheSession => true;
+
 	/// <summary>The configured in-game display name used by IP-direct sessions.</summary>
 	public string LocalDisplayName => _localDisplayName;
 

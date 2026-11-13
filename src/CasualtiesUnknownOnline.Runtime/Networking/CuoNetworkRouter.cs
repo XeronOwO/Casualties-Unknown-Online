@@ -75,6 +75,8 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 
 	public bool IsActive => _ipDirectActive ? _ipDirectSteam.IsActive : _steamService.IsActive;
 
+	public bool EndsWithTheSession => _ipDirectActive || _steamService.EndsWithTheSession;
+
 	public ulong LocalSteamId => _ipDirectActive ? _ipDirectSteam.LocalSteamId : _steamService.LocalSteamId;
 
 	public ulong GetLobbyOwner() => _ipDirectActive ? _ipDirectSteam.GetLobbyOwner() : _steamService.GetLobbyOwner();

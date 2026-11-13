@@ -21,6 +21,13 @@ public interface ISteamService
 	/// client back at the menu with role Guest refused every join until the process restarted).</summary>
 	bool IsActive { get; }
 
+	/// <summary>
+	/// True when this service's identity IS the session's transport: leaving the session ends it
+	/// (IP direct). False when a Steam lobby outlives the session, so a returning host can rebuild
+	/// the same room.
+	/// </summary>
+	bool EndsWithTheSession { get; }
+
 	ulong LocalSteamId { get; }
 
 	/// <summary>SteamID of the lobby owner — the authority in a star network.</summary>

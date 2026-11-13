@@ -553,14 +553,14 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
 		}
 
-		// A session that no lobby owns cannot be rebuilt by a returning host: IP-direct has no lobby
-		// event at all, so a kept role would leave the client a ghost — back at the menu with role
-		// Guest, refusing every join until the process restarts (measured 2026-11-14). Three facts
-		// together mean "no lobby owns this": no cached lobby, Steam not initialized at all (the IP
-		// path on a client without the game in Steam), or a cached lobby Steam no longer owns. The
-		// teardown line read "lobby 1" with Steam off, so the cached id alone can never decide it.
-		if (_identity.Role != SessionRole.None
-			&& (_currentLobbyId == 0 || !_steam.IsInitialized || _steam.GetLobbyOwner() == 0))
+		// A session that no lobby owns cannot be rebuilt by a returning host: IP-direct has no Steam
+		// lobby at all (its service hard-codes IsInitialized true and a host owner), so the fact that
+		// decides here is the service's own activity — the transport is still joined or it is not.
+		// A kept role after the transport ended leaves the client a ghost at the menu, refusing every
+		// join until the process restarts (measured 2026-11-14; the teardown line read "lobby 1" with
+		// the transport gone). A Steam outage inside the same lobby keeps the role, as the comment
+		// above protects.
+		if (_identity.Role != SessionRole.None && (_currentLobbyId == 0 || !_steam.IsActive))
 		{
 			_identity.Role = SessionRole.None;
 			_log.LogInformation("No lobby owns this session — role cleared.");

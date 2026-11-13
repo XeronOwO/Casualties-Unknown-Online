@@ -17,6 +17,10 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 {
 	public bool IsInitialized { get; } = true;
 
+	/// <summary>The lobby/transport this fake represents is joined; a session with no lobby sets this
+	/// false so the identity-clearing rule can be exercised (the IP-direct path hard-codes true).</summary>
+	public bool IsActive { get; internal set; } = true;
+
 	public ulong LocalSteamId { get; internal set; } = localSteamId;
 
 	internal ulong LobbyOwner { get; set; }

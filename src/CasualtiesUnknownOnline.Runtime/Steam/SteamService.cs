@@ -32,6 +32,8 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 	/// <summary>Lobby this client currently hosts or joined, or 0 when none.</summary>
 	public ulong CurrentLobbyId => _lobby.CurrentLobbyId;
 
+	public bool IsActive => _lobby.IsInLobby;
+
 	/// <summary>
 	/// SteamID of the lobby owner — the authority in a star network. Never
 	/// guessed from the member list (with 3+ members "first non-self" is not

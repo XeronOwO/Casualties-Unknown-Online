@@ -174,8 +174,8 @@ internal sealed class TestNode : IDisposable
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
-		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
-		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
+		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId], IsActive = lobbyId != 0 };
+		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId], IsActive = lobbyId != 0 };
 		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, modStateFile: modStateFile, hostBanFile: hostBanFile, extraRegistrations: extraRegistrations);
 		Action<IServiceCollection>? guestComposition = extraRegistrations is null && guestRegistrations is null
 			? null

@@ -15,6 +15,12 @@ public interface ISteamService
 {
 	bool IsInitialized { get; }
 
+	/// <summary>True while the transport or lobby this service represents is joined: the Steam lobby
+	/// is live, or the IP-direct transport is connected. A session that ended with this false cannot be
+	/// rebuilt by a returning host, so the identity must not outlive it (the ghost-role defect: a
+	/// client back at the menu with role Guest refused every join until the process restarted).</summary>
+	bool IsActive { get; }
+
 	ulong LocalSteamId { get; }
 
 	/// <summary>SteamID of the lobby owner — the authority in a star network.</summary>

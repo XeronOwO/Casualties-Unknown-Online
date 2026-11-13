@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the removal row watches the host's own body count (the remote body of the member), not the item clone marker
-- [ ] Native parity — no game content; the case reads the game's own scene
-- [ ] Native parity probe — the member's displayed body exists before the leave and is gone after
-- [ ] Entry mapping — one entry, the suite's `leave-world` action on the member
-- [ ] Mechanism inventory — the body count falls 1 to 0 within 10 s of the leave, and the host's log names the removal
-- [ ] Whole-family audit — the item-clone marker stays for items; the body count is the right witness for a player copy
-- [ ] Self-check table — two test files changed; no product code
-- [ ] Verification design — the full suite is the judge of order
-- [ ] Plan approved by the user — the goal's main line
-- [ ] Structure review done — the case re-registered, the old helper removed
+- [ ] Design comprehension — a wait belongs in the client that owns the fact, not in a caller's sleep loop
+- [ ] Native parity — reads `IWorldPresenceQuery` in the same process
+- [ ] Native parity probe — the action answers at the menu with reached=false and the full budget consumed
+- [ ] Entry mapping — the script's action set and switch carry `wait-state`; the driver dispatches it
+- [ ] Mechanism inventory — the command name, the argument (the key) and the text (the budget) are the whole contract
+- [ ] Whole-family audit — `wait-log`, `log-tail` were already custom actions; they are now listed in the script's set too
+- [ ] Self-check table — two tooling files; no product code
+- [ ] Verification design — the suite's conversion to this action comes next; the action itself is proven by the live call
+- [ ] Plan approved by the user — the goal's main line (event-driven)
+- [ ] Structure review done — one action, one predicate, one answer shape
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle

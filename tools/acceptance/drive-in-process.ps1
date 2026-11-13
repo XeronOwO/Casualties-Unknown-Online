@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File tools/acceptance/drive-in-process.ps1 -
 [CmdletBinding()]
 param(
 	[string]$Url,
-	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'console-arrow', 'quit', 'recipe', 'declare', 'select-character')]
+	[ValidateSet('ping', 'state', 'open-window', 'goto-page', 'click', 'set-text', 'create-lobby', 'join-lobby', 'start-run', 'continue-run', 'leave-world', 'console', 'console-ui', 'console-accept', 'console-arrow', 'quit', 'wait-log', 'wait-state', 'log-tail', 'recipe', 'declare', 'select-character')]
 	[string]$Action,
 	[string]$ControlId,
 	[string]$Text,
@@ -525,6 +525,11 @@ function Invoke-DriverAction {
 		}
 		'state' {
 			$step = Get-DriverState -Socket $Socket -Template $Template -EvalTimeoutMs $EvalTimeoutMs
+			if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
+			return New-DriverSuccess -ActionName $ActionName -Step $step
+		}
+		'wait-state' {
+			$step = Invoke-DriverEval -Socket $Socket -Template $Template -CommandName 'wait-state' -Argument $ControlId -TextValue $Text -EvalTimeoutMs ([Math]::Min(60000, $EvalTimeoutMs + 5000))
 			if (-not $step.ok) { return New-DriverFailure -ActionName $ActionName -Code $step.error -Detail $step.detail -Last $step }
 			return New-DriverSuccess -ActionName $ActionName -Step $step
 		}

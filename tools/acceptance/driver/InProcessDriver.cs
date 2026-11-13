@@ -603,6 +603,27 @@
 		return finish(fields);
 	}
 
+	if (command == "wait-state") {
+		// Block until THIS client's own state fact ARGUMENT is true (`text` is the budget in ms).
+		// The caller stops sleeping and re-asking: the wait is a measurement made in the client.
+		// Only `inWorld` is answered today — the one fact every suite run gates on.
+		var stateBudgetMs = 30000;
+		int.TryParse(text, out stateBudgetMs);
+		if (stateBudgetMs < 100) { stateBudgetMs = 100; }
+		var stateStarted = System.Environment.TickCount;
+		var stateReached = false;
+		while (System.Environment.TickCount - stateStarted < stateBudgetMs) {
+			if (argument == "inWorld" && presence != null && presence.IsInWorldOrGenerating) { stateReached = true; break; }
+			System.Threading.Thread.Sleep(100);
+		}
+
+		putText(fields, escape, "ok", "true");
+		putText(fields, escape, "key", argument);
+		putText(fields, escape, "reached", stateReached ? "true" : "false");
+		putText(fields, escape, "waitedMs", (System.Environment.TickCount - stateStarted).ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return finish(fields);
+	}
+
 	return fail(escape, "unknown-command", command);
 })())
 

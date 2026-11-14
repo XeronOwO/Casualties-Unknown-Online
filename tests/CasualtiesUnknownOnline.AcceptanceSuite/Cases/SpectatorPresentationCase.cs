@@ -80,6 +80,18 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			Require(Boolean(unconscious, "ecgActive"), "the watched body's ECG did not activate on the spectator: " + Raw(unconscious));
 
 			context.Note($"watched prosthetic {Text(presentation, "woundLimb3Item")}; pain {Number(presentation, "woundPain"):0.#} shader {Number(presentation, "shaderPain"):0.###}; sounds {Integer(heard, "worldSoundsTotal")}; blackout {Number(unconscious, "blackAmount"):0.##}");
+
+			// Ending the watch destroys the followed clone. The HUD manager's private body field was pointed at
+			// that clone; the next native MoodleManager.Update calls AddAllMoodles on it, so a failed restore is a
+			// per-frame NullReferenceException storm (and the host UI stops responding). The local camera body must
+			// be back in the field before the case is allowed to pass.
+			await SafeConsoleAsync(context, host, "/spectate off", cancellationToken).ConfigureAwait(false);
+			await SafeConsoleAsync(context, host, "/gamemode survivor", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+			var released = await context.RecipeAsync("moodle-body", cancellationToken).ConfigureAwait(false);
+			context.Read("spectator released HUD", released);
+			Require(Boolean(released, "ok"), "the HUD body probe did not answer ok after the watch ended: " + Raw(released));
+			Require(Boolean(released, "same"), "the HUD manager still holds the destroyed watched body after the watch ended: " + Raw(released));
 		}
 		finally
 		{

@@ -19,20 +19,28 @@ internal static class MoodleManagerSpectatorBodyPatch
 
 	private static void Prefix(MoodleManager __instance)
 	{
-		if (!SpectatorPresentationGate.HasHudBody || BodyField is null)
+		if (BodyField is null)
 		{
 			return;
 		}
 
-		var watched = SpectatorPresentationGate.HudBody;
-		if (watched == null) // Unity object — ==
+		// This patch owns the field it repoints: when the watch ends the native manager must get the local
+		// body back in the SAME frame, before UpdateMoodles runs. Returning early here left the private field
+		// pointing at the followed clone; after the clone is destroyed, AddAllMoodles calls TryGetComponent on
+		// it every frame (the 2026-11-15 host freeze: thousands of NullReferenceExceptions and the UI stops
+		// responding).
+		var camera = PlayerCamera.main;
+		var desired = SpectatorPresentationGate.HasHudBody
+			? SpectatorPresentationGate.HudBody
+			: camera != null ? camera.body : null; // Unity objects — ==
+		if (desired == null) // Unity object — ==
 		{
 			return;
 		}
 
-		if (BodyField.GetValue(__instance) as Body != watched) // Unity object — ==
+		if (BodyField.GetValue(__instance) as Body != desired) // Unity object — ==
 		{
-			BodyField.SetValue(__instance, watched);
+			BodyField.SetValue(__instance, desired);
 		}
 	}
 }

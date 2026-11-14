@@ -3,10 +3,5 @@
 		"Lines": 688,
 		"BoolFlags": 2,
 		"Ticket": "docs/backlog/in-progress/split-block-break-remote-apply.md"
-	},
-	"CasualtiesUnknownOnline.Runtime.Session.SessionService": {
-		"Lines": 616,
-		"BoolFlags": 0,
-		"Ticket": "docs/backlog/in-progress/split-session-service.md"
 	}
 }

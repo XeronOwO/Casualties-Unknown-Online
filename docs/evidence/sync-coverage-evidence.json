@@ -5010,7 +5010,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs",
 
-      "quote": "private const float PingInterval = 5f;"
+      "quote": "private readonly SessionHeartbeat _heartbeat;"
 
     },
 

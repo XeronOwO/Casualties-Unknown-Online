@@ -29,14 +29,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class SessionService : ICuoService, ISessionControl, IKernelSessionFacts
 {
-	private const float PingInterval = 5f;
-
 	private readonly ISteamService _steam;
 	private readonly PacketSender _sender;
 	private readonly NetworkTrafficMonitor _traffic;
 	private readonly ITimeSource _time;
 	private readonly ILogger<SessionService> _log;
 	private readonly SessionPeerMaintenance _peerMaintenance;
+	private readonly SessionHeartbeat _heartbeat;
 	private readonly HostKickService _hostKick;
 
 	// Session-owned state — never registered as services (user rule: state
@@ -48,7 +47,6 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	/// <summary>The lobby this client currently hosts or joined (0 = none) — tracked here so a real lobby change is distinguishable from a duplicate Steam callback.</summary>
 	private ulong _currentLobbyId;
 
-	private long _nextPingMs;
 
 	/// <summary>The last absolute scene report this side sent (null name = nothing reported yet) — the readiness window re-asserts it.</summary>
 	private SceneStateType _lastSceneState = SceneStateType.InMenu;
@@ -67,6 +65,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			steam, sender, time, modListProvider, _identity, peerIdentity, _state, _presence,
 			new PeerWarmupBackoff(), RemoveMember, EndSession, log);
 		_hostKick = new HostKickService(this, _sender, _log);
+		_heartbeat = new SessionHeartbeat(() => _time.NowMs, RequestPing);
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
@@ -357,25 +356,9 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 		// handshake dies (5003 connect timeout).
 		_peerMaintenance.SendPeerWarmup();
 
-		// The heartbeat does not depend on the world: a session that is holding a
-		// transition (leave → menu → start) still owns its peers, and a guest that
-		// hears nothing for three intervals ends the session locally
-		// (GuestHostSilenceWatchdog). Measured 2026-11-14: joining a session before
-		// the run left the guest without a frame for 15 s and it left the session.
-		var nowMs = _time.NowMs;
-		if (_nextPingMs == 0)
-		{
-			// The heartbeat starts one interval in: a session that has just been
-			// created owes its peers nothing yet, and a measurement that counts the
-			// frames of an entry window must not see a ping on its first tick.
-			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
-		}
-
-		if (nowMs >= _nextPingMs)
-		{
-			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
-			RequestPing();
-		}
+		// The heartbeat does not depend on the world: a session holding a
+		// transition still owns its peers (see SessionHeartbeat).
+		_heartbeat.Tick();
 
 		if (!SessionActive)
 		{

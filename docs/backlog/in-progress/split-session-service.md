@@ -1,6 +1,6 @@
 # Split SessionService at its seams
 
-- Status: In progress
+- Status: In progress — seam 1 (the heartbeat) landed: `SessionHeartbeat` owns the schedule, `SessionService` is 594 lines and its debt entry is gone. The live row (role-clearing and the pre-run join) re-reads after the next deploy.
 - Priority: Medium
 - Opened: 2026-11-14
 - Debt: `docs/architecture-debt.json` → `CasualtiesUnknownOnline.Runtime.Session.SessionService`

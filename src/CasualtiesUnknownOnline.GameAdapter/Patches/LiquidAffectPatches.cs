@@ -41,12 +41,11 @@ internal static class LiquidAffectPatches
 		private static bool Prefix(LiquidAffect __instance)
 		{
 			var rb = __instance.GetComponent<Rigidbody2D>();
-			if (rb != null && rb.bodyType == RigidbodyType2D.Kinematic) // Unity object — ==
-			{
-				return false; // skipped Start left the fields uninitialized — never run the liquid logic
-			}
-
-			return true;
+			// Start is skipped for a kinematic render, so this component's private rb/body/limb/item fields stay
+			// null forever. If that render's Rigidbody2D is later destroyed (a consumed or despawned item), the
+			// old "not kinematic" test fell through and the vanilla FixedUpdate dereferenced the null rb every
+			// tick. Only a Dynamic body has a running vanilla Start and initialized fields.
+			return rb != null && rb.bodyType == RigidbodyType2D.Dynamic;
 		}
 	}
 }

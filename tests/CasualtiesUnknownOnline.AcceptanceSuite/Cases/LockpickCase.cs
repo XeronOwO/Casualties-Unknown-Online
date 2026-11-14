@@ -80,6 +80,21 @@ internal sealed class LockpickCase : AcceptanceCase
 			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
 		}
 
+		var liveCheck = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+		if (NumberOr(liveCheck, "uiScale", 0) <= 0)
+		{
+			// The minigame can close between the aim and the press (a stray click, a timeout): reopen
+			// it and aim again, because a press with no minigame only records a sound and no lock.
+			context.Note("the minigame closed during the aim; reopening once");
+			await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+			var reopened = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+			Require(Boolean(reopened, "ok"), "the lockpick minigame did not reopen: " + (reopened?.GetRawText() ?? "null"));
+			aimX = Number(reopened, "screenX");
+			aimY = Number(reopened, "screenY");
+			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
+		}
+
 		var magnitude = Math.Sqrt((handX * handX) + (handY * handY));
 		context.Note($"aimed at ({aimX:0.#}, {aimY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
 

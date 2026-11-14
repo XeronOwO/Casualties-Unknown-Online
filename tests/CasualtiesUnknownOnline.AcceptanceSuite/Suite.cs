@@ -607,10 +607,7 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
-		// Parked 2026-11-14 09:30: the press lands on the band and the lock opens (two passes of
-		// three); the third found no minigame when it read `uiScale`, so the case needs a reopen-and-
-		// retry before it can be trusted in the full order.
-		// new LockpickCase(),
+		new LockpickCase(), // the game's own Escape closes the window; aim, press (hold), the lock opens
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
 	];

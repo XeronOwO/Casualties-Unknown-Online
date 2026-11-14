@@ -19,7 +19,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 [ProtoContract]
 public sealed class RunEndedMsg
 {
-	/// <summary>The host's run id, or zero when the host could not name it.</summary>
+	/// <summary>
+	/// The host's run id. The host names the run it is ending; zero means the sender could not name
+	/// it, and a receiver that knows its current run treats zero as unscoped and ignores it, so a
+	/// late broadcast cannot end a newer run.
+	/// </summary>
 	[ProtoMember(1)]
 	public long RunId { get; set; }
 }

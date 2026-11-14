@@ -26,6 +26,22 @@ public sealed class RunEndedHandler(ILogger<RunEndedHandler> log)
 			return;
 		}
 
+		// The broadcast is a control message for ONE run. A late one (measured 2026-11-14: a
+		// run-0 broadcast reached a member that had just entered run 1) must not end the newer
+		// run it no longer names. The host now always names its current run; 0 is a legacy
+		// unscoped value and is ignored whenever this side knows which run it is in.
+		if (ctx.World.CurrentGeneration is { } generation)
+		{
+			if (msg.RunId == 0 || generation.RunEpoch != (ulong)msg.RunId)
+			{
+				_log.LogInformation(
+					"[RunEnd] ignoring the run-end for run {RunId}: this member is in run {CurrentRunId}.",
+					msg.RunId,
+					generation.RunEpoch);
+				return;
+			}
+		}
+
 		_log.LogInformation("[RunEnd] the host's world ended (run {RunId}) — leaving it.", msg.RunId);
 		ctx.World.FireRunEndedReceived(msg);
 	}

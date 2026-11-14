@@ -80,7 +80,8 @@ public interface IWorldControl : IWorldSocialControl
 	/// <summary>
 	/// Host only: this host's world has ENDED (it performed its own leave) — every handshaken member still
 	/// standing in it must leave too. Sent once, after the leave, and never for a member's own exit: a
-	/// member's leave removes only its own copy of the world.
+	/// member's leave removes only its own copy of the world. <paramref name="runId"/> names the run being
+	/// ended; zero asks the world service to scope it to the host's current kernel run.
 	/// </summary>
 	void PublishRunEnded(long runId);
 

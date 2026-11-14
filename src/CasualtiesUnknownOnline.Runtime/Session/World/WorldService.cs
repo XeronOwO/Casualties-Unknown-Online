@@ -591,7 +591,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 	public void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.BroadcastBlockDamaged(excludeSteamId, x, y, damage, metalBonus, drops, buildingDrops);
 
 	/// <summary>Host: the world ended — the members still in it are told to leave.</summary>
-	public void PublishRunEnded(long runId) => _messages.PublishRunEnded(runId);
+	public void PublishRunEnded(long runId) => _messages.PublishRunEnded(runId != 0 ? runId : (long)_kernelAuthority.CurrentRunEpoch.Value);
 
 	public void FireRunEndedReceived(RunEndedMsg msg) => _messages.FireRunEndedReceived(msg);
 

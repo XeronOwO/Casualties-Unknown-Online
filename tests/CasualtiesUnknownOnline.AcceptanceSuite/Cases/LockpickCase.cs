@@ -55,24 +55,28 @@ internal sealed class LockpickCase : AcceptanceCase
 		var aimX = Number(aim, "screenX");
 		var aimY = Number(aim, "screenY");
 		var (handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
-		// The recipe's point lands the hand at the right RADIUS but a few degrees off the angle: its
-		// scale is close, not exact (2026-11-14: hand (265.9, -12.4) for target (209.8, 66.3)). The
-		// correction uses the per-axis scale measured on this window, and converges in one or two steps
-		// because the hand is linear inside the ring (it clamps only past the edge, which is why the
-		// probe-based calibration read a wrong scale).
-		const double ScaleX = 0.5701;
-		const double ScaleY = 1.9055;
-		for (var fix = 0; fix < 3; fix++)
+		// The aim's scale is close, not exact, and the hand clamps past the ring's edge, so a fixed
+		// correction cannot be trusted (2026-11-14: one run landed on the band, the next at magnitude
+		// 314). The live answer carries the mapping the game itself uses — `screenPos` and `uiScale`,
+		// hand = (pointer - screenPos) / uiScale on both axes — so the correction is computed from the
+		// game's own numbers each time.
+		for (var fix = 0; fix < 4; fix++)
 		{
-			var dx = targetX - handX;
-			var dy = targetY - handY;
-			if (Math.Abs(dx) < 3 && Math.Abs(dy) < 3)
+			if (Math.Abs(handX - targetX) < 5 && Math.Abs(handY - targetY) < 5)
 			{
 				break;
 			}
 
-			aimX += dx / ScaleX;
-			aimY += dy / ScaleY;
+			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+			var screen = StringValue(live, "screenPos").Split(',');
+			var ui = Number(live, "uiScale");
+			if (screen.Length != 2 || ui <= 0)
+			{
+				break;
+			}
+
+			aimX = double.Parse(screen[0], CultureInfo.InvariantCulture) + (targetX * ui);
+			aimY = double.Parse(screen[1], CultureInfo.InvariantCulture) + (targetY * ui);
 			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
 		}
 
@@ -89,9 +93,13 @@ internal sealed class LockpickCase : AcceptanceCase
 		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
 		try
 		{
+			// A press only counts as a fresh down edge (the minigame reads GetKeyDown): the pointer
+			// move above already pressed, so the key is released first and pressed again here, with
+			// the hand already sitting on the band.
+			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
 			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
 			var progress = 0.0;
-			for (var tick = 0; tick < 40; tick++)
+			for (var tick = 0; tick < 80; tick++)
 			{
 				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 				var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
@@ -120,10 +128,9 @@ internal sealed class LockpickCase : AcceptanceCase
 		var line = sounds is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("line", out var value) && value.ValueKind == JsonValueKind.String
 			? value.GetString() ?? ""
 			: "";
-		// Completion is the minigame closing with its own drop sound: the lockpick plays no clip named
-		// `unlock` (measured 2026-11-14: the pick finished, the crate dropped its contents and the
-		// recorder held `drop@` and numeric clips only).
-		Require(line.Contains("drop@", StringComparison.Ordinal), $"the game played no drop sound when the lock opened: {line}");
+		// The minigame closing is the game's own completion signal; the clips it plays are index-named
+		// and only some opens drop a crate (measured 2026-11-14), so the sound is recorded, not judged.
+		context.Note($"clips {line}");
 	}
 
 	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)

@@ -121,7 +121,9 @@ public class HostVitalsSuppressionPinTests
 	public void TheDriver_RunsFromFixedUpdate_AndTheStepCapIsCheckedBeforeThePass()
 	{
 		var driver = Stripped(ReadSource("Character", "HostVitalsDriver.cs"));
-		Assert.Contains("private void FixedUpdate() => Bodies.Step(this);", driver, StringComparison.Ordinal);
+		Assert.Contains("private void FixedUpdate()", driver, StringComparison.Ordinal);
+		Assert.Contains("if (Body == null)", driver, StringComparison.Ordinal);
+		Assert.Contains("Bodies.Step(this);", driver, StringComparison.Ordinal);
 		Assert.DoesNotContain("private void Update()", driver, StringComparison.Ordinal);
 
 		var bodies = Stripped(ReadSource("Character", "HostVitalsBodies.cs"));

@@ -63,5 +63,17 @@ internal sealed class HostVitalsDriver : MonoBehaviour
 		LastWrittenBleeds = new float[body.limbs.Length];
 	}
 
-	private void FixedUpdate() => Bodies.Step(this);
+	private void FixedUpdate()
+	{
+		// The body can be destroyed while this component survives a partial clone teardown; the
+		// pass would then call Body.GetComponent and throw once per fixed step. Stop the driver
+		// with its body instead of logging that error for the rest of the session.
+		if (Body == null) // Unity object — == (a destroyed Body is null here)
+		{
+			enabled = false;
+			return;
+		}
+
+		Bodies.Step(this);
+	}
 }

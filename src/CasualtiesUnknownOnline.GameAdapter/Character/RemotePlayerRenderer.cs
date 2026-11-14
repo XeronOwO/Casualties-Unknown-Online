@@ -197,7 +197,10 @@ internal sealed class RemotePlayerRenderer(
 			if (_remoteClones.TryGetValue(remote.SteamId, out var existing) && existing != null
 				&& _cloneCharacters.TryGetValue(remote.SteamId, out var built) && built != character)
 			{
-				Object.Destroy(existing);
+				// Destroy the body's whole GameObject: the host-vitals driver sits on it, and
+				// destroying only the Body component left the driver running with a destroyed
+				// body (measured 2026-11-15: one NullReferenceException per fixed step).
+				Object.Destroy(existing.gameObject);
 				_remoteClones.Remove(remote.SteamId);
 			}
 
@@ -238,7 +241,7 @@ internal sealed class RemotePlayerRenderer(
 			// without a live body is no clone: drop it and let the next frame rebuild.
 			if (clone.GetComponentInChildren<Body>() == null) // Unity object — == (is null misses destroyed)
 			{
-				Object.Destroy(clone);
+				Object.Destroy(clone.gameObject);
 				_remoteClones.Remove(remote.SteamId);
 				_cloneCharacters.Remove(remote.SteamId);
 				continue;

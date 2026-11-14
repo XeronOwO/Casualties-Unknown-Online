@@ -35,8 +35,11 @@ internal sealed class OwnerStateEventReporter(
 	/// </summary>
 	internal void ReportLimbStateEvent(Limb limb)
 	{
-		if (!session.SessionActive)
+		if (!session.SessionActive || CallContext.IsReplayedRemoteFact)
 		{
+			// The heal reset mutates the local body under RemoteApply and then sends its own
+			// authority report; the intermediate limb latches must not also travel as ordinary
+			// events, or the host refuses the jump and pushes its pre-reset record back.
 			return;
 		}
 
@@ -68,7 +71,7 @@ internal sealed class OwnerStateEventReporter(
 	/// </summary>
 	internal void ReportOwnerStateEvent(Body body, string reason)
 	{
-		if (!session.SessionActive || body == null) // Unity object — ==
+		if (!session.SessionActive || body == null || CallContext.IsReplayedRemoteFact) // Unity object — ==
 		{
 			return;
 		}

@@ -219,6 +219,7 @@ docs/backlog/in-progress/1.0-acceptance-suite.md | keep | claim | docs/backlog/R
 docs/backlog/review/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-block-table-diverges-between-clients.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-live-block-table-never-resyncs.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/1.0-a-destroyed-body-keeps-updating-its-facial.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-regression-1-medical-panel.md | keep | claim | docs/backlog/in-progress/1.0-regression-sweep.md
 docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md

@@ -87,6 +87,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
 - [A live member never resyncs the block table](review/1.0-live-block-table-never-resyncs.md) — **High** — only entry sends it.
+- [A destroyed body keeps its facial updating](review/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — every frame, 94 MB of log.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 - [Nobody counts a player's deaths](review/1.0-player-death-stats-missing.md) — **Low** — the run keeps no per-player count.

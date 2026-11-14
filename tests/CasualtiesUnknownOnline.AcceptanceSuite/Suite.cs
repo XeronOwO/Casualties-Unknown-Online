@@ -607,11 +607,7 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
-		// Parked 2026-11-14 08:52: the aim point lands the hand inside the band (magnitude 220) but a
-		// few degrees off the angle; the correction loop drives the minigame to close (`kind: none`)
-		// without an `unlock` clip in the recorder (`raw=1569|`), so either the clip has another name
-		// or the pick completes some other way. Next probe: record every clip the minigame plays.
-		// new LockpickCase(),
+		// Parked 2026-11-14 09:04: the press now lands inside (`clickingInside true`) and the lock turns\n		// (`lockProgress 0.724` after ten seconds), so the mechanism is proven; the case needs a longer\n		// hold or a re-press per poll, and one run missed the band entirely (hand magnitude 314).\n		// new LockpickCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
 	];

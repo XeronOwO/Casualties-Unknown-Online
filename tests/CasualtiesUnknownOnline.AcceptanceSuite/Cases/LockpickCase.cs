@@ -85,11 +85,11 @@ internal sealed class LockpickCase : AcceptanceCase
 		// answers GetKeyDown for one frame and leaves GetKey false — measured 2026-11-12).
 		// The recorder only keeps what it saw from a start, so the unlock sound is recorded from
 		// the first press.
-		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "unlock")).ConfigureAwait(false);
+		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "")).ConfigureAwait(false);
 		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
 		try
 		{
-			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "hold")).ConfigureAwait(false);
+			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
 			var progress = 0.0;
 			for (var tick = 0; tick < 40; tick++)
 			{
@@ -105,6 +105,8 @@ internal sealed class LockpickCase : AcceptanceCase
 
 			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 			context.Read("live", live);
+			Require(!string.Equals(StringValue(live, "kind"), "LockpingMinigame", StringComparison.Ordinal),
+				"the lockpick minigame was still open after the hold: " + (live?.GetRawText() ?? "null"));
 			context.Note($"progress {progress:0.###}");
 		}
 		finally
@@ -113,12 +115,15 @@ internal sealed class LockpickCase : AcceptanceCase
 			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
 		}
 
-		var sounds = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "unlock")).ConfigureAwait(false);
+		var sounds = await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "")).ConfigureAwait(false);
 		context.Read("sounds", sounds);
 		var line = sounds is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("line", out var value) && value.ValueKind == JsonValueKind.String
 			? value.GetString() ?? ""
 			: "";
-		Require(line.Contains("unlock@", StringComparison.Ordinal), $"the game did not play its unlock sound: {line}");
+		// Completion is the minigame closing with its own drop sound: the lockpick plays no clip named
+		// `unlock` (measured 2026-11-14: the pick finished, the crate dropped its contents and the
+		// recorder held `drop@` and numeric clips only).
+		Require(line.Contains("drop@", StringComparison.Ordinal), $"the game played no drop sound when the lock opened: {line}");
 	}
 
 	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)

@@ -24,6 +24,7 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		// clients answered count=0 for every Sound.Play of the batch).
 		var harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
 		SoundPlayRecorder.Install(harmony);
+		BlockWriteRecorder.Install(harmony);
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
 	}
 }

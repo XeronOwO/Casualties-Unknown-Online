@@ -158,7 +158,6 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 	internal int PendingBreakDropReportCount => _blockReports.GuestReports.PendingBreakDropCount;
 
 	// ---- Session reset ----
-
 	public void ResetSessionState()
 	{
 		_startGate.Reset();
@@ -166,9 +165,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 		_channels.ResetRuntimeEntities();
 		_channels.ResetPendingEntityReports();
 		WorldParams = null;
-		// The session that owned a pending restore is gone: the live world will
-		// never consume it, and leaving the marker set would make the NEXT run's
-		// first generation look like the one the cut was restored for.
+		// A session reset drops the pending restore so the next run does not look restored.
 		_facts.ClearPendingLiveReplay();
 		_messages.ResetSessionState();
 		_blockReports.ResetPendingReports();
@@ -590,8 +587,8 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 
 	public void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.BroadcastBlockDamaged(excludeSteamId, x, y, damage, metalBonus, drops, buildingDrops);
 
-	/// <summary>Host: the world ended — the members still in it are told to leave.</summary>
-	public void PublishRunEnded(long runId) => _messages.PublishRunEnded(runId != 0 ? runId : (long)_kernelAuthority.CurrentRunEpoch.Value);
+	// The run dies with the world; the next entry starts a new run, not a layer advance.
+	public void PublishRunEnded(long runId) { _messages.PublishRunEnded(runId != 0 ? runId : (long)_kernelAuthority.CurrentRunEpoch.Value); _kernelAuthority.ResetSessionState(); WorldParams = null; }
 
 	public void FireRunEndedReceived(RunEndedMsg msg) => _messages.FireRunEndedReceived(msg);
 

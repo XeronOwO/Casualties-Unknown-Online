@@ -1,13 +1,13 @@
 # Delivery checklist
 
-- [x] Design comprehension — the ticket records the reading and the correction — evidence: the new section
-- [x] Native parity — nine consecutive passes on the deployed build — evidence: `block-idle-drift` runs
-- [x] Native parity probe — the pre-bracket failing runs are kept and marked — evidence: the ticket
-- [x] Entry mapping — the bracket is `WorldGenRandomIsolation.Drive` — evidence: the commit 096172b00
-- [x] Mechanism inventory — the nested stages had no segment of their own — evidence: the segment list
-- [x] Whole-family audit — both nested stages are bracketed — evidence: `IsGenerationStage`
-- [x] Self-check table — docs only this cycle — evidence: the diff
-- [x] Verification design — twenty runs plus a forced-write pair — evidence: the ticket
-- [x] Plan approved by the user — root cause first — evidence: the decision
-- [x] Structure review done — the ticket keeps the wrong section marked — evidence: the heading
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: unit 6665/0, gates 834/0
+- [x] Design comprehension — the join path read before the change — evidence: `SessionDriver.JoinMemberAsync`
+- [x] Native parity — the member joins through its own game paths — evidence: the leave-world branch
+- [x] Native parity probe — the run passed with no relaunch — evidence: `member the suite joined …` (no suffix)
+- [x] Entry mapping — the pre-run step no longer restarts the client — evidence: the diff
+- [x] Mechanism inventory — a restart is a deploy/source-change act only — evidence: the rule
+- [x] Whole-family audit — both relaunch sites are gone — evidence: the diff
+- [x] Self-check table — test-only change — evidence: the diff
+- [x] Verification design — a failing join now names the state and fails the case — evidence: the exception text
+- [x] Plan approved by the user — never restart the guest without cause — evidence: m52221
+- [x] Structure review done — one place, documented — evidence: the diff
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: suite build 0; gates 834/0

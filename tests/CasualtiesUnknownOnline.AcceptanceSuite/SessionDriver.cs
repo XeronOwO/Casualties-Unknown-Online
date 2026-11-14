@@ -333,12 +333,9 @@ internal sealed class SessionDriver(Options options)
 		// suite's own, and a member that cannot be driven would fail every case for one bad process.
 		// This is a FALLBACK, not a repair: the leave-world branch above is what should clear the
 		// ghost world, so every trigger is a finding and is named in the report.
-		if (allowRelaunch)
-		{
-			MemberRelaunches++;
-			await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
-			return await JoinMemberAsync(cancellationToken, allowRelaunch: false).ConfigureAwait(false);
-		}
+		// The member is never restarted to make a join succeed: a restart would throw away the session
+		// being measured and hide whatever left the client unable to join (the user's rule,
+		// 2026-11-14). The failure carries the client's own state so the cause can be fixed.
 
 		throw new InvalidOperationException(
 			"the suite could not join the member to the host's session: " + DescribeMemberState(state));
@@ -464,10 +461,12 @@ internal sealed class SessionDriver(Options options)
 			// A client that is down is not a stale session: the join path relaunches it when it must.
 			memberBefore = null;
 		}
-		if (memberBefore is { } memberState
-			&& (IsTrue(memberState, "inWorld") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal)))
+		if (memberBefore is { } memberState && IsTrue(memberState, "inWorld"))
 		{
-			await RelaunchAsync(_options.MemberUrl, "guest", cancellationToken).ConfigureAwait(false);
+			// A member left in an older world is asked to leave it through its own game path. The
+			// client is NEVER restarted for this: a restart throws away the session being measured
+			// and hides the defect that left it there (the user's rule, 2026-11-14).
+			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 		}
 
 		string hostNote;

@@ -607,9 +607,10 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
-		// Parked 2026-11-14 08:45: the hand lands at magnitude 328 (the clickable band is 195-247) and
-		// `handStarted` stays false, so no unlock plays (`raw=788|`). The aim's pointer-to-hand scale comes
-		// from the calibration probes and must be measured per open; the reading is on the suite ticket.
+		// Parked 2026-11-14 08:52: the aim point lands the hand inside the band (magnitude 220) but a
+		// few degrees off the angle; the correction loop drives the minigame to close (`kind: none`)
+		// without an `unlock` clip in the recorder (`raw=1569|`), so either the clip has another name
+		// or the pick completes some other way. Next probe: record every clip the minigame plays.
 		// new LockpickCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),

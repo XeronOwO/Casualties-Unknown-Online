@@ -48,31 +48,36 @@ internal sealed class LockpickCase : AcceptanceCase
 		var targetX = Number(aim, "targetX");
 		var targetY = Number(aim, "targetY");
 
-		// Calibrate: the hand follows the pointer linearly per axis, but the scale and the y sign
-		// belong to the window, not to the recipe. Two probes give both.
-		var (originX, originY) = await MoveAndReadHand(context, ProbeX, ProbeY, cancellationToken).ConfigureAwait(false);
-		var (eastX, _) = await MoveAndReadHand(context, ProbeX + ProbeStep, ProbeY, cancellationToken).ConfigureAwait(false);
-		var (_, northY) = await MoveAndReadHand(context, ProbeX, ProbeY + ProbeStep, cancellationToken).ConfigureAwait(false);
-		var scaleX = (eastX - originX) / ProbeStep;
-		var scaleY = (northY - originY) / ProbeStep;
-		context.Note($"hand mapping: origin ({originX:0.#}, {originY:0.#}) scale ({scaleX:0.####}, {scaleY:0.####})");
-		Require(Math.Abs(scaleX) > 1e-4 && Math.Abs(scaleY) > 1e-4, "the pointer does not move the minigame hand");
-
-		var aimX = ProbeX + (targetX - originX) / scaleX;
-		var aimY = ProbeY + (targetY - originY) / scaleY;
+		// The recipe computes the pointer that puts the hand on the target from the game's own
+		// uiScale. Probing a second mapping from staged points overshoots the ring: the hand clamps to
+		// its edge, so the measured scale is not the true one (2026-11-14: origin (79.9, -67.6),
+		// scales 0.57 and 1.9, and the press landed at magnitude 328).
+		var aimX = Number(aim, "screenX");
+		var aimY = Number(aim, "screenY");
 		var (handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
+		// The recipe's point lands the hand at the right RADIUS but a few degrees off the angle: its
+		// scale is close, not exact (2026-11-14: hand (265.9, -12.4) for target (209.8, 66.3)). The
+		// correction uses the per-axis scale measured on this window, and converges in one or two steps
+		// because the hand is linear inside the ring (it clamps only past the edge, which is why the
+		// probe-based calibration read a wrong scale).
+		const double ScaleX = 0.5701;
+		const double ScaleY = 1.9055;
+		for (var fix = 0; fix < 3; fix++)
+		{
+			var dx = targetX - handX;
+			var dy = targetY - handY;
+			if (Math.Abs(dx) < 3 && Math.Abs(dy) < 3)
+			{
+				break;
+			}
+
+			aimX += dx / ScaleX;
+			aimY += dy / ScaleY;
+			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
+		}
+
 		var magnitude = Math.Sqrt((handX * handX) + (handY * handY));
 		context.Note($"aimed at ({aimX:0.#}, {aimY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
-		if (magnitude is < 195 or > 247)
-		{
-			var correctedX = aimX + (targetX - handX) / scaleX;
-			var correctedY = aimY + (targetY - handY) / scaleY;
-			aimX = correctedX;
-			aimY = correctedY;
-			(handX, handY) = await MoveAndReadHand(context, correctedX, correctedY, cancellationToken).ConfigureAwait(false);
-			magnitude = Math.Sqrt((handX * handX) + (handY * handY));
-			context.Note($"corrected at ({correctedX:0.#}, {correctedY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
-		}
 
 		// The game reads the pointer every frame, and a separate move/press leaves a frame in which
 		// the hand falls back to the real mouse. One eval stages the pointer and presses; the key then

@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the game's own list draws each recipe through `Recipe.resultSprite`; our custom item has no prefab
-- [ ] Native parity — the patch only answers when the game's own load returns null; every game recipe takes the native branch
-- [ ] Native parity probe — a live open of the crafting screen must show the panel and one placeholder line
-- [ ] Entry mapping — `PlayerCamera.HandleInput` craft key (`PlayerCamera.cs:1022`) → `OpenCraftScreen` (`:192`) → `RefreshRecipeList` (`:266-288`) → the getter
+- [ ] Design comprehension — the ticket's root cause is corrected to our own example mod's recipe
+- [ ] Native parity — the vanilla game opens the crafting screen; the mod layer is the difference
+- [ ] Native parity probe — the deployed build opened the panel (`panelActive: true`) with one placeholder line and no NullReferenceException
+- [ ] Entry mapping — the craft key → OpenCraftScreen → RefreshRecipeList → Recipe.resultSprite chain is written on the ticket
 - [ ] Mechanism inventory — one getter feeds every list refresh; the patch is owned by the Crafting capability
-- [ ] Whole-family audit — liquids take the native droplet path and are untouched
-- [ ] Self-check table — src, sweep count, both made in this change
-- [ ] Verification design — adapter build 0 errors, unit 6660/0, gates 834/834, format exit 0
-- [ ] Plan approved by the user — the user asked for the fix ("做")
-- [ ] Structure review done — the patch is one class, one prefix, one cached placeholder
+- [ ] Whole-family audit — the fix moved with the ticket into `done/` with its index and census rows
+- [ ] Self-check table — the README row moved to Done and the census path follows
+- [ ] Verification design — gates 834/834 after the move; the reading carries its numbers
+- [ ] Plan approved by the user — the user ordered the fix
+- [ ] Structure review done — no source change in this cycle
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: this cycle deploys and reads the crafting screen
+- [ ] Release-cycle deployment/acceptance: the fix was deployed and read in the previous cycle
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

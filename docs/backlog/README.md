@@ -84,7 +84,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
-- [The crafting screen cannot open](review/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — the game's own refresh throws on a recipe product.
+
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
@@ -138,6 +138,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 - [The pinyin search follows the game language](done/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — zh-CN matches; English is a documented limit.
+- [The crafting screen opens again](done/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — our recipe had no prefab; a placeholder holds.
 - [The member waits for a host that waits for it](done/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the heartbeat holds the join open.
 - [A guest keeps its role after the session ends](done/1.0-a-guest-keeps-its-role-after-the-session-ends.md) — **High** — the role clears; a session joins.
 - [A member's removal throws in the renderer](done/1.0-member-removal-throws-in-the-renderer.md) — **High** — read at a leave.

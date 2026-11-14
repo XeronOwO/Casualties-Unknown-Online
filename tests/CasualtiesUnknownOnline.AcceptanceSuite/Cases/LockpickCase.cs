@@ -108,14 +108,32 @@ internal sealed class LockpickCase : AcceptanceCase
 		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
 		try
 		{
-			// A press only counts as a fresh down edge (the minigame reads GetKeyDown): the pointer
-			// move above already pressed, so the key is released first and pressed again here, with
-			// the hand already sitting on the band.
-			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
-			await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
+			// A press only counts as a fresh down edge (the minigame reads GetKeyDown), and in the full
+			// order the first edge is sometimes consumed before the minigame reads it (measured
+			// 2026-11-14: the hand sat on the band, `handStarted` stayed false, progress 0). So the
+			// press is repeated — release then press — until the lock starts to turn or the minigame
+			// closes; every press is a new edge and the hand stays on the band throughout.
 			var progress = 0.0;
-			for (var tick = 0; tick < 80; tick++)
+			for (var attempt = 0; attempt < 20; attempt++)
 			{
+				await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
+				await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+				var pressed = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				progress = NumberOr(pressed, "lockProgress", progress);
+				var pressedKind = StringValue(pressed, "kind");
+				if (progress > 0 || !string.Equals(pressedKind, "LockpingMinigame", StringComparison.Ordinal))
+				{
+					break;
+				}
+			}
+
+			for (var tick = 0; tick < 60; tick++)
+			{
+				// Keep the pointer ON the band every tick: the game reads the pointer each frame, and a
+				// poll that only reads lets the hand fall back to the real mouse between evals (measured
+				// 2026-11-14: progress stalled at 0.734 while the poll read only).
+				await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
 				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 				var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 				progress = NumberOr(probe, "lockProgress", progress);

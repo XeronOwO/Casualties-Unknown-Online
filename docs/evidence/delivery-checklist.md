@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — a minigame that closed during the aim must be reopened before the press
-- [ ] Native parity — no product content; the case drives the game's own minigame
-- [ ] Native parity probe — three consecutive single runs opened the lock with the reopen-retry
+- [ ] Design comprehension — the lock turns only while the pointer stays on the band each frame
+- [ ] Native parity — no product content; the case drives the game's minigame
+- [ ] Native parity probe — three single runs opened the lock with the pointer re-staged every tick
 - [ ] Entry mapping — one entry, the medcrate's lockpick minigame
-- [ ] Mechanism inventory — in the full order the press edge still misses in one run (`handStarted false`), so the case is order-sensitive
-- [ ] Whole-family audit — the heal row also flaked in the same full run
-- [ ] Self-check table — two test files changed, no product code
-- [ ] Verification design — three singles green, one full run 30/32
+- [ ] Mechanism inventory — in the full order the game's progress fills at ~0.04/s at a 24-degree angle, so the poll ends first
+- [ ] Whole-family audit — no other case polls at this cadence
+- [ ] Self-check table — two test files changed
+- [ ] Verification design — one single run green and one full order 31/32
 - [ ] Plan approved by the user — the goal's main line
-- [ ] Structure review done — the reopen is a guard, not a retry loop around the whole case
+- [ ] Structure review done — the case parks with the rate and the angle named
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: nothing deployed this cycle

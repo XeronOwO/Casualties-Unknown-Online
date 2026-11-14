@@ -449,21 +449,57 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	public async Task WaitForCustodyAsync(CancellationToken cancellationToken)
 	{
 		var path = HostLogPath;
-		var offset = File.Exists(path) ? new FileInfo(path).Length : 0;
+		if (!File.Exists(path))
+		{
+			return;
+		}
+
+		// The projection logs a clean line only on the transition to clean. A case that starts in an
+		// already-converged world must read that line instead of waiting for a second one that will
+		// never be written: the old wait cost 25 s per custody case. Only the LAST custody line of
+		// this world decides — a mismatch after the clean line means the world moved again.
+		var length = new FileInfo(path).Length;
+		var from = Math.Max(Session.WorldStartLogOffset, length - 65536);
+		var lastCustody = LastCustodyLine(ReadFrom(path, from));
+		if (lastCustody is not null && lastCustody.Contains("mismatches=0", StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		var offset = lastCustody is null ? Math.Max(Session.WorldStartLogOffset, length) : length;
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < TimeSpan.FromSeconds(25))
 		{
 			if (File.Exists(path) && new FileInfo(path).Length > offset)
 			{
-				var text = ReadFrom(path, offset);
-				if (text.Contains("mismatches=0", StringComparison.Ordinal) && text.Contains("[ItemCustody]", StringComparison.Ordinal))
+				var tail = LastCustodyLine(ReadFrom(path, offset));
+				if (tail is not null)
 				{
-					return;
+					if (tail.Contains("mismatches=0", StringComparison.Ordinal))
+					{
+						return;
+					}
+
+					offset = new FileInfo(path).Length;
 				}
 			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	private static string? LastCustodyLine(string text)
+	{
+		var lines = text.Split('\n');
+		for (var i = lines.Length - 1; i >= 0; i--)
+		{
+			if (lines[i].Contains("[ItemCustody]", StringComparison.Ordinal))
+			{
+				return lines[i];
+			}
+		}
+
+		return null;
 	}
 
 	private static string ReadFrom(string path, long offset)

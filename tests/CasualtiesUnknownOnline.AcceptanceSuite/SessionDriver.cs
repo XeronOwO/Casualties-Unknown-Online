@@ -167,9 +167,16 @@ internal sealed class SessionDriver(Options options)
 		return "the suite created the host's IP session; the run has not started yet";
 	}
 
+	/// <summary>
+	/// The host log offset immediately before the current run's world load. A custody line before this
+	/// offset belongs to an earlier world and must not satisfy a wait in this one.
+	/// </summary>
+	public long WorldStartLogOffset { get; private set; }
+
 	/// <summary>Starts the run on the host's existing IP session and waits for the host's world.</summary>
 	public async Task<string> StartHostRunAsync(CancellationToken cancellationToken)
 	{
+		WorldStartLogOffset = await LogOffsetAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 
 		// The wait is a measurement made in the client that owns the fact: the driver blocks on its

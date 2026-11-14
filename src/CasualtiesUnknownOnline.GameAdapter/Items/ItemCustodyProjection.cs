@@ -46,6 +46,9 @@ internal sealed class ItemCustodyProjection(IItemControl items, ILogger<ItemCust
 		var rows = _items.QueryJudgedItems();
 		if (rows.Count == 0)
 		{
+			// The menu / a world teardown has no judged rows: the next clean world must announce
+			// convergence again, or the acceptance wait can only see the previous world's line.
+			_reportedClean = false;
 			return;
 		}
 

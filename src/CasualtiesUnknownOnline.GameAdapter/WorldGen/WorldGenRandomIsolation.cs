@@ -133,7 +133,7 @@ internal static class WorldGenRandomIsolation
 				yield return Drive(nested!, adapter, resetFirst: false);
 				if (Log is not null)
 				{
-					Log($"[GenStream] nested {nested!.GetType().Name} before={nestedBefore} after={StateHex()}");
+					Log($"[GenStream] nested {nested!.GetType().Name} before={nestedBefore} after={StateHex()} {WorldFacts()}");
 				}
 
 				continue;

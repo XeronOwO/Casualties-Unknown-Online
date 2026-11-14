@@ -607,12 +607,12 @@ internal static class CaseRegistry
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
+		// Parked 2026-11-14 08:45: the hand lands at magnitude 328 (the clickable band is 195-247) and
+		// `handStarted` stays false, so no unlock plays (`raw=788|`). The aim's pointer-to-hand scale comes
+		// from the calibration probes and must be measured per open; the reading is on the suite ticket.
+		// new LockpickCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
-		// new LockpickCase(), // parked 2026-11-13 02:55: in the suite's own run the hand reaches the band with the
-		// button down (magnitude 225.2) but the game's own started flag never sets and no unlock plays; the
-		// standalone run at 01:05 did complete (`lockProgress 0.612`, `unlock@10046.9`). The reading is on the
-		// suite ticket.
 	];
 }
 

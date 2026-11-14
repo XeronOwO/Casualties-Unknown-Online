@@ -55,34 +55,31 @@ internal static class WorldGenerationDamageBlockPatch
 
 	private static void Postfix(DamageBlockState? __state, float dmg, bool bonusMetal, bool ignoreLoot)
 	{
-		try
+		if (__state is null || !__state.IsLocalAction)
 		{
-			if (__state is null || !__state.IsLocalAction)
-			{
-				return; // a remote apply: the peers already have this damage, and the local-report hook stays silent
-			}
-
-			if (!ignoreLoot && __state.World.GetBlock(__state.Cell) == 0)
-			{
-				PatchBridge.WorldGen?.OnCustomTileBroken(__state.World, __state.Cell, __state.OriginalBlock);
-			}
-
-			// How much this call actually added to the cell's row, in the game's own
-			// accumulated units (the metallic ×10 is already folded in,
-			// WorldGeneration.cs:715) — the sender's own contribution, which the
-			// per-sender accounting reports instead of the cell's total. A hit that
-			// BROKE the block removed the row inside the call, so the reading says
-			// nothing; the break path owns that cell instead.
-			var applied = __state.World.GetBlock(__state.Cell) == 0
-				? 0f
-				: (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;
-			PatchBridge.WorldGen?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);
+			return; // a remote apply: the peers already have this damage, and the local-report hook stays silent
 		}
-		finally
+
+		if (!ignoreLoot && __state.World.GetBlock(__state.Cell) == 0)
 		{
-			__state?.Dispose(); // a leaked scope would mask every later Create — release on exception paths too
+			PatchBridge.WorldGen?.OnCustomTileBroken(__state.World, __state.Cell, __state.OriginalBlock);
 		}
+
+		// How much this call actually added to the cell's row, in the game's own
+		// accumulated units (the metallic ×10 is already folded in,
+		// WorldGeneration.cs:715) — the sender's own contribution, which the
+		// per-sender accounting reports instead of the cell's total. A hit that
+		// BROKE the block removed the row inside the call, so the reading says
+		// nothing; the break path owns that cell instead.
+		var applied = __state.World.GetBlock(__state.Cell) == 0
+			? 0f
+			: (__state.World.GetBlockDamage(__state.Cell)?.damage ?? 0f) - __state.PreviousDamage;
+		PatchBridge.WorldGen?.OnBlockDamaged(__state.Cell, dmg, bonusMetal, applied);
 	}
+
+	// A game-side throw inside DamageBlock skips Postfix entirely; a Finalizer still runs, so the
+	// DamageBlockOrigin scope cannot leak into the next frame and mask the next local Create.
+	private static void Finalizer(DamageBlockState? __state) => __state?.Dispose();
 
 	private sealed class DamageBlockState(
 		WorldGeneration world,

@@ -1,6 +1,6 @@
 // recipe: spectator-read
 // args: none
-// returns: ok, cameraBody, cameraPain, woundBody, woundPain, woundBodyIsCamera, hudBodyIsWound,
+// returns: ok, cameraBody, cameraPain, woundBody, woundPain, woundBodyIsCamera, hudBodyIsWound, gateActive,
 //          woundLimb3Prosthetic, woundLimb3Item, woundLimb5Pain, woundLimb5Skin, cameraLimb4Prosthetic, shaderPain, shaderBlood,
 //          shaderLowOxy, shaderBrainDamage, shaderBloodloss, shaderBlur, shaderDistort,
 //          blackAmount, sleepFill, sleepFillAlpha, ecgActive, vignetteAlpha, consciousnessFadeAlpha,
@@ -37,6 +37,8 @@
 	var hud = hudProperty != null ? hudProperty.GetValue(null) as Body : null;
 	var totalSoundsProperty = gateType != null ? gateType.GetProperty("TotalWorldSoundsHeard", staticFlags) : null;
 	var totalSounds = totalSoundsProperty != null ? (int)totalSoundsProperty.GetValue(null) : -1;
+	var activeProperty = gateType != null ? gateType.GetProperty("IsActive", staticFlags) : null;
+	var gateActive = activeProperty != null && (bool)activeProperty.GetValue(null);
 	var wound = view.body;
 	var limb = wound.limbs != null && wound.limbs.Length > 3 ? wound.limbs[3] : null;
 	var cameraLimb = camera.body.limbs != null && camera.body.limbs.Length > 4 ? camera.body.limbs[4] : null;
@@ -50,6 +52,7 @@
 		+ ",\"woundPain\":" + wound.averagePain.ToString("0.###", inv)
 		+ ",\"woundBodyIsCamera\":" + (wound == camera.body ? "true" : "false")
 		+ ",\"hudBodyIsWound\":" + (hud != null && hud == wound ? "true" : "false")
+		+ ",\"gateActive\":" + (gateActive ? "true" : "false")
 		+ ",\"woundLimb3Prosthetic\":" + (limb != null && limb.prostheticInfo.hasProsthetic ? "true" : "false")
 		+ ",\"woundLimb3Item\":\"" + (limb != null && limb.prostheticInfo.itemId != null ? limb.prostheticInfo.itemId.Replace("\"", "'") : "") + "\""
 		+ ",\"woundLimb5Pain\":" + (woundPainLimb != null ? woundPainLimb.pain.ToString("0.###", inv) : "-1")

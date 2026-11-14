@@ -98,6 +98,10 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			context.Read("spectator released HUD", released);
 			Require(Boolean(released, "ok"), "the HUD body probe did not answer ok after the watch ended: " + Raw(released));
 			Require(Boolean(released, "same"), "the HUD manager still holds the destroyed watched body after the watch ended: " + Raw(released));
+
+			var stopped = await context.RecipeAsync("spectator-read", cancellationToken).ConfigureAwait(false);
+			context.Read("spectator gate after release", stopped);
+			Require(!Boolean(stopped, "gateActive"), "the spectator gate stayed active after the watch ended: " + Raw(stopped));
 		}
 		finally
 		{

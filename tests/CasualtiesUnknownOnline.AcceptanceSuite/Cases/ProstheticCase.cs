@@ -13,23 +13,42 @@ internal sealed class ProstheticCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var set = await context.RecipeAsync("limb-prosthetic4", cancellationToken,
-			("mode", "set"),
-			("limb", "3"),
-			("item", "hook"));
-		context.Read("set", set);
-		Require(Boolean(set, "ok"), "the prosthetic was not set: " + Raw(set));
-		var result = StringValue(set, "result");
-		Require(result.Contains("set:True:hook", StringComparison.Ordinal), "the set answered another prosthetic: " + result);
+		try
+		{
+			var set = await context.RecipeAsync("limb-prosthetic4", cancellationToken,
+				("mode", "set"),
+				("limb", "3"),
+				("item", "hook"));
+			context.Read("set", set);
+			Require(Boolean(set, "ok"), "the prosthetic was not set: " + Raw(set));
+			var result = StringValue(set, "result");
+			Require(result.Contains("set:True:hook", StringComparison.Ordinal), "the set answered another prosthetic: " + result);
 
-		var read = await context.RecipeAsync("limb-prosthetic4", cancellationToken,
-			("mode", "read"),
-			("limb", "3"),
-			("item", ""));
-		context.Read("read", read);
-		Require(Boolean(read, "ok"), "the prosthetic read failed: " + Raw(read));
-		var parts = StringValue(read, "result");
-		Require(parts.Contains("3=hook/", StringComparison.Ordinal), "the reading does not list the prosthetic: " + parts);
+			var read = await context.RecipeAsync("limb-prosthetic4", cancellationToken,
+				("mode", "read"),
+				("limb", "3"),
+				("item", ""));
+			context.Read("read", read);
+			Require(Boolean(read, "ok"), "the prosthetic read failed: " + Raw(read));
+			var parts = StringValue(read, "result");
+			Require(parts.Contains("3=hook/", StringComparison.Ordinal), "the reading does not list the prosthetic: " + parts);
+		}
+		finally
+		{
+			// A prosthetic left on the host body outlives this row: the next remote clone's Limb.Start calls
+			// AttachProsthetic on an item id the clone does not own, which is a guest-side NRE storm.
+			try
+			{
+				await context.RecipeAsync("limb-prosthetic4", cancellationToken,
+					("mode", "clear"),
+					("limb", "3"),
+					("item", "")).ConfigureAwait(false);
+			}
+			catch
+			{
+				// Cleanup only.
+			}
+		}
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

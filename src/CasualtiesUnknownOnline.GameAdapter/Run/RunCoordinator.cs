@@ -426,8 +426,20 @@ internal sealed class RunCoordinator(
 	/// clone still updating): the member's world is over, so it takes its own leave path — a guest's answer
 	/// is menu-only, so no cut is written on its side.
 	/// </summary>
-	private void OnRunEnded(RunEndedMsg msg) =>
+	private void OnRunEnded(RunEndedMsg msg)
+	{
+		// The run that owned this phase is over, and the menu return is about to run. Without this
+		// reset the guest stayed in Starting/Playing after a host restart, and the next WorldJoin was
+		// silently ignored (only Idle accepts one): the host waited for a member that would never
+		// load, while the member sat on "waiting for the host to start" (measured 2026-11-15).
+		_phase = RunPhase.Idle;
+		_hostStartGateAlertPending = false;
+		_hostInWorldSinceMs = 0;
+		_worldFingerprintLogged = false;
+		_descentFollow.End();
+		_descentBody.Clear();
 		_menuReturn.Request(_session.Role, RunMenuReturnOrigin.HostPull, inWorld: true);
+	}
 
 	/// <summary>
 	/// Host: this host's world has ended — tell the members still standing in it. Called after the leave

@@ -284,12 +284,24 @@ internal sealed class SessionDriver(Options options)
 			var controls = Controls(state);
 			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal) && !IsTrue(state, "inWorld"))
 			{
-				// A Guest role with no world is the leftover of a session whose host went away: the
-				// client's own watchdog ends it, but until then every join is refused or ignored
-				// (measured 2026-11-13: role=Guest, inWorld empty, host roster empty). The driver's own
-				// leave is the only way out; the join below is the judge.
-				await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-				await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+				// Two different states wear the same role. An INACTIVE Guest is the leftover of a
+				// session whose host went away: the client's own watchdog ends it, but until then
+				// every join is refused or ignored (measured 2026-11-13: role=Guest, inWorld empty,
+				// host roster empty), so the driver's own leave is the way out. An ACTIVE Guest is
+				// the session the host has just restarted: its world join is on the way, and leaving
+				// it every 800 ms destroys the very session that join needs. Wait instead; the
+				// product-side phase reset is what lets the join land (measured 2026-11-15:
+				// role=Guest, active=true, inWorld=false, page=Home, gateText=waiting for the host).
+				if (!IsTrue(state, "active"))
+				{
+					await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+					await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+				}
+				else
+				{
+					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				}
+
 				continue;
 			}
 
@@ -336,7 +348,9 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	private static string DescribeMemberState(JsonElement state) =>
-		$"role={StringValue(state, "role")}, active={StringValue(state, "active")}, inWorld={StringValue(state, "inWorld")}, "
+		$"role={StringValue(state, "role")}, active={(IsTrue(state, "active") ? "true" : "false")}, "
+		+ $"inWorld={(IsTrue(state, "inWorld") ? "true" : "false")}, "
+		+ $"gateWaiting={(IsTrue(state, "gateWaiting") ? "true" : "false")}, "
 		+ $"page={StringValue(state, "page")}, controls={string.Join(",", Controls(state))}";
 
 	/// <summary>How many times the member had to be recreated to join (0 is the healthy reading; every trigger is a finding).</summary>

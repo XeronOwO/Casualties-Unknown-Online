@@ -1,18 +1,16 @@
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using HarmonyLib;
 using UnityEngine;
-using Object = UnityEngine.Object;
 using UDebug = UnityEngine.Debug;
 
 namespace CasualtiesUnknownOnline.Acceptance;
 
 /// <summary>
 /// Records every live block write the game makes in the deep band (y at or below 900), once per cell, with the
-/// method that made it. It exists to answer one question on a real session: which code writes the cells whose
-/// tables differ between two clients (the divergence family's first probe names the band, this names the writer).
-/// Installed by the acceptance plug-in only, so a production install never carries it.
+/// call chain that made it. It exists to answer one question on a real session: which code writes the cells whose
+/// tables differ between two clients (the divergence family's first probe names the band, this names the writer
+/// and the trigger above it). Installed by the acceptance plug-in only, so a production install never carries it.
 /// </summary>
 internal static class BlockWriteRecorder
 {
@@ -29,11 +27,9 @@ internal static class BlockWriteRecorder
 		}
 
 		harmony.Patch(target, postfix: new HarmonyMethod(typeof(BlockWriteRecorder), nameof(Postfix)));
-
-		var stamper = AccessTools.Method(typeof(WorldGeneration), "GenerateObjectAtPos");
-		if (stamper != null) { harmony.Patch(stamper, postfix: new HarmonyMethod(typeof(BlockWriteRecorder), nameof(StamperPostfix))); }
 	}
 
+	// Depth 4: the writer, the structure stamper, and the two frames above it (the coroutine that ran the stamp).
 	private static void Postfix(Vector2Int pos, ushort block)
 	{
 		if (pos.y < DeepBand || !Seen.Add(pos))
@@ -41,24 +37,14 @@ internal static class BlockWriteRecorder
 			return;
 		}
 
-		var frame = new StackTrace(2, false).GetFrame(0)?.GetMethod();
-		var caller = frame == null ? "unknown" : frame.DeclaringType?.Name + "." + frame.Name;
-		UDebug.LogWarning($"[SetBlock] {pos.x},{pos.y} -> {block} from {caller}.");
+		var trace = new StackTrace(2, false);
+		UDebug.LogWarning(
+			$"[SetBlock] {pos.x},{pos.y} -> {block} from {Name(trace, 0)} < {Name(trace, 1)} < {Name(trace, 2)} < {Name(trace, 3)}.");
 	}
 
-	// The structure stamper: what ran it, on which client, for which structure, and where the player stood.
-	private static void StamperPostfix(Vector2Int pos, object tilemap, float rotation, bool genMode)
+	private static string Name(StackTrace trace, int index)
 	{
-		if (pos.y < DeepBand)
-		{
-			return;
-		}
-
-		var frame = new StackTrace(2, false).GetFrame(0)?.GetMethod();
-		var caller = frame == null ? "unknown" : frame.DeclaringType?.Name + "." + frame.Name;
-		var body = PlayerCamera.main == null ? null : PlayerCamera.main.body;
-		var where = body == null ? "no-body" : body.transform.position.x.ToString(CultureInfo.InvariantCulture) + "," + body.transform.position.y.ToString(CultureInfo.InvariantCulture);
-		var name = tilemap is Object o ? o.name : "no-tilemap";
-		UDebug.LogWarning($"[Stamper] {name} at {pos.x},{pos.y} rot={rotation.ToString(CultureInfo.InvariantCulture)} gen={genMode} from {caller} player={where}.");
+		var method = trace.FrameCount > index ? trace.GetFrame(index)?.GetMethod() : null;
+		return method == null ? "?" : method.DeclaringType?.Name + "." + method.Name;
 	}
 }

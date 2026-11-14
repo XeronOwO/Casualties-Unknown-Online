@@ -1409,3 +1409,4 @@ docs/backlog/future/1.0-cross-player-item-use-has-no-consent.md | keep | claim |
 docs/backlog/review/1.0-rule-toggles-missing-for-carry-and-push.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-player-death-stats-missing.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/split-session-service.md | keep | claim | docs/backlog/README.md
+docs/backlog/review/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | docs/backlog/README.md

@@ -81,6 +81,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
+
+- [The guest holds a Guest role without a world](review/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — the member believes it is in a session and never enters the world.
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 

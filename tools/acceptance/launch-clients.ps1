@@ -246,18 +246,13 @@ function Ensure-SandboxService() {
 	return $false
 }
 function Ensure-BoxSteam([string]$Box) {
-	# An offline IP-direct pair never needs Steam in a box: the accounts there do not own the game, and
-	# the session runs over IP direct. The caller declares that with -AllowOfflineSteam (2026-11-12).
-	if ($AllowOfflineSteam) { Write-Run "$Box steam not started (offline IP direct: -AllowOfflineSteam)"; return }
-	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { return }
-	Write-Run "$Box has no Steam; starting it (never restarting one that runs)"
-	Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", $SteamExe) -WindowStyle Hidden
-	$deadline = [DateTime]::UtcNow.AddSeconds(180)
-	while ([DateTime]::UtcNow -lt $deadline) {
-		if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { break }
-		Start-Sleep -Milliseconds 500
-	}
-	if (Wait-SteamSettled $Box) { Write-Run "$Box steam settled" } else { Write-Run "$Box steam did not settle within $SteamGraceSeconds s; starting the game anyway" }
+	# A boxed Steam account here does not own the game, so Steam in a box is NEVER started and never
+	# needed: the pair runs offline IP direct (the user's standing rule, 2026-11-12/14). Two measured
+	# costs of starting it anyway: a second Steam login in the box, and the guest's UI frozen by
+	# "Steamworks is not initialized" every frame (2026-11-13). A Steam process someone else started is
+	# left alone — IP direct does not touch it.
+	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { Write-Run "$Box has a Steam process (left alone; IP direct does not need it)" }
+	return
 }
 function Start-ClientProcess([string]$Client) {
 	# Start the process for one client and return immediately: this function never waits. Waiting is one loop for all clients, below.
@@ -397,26 +392,16 @@ if ($missing.Count -gt 0) {
 	exit 8
 }
 
-foreach ($client in @($clients | Where-Object { $_ -ne 'host' })) {
-	$root = $roots[$client]
-	if (-not $AllowOfflineSteam -and -not (Test-SteamInitialized $root)) {
-		Write-Run "FAIL: $client answered without Steam initialized (its log says so); this box needs its Steam up before a session"
-		if ($client -eq 'guest') { exit 7 }
-		exit 8
-	}
-}
-
-if ($Only) { Write-Run "$Only up" } else { Write-Run (($clients -join ', ') + ' up (endpoints answered)') }
+Write-Run (($clients -join ', ') + ' up (endpoints answered)')
 
 # A single-client run has no lobby to join and no world to enter: the endpoint that answered IS the deliverable.
 if ($Only -or $NoJoin) { exit 0 }
-if ($AllowOfflineSteam) {
-	# No Steam means no lobby to create and no world to enter: the caller (the suite, or a driver
-	# script) makes the IP-direct session. Without this the launch ended in "FAIL: no lobby id" after
-	# the endpoints were already up (measured 2026-11-13).
-	Write-Run 'offline IP direct: no lobby to create; the endpoints are the deliverable'
-	exit 0
-}
+
+# No Steam in a box (the boxed accounts do not own the game), so the session is IP direct and the
+# caller (the suite, or a driver script) makes it. The host's Steam-lobby path is unreachable for a
+# boxed pair by construction; requiring Steam here failed the launch after the endpoints were up.
+Write-Run 'offline IP direct: no lobby to create; the endpoints are the deliverable'
+exit 0
 $lobbyAnswer = Invoke-Driver 'host' 'create-lobby'
 $lobby = [string]$lobbyAnswer.result.lobby
 if ([string]::IsNullOrWhiteSpace($lobby)) { Write-Run 'FAIL: no lobby id'; exit 6 }

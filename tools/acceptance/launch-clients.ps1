@@ -278,6 +278,18 @@ function Start-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
 	# below will see it the moment it answers.
 	if (@(Get-BoxProcesses $Box 'CasualtiesUnknown').Count -gt 0) { Write-Run "$Client process exists; letting it come up"; return }
 
+	# The box keeps its own copy of the plug-in, and the desktop deploy never reaches inside the
+	# sandbox: sync the desktop's folder into the box before its process starts, or the box runs an
+	# older build and every reading taken from it is false (measured 2026-11-14: the guest ran the
+	# 07:07 build while the desktop had 08:11, and a working join read as broken).
+	$desktopPlugins = Join-Path $GameDir 'BepInEx\plugins\CasualtiesUnknownOnline'
+	$boxPlugins = Join-Path $GameRoot 'BepInEx\plugins\CasualtiesUnknownOnline'
+	if ((Test-Path $desktopPlugins) -and ($GameRoot.TrimEnd('\') -ne $GameDir.TrimEnd('\'))) {
+		New-Item -ItemType Directory -Path $boxPlugins -Force | Out-Null
+		Copy-Item (Join-Path $desktopPlugins '*') -Destination $boxPlugins -Recurse -Force
+		Write-Run "$Client plugins synced from the desktop build"
+	}
+
 	Ensure-BoxSteam $Box
 	Start-Process -FilePath $Sandboxie -ArgumentList @("/box:$Box", (Join-Path $GameRoot 'CasualtiesUnknown.exe'))
 	Write-Run "$Client started"

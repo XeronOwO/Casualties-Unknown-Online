@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the two tables were told apart before the claim
-- [ ] Native parity — the digest reads the game's own table
-- [ ] Native parity probe — the forced write reached the member live
-- [ ] Entry mapping — the reconcile drains the damage overlay only
-- [ ] Mechanism inventory — the corrected ticket names the gap and both shapes
-- [ ] Whole-family audit — terrain reconcile is scoped, not implemented
-- [ ] Self-check table — documentation only this cycle
-- [ ] Verification design — the terrain backstop waits for the root cause
-- [ ] Plan approved by the user — backstop, optimized, never instead of the root fix
-- [ ] Structure review done — the design gap is recorded, not hidden
+- [ ] Design comprehension — the isolation's save points were read
+- [ ] Native parity — the segment lists come from both clients' own logs
+- [ ] Native parity probe — segments 1-16 agree and 17 slides by eight bytes
+- [ ] Entry mapping — the first divergence is between segment 16's continuation and 17's save
+- [ ] Mechanism inventory — the pod stage is the prime candidate
+- [ ] Whole-family audit — the two clients stay in one session on the same run
+- [ ] Self-check table — log reads and one ticket section
+- [ ] Verification design — the next probe reads the pod stage's draws on both sides
+- [ ] Plan approved by the user — root cause before the terrain backstop
+- [ ] Structure review done — the finding is appended, the earlier misreads kept and corrected
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: no deploy in this cycle

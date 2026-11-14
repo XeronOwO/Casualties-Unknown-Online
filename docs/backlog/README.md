@@ -83,8 +83,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
-- [A host leaving the world strands the members](done/1.0-a-host-leaving-the-world-strands-the-members.md) — **Done** — relay pulls them out.
-
 - [A guest holds a role without a world](review/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — a stale session hides the join.
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
@@ -144,6 +142,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+
+- [A host leaving the world strands the members](done/1.0-a-host-leaving-the-world-strands-the-members.md) — **High** — relay pulls them out.
 - [The pinyin search follows the game language](done/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — zh-CN matches; English is a documented limit.
 - [The crafting screen opens again](done/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — our recipe had no prefab; a placeholder holds.
 - [The member waits for a host that waits for it](done/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the heartbeat holds the join open.

@@ -40,7 +40,9 @@ internal static class BlockWriteRecorder
 		var trace = new StackTrace(2, false);
 		var camera = PlayerCamera.main;
 		var at = camera != null && camera.body != null ? camera.body.transform.position : Vector3.zero;
-		UDebug.LogWarning(
+		// This is a normal generation write, not a warning: the recorder's purpose is a call chain, and the batch's
+		// warning budget must stay meaningful. Warning here made one world generation look like 4,891 anomalies.
+		UDebug.Log(
 			$"[SetBlock] {pos.x},{pos.y} -> {block} at {at.x:0.0},{at.y:0.0} from {Name(trace, 0)} < {Name(trace, 1)} < {Name(trace, 2)} < {Name(trace, 3)}.");
 	}
 

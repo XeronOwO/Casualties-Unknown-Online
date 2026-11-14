@@ -82,6 +82,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
+- [A host leaving the world strands the members](review/1.0-a-host-leaving-the-world-strands-the-members.md) — **High** — no run-end relay exists.
+
 - [A guest holds a role without a world](review/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — a stale session hides the join.
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.

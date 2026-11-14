@@ -38,8 +38,10 @@ internal static class BlockWriteRecorder
 		}
 
 		var trace = new StackTrace(2, false);
+		var camera = PlayerCamera.main;
+		var at = camera != null && camera.body != null ? camera.body.transform.position : Vector3.zero;
 		UDebug.LogWarning(
-			$"[SetBlock] {pos.x},{pos.y} -> {block} from {Name(trace, 0)} < {Name(trace, 1)} < {Name(trace, 2)} < {Name(trace, 3)}.");
+			$"[SetBlock] {pos.x},{pos.y} -> {block} at {at.x:0.0},{at.y:0.0} from {Name(trace, 0)} < {Name(trace, 1)} < {Name(trace, 2)} < {Name(trace, 3)}.");
 	}
 
 	private static string Name(StackTrace trace, int index)

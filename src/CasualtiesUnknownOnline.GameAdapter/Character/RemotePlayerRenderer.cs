@@ -174,6 +174,17 @@ internal sealed class RemotePlayerRenderer(
 			var remote = remotePlayers[i];
 			if (!_session.IsRemoteInWorld(remote.SteamId))
 			{
+				// A clone whose member is no longer in the world is an orphan: its body keeps the
+				// game's own item clones parented under its inventory slots, and with no world those
+				// items throw from Item.Update every frame (measured 2026-11-14: the menu client
+				// carried four such items under Character_1). Drop it, cache included.
+				if (_remoteClones.TryGetValue(remote.SteamId, out var orphan) && orphan != null)
+				{
+					Object.Destroy(orphan);
+					_remoteClones.Remove(remote.SteamId);
+					_cloneCharacters.Remove(remote.SteamId);
+				}
+
 				continue; // in a menu/loading — no clone
 			}
 

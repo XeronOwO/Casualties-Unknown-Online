@@ -92,6 +92,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
+		PruneJournalToEpoch(batch.RunEpoch);
 		_journal.Add(batch);
 		if (_journal.Count > JournalCapacity)
 		{
@@ -119,6 +120,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 
 		var checkpoint = _checkpointSource.CreateCheckpoint();
+		PruneJournalToEpoch(checkpoint.RunEpoch);
 		var chunks = WireCheckpointAssembler.Split(checkpoint);
 		foreach (var chunk in chunks)
 		{
@@ -238,6 +240,16 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	}
 
 	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
+
+	private void PruneJournalToEpoch(RunEpoch epoch)
+	{
+		var removed = _journal.RemoveAll(batch => batch.RunEpoch != epoch);
+		if (removed > 0)
+		{
+			_log.LogInformation("Dropped {Count} kernel journal batch(es) from another run at epoch {Epoch}.",
+				removed, epoch.Value);
+		}
+	}
 
 	public void ResetSessionState()
 	{
@@ -455,6 +467,8 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			_log.LogWarning("Ignoring invalid range request from {Sender}: {Start}..{End}.", sender, start, end);
 			return;
 		}
+
+		PruneJournalToEpoch(_checkpointSource.CurrentRunEpoch);
 
 		if (_journal.Count == 0)
 		{

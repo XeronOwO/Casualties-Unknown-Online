@@ -432,6 +432,58 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Host_CheckpointAfterANewRun_DoesNotReplayTheOldRunsBatches()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		hostAuthority.ResetSessionState();
+
+		var received = new List<ProtocolFrame>();
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
+			{
+				received.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
+			}
+		};
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.SendCheckpoint(GuestId);
+
+		Assert.DoesNotContain(received, f => f.CommittedBatch is not null);
+	}
+
+	[Fact]
+	public void Host_RangeRequestAfterANewRun_DoesNotReplayTheOldRunsBatches()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		hostAuthority.ResetSessionState();
+
+		var received = new List<ProtocolFrame>();
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
+			{
+				received.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
+			}
+		};
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.HandleFrame(GuestId, RangeRequestFrame(1, 1));
+
+		Assert.DoesNotContain(received, f => f.CommittedBatch is not null);
+	}
+
+	[Fact]
 	public void Guest_BuffersOutOfOrderBatch_AndAppliesAfterMissingRange()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();

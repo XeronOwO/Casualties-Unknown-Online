@@ -129,7 +129,13 @@ internal static class WorldGenRandomIsolation
 			var kind = GenerationYield.Classify(nested is not null, current is CustomYieldInstruction);
 			if (kind == GenerationYield.Kind.Nested)
 			{
+				var nestedBefore = StateHex();
 				yield return Drive(nested!, adapter, resetFirst: false);
+				if (Log is not null)
+				{
+					Log($"[GenStream] nested {nested!.GetType().Name} before={nestedBefore} after={StateHex()}");
+				}
+
 				continue;
 			}
 

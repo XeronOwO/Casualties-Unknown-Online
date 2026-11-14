@@ -59,8 +59,31 @@ internal static class FacialBodyProbe
 			// need different fixes, so the reading separates them (2026-11-14).
 			var managedNull = ReferenceEquals(body, null);
 			var scene = __instance.gameObject.scene.name;
+			// Whose object is this? The root's component names say it without a GameAdapter
+			// reference: our clones carry RemoteBodyDriver on the Body, the medical display carries
+			// RemoteMedicalDisplayBody (measured 2026-11-14: the spamming Head looked like a clone).
+			var hasBody = false;
+			var hasDriver = false;
+			var hasDisplay = false;
+			if (__instance.transform != null && __instance.transform.root != null)
+			{
+				foreach (var component in __instance.transform.root.GetComponentsInChildren<UnityEngine.Component>(true))
+				{
+					if (component == null)
+					{
+						continue;
+					}
+
+					var typeName = component.GetType().Name;
+					hasBody |= typeName == "Body";
+					hasDriver |= typeName == "RemoteBodyDriver";
+					hasDisplay |= typeName == "RemoteMedicalDisplayBody";
+				}
+			}
+
 			UDebug.LogWarning($"[FacialProbe] facial {id} on '{__instance.gameObject.name}' under '{root}' scene '{scene}' "
-				+ $"body managedNull={managedNull} unityNull={body == null} — its Update is skipped.");
+				+ $"body managedNull={managedNull} unityNull={body == null} rootBody={hasBody} rootDriver={hasDriver} "
+				+ $"rootDisplay={hasDisplay} — its Update is skipped.");
 		}
 
 		return false;

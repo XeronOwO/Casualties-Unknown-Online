@@ -46,10 +46,18 @@ internal static class SpectatorPresentationGate
 	internal static void EndWatchedSound() => WatchedSoundDepth = Math.Max(0, WatchedSoundDepth - 1);
 
 	/// <summary>Counts the sounds the gate lets through while spectating (the observed players' replays and the one
-	/// crisis sound), so a reading can prove the world is audible rather than silent.</summary>
+	/// crisis sound), so a reading can prove the world is audible rather than silent. <see cref="WorldSoundsHeard"/>
+	/// is the per-frame sample the mirror line logs; <see cref="TotalWorldSoundsHeard"/> is the run-wide count an
+	/// acceptance reading asserts after an action.</summary>
 	internal static int WorldSoundsHeard { get; private set; }
 
-	internal static void NoteWorldSound() => WorldSoundsHeard++;
+	internal static int TotalWorldSoundsHeard { get; private set; }
+
+	internal static void NoteWorldSound()
+	{
+		WorldSoundsHeard++;
+		TotalWorldSoundsHeard++;
+	}
 
 	/// <summary>
 	/// The body the game's own HUD must present while the mode is on: the WATCHED player's, so the status icons and
@@ -68,7 +76,14 @@ internal static class SpectatorPresentationGate
 
 	internal static void ResetWorldSounds() => WorldSoundsHeard = 0;
 
-	internal static void Set(bool active) => IsActive = active;
+	internal static void Set(bool active)
+	{
+		IsActive = active;
+		if (active)
+		{
+			TotalWorldSoundsHeard = 0;
+		}
+	}
 
 	internal static void SetWatched(float blackAmount, Color vignette)
 	{

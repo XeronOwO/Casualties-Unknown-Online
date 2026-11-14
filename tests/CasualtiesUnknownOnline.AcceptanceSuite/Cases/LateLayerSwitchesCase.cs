@@ -15,6 +15,8 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 {
 	public override string Name => "late-layer-switches";
 
+	public override CaseCost Cost => CaseCost.NewWorld;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
@@ -23,6 +25,7 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 
 		var restart = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
 		context.Note(restart);
+		await UseCurrentMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		try
@@ -43,19 +46,37 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 		}
 		finally
 		{
-			// Put the shared session back on the normal preset: the unchipped table lives on the same
-			// PreRunScript instance the rest of the suite reuses, and a later fresh run would otherwise
-			// start from it. The restart is the game's own entry, not a menu write.
+			// Clear the preset the next StartRun would apply. Do NOT restart here: every case after
+			// this one is a new-world case (save-continue onwards), so the unchipped world is about
+			// to be left anyway; a second restart only bought another 30 s scene load. Clearing the
+			// static preset is what stops the next run from inheriting unchipped.
 			try
 			{
-				await context.RecipeAsync("run-preset", cancellationToken, ("name", "normal")).ConfigureAwait(false);
-				await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
 				await context.RecipeAsync("run-preset", cancellationToken, ("name", "")).ConfigureAwait(false);
 			}
 			catch (Exception exception)
 			{
-				context.Note("could not restore the normal preset after the case: " + exception.Message);
+				context.Note("could not clear the run preset after the case: " + exception.Message);
 			}
+		}
+	}
+
+	private static async Task UseCurrentMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		// A restart gives the member a new session id on the host. Later cases address the member by
+		// that id; keeping the pre-restart one made the medical view open for a member that no longer
+		// exists (measured 2026-11-15: medical-dose read the old id and opened nothing). The roster
+		// can trail the world by a moment, so wait for the row before taking it.
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			if (members.Length > 0)
+			{
+				context.UseMember(members[0]);
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 	}
 

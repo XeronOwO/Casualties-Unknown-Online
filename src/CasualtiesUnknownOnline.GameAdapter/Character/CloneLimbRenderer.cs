@@ -66,6 +66,28 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 
 			ApplyLimb(limb, limbData, data.Health, preserveOwnedBleed);
 		}
+
+		// The clone's Body.Update is skipped, so its averagePain never follows the limb pain
+		// just applied. The game's own screen shaders (PlayerCamera.HandleScreenShaders) and
+		// WoundView read it; a spectator watching this clone must see the owner's pain, not the
+		// template's zero. Same maximum the native Body.HandleBody computes at Body.cs:3104.
+		clone.averagePain = AveragePain(clone);
+	}
+
+	private static float AveragePain(Body body)
+	{
+		var pain = 0f;
+		foreach (var limb in body.limbs)
+		{
+			if (limb == null || limb.dismembered) // Unity object — ==
+			{
+				continue;
+			}
+
+			pain = Mathf.Max(limb.pain - body.curAdrenaline * 0.5f, pain);
+		}
+
+		return pain;
 	}
 
 	private static void ApplyLimb(Limb limb, CharacterLimbMsg limbData, CharacterHealthMsg? body, bool preserveOwnedBleed)

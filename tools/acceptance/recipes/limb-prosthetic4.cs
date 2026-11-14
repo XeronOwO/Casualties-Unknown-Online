@@ -7,6 +7,17 @@
 // with the limbs that carry a prosthetic — the clone of the owner is the one a teammate sees.
 ((System.Func<string>)(() => {
 	var mode = {{s:mode}};
+	var index = (int){{n:limb}};
+	if (mode == "clear") {
+		var clearCamera = PlayerCamera.main;
+		if (clearCamera == null || clearCamera.body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
+		var clearBody = clearCamera.body;
+		if (index < 0 || index >= clearBody.limbs.Length) { return "{\"ok\":false,\"error\":\"no-limb\"}"; }
+		var clearLimb = clearBody.limbs[index];
+		if (clearLimb == null) { return "{\"ok\":false,\"error\":\"no-limb\"}"; }
+		clearLimb.prostheticInfo = default(Limb.ProstheticInfo);
+		return "{\"ok\":true,\"result\":\"cleared:" + index + "\"}";
+	}
 	if (mode == "read") {
 		var bodies = UnityEngine.Object.FindObjectsOfType(typeof(Body), true);
 		var lines = new System.Collections.Generic.List<string>();
@@ -27,7 +38,6 @@
 	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
 	var local = camera.body;
 	if (local == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
-	var index = {{n:limb}};
 	if (index < 0 || index >= local.limbs.Length) { return "{\"ok\":false,\"error\":\"no-limb\"}"; }
 	var target = local.limbs[index];
 	if (target == null) { return "{\"ok\":false,\"error\":\"no-limb\"}"; }

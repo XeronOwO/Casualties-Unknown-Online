@@ -20,7 +20,7 @@ internal static partial class Program
 		if (options.Problem is { } problem)
 		{
 			Console.Error.WriteLine(problem);
-			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
+			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
 			return 64;
 		}
 
@@ -28,7 +28,7 @@ internal static partial class Program
 		{
 			foreach (var acceptanceCase in CaseRegistry.All)
 			{
-				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}");
+				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}\t{acceptanceCase.Cost}");
 			}
 
 			return 0;
@@ -36,18 +36,28 @@ internal static partial class Program
 
 		var selected = options.Suite == "all"
 			? CaseRegistry.All
-			: [.. CaseRegistry.All.Where(candidate => string.Equals(candidate.Name, options.Suite, StringComparison.Ordinal))];
+			: [.. CaseRegistry.All.Where(candidate => options.Suite.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(candidate.Name, StringComparer.Ordinal))];
+		if (options.Cost is { Length: > 0 } costFilter)
+		{
+			var costs = costFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+			selected = [.. selected.Where(candidate => costs.Contains(candidate.Cost.ToString(), StringComparer.OrdinalIgnoreCase))];
+		}
+
 		if (selected.Count == 0)
 		{
-			Console.Error.WriteLine($"no case named '{options.Suite}'");
+			Console.Error.WriteLine($"no case named '{options.Suite}'" + (options.Cost is { Length: > 0 } filter ? $" with cost '{filter}'" : string.Empty));
 			return 64;
 		}
 
 		var outputDirectory = Path.GetFullPath(options.OutputDirectory ?? Path.Combine(RepositoryPaths.Root, ".acceptance", "suite"));
 		Directory.CreateDirectory(outputDirectory);
 		var results = new List<CaseResult>();
+		var suiteClock = Stopwatch.StartNew();
+		var sharedSetup = Stopwatch.StartNew();
 		var session = new SessionDriver(options);
-		var (sessionNote, memberNote) = await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+		(string sessionNote, string memberNote) = options.Reuse
+			? await TryReusePairAsync(session).ConfigureAwait(false)
+			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
 		if (session.MemberRelaunches > 0)
 		{
 			memberNote += $" (the member was recreated {session.MemberRelaunches} time(s) to join: a ghost world it could not leave is a finding)";
@@ -79,8 +89,10 @@ internal static partial class Program
 			options = options with { MemberId = members[0] };
 		}
 
+		sharedSetup.Stop();
 		Console.WriteLine($"session\t{sessionNote}");
 		Console.WriteLine($"member\t{memberNote}");
+		Console.WriteLine($"setup\t{sharedSetup.Elapsed.TotalSeconds:F1}s (shared pair)");
 		foreach (var acceptanceCase in selected)
 		{
 			// The member's id is the HOST's view of it, and that view exists only once the handshake
@@ -96,17 +108,36 @@ internal static partial class Program
 			}
 
 			results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));
-			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Note}");
+			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Cost}\tsetup {results[^1].SetupMs / 1000:F1}s\tcase {results[^1].CaseMs / 1000:F1}s\ttotal {results[^1].TotalMs / 1000:F1}s\t{results[^1].Note}");
 			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
 			{
 				await ProbeFingerprintAsync(options, acceptanceCase.Name).ConfigureAwait(false);
 			}
 		}
 
+		suiteClock.Stop();
 		var reportPath = Path.Combine(outputDirectory, "report.md");
-		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results)).ConfigureAwait(false);
+		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds)).ConfigureAwait(false);
+		await SuiteReport.WriteJsonAsync(Path.Combine(outputDirectory, "report.json"), options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds).ConfigureAwait(false);
 		Console.WriteLine($"report: {reportPath}");
 		return results.All(result => result.Passed) ? 0 : 1;
+	}
+
+	/// <summary>
+	/// <c>--reuse</c> is the fast-group entry: attach to a pair that is already in a world instead of
+	/// paying a cold world load. A pair that is not ready falls back to the normal setup and says so.
+	/// </summary>
+	private static async Task<(string HostNote, string MemberNote)> TryReusePairAsync(SessionDriver session)
+	{
+		try
+		{
+			return await session.ReusePairAsync(CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+		{
+			var pair = await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+			return (pair.HostNote + $" (reuse failed: {exception.Message})", pair.MemberNote);
+		}
 	}
 
 	/// <summary>
@@ -155,22 +186,82 @@ internal static partial class Program
 	{
 		await using var host = new DriverClient(options.HostUrl);
 		CaseContext? context = null;
+		var connect = Stopwatch.StartNew();
+		var run = new Stopwatch();
+		var hostMark = -1L;
+		var memberMark = -1L;
+		string? markProblem = null;
 		try
 		{
 			await host.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+			connect.Stop();
 			context = new CaseContext(options, outputDirectory, host, new SessionDriver(options));
+
+			// The log mark is the case's own boundary: every warning/error after it is caused by this
+			// case. A mark that cannot be read is a failed acceptance, not a zero count.
+			try
+			{
+				hostMark = await context.Session.LogOffsetAsync(options.HostUrl, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				markProblem = $"host log could not be marked: {exception.Message}";
+			}
+
+			try
+			{
+				memberMark = await context.Session.LogOffsetAsync(options.MemberUrl, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				// A host-only case may legitimately have no member attached; the missing member count
+				// is reported, never hidden, and the host count is still gated.
+				memberMark = -1L;
+				markProblem ??= $"member log could not be marked: {exception.Message}";
+			}
+
+			run.Start();
 			await acceptanceCase.RunAsync(context, CancellationToken.None).ConfigureAwait(false);
-			return new CaseResult(acceptanceCase.Name, acceptanceCase.Launch, true, "ok", context.Readings, context.Notes);
+			run.Stop();
+			var setup = context.Session.SetupMilliseconds;
+			var caseMs = Math.Max(0, run.Elapsed.TotalMilliseconds - setup);
+			var (hostLogs, memberLogs, logProblem) = await ReadLogsAsync(context.Session, options, hostMark, memberMark, markProblem).ConfigureAwait(false);
+			var logFailure = JudgeLogs(acceptanceCase, hostLogs, memberLogs, logProblem);
+			return new CaseResult(
+				acceptanceCase.Name,
+				acceptanceCase.Cost,
+				logFailure is null,
+				logFailure ?? "ok",
+				connect.Elapsed.TotalMilliseconds,
+				setup,
+				caseMs,
+				context.Readings,
+				context.Notes,
+				hostLogs,
+				memberLogs);
 		}
 		catch (Exception exception) when (exception is DriverException or AssertionException or IOException or InvalidOperationException)
 		{
+			connect.Stop();
+			run.Stop();
+			var setup = context?.Session.SetupMilliseconds ?? 0;
+			var caseMs = Math.Max(0, run.Elapsed.TotalMilliseconds - setup);
+			var (hostLogs, memberLogs, logProblem) = context is null
+				? (null, null, (string?)null)
+				: await ReadLogsAsync(context.Session, options, hostMark, memberMark, markProblem).ConfigureAwait(false);
+			var note = exception.Message + (logProblem is null ? string.Empty : $" ({logProblem})");
 			return new CaseResult(
 				acceptanceCase.Name,
-				acceptanceCase.Launch,
+				acceptanceCase.Cost,
 				false,
-				exception.Message,
+				note,
+				connect.Elapsed.TotalMilliseconds,
+				setup,
+				caseMs,
 				context?.Readings ?? new Dictionary<string, string>(StringComparer.Ordinal),
-				context?.Notes ?? []);
+				context?.Notes ?? [],
+				hostLogs,
+				memberLogs);
 		}
 		finally
 		{
@@ -179,6 +270,70 @@ internal static partial class Program
 				await context.DisposeAsync().ConfigureAwait(false);
 			}
 		}
+	}
+
+	private static async Task<(LogCounts? Host, LogCounts? Member, string? Problem)> ReadLogsAsync(
+		SessionDriver session,
+		Options options,
+		long hostMark,
+		long memberMark,
+		string? existingProblem)
+	{
+		LogCounts? hostLogs = null;
+		LogCounts? memberLogs = null;
+		var problem = existingProblem;
+		if (hostMark >= 0)
+		{
+			try
+			{
+				hostLogs = await session.LogSinceAsync(options.HostUrl, hostMark, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				problem ??= $"host log count failed: {exception.Message}";
+			}
+		}
+
+		if (memberMark >= 0)
+		{
+			try
+			{
+				memberLogs = await session.LogSinceAsync(options.MemberUrl, memberMark, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				problem ??= $"member log count failed: {exception.Message}";
+			}
+		}
+
+		return (hostLogs, memberLogs, problem);
+	}
+
+	private static string? JudgeLogs(AcceptanceCase acceptanceCase, LogCounts? hostLogs, LogCounts? memberLogs, string? problem)
+	{
+		if (problem is not null)
+		{
+			return problem;
+		}
+
+		if (hostLogs is null)
+		{
+			return "the host log count is unavailable; the case cannot prove it wrote no errors";
+		}
+
+		var errors = hostLogs.Errors + (memberLogs?.Errors ?? 0);
+		var warnings = hostLogs.Warnings + (memberLogs?.Warnings ?? 0);
+		if (errors > acceptanceCase.AllowedErrors)
+		{
+			return $"log errors: {errors} (allowed {acceptanceCase.AllowedErrors}); host: {hostLogs.FirstError}; member: {memberLogs?.FirstError}";
+		}
+
+		if (acceptanceCase.AllowedWarnings >= 0 && warnings > acceptanceCase.AllowedWarnings)
+		{
+			return $"log warnings: {warnings} (allowed {acceptanceCase.AllowedWarnings}); host: {hostLogs.FirstWarning}; member: {memberLogs?.FirstWarning}";
+		}
+
+		return null;
 	}
 }
 
@@ -426,6 +581,27 @@ internal abstract class AcceptanceCase
 
 	public virtual LaunchKind Launch => LaunchKind.Warm;
 
+	/// <summary>
+	/// What the case costs the suite. <see cref="CaseCost.InRun"/> cases verify inside one world and
+	/// restore their own mutation; <see cref="CaseCost.NewWorld"/> cases need a fresh run or end the
+	/// world; <see cref="CaseCost.ClientRestart"/> cases need a process (or a first-world character).
+	/// The report groups by this value so a fast regression run can select only the cheap group.
+	/// </summary>
+	public virtual CaseCost Cost => CaseCost.InRun;
+
+	/// <summary>
+	/// The error lines this case is allowed to cause. Zero is the default: an error is a finding,
+	/// and the case must fail even when its behavioural readings happened to pass.
+	/// </summary>
+	public virtual int AllowedErrors => 0;
+
+	/// <summary>
+	/// The warning lines this case is allowed to cause. A negative value means "report only": the
+	/// count is visible in the report but not gated. A case with a known recurring warning must
+	/// declare a finite budget and name the warning rather than filter it out.
+	/// </summary>
+	public virtual int AllowedWarnings => -1;
+
 	public abstract Task RunAsync(CaseContext context, CancellationToken cancellationToken);
 }
 
@@ -436,31 +612,87 @@ internal enum LaunchKind
 	Restart,
 }
 
-internal sealed record CaseResult(string Name, LaunchKind Launch, bool Passed, string Note, IReadOnlyDictionary<string, string> Readings, IReadOnlyList<string> Notes);
+internal enum CaseCost
+{
+	InRun,
+	NewWorld,
+	ClientRestart,
+}
+
+internal sealed record CaseResult(
+	string Name,
+	CaseCost Cost,
+	bool Passed,
+	string Note,
+	double ConnectMs,
+	double SetupMs,
+	double CaseMs,
+	IReadOnlyDictionary<string, string> Readings,
+	IReadOnlyList<string> Notes,
+	LogCounts? HostLogs,
+	LogCounts? MemberLogs)
+{
+	public double TotalMs => ConnectMs + SetupMs + CaseMs;
+}
 
 internal static class SuiteReport
 {
-	public static string Render(Options options, IReadOnlyList<CaseResult> results)
+	public static string Render(Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs)
 	{
 		var builder = new StringBuilder();
 		builder.AppendLine("# Acceptance suite report");
 		builder.AppendLine();
 		builder.AppendLine($"- Host: `{options.HostUrl}`");
 		builder.AppendLine($"- Started: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
+		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
 		builder.AppendLine();
-		builder.AppendLine("| Case | Launch | Verdict | Note |");
-		builder.AppendLine("|---|---|---|---|");
+		builder.AppendLine("| Case | Cost | Connect | Setup | Case | Total | Host W/E | Member W/E | Verdict | Note |");
+		builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
 		foreach (var result in results)
 		{
-			builder.AppendLine($"| {result.Name} | {result.Launch} | {(result.Passed ? "PASS" : "FAIL")} | {Escape(result.Note)} |");
+			builder.AppendLine($"| {result.Name} | {result.Cost} | {Seconds(result.ConnectMs)} | {Seconds(result.SetupMs)} | {Seconds(result.CaseMs)} | {Seconds(result.TotalMs)} | {Counts(result.HostLogs)} | {Counts(result.MemberLogs)} | {(result.Passed ? "PASS" : "FAIL")} | {Escape(result.Note)} |");
 		}
 
 		builder.AppendLine();
 		builder.AppendLine($"**{results.Count(result => result.Passed)} passed, {results.Count(result => !result.Passed)} failed.**");
+		builder.AppendLine();
+		builder.AppendLine("## Cost groups");
+		builder.AppendLine();
+		builder.AppendLine("| Cost | Cases | Passed | Connect | Setup | Case | Total |");
+		builder.AppendLine("|---|---|---|---|---|---|---|");
+		foreach (var group in results.GroupBy(result => result.Cost).OrderBy(group => group.Key))
+		{
+			builder.AppendLine($"| {group.Key} | {group.Count()} | {group.Count(result => result.Passed)} | {Seconds(group.Sum(result => result.ConnectMs))} | {Seconds(group.Sum(result => result.SetupMs))} | {Seconds(group.Sum(result => result.CaseMs))} | {Seconds(group.Sum(result => result.TotalMs))} |");
+		}
+
+		var slowest = results.OrderByDescending(result => result.TotalMs).Take(5).ToArray();
+		if (slowest.Length > 0)
+		{
+			builder.AppendLine();
+			builder.AppendLine("## Slowest cases");
+			builder.AppendLine();
+			foreach (var result in slowest)
+			{
+				builder.AppendLine($"- `{result.Name}` — total {Seconds(result.TotalMs)} s (connect {Seconds(result.ConnectMs)} s, setup {Seconds(result.SetupMs)} s, case {Seconds(result.CaseMs)} s)");
+			}
+		}
+
 		foreach (var result in results)
 		{
 			builder.AppendLine();
 			builder.AppendLine($"## {result.Name} — {(result.Passed ? "PASS" : "FAIL")}");
+			builder.AppendLine($"- cost: `{result.Cost}`; connect `{Seconds(result.ConnectMs)}` s; setup `{Seconds(result.SetupMs)}` s; case `{Seconds(result.CaseMs)}` s; total `{Seconds(result.TotalMs)}` s");
+			builder.AppendLine($"- logs: host {Counts(result.HostLogs)}; member {Counts(result.MemberLogs)}");
+			if (!string.IsNullOrEmpty(result.HostLogs?.FirstError))
+			{
+				builder.AppendLine($"- host first error: `{Escape(result.HostLogs!.FirstError)}`");
+			}
+
+			if (!string.IsNullOrEmpty(result.MemberLogs?.FirstError))
+			{
+				builder.AppendLine($"- member first error: `{Escape(result.MemberLogs!.FirstError)}`");
+			}
+
 			foreach (var (key, value) in result.Readings)
 			{
 				builder.AppendLine($"- `{key}`: `{value}`");
@@ -475,6 +707,40 @@ internal static class SuiteReport
 		return builder.ToString();
 	}
 
+	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs)
+	{
+		var payload = new
+		{
+			suite = options.Suite,
+			host = options.HostUrl,
+			startedAt = DateTimeOffset.Now,
+			totalMs,
+			sharedSetupMs,
+			cases = results.Select(result => new
+			{
+				name = result.Name,
+				cost = result.Cost.ToString(),
+				verdict = result.Passed ? "PASS" : "FAIL",
+				note = result.Note,
+				connectMs = result.ConnectMs,
+				setupMs = result.SetupMs,
+				caseMs = result.CaseMs,
+				totalMs = result.TotalMs,
+				hostWarnings = result.HostLogs?.Warnings,
+				hostErrors = result.HostLogs?.Errors,
+				memberWarnings = result.MemberLogs?.Warnings,
+				memberErrors = result.MemberLogs?.Errors,
+				hostFirstError = result.HostLogs?.FirstError,
+				memberFirstError = result.MemberLogs?.FirstError,
+			}),
+		};
+		await File.WriteAllTextAsync(path, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true })).ConfigureAwait(false);
+	}
+
+	private static string Counts(LogCounts? counts) => counts is null ? "-" : $"{counts.Warnings}/{counts.Errors}";
+
+	private static string Seconds(double milliseconds) => (milliseconds / 1000).ToString("F1", CultureInfo.InvariantCulture);
+
 	private static string Escape(string text) => text.Replace("|", "\\|", StringComparison.Ordinal).ReplaceLineEndings(" ");
 }
 
@@ -483,6 +749,10 @@ internal sealed record Options
 	public bool List { get; init; }
 
 	public string Suite { get; init; } = "all";
+
+	public string? Cost { get; init; }
+
+	public bool Reuse { get; init; }
 
 	public string HostUrl { get; init; } = "ws://127.0.0.1:18590";
 
@@ -508,6 +778,12 @@ internal sealed record Options
 					break;
 				case "--suite" when index + 1 < args.Length:
 					options = options with { Suite = args[++index] };
+					break;
+				case "--cost" when index + 1 < args.Length:
+					options = options with { Cost = args[++index] };
+					break;
+				case "--reuse":
+					options = options with { Reuse = true };
 					break;
 				case "--out" when index + 1 < args.Length:
 					options = options with { OutputDirectory = args[++index] };
@@ -539,10 +815,11 @@ internal static class CaseRegistry
 	[
 		// Parked (2026-11-12): the starting kit is granted when a character FIRST enters a world, and
 		// this fixture reuses one long-lived session — the member's kit is long consumed by the time
-		// any case runs (measured: 0 items). The row needs a character that has never entered a world,
-		// which means its own session; it stays out of the all-suite run until the suite owns a
-		// per-case launch. The reading is on docs/backlog/in-progress/1.0-acceptance-suite.md.
-		new StartingSuppliesCase(), // the kit is granted on a character's first world entry; the case restarts the run first
+		// any case runs (measured: 0 items; 2026-11-15: [emergencylight] only). The row needs a
+		// character that has never entered a world, which means its own session; it stays out of the
+		// all-suite run until the suite owns a per-case launch. The reading is on
+		// docs/backlog/in-progress/1.0-acceptance-suite.md.
+		// new StartingSuppliesCase(), // parked: needs a first-world-entry character
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
@@ -554,11 +831,16 @@ internal static class CaseRegistry
 		new WorldClockCase(), // the run's clock is the host's: a requested speed reaches the member
 		new PauseClockCase(), // a pause is the client's own: the host's clock stops, the member's keeps running
 		new CloneProbeCase(),
+		new SpectatorPresentationCase(), // the watcher's screen/HUD/audio are the watched body's, not the local one
 		new TraderCase(),
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
 		// (a row the sweep lists under the unhooked item families).
 		new LayerPanelCase(),
-		new CraftingCase(),
+		// new CraftingCase(), // parked 2026-11-15: the host's starting materials are consumed by an earlier
+		// case, so the isolated read is `craftable 0`, and in the all-suite run the first craftable recipe
+		// had already been made (`madeBefore=true`, count stayed 1). The row needs a fresh character (or a
+		// game-native restock), which is the same per-case-launch gap as starting-supplies. Reading is on
+		// docs/backlog/in-progress/1.0-acceptance-suite.md.
 		new WorldCensusCase(),
 		// new CraftPanelCase(), // parked 2026-11-13 02:02: Escape first does not help: the throw comes from the recipe's own
 		// direct call to PlayerCamera.OpenCraftScreen (a reflection-wrapped exception), not from the CUO window being up. crafting-panel mode=open throws inside the game's own
@@ -567,7 +849,6 @@ internal static class CaseRegistry
 		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),
-		new LateLayerSwitchesCase(), // the host's unchipped preset reaches the member's WorldGeneration.Start, not just its dictionary
 		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.
@@ -606,6 +887,10 @@ internal static class CaseRegistry
 		// holds 39 — the block-table divergence on a second surface (review/1.0-block-table-diverges-between-clients.md).
 		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
+		// The host's unchipped preset reaches the member's WorldGeneration.Start, not just its
+		// dictionary. It restarts into an unchipped run and leaves that world to the next new-world
+		// case (it no longer restarts twice): every case after it is also NewWorld.
+		new LateLayerSwitchesCase(),
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart

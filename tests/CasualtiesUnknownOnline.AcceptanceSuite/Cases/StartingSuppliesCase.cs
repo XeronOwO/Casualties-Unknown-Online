@@ -13,6 +13,8 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 {
 	public override string Name => "starting-supplies";
 
+	public override CaseCost Cost => CaseCost.ClientRestart;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The kit is granted by the host's coordinator once the new character stands in the world;

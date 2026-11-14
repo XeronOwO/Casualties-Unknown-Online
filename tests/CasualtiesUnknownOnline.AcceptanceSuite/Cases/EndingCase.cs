@@ -12,6 +12,8 @@ internal sealed class EndingCase : AcceptanceCase
 {
 	public override string Name => "ending";
 
+	public override CaseCost Cost => CaseCost.NewWorld;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var declaration = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "run-ending-a.cs");

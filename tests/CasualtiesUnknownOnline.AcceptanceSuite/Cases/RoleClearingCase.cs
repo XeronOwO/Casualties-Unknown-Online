@@ -13,6 +13,8 @@ internal sealed class RoleClearingCase : AcceptanceCase
 {
 	public override string Name => "role-clearing";
 
+	public override CaseCost Cost => CaseCost.NewWorld;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

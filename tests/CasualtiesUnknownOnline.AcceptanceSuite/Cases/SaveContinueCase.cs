@@ -12,6 +12,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 {
 	public override string Name => "save-continue";
 
+	public override CaseCost Cost => CaseCost.NewWorld;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);

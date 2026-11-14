@@ -36,6 +36,11 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		context.Read("member-state", memberReady);
 		Require(SessionDriver.StateTrue(memberReady, "inWorld"), "the member is not in the world");
 
+		// In-world is not the same fact as the body existing: the member's own scene reports the
+		// world before its body is placed, and a seeded limb (or a dose) on that body needs the
+		// local body to be there. Wait for the member's own spawn before touching a limb.
+		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
+
 		var member = await context.MemberAsync(cancellationToken).ConfigureAwait(false);
 		context.Note("member: " + member);
 
@@ -70,6 +75,35 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken);
 		context.Read("member-body", memberBody);
 
+		// A body that has been through earlier cases can carry a prosthetic where a limb used to be;
+		// `Limb.ImpactDamage` has no body to damage there and throws. Pick an intact limb by the
+		// member's own reading instead of assuming slot 3 — the dose is about a wound, not a slot.
+		var limbIndex = -1;
+		for (var candidate = 0; candidate < 6; candidate++)
+		{
+			var candidateIndex = candidate;
+			var probe = await context.MemberRecipeAsync("limb-read", cancellationToken,
+				("source", "local"),
+				("limb", candidateIndex.ToString(CultureInfo.InvariantCulture)),
+				("target", context.MemberId));
+			if (probe is not { ValueKind: JsonValueKind.Object } element
+				|| !element.TryGetProperty("dismembered", out var dismembered)
+				|| dismembered.ValueKind != JsonValueKind.False
+				|| (element.TryGetProperty("isHead", out var isHead) && isHead.ValueKind == JsonValueKind.True)
+				|| !element.TryGetProperty("skinHealth", out var skin)
+				|| !skin.TryGetDouble(out _))
+			{
+				continue;
+			}
+
+			limbIndex = candidateIndex;
+			break;
+		}
+
+		Require(limbIndex >= 0, "the member has no intact limb to treat");
+		context.Note($"member limb {limbIndex} is intact; the dose will land there");
+		var limb = limbIndex.ToString(CultureInfo.InvariantCulture);
+
 		// The member joined a running world and stands at its own pod; the medical view and the use
 		// request both need the member within the host's reach, so it is placed on the host's point.
 		var (hostX, hostY) = Position(host);
@@ -96,12 +130,29 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		// The member's own limb, before the dose. A healthy limb takes no cream at all (the game's own
 		// use path skips it), so a wound is seeded first — the dose must land on a wound the view shows.
-		var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+		var before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId));
 		if (Number(before, "skinHealth") >= 99 && Number(before, "bleedAmount") <= 0.05)
 		{
-			var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "3"), ("force", "300"), ("infection", "0"));
+			// The seed dereferences the limb's own body, and a member that joined a moment ago can still
+			// be between frames (a null inside `ImpactDamage`). Retry before calling it a finding; the
+			// console-heal case measured the same shape on a freshly joined body.
+			JsonElement? seeded = null;
+			for (var seedAttempt = 0; seedAttempt < 4; seedAttempt++)
+			{
+				try
+				{
+					seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", limb), ("force", "300"), ("infection", "0"));
+					break;
+				}
+				catch (Exception) when (seedAttempt < 3)
+				{
+					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				}
+			}
+
 			context.Note("seeded the wound: " + Raw(seeded));
-			before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+			Require(Boolean(seeded, "ok"), "the wound seed did not land: " + Raw(seeded));
+			before = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId));
 		}
 
 		context.Read("member-limb-before", before);
@@ -115,13 +166,13 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			("cast", "0"),
 			("moved", "1"),
 			("owner", ""),
-			("limb", "3"),
+			("limb", limb),
 			("frame", ""));
 		context.Note("wound-view: " + Raw(pointed));
 
 		// The release on the displayed limb; the case reads the adapter's own answer and then the
 		// member's limb — the dose is the member's marker, not the host's rendering.
-		var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "paincream"), ("limb", "3"));
+		var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "paincream"), ("limb", limb));
 		context.Read("release", released);
 		Require(Boolean(released, "ok"), "the release answered not-ok");
 
@@ -136,7 +187,7 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		for (var settle = 0; settle < 12; settle++)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "3"), ("target", context.MemberId));
+			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId));
 			afterDisinfection = Number(after, "disinfectionTime");
 			measured = LastMeasuredLine(context.HostLogPath);
 			if (measured.Length > 0 && afterDisinfection >= 250)
@@ -175,24 +226,24 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 
 		// The host's own copy of the member's body is the other half of the comparison: the adapter
 		// ran the native action there, so its marker must be set even when the treated client's is not.
-		var hostCopy = await context.RecipeAsync("limb-read", cancellationToken, ("source", "display"), ("limb", "3"), ("target", context.MemberId));
+		var hostCopy = await context.RecipeAsync("limb-read", cancellationToken, ("source", "display"), ("limb", limb), ("target", context.MemberId));
 		context.Read("host-copy-limb-after", hostCopy);
 		var hostCopyDisinfection = Number(hostCopy, "disinfectionTime");
 		context.Note($"host copy disinfection {hostCopyDisinfection}, member own {afterDisinfection}");
 
 		Require(measured.Contains("paincream", StringComparison.Ordinal) && measured.Contains("ml", StringComparison.Ordinal),
 			"the adapter did not measure the cream on the member's limb: " + measured);
-		Require(measured.Contains("limb 3", StringComparison.Ordinal),
+		Require(measured.Contains($"limb {limbIndex}", StringComparison.Ordinal),
 			"the adapter measured the cream on another limb: " + measured);
 		// The treated client is the judge of a DELIVERY: its own log names the stack and the limb the
 		// dose arrived on. The marker is the effect's own value and is recorded, but a marker read that
 		// disagrees with the delivery line is not evidence the dose failed to arrive — the row is
 		// "the dose reaches the member's own client", which the log states.
 		var delivered = recovered.Contains("local body received", StringComparison.Ordinal)
-			&& recovered.Contains("(limb 3)", StringComparison.Ordinal);
+			&& recovered.Contains($"(limb {limbIndex})", StringComparison.Ordinal);
 		Require(delivered,
-			$"the member's own client never logged the dose on its limb 3: {recovered}");
-		context.Note($"the member received the dose on limb 3; its marker reads {beforeDisinfection} -> {afterDisinfection}");
+			$"the member's own client never logged the dose on its limb {limbIndex}: {recovered}");
+		context.Note($"the member received the dose on limb {limbIndex}; its marker reads {beforeDisinfection} -> {afterDisinfection}");
 	}
 
 	/// <summary>The last `[MedicalView] measured` line the host wrote, or empty.</summary>

@@ -260,6 +260,14 @@ internal sealed class SpectatorCameraService(
 		// HUD presents the player being watched (the ruling's "looks like I am playing them").
 		SpectatorPresentationGate.SetHudBody(target);
 
+		// WoundView.UpdateView draws the limb strip (including the prosthetic icon at WoundView.cs:502) from
+		// WoundView.view.body, not from the camera. Point it at the watched clone too, unless the remote medical
+		// focus owns the panel — that focus has its own display body and must win while it is open.
+		if (WoundView.view != null && !RemoteMedicalView.IsOpen && WoundView.view.body != target) // Unity objects — ==
+		{
+			WoundView.view.body = target;
+		}
+
 		// The watched body's own screen state, mirrored for the effects patch — from the REPORTED vitals, never the
 		// render clone: the clone's own `alive`/`blood` are its local template values (blood reads 100 for everyone),
 		// which is exactly why the first mirror never moved. A body reported out blacks the screen and a body reported
@@ -282,7 +290,7 @@ internal sealed class SpectatorCameraService(
 		// changed the mirror line, so a reading can prove the observed players are not silent rather than trusting it.
 		var worldSounds = SpectatorPresentationGate.WorldSoundsHeard;
 		SpectatorPresentationGate.ResetWorldSounds();
-		var mirror = $"watched={_watchingSteamId} effects={MirrorEffects} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} brain={probe?.BrainHealth:F0} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2} worldSounds={worldSounds}";
+		var mirror = $"watched={_watchingSteamId} effects={MirrorEffects} reported={remoteVitals.TryGet(_watchingSteamId, out var probe)} alive={probe?.Alive} conscious={probe?.Conscious} brain={probe?.BrainHealth:F0} gateBlack={SpectatorPresentationGate.WatchedBlackAmount:F2} gateVignetteA={SpectatorPresentationGate.WatchedVignette.a:F2} worldSounds={worldSounds} worldSoundsTotal={SpectatorPresentationGate.TotalWorldSoundsHeard}";
 		if (!string.Equals(mirror, _mirrorLogged, StringComparison.Ordinal))
 		{
 			_mirrorLogged = mirror;
@@ -475,6 +483,14 @@ internal sealed class SpectatorCameraService(
 
 	private void Release(PlayerCamera camera)
 	{
+		// The wound view belongs to the local body again as soon as the mode stops presenting anyone,
+		// even if no other camera field was touched (the target can vanish before the first full frame).
+		if (WoundView.view != null && !RemoteMedicalView.IsOpen && camera.body != null // Unity objects — ==
+			&& WoundView.view.body != camera.body)
+		{
+			WoundView.view.body = camera.body;
+		}
+
 		if (!_touchedCamera)
 		{
 			return;

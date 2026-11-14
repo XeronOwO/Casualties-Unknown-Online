@@ -15,6 +15,8 @@ internal sealed class CraftingCase : AcceptanceCase
 
 	public override string Name => "crafting";
 
+	public override CaseCost Cost => CaseCost.ClientRestart;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

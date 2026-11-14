@@ -563,6 +563,65 @@
 		return finish(fields);
 	}
 
+	if (command == "log-offset") {
+		// The byte offset the suite marks before a case: every warning/error after this point is
+		// caused by that case. A missing log is an error, not a zero mark — a case must not pass
+		// because its log was never found.
+		var offsetPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		if (!System.IO.File.Exists(offsetPath)) {
+			putText(fields, escape, "ok", "false");
+			putText(fields, escape, "error", "no-log");
+			putText(fields, escape, "path", offsetPath);
+			return finish(fields);
+		}
+
+		putRaw(fields, escape, "ok", "true");
+		putRaw(fields, escape, "offset", new System.IO.FileInfo(offsetPath).Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return finish(fields);
+	}
+
+	if (command == "log-since") {
+		// Count the WARN/ERROR lines THIS client wrote after the byte offset in TEXT. The suite gates
+		// every case on these counts: an unexplained error is a failed case even when its other
+		// readings passed. The first line of each kind is returned so the failure names its cause.
+		var sincePath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		if (!System.IO.File.Exists(sincePath)) {
+			putText(fields, escape, "ok", "false");
+			putText(fields, escape, "error", "no-log");
+			putText(fields, escape, "path", sincePath);
+			return finish(fields);
+		}
+
+		long since = 0L;
+		long.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out since);
+		var warnings = 0;
+		var errors = 0;
+		var firstWarning = "";
+		var firstError = "";
+		using (var sinceStream = new System.IO.FileStream(sincePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+		using (var sinceReader = new System.IO.StreamReader(sinceStream)) {
+			if (since < 0L || since > sinceStream.Length) { since = 0L; }
+			sinceStream.Seek(since, System.IO.SeekOrigin.Begin);
+			string sinceLine;
+			while ((sinceLine = sinceReader.ReadLine()) != null) {
+				if (sinceLine.StartsWith("[Warning", System.StringComparison.Ordinal)) {
+					warnings++;
+					if (firstWarning.Length == 0) { firstWarning = sinceLine; }
+				} else if (sinceLine.StartsWith("[Error", System.StringComparison.Ordinal)) {
+					errors++;
+					if (firstError.Length == 0) { firstError = sinceLine; }
+				}
+			}
+		}
+
+		putRaw(fields, escape, "ok", "true");
+		putRaw(fields, escape, "warnings", warnings.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putRaw(fields, escape, "errors", errors.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putText(fields, escape, "firstWarning", firstWarning);
+		putText(fields, escape, "firstError", firstError);
+		return finish(fields);
+	}
+
 	if (command == "wait-log") {
 		// Block until THIS client's own log carries ARGUMENT (`text` is the budget in ms). Only lines
 		// written after the call started count: a line from an earlier run is not this run's event.

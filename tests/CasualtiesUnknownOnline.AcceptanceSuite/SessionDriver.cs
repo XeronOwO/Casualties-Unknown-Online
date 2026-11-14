@@ -14,9 +14,52 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite;
 internal sealed class SessionDriver(Options options)
 {
 	private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(60);
-	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(30);
+	// A member generating its own copy of a late-layer world took 37 s on the boxed client
+	// (measured 2026-11-15, 1024x1024 layer, 242 item rows): the native scene load and world
+	// generation dominate, and the host's 30 s start gate deliberately lets the host play on
+	// while that finishes. The suite waits for the member's own in-world reading, so its budget
+	// must cover the measured load with margin; a real hang still fails at 60 s.
+	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(60);
 
 	private readonly Options _options = options;
+
+	// Setup is the time the suite spends making the session ready (leaving a world, starting a
+	// run, joining the member), not the time a case spends driving the game. The cases instantiate
+	// their own SessionDriver, so this measures per-case setup; the shared pair setup is measured
+	// separately by Program. Nested calls (RestartRun -> EnsureInWorld -> EnsureMember) count once.
+	private readonly Stopwatch _setup = new();
+	private int _setupDepth;
+
+	public double SetupMilliseconds => _setup.Elapsed.TotalMilliseconds;
+
+	private void BeginSetup()
+	{
+		if (_setupDepth++ == 0)
+		{
+			_setup.Start();
+		}
+	}
+
+	private void EndSetup()
+	{
+		if (--_setupDepth == 0)
+		{
+			_setup.Stop();
+		}
+	}
+
+	private async Task<T> MeasureSetupAsync<T>(Func<Task<T>> work)
+	{
+		BeginSetup();
+		try
+		{
+			return await work().ConfigureAwait(false);
+		}
+		finally
+		{
+			EndSetup();
+		}
+	}
 
 	/// <summary>
 	/// Restarts the run from scratch: the host leaves the world, starts a fresh one, and the
@@ -30,19 +73,33 @@ internal sealed class SessionDriver(Options options)
 
 	public async Task<string> RestartRunAsync(CancellationToken cancellationToken)
 	{
-		// Never leave a world that is still loading: the host's start gate would wait for a member
-		// that has just been sent back to the menu, and the window the player sees is a frozen
-		// loading line nobody can explain. Wait until the world is up and the gate has released.
-		await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
-		await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-		// The driver blocks inside the client until the world is gone, so this is one call instead of
-		// a 750 ms poll for twenty seconds (the user's rule: a wait is a measurement, and a fixed
-		// sleep is a dead wait, 2026-11-14).
-		await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
+		BeginSetup();
+		try
+		{
+			// Never leave a world that is still loading: the host's start gate would wait for a member
+			// that has just been sent back to the menu, and the window the player sees is a frozen
+			// loading line nobody can explain. Wait until the world is up and the gate has released.
+			// A host already at the menu (the ending/run-end cases leave it there) has no world to
+			// leave; waiting 30 s for inWorld would be a dead wait, so read first.
+			var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "inWorld"))
+			{
+				await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+				await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+				// The driver blocks inside the client until the world is gone, so this is one call instead of
+				// a 750 ms poll for twenty seconds (the user's rule: a wait is a measurement, and a fixed
+				// sleep is a dead wait, 2026-11-14).
+				await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
+			}
 
-		var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
-		var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
-		return "fresh run: " + started + "; " + joined;
+			var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+			var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+			return "fresh run: " + started + "; " + joined;
+		}
+		finally
+		{
+			EndSetup();
+		}
 	}
 	/// <summary>Starts a run when no world is up and returns the note for the report.</summary>
 	public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
@@ -153,7 +210,7 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
-	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => JoinMemberAsync(cancellationToken, allowRelaunch: true);
+	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true));
 
 	/// <summary>
 	/// The member's client can keep a session it no longer owns (after an ending, its role stays
@@ -225,6 +282,32 @@ internal sealed class SessionDriver(Options options)
 		var answer = await ActionAsync(url, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
 		return string.Equals(StringValue(answer, "reached"), "true", StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// Clears a Guest session left behind by the previous run. Leaving the world is not enough: the
+	/// role and the active flag stay until the player uses Home > Leave, and while they stay the
+	/// host's fresh run does not know the member. The suite starts a fresh pair, so this is its own
+	/// cleanup, not a restart.
+	/// </summary>
+	private async Task ClearMemberSessionAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (!IsTrue(state, "active") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		if (Controls(state).Contains("home.leave"))
+		{
+			await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+		}
+
+		await WaitUntilAsync(
+			_options.MemberUrl,
+			probe => !IsTrue(probe, "active") && !string.Equals(StringValue(probe, "role"), "Guest", StringComparison.Ordinal),
+			TimeSpan.FromSeconds(10),
+			cancellationToken).ConfigureAwait(false);
+	}
 	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -253,9 +336,15 @@ internal sealed class SessionDriver(Options options)
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 
 		var deadline = Stopwatch.StartNew();
+		var activeSince = Stopwatch.StartNew();
 		while (deadline.Elapsed < JoinBudget)
 		{
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (!string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal) || IsTrue(state, "inWorld"))
+			{
+				activeSince.Restart();
+			}
+
 			if (IsTrue(state, "inWorld"))
 			{
 				// A member can be in a world the host does not share (it joined a run the host
@@ -265,7 +354,7 @@ internal sealed class SessionDriver(Options options)
 				hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 				if (hostMembers.Length > 0)
 				{
-					return "the suite joined the member to the host's session";
+					return $"the suite joined the member to the host's session after {deadline.Elapsed.TotalSeconds:F1}s";
 				}
 
 				// The ghost: the menu is up (page Home, no role) while the world presence still says
@@ -299,6 +388,17 @@ internal sealed class SessionDriver(Options options)
 				}
 				else
 				{
+					// An ACTIVE Guest can also be a stale session from the previous run: the host's
+					// new world does not name it and no join is coming. Give the real join its measured
+					// 12 s, then clear the stale session through Home > Leave and rejoin. Clearing
+					// earlier destroys the session the join needs (measured 2026-11-15).
+					if (activeSince.Elapsed >= TimeSpan.FromSeconds(20))
+					{
+						await ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+						activeSince.Restart();
+						continue;
+					}
+
 					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 				}
 
@@ -429,6 +529,27 @@ internal sealed class SessionDriver(Options options)
 	/// host once and builds a fresh session before the cases start; the reading is on
 	/// `docs/backlog/in-progress/1.0-acceptance-suite.md`.
 	/// </summary>
+	public async Task<(string HostNote, string MemberNote)> ReusePairAsync(CancellationToken cancellationToken)
+	{
+		// Fast-group entry: the caller just set the pair up and wants the InRun cases without paying
+		// another cold world load. Reuse is explicit (--reuse) and only accepted when both clients are
+		// already in a world and the host names a member; anything else falls back to a fresh pair.
+		var host = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		var member = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (!IsTrue(host, "inWorld") || !IsTrue(member, "inWorld"))
+		{
+			throw new InvalidOperationException("reuse requested but the pair is not both in a world");
+		}
+
+		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		if (members.Length == 0)
+		{
+			throw new InvalidOperationException("reuse requested but the host names no member");
+		}
+
+		return ("reused the running run", $"reused the member already in the host's world ({members[0]})");
+	}
+
 	public async Task<(string HostNote, string MemberNote)> EnsurePairAsync(CancellationToken cancellationToken)
 	{
 		// The member's client keeps the previous run (a Guest role and its own world) and a stale
@@ -446,12 +567,24 @@ internal sealed class SessionDriver(Options options)
 			// A client that is down is not a stale session: the join path relaunches it when it must.
 			memberBefore = null;
 		}
-		if (memberBefore is { } memberState && IsTrue(memberState, "inWorld"))
+		if (memberBefore is { } memberState)
 		{
-			// A member left in an older world is asked to leave it through its own game path. The
-			// client is NEVER restarted for this: a restart throws away the session being measured
-			// and hides the defect that left it there (the user's rule, 2026-11-14).
-			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(memberState, "inWorld"))
+			{
+				// A member left in an older world is asked to leave it through its own game path. The
+				// client is NEVER restarted for this: a restart throws away the session being measured
+				// and hides the defect that left it there (the user's rule, 2026-11-14).
+				await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+				await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+			}
+
+			// Leaving the world does not clear a Guest session: the role and `active` stay behind while
+			// the host's new run knows nothing of that member. The suite starts a fresh pair, so it
+			// clears the stale session through the game's own Home > Leave control before joining.
+			if (IsTrue(memberState, "active") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal))
+			{
+				await ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+			}
 		}
 
 		string hostNote;
@@ -737,6 +870,48 @@ internal sealed class SessionDriver(Options options)
 		await ActionAsync(url, "log-tail", cancellationToken, ("-Text", count.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
 
 	/// <summary>
+	/// The byte offset a case marks before it acts. Every warning/error written after the mark is
+	/// attributed to that case; a missing log throws instead of becoming a silent zero.
+	/// </summary>
+	public async Task<long> LogOffsetAsync(string url, CancellationToken cancellationToken)
+	{
+		var answer = await ActionAsync(url, "log-offset", cancellationToken).ConfigureAwait(false);
+		if (answer is { ValueKind: JsonValueKind.Object } value
+			&& value.TryGetProperty("offset", out var offset)
+			&& offset.TryGetInt64(out var result))
+		{
+			return result;
+		}
+
+		throw new InvalidOperationException("the client did not report a log offset");
+	}
+
+	/// <summary>
+	/// Count this client's Warning and Error lines since the mark, and return the first line of each
+	/// kind. The suite fails a case on an unexplained error even when its behavioural readings pass.
+	/// </summary>
+	public async Task<LogCounts> LogSinceAsync(string url, long offset, CancellationToken cancellationToken)
+	{
+		var answer = await ActionAsync(url, "log-since", cancellationToken, ("-Text", offset.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		if (answer is not { ValueKind: JsonValueKind.Object } value)
+		{
+			throw new InvalidOperationException("the client did not answer the log count");
+		}
+
+		return new LogCounts(
+			ReadInt(value, "warnings"),
+			ReadInt(value, "errors"),
+			ReadString(value, "firstWarning"),
+			ReadString(value, "firstError"));
+	}
+
+	private static int ReadInt(JsonElement value, string name) =>
+		value.TryGetProperty(name, out var property) && property.TryGetInt32(out var number) ? number : 0;
+
+	private static string ReadString(JsonElement value, string name) =>
+		value.TryGetProperty(name, out var property) && property.ValueKind == JsonValueKind.String ? property.GetString() ?? string.Empty : string.Empty;
+
+	/// <summary>
 	/// Wait inside the client until its own log carries the match, or the budget expires: a case that
 	/// needs a game event to have happened reads it here instead of sleeping and asking again. Returns
 	/// the matching line (the last one written), or null when the budget ran out.
@@ -866,6 +1041,7 @@ internal sealed class SessionDriver(Options options)
 
 	private static bool IsTrue(JsonElement answer, string property)
 	{
+
 		if (answer.ValueKind == JsonValueKind.Object)
 		{
 			if (answer.TryGetProperty(property, out var value))
@@ -901,6 +1077,7 @@ internal sealed class SessionDriver(Options options)
 	}
 }
 
-
+/// <summary>The Warning/Error lines one client wrote during one case, and the first line of each kind.</summary>
+internal sealed record LogCounts(int Warnings, int Errors, string FirstWarning, string FirstError);
 
 

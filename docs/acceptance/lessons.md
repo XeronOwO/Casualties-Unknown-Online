@@ -518,9 +518,9 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 `tools/acceptance/recipes/scene-read.cs` answers the native scene/world/generating/loading state a frame cannot separate from the menu — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.
 
-## 2026-11-05 — A member that joins a world already running waits at the gate
+## 2026-11-15 — The suite's own wall time is an acceptance input
 
-Start the run with the member already in the lobby: a guest that joins while the host is in a world keeps an active session but never receives a body (`state` reads `inWorld=false`, `body-read` answers `no-local-body`), so leave the world through the game's own menu and start the run again — `docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md`.
+Classify every case as `InRun`/`NewWorld`/`ClientRestart`, report connect/setup/case time, and optimize the largest bucket before adding another case (rule 10) — `.acceptance/late-layer3/report-all/report.md`.
 
 
 

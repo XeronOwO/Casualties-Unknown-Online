@@ -15,6 +15,10 @@ internal sealed class CloneProbeCase : AcceptanceCase
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		_ = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
+		// The clone is the host's display of the member's BODY; wait for that body to exist before
+		// asking the host's view for it. Without this the probe spent its whole 15 s window reading
+		// cloneCount 0 on a member that was still spawning (measured 2026-11-15: 16.4 s).
+		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		// The clone is what the host's client shows for the member; the member's display can be
 		// absent for a moment after a scene change or when the pair drifted apart, and the case reads

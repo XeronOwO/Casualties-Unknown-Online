@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -17,10 +18,21 @@ internal sealed class RunEndCase : AcceptanceCase
 {
 	public override string Name => "run-end";
 
+	public override CaseCost Cost => CaseCost.NewWorld;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
+
+		// The host's body is in the world before the member is adopted: its start gate waits for
+		// the member's own scene state, and the roster stays empty until that arrives. Leaving in
+		// that window sends RunEnded to nobody (measured 2026-11-15: host gateWaiting=true waiting
+		// 29 s, members=[] while the member already read inWorld=true). Wait for the pair the case
+		// is about — gate released and the member named in the host's roster — before leaving.
+		var paired = await WaitForPairedHostAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("host paired", paired);
+		Require(IsPaired(paired), "the host never adopted the member before the leave: " + Raw(paired));
 
 		var hostBefore = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		var memberBefore = await context.Session.ActionAsync(context.Session.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -57,6 +69,32 @@ internal sealed class RunEndCase : AcceptanceCase
 		var sawRunEnd = (memberLog?.GetRawText() ?? string.Empty).Contains("the host's world ended", StringComparison.Ordinal);
 		Require(sawRunEnd, "the member left the world without the run-end broadcast being delivered: " + (memberLog?.GetRawText() ?? "null"));
 	}
+
+	private static async Task<JsonElement?> WaitForPairedHostAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		JsonElement? state = null;
+		while (deadline.Elapsed < TimeSpan.FromSeconds(45))
+		{
+			state = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsPaired(state))
+			{
+				return state;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
+		return state;
+	}
+
+	private static bool IsPaired(JsonElement? state) =>
+		state is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("gateWaiting", out var gate)
+			&& gate.ValueKind == JsonValueKind.False
+			&& element.TryGetProperty("members", out var members)
+			&& members.ValueKind == JsonValueKind.Array
+			&& members.GetArrayLength() > 0;
 
 	private static void Require(bool condition, string message)
 	{

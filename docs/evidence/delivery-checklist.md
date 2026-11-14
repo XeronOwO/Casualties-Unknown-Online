@@ -2,18 +2,18 @@
 
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 
-- [ ] Design comprehension — the generation chain was read before the claim
-- [ ] Native parity — the stage names come from the game coroutines
-- [ ] Native parity probe — a failing run localized the divergence to the chip window
-- [ ] Entry mapping — the save stage reads `<GenerateWorld>` at the collider yield
-- [ ] Mechanism inventory — `WorldPlaceChip` draws one or two values
-- [ ] Whole-family audit — the next probe reads `isMercRun` and `biomeDepth`
-- [ ] Self-check table — documentation only
-- [ ] Verification design — the failing run is captured with the stage line
+- [ ] Design comprehension — the chip stage was read before the probe
+- [ ] Native parity — the two facts are the game own fields
+- [ ] Native parity probe — the divergence lands in the chip window
+- [ ] Entry mapping — the facts are logged with the segment line
+- [ ] Mechanism inventory — the chip draws one or two values by those facts
+- [ ] Whole-family audit — one helper and one log field
+- [ ] Self-check table — diagnostics only, no behaviour change
+- [ ] Verification design — the next failing run names the side that differs
 - [ ] Plan approved by the user — root cause first
-- [ ] Structure review done — the finding names the line and the draw count
+- [ ] Structure review done — the probe stays in the isolation
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: no deploy in this cycle
+- [ ] Release-cycle deployment/acceptance: deploy and read the facts on a failing run
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate

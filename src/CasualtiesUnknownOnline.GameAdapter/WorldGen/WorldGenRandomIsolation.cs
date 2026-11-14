@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using HarmonyLib;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -37,6 +38,20 @@ internal static class WorldGenRandomIsolation
 
 	private static int _segments;
 	private static string? _activeFrame;
+
+	/// <summary>The generation's per-client facts at the save — the chip stage draws one or two values depending on them (the block-table divergence lands there).</summary>
+	private static string WorldFacts()
+	{
+		var world = WorldGeneration.world;
+		if (world is null)
+		{
+			return "world=?";
+		}
+
+		var merc = AccessTools.Field(typeof(WorldGeneration), "isMercRun")?.GetValue(world);
+		var depth = AccessTools.Field(typeof(WorldGeneration), "biomeDepth")?.GetValue(world);
+		return $"merc={merc} depth={depth}";
+	}
 	private static string? _lastSavedHex;
 
 	/// <summary>The random stream state at the most recent segment start. The
@@ -59,7 +74,7 @@ internal static class WorldGenRandomIsolation
 		// then sample the tail — a full 1024-column generation is ~40 segments.
 		if (Log is not null && (_segments <= 24 || _segments % 8 == 0))
 		{
-			Log($"[GenStream] segment {_segments}: {_lastSavedHex} stage={_activeFrame ?? "?"}");
+			Log($"[GenStream] segment {_segments}: {_lastSavedHex} stage={_activeFrame ?? "?"} {WorldFacts()}");
 		}
 	}
 

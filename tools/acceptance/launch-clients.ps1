@@ -39,8 +39,8 @@ param(
 	[string]$GuestUrl,
 	[string]$AltUrl,
 	[switch]$NoJoin,
-	# An IP-direct session does not initialize Steam on a box whose account does not own the game; this switch accepts
-	# such a client instead of failing the launch on the Steam readiness line. It is the caller's claim, never inferred.
+	# An IP-direct session does not initialize Steam on a boxed client; this switch accepts such a client instead of
+	# failing the launch on the Steam readiness line. It is the caller's claim, never inferred.
 	[switch]$AllowOfflineSteam,
 	# One client only, by name. Every row that is the CLIENT's own (an input patch, a UI frame, a console line) needs one client and no lobby, so
 	# a single-client launch is the cheap shape for those — and it never touches the other boxes.
@@ -246,11 +246,9 @@ function Ensure-SandboxService() {
 	return $false
 }
 function Ensure-BoxSteam([string]$Box) {
-	# A boxed Steam account here does not own the game, so Steam in a box is NEVER started and never
-	# needed: the pair runs offline IP direct (the user's standing rule, 2026-11-12/14). Two measured
-	# costs of starting it anyway: a second Steam login in the box, and the guest's UI frozen by
-	# "Steamworks is not initialized" every frame (2026-11-13). A Steam process someone else started is
-	# left alone — IP direct does not touch it.
+	# A boxed client runs offline IP direct and never needs Steam: starting one in a box costs a second
+	# login and froze the guest's UI with "Steamworks is not initialized" every frame (2026-11-13). A
+	# Steam process the box already has is left alone — IP direct does not touch it.
 	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { Write-Run "$Box has a Steam process (left alone; IP direct does not need it)" }
 	return
 }
@@ -397,7 +395,7 @@ Write-Run (($clients -join ', ') + ' up (endpoints answered)')
 # A single-client run has no lobby to join and no world to enter: the endpoint that answered IS the deliverable.
 if ($Only -or $NoJoin) { exit 0 }
 
-# No Steam in a box (the boxed accounts do not own the game), so the session is IP direct and the
+# No Steam in a box (a boxed client may have no Steam session at all), so the session is IP direct and the
 # caller (the suite, or a driver script) makes it. The host's Steam-lobby path is unreachable for a
 # boxed pair by construction; requiring Steam here failed the launch after the endpoints were up.
 Write-Run 'offline IP direct: no lobby to create; the endpoints are the deliverable'

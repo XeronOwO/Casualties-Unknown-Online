@@ -76,6 +76,16 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 	/// available). The UI falls back to the SteamID when this returns empty.</summary>
 	public string GetPersonaName(ulong steamId)
 	{
+		if (!IsInitialized)
+		{
+			// IP direct runs without a Steam process, and every Steamworks friends query throws
+			// "Steamworks is not initialized". The Online UI asks for a name on every frame it
+			// builds, so an unguarded call floods the log and freezes the drawer (measured
+			// 2026-11-14 on the boxed guest: the join controls never rendered). The caller
+			// renders its own fallback.
+			return string.Empty;
+		}
+
 		if (steamId == LocalSteamId)
 		{
 			return SteamFriends.GetPersonaName();

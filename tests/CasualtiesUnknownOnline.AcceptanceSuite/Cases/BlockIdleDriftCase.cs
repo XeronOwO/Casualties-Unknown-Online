@@ -44,7 +44,22 @@ internal sealed class BlockIdleDriftCase : AcceptanceCase
 
 		var differences = Differences(atEntryHost, atEntryMember);
 		context.Note($"the two clients differ on {differences} row(s) of the band");
-		Require(differences == 0, $"the two clients' tables differ on {differences} row(s); first at row {FirstChanged(atEntryHost, atEntryMember, BandStart)}");
+
+		// The host reconciles a drifted table on its 60 s step (a difference, never a blind resend).
+		// A member that entered before that write heals on the first step; the case waits for it
+		// rather than asserting instant agreement, and records how long the heal took.
+		var waited = TimeSpan.Zero;
+		while (differences > 0 && waited < TimeSpan.FromSeconds(150))
+		{
+			await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+			waited += TimeSpan.FromSeconds(5);
+			var polled = await ReadBandAsync(context, cancellationToken).ConfigureAwait(false);
+			differences = Differences(polled.Host, polled.Member);
+			context.Note($"after {waited.TotalSeconds:0}s the two clients differ on {differences} row(s)");
+		}
+
+		context.Note($"the reconcile healed the band in {waited.TotalSeconds:0}s");
+		Require(differences == 0, $"the two clients' tables differ on {differences} row(s) after {waited.TotalSeconds:0}s; first at row {FirstChanged(atEntryHost, atEntryMember, BandStart)}");
 	}
 
 	private static async Task<(string[] Host, string[] Member)> ReadBandAsync(CaseContext context, CancellationToken cancellationToken)

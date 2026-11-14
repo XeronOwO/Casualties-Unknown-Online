@@ -44,6 +44,12 @@ internal static class LiquidAffectPatches
 		private static readonly AccessTools.FieldRef<LiquidAffect, Rigidbody2D> RbField =
 			AccessTools.FieldRefAccess<LiquidAffect, Rigidbody2D>("rb");
 
+		private static readonly AccessTools.FieldRef<LiquidAffect, Limb> LimbField =
+			AccessTools.FieldRefAccess<LiquidAffect, Limb>("limb");
+
+		private static readonly AccessTools.FieldRef<LiquidAffect, Body> BodyField =
+			AccessTools.FieldRefAccess<LiquidAffect, Body>("body");
+
 		private static bool Prefix(LiquidAffect __instance)
 		{
 			// A destroyed item can still receive one last FixedUpdate, and the world/fluid manager can already be
@@ -54,7 +60,21 @@ internal static class LiquidAffectPatches
 			}
 
 			var rb = RbField(__instance);
-			return rb != null && rb.bodyType == RigidbodyType2D.Dynamic;
+			if (rb == null || rb.bodyType != RigidbodyType2D.Dynamic) // Unity object — ==
+			{
+				return false;
+			}
+
+			// LiquidAffect.cs:67-81 dereferences limb.body without a guard, and :73 dereferences body under
+			// `if (this.limb)`. A limb item whose body was destroyed can keep this component alive; the liquid
+			// simulation has no patient to write to and the vanilla body would throw every fixed step.
+			var limb = LimbField(__instance);
+			if (limb != null && (limb.body == null || BodyField(__instance) == null)) // Unity objects — ==
+			{
+				return false;
+			}
+
+			return true;
 		}
 	}
 }

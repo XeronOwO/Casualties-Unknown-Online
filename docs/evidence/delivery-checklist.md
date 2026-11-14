@@ -2,16 +2,16 @@
 
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 
-- [ ] Design comprehension — the drive loop and the stage names were read
-- [ ] Native parity — the stage name is the game own coroutine type
-- [ ] Native parity probe — four consecutive runs read zero differences
-- [ ] Entry mapping — the segment line carries the stage at every save
-- [ ] Mechanism inventory — the passing run names identical stages on both clients
-- [ ] Whole-family audit — one field and one log line, no behaviour change
-- [ ] Self-check table — the probe is deployed and read on the pair
-- [ ] Verification design — the next failing run is captured with stages
-- [ ] Plan approved by the user — root cause first, no workaround
-- [ ] Structure review done — the probe stays in the isolation
+- [ ] Design comprehension — the generation chain was read before the claim
+- [ ] Native parity — the stage names come from the game coroutines
+- [ ] Native parity probe — a failing run localized the divergence to the chip window
+- [ ] Entry mapping — the save stage reads `<GenerateWorld>` at the collider yield
+- [ ] Mechanism inventory — `WorldPlaceChip` draws one or two values
+- [ ] Whole-family audit — the next probe reads `isMercRun` and `biomeDepth`
+- [ ] Self-check table — documentation only
+- [ ] Verification design — the failing run is captured with the stage line
+- [ ] Plan approved by the user — root cause first
+- [ ] Structure review done — the finding names the line and the draw count
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: no deploy in this cycle

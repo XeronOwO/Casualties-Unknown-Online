@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the chain is written with file:line before the edit
-- [ ] Native parity — the write seam is the game's own `SetBlock(Vector2Int, ushort)`
-- [ ] Native parity probe — the stamper patch cannot install (`HarmonyException: IL Compile Error`), so the chain comes from the stack
-- [ ] Entry mapping — one seam, one recorder
-- [ ] Mechanism inventory — the trigger is the frame above `GenerateObjectAtPos`
-- [ ] Whole-family audit — the pod and three clearing circles are the same generation family
-- [ ] Self-check table — instrumentation only, no behaviour change
-- [ ] Verification design — the line names writer, stamper, coroutine and its caller
-- [ ] Plan approved by the user — "locate the root cause and fix it"
-- [ ] Structure review done — the recorder stays acceptance-only
+- [ ] Design comprehension — read `docs/design/game/worldgen-and-layers.md` and the generation-boundary implementation before the claim
+- [ ] Native parity — the game consumes Unity's global `Random`; our mechanism captures and replays `Random.state` at the boundary
+- [ ] Native parity probe — the `[GenStream]` fingerprints are identical on both clients
+- [ ] Entry mapping — generation writes through `SetBlock`; the recorder logs the chain
+- [ ] Mechanism inventory — the "unseeded RNG" hypothesis is withdrawn; the divergence is post-generation
+- [ ] Whole-family audit — 96 common cells carry different values, 170/181 are one-sided, all in the pod's neighbourhood
+- [ ] Self-check table — documentation only, no code changed
+- [ ] Verification design — the next probe compares per-cell write history with timestamps
+- [ ] Plan approved by the user — "先反思，更新规范" and "read our own docs first"
+- [ ] Structure review done — the wrong section is marked superseded, kept as the record
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the deploy that reads the new chain follows with the next build
+- [ ] Release-cycle deployment/acceptance: no deploy in this cycle
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

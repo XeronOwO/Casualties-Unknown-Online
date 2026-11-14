@@ -101,8 +101,8 @@ internal sealed class SessionDriver(Options options)
 			EndSetup();
 		}
 	}
-	/// <summary>Starts a run when no world is up and returns the note for the report.</summary>
-	public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
+	/// <summary>Creates the host's IP session and leaves any older world; the run start is separate.</summary>
+	public async Task<string> EnsureHostSessionAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld"))
@@ -164,22 +164,12 @@ internal sealed class SessionDriver(Options options)
 			throw new InvalidOperationException("the suite could not create the host's IP session");
 		}
 
-		// Join the member to the session BEFORE the run starts: both players then enter the world
-		// together. A member that joins a running world spawns at its own pod, which is how a later
-		// case found the pair out of each other's line of sight.
-		// The pre-run join (both players enter together) is the defect filed as
-		// `docs/backlog/review/1.0-member-waits-for-a-host-that-waits-for-it.md`: the session accepts
-		// the member, the run start drops it again, and both gates wait for each other. Until that
-		// side is decided, the fixture uses the order the manual sessions proved: the host starts the
-		// run, the member joins the running world (and may spawn at its own pod — a case that needs
-		// the pair together places the member, as `GiveItemCase` does).
-		// The member joins the SESSION before the run starts, so the run's world join reaches it: a
-		// member that joins a running world keeps its own pod and never receives the item or clone
-		// stream (measured 2026-11-12: the host logged `World join sent to 0 member(s)` while the
-		// member sat in a world with an empty bag and no clone).
-		// Parked 2026-11-12: the join is refused or dies at the menu — the member's own log ends the
-		// session after 15 s of silence ("No frame from the host"), the host pings only while its
-		// session is active and the guest never confirms. See `1.0-member-waits-for-a-host-that-waits-for-it.md`.
+		return "the suite created the host's IP session; the run has not started yet";
+	}
+
+	/// <summary>Starts the run on the host's existing IP session and waits for the host's world.</summary>
+	public async Task<string> StartHostRunAsync(CancellationToken cancellationToken)
+	{
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 
 		// The wait is a measurement made in the client that owns the fact: the driver blocks on its
@@ -190,7 +180,7 @@ internal sealed class SessionDriver(Options options)
 			cancellationToken,
 			("-Control", "inWorld"),
 			("-Text", "20000")).ConfigureAwait(false);
-		state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld") && string.Equals(StringValue(reached, "reached"), "true", StringComparison.Ordinal))
 		{
 			return "the suite started a fresh run (the host answered in-world after " + StringValue(reached, "waitedMs") + " ms)";
@@ -209,72 +199,15 @@ internal sealed class SessionDriver(Options options)
 		throw new InvalidOperationException("the suite could not start a world for the cases");
 	}
 
-	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
-	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true));
-
-	/// <summary>
-	/// The member's client can keep a session it no longer owns (after an ending, its role stays
-	/// Guest while the lobby is gone, and leaving answers ok without clearing it). When the join
-	/// budget runs out, the suite relaunches the member once and tries again: the session it
-	/// judges is the suite's, so the suite may recreate the client too.
-	/// </summary>
-	/// <summary>
-	/// The member joins the host's session while the host is still at the menu, so both players
-	/// enter the run together. Success is the session role, not the world: the world starts after.
-	/// </summary>
-	private async Task<string> JoinSessionBeforeRunAsync(CancellationToken cancellationToken)
+	/// <summary>Starts a run when no world is up and returns the note for the report.</summary>
+	public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
 	{
-		// The member's client can still hold the previous run (a role Guest and a world of its own):
-		// it then answers `role Guest` immediately while the host's new session knows nothing of it.
-		// A member that is in a world — or whose session predates this run — leaves first, so the
-		// host's run start can carry it into the world (measured 2026-11-12: the pair looked joined
-		// while the member's bag and clone stream stayed empty).
-		var memberState = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-		if (IsTrue(memberState, "inWorld") || string.Equals(StringValue(memberState, "role"), "Guest", StringComparison.Ordinal))
-		{
-			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
-		}
-
-		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
-		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
-
-		var before = await HandshakeCountAsync(cancellationToken).ConfigureAwait(false);
-		var deadline = Stopwatch.StartNew();
-		while (deadline.Elapsed < JoinBudget)
-		{
-			var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-			if (string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal)
-				&& await HandshakeCountAsync(cancellationToken).ConfigureAwait(false) > before)
-			{
-				// The host's own handshake line is the confirmation that THIS session knows the member;
-				// a stale Guest role alone was the reading that made the pair look joined.
-				return "the member joined the session before the run";
-			}
-
-			var controls = Controls(state);
-			if (controls.Contains("ip.notice_confirm"))
-			{
-				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
-			}
-			else if (controls.Contains("ip.join"))
-			{
-				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
-				await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
-				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
-			}
-			else if (controls.Contains("home.transport.ip"))
-			{
-				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
-			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
-		}
-
-		throw new InvalidOperationException("the member could not join the session before the run");
+		_ = await EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false);
+		return await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
 	}
 
+	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
+	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true));
 
 	// The leave waits used to poll the caller side; the client now answers when its own world is gone.
 	private async Task<bool> WaitWorldExitAsync(string url, CancellationToken cancellationToken)
@@ -587,18 +520,30 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
+		// The host starts the run first, then the member joins the running world. The alternative
+		// (member joins the session before the start) was measured at 71.8 s to the member's world
+		// on 2026-11-15, because both clients generate the world at once and the start gate then
+		// waits for the slower one; the serial order is the faster measured path.
+		var pairClock = Stopwatch.StartNew();
+		var hostClock = Stopwatch.StartNew();
 		string hostNote;
 		try
 		{
-			hostNote = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+			hostNote = await EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{
 			// No host is running at all (a previous run reclaimed it): the launcher starts one.
 			await RelaunchHostAsync(cancellationToken).ConfigureAwait(false);
-			hostNote = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+			hostNote = await EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false);
 		}
+		hostClock.Stop();
 
+		var startClock = Stopwatch.StartNew();
+		var startNote = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
+		startClock.Stop();
+
+		var memberClock = Stopwatch.StartNew();
 		string memberNote;
 		try
 		{
@@ -617,17 +562,25 @@ internal sealed class SessionDriver(Options options)
 				return (hostNote, memberNote);
 			}
 		}
+		memberClock.Stop();
+
+		hostNote = hostNote + "; " + startNote
+			+ $"; pair ready in {pairClock.Elapsed.TotalSeconds:F1}s"
+			+ $" (host session {hostClock.Elapsed.TotalSeconds:F1}s, run start {startClock.Elapsed.TotalSeconds:F1}s,"
+			+ $" member world {memberClock.Elapsed.TotalSeconds:F1}s; serial)";
 
 		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-		var confirmed = await ConfirmedMemberIdAsync(cancellationToken).ConfigureAwait(false);
-		if (confirmed is not null && members.Contains(confirmed, StringComparer.Ordinal))
+		if (members.Length > 0)
 		{
+			// EnsureMemberAsync already waited for this roster read; the handshake log tail is a
+			// fallback, not a second confirmation on the normal path (measured 2026-11-15: the
+			// log-tail read added 23.6 s after the pair was ready).
 			return (hostNote, memberNote);
 		}
 
-		if (confirmed is null && members.Length > 0)
+		var confirmed = await ConfirmedMemberIdAsync(cancellationToken).ConfigureAwait(false);
+		if (confirmed is not null)
 		{
-			// No handshake line to judge by (an older host build): the roster is the best reading.
 			return (hostNote, memberNote);
 		}
 

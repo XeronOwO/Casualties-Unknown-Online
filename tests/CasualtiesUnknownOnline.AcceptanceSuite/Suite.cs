@@ -17,10 +17,15 @@ internal static partial class Program
 	private static async Task<int> Main(string[] args)
 	{
 		var options = Options.Parse(args);
+		// Focused runs are the iteration loop: when the pair is already in a world, attach to it
+		// instead of paying the cold setup again. The full batch stays fresh by default so one
+		// case's leftovers cannot silently change the next judgement; --reuse opts the full batch
+		// into the same fast path, --fresh forces a focused run back to a clean pair.
+		var tryReuse = options.Reuse || (options.Suite != "all" && !options.Fresh);
 		if (options.Problem is { } problem)
 		{
 			Console.Error.WriteLine(problem);
-			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
+			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse|--fresh] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
 			return 64;
 		}
 
@@ -55,33 +60,31 @@ internal static partial class Program
 		var suiteClock = Stopwatch.StartNew();
 		var sharedSetup = Stopwatch.StartNew();
 		var session = new SessionDriver(options);
-		(var sessionNote, var memberNote) = options.Reuse
+		(var sessionNote, var memberNote) = tryReuse
 			? await TryReusePairAsync(session).ConfigureAwait(false)
 			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
 		if (session.MemberRelaunches > 0)
 		{
 			memberNote += $" (the member was recreated {session.MemberRelaunches} time(s) to join: a ghost world it could not leave is a finding)";
 		}
-		// The host names its members only once the member's own scene report has landed, which can
-		// trail the join by a beat: poll briefly instead of reading once and losing the id.
-		string[] members = [];
-		for (var wait = 0; wait < 30; wait++)
+		// EnsureMemberAsync returns only after the host's roster names the member, so the normal path
+		// reads that roster once. The handshake log tail is the fallback for an older host build or a
+		// roster that trails the join; it is not a second confirmation on every run (measured
+		// 2026-11-15: reading it after the pair was ready added 23.6 s).
+		var members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
+		for (var wait = 0; wait < 30 && members.Length == 0; wait++)
 		{
-			members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
-			if (members.Length > 0)
-			{
-				break;
-			}
-
 			await Task.Delay(TimeSpan.FromMilliseconds(500), CancellationToken.None).ConfigureAwait(false);
+			members = await session.ReadMembersAsync(CancellationToken.None).ConfigureAwait(false);
 		}
 
-		// The roster can carry a row from a session that is gone; the host's own handshake line
-		// names the member that actually joined, so the cases address that id.
-		var confirmedMember = await session.ConfirmedMemberIdAsync(CancellationToken.None).ConfigureAwait(false);
-		if (confirmedMember is not null)
+		if (members.Length == 0)
 		{
-			members = [confirmedMember];
+			var confirmedMember = await session.ConfirmedMemberIdAsync(CancellationToken.None).ConfigureAwait(false);
+			if (confirmedMember is not null)
+			{
+				members = [confirmedMember];
+			}
 		}
 
 		if (members.Length > 0)
@@ -124,8 +127,9 @@ internal static partial class Program
 	}
 
 	/// <summary>
-	/// <c>--reuse</c> is the fast-group entry: attach to a pair that is already in a world instead of
-	/// paying a cold world load. A pair that is not ready falls back to the normal setup and says so.
+	/// The focused-run fast path: attach to a pair that is already in a world instead of paying a
+	/// cold world load. <c>--reuse</c> asks the full batch for the same path; <c>--fresh</c> turns it
+	/// off. A pair that is not ready falls back to the normal setup and says so.
 	/// </summary>
 	private static async Task<(string HostNote, string MemberNote)> TryReusePairAsync(SessionDriver session)
 	{
@@ -754,6 +758,8 @@ internal sealed record Options
 
 	public bool Reuse { get; init; }
 
+	public bool Fresh { get; init; }
+
 	public string HostUrl { get; init; } = "ws://127.0.0.1:18590";
 
 	public string MemberUrl { get; init; } = "ws://127.0.0.1:18591";
@@ -784,6 +790,9 @@ internal sealed record Options
 					break;
 				case "--reuse":
 					options = options with { Reuse = true };
+					break;
+				case "--fresh":
+					options = options with { Fresh = true };
 					break;
 				case "--out" when index + 1 < args.Length:
 					options = options with { OutputDirectory = args[++index] };

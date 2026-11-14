@@ -221,6 +221,18 @@ internal sealed class RemotePlayerRenderer(
 				}
 			}
 
+			// A clone's body can die on its own: the game destroys the Body's GameObject on a timer
+			// (reversing Body.cs:1175) while the root — and the Head's FacialExpression — stays
+			// behind and reads a destroyed component every frame (measured 2026-11-14). A clone
+			// without a live body is no clone: drop it and let the next frame rebuild.
+			if (clone.GetComponentInChildren<Body>() == null) // Unity object — == (is null misses destroyed)
+			{
+				Object.Destroy(clone);
+				_remoteClones.Remove(remote.SteamId);
+				_cloneCharacters.Remove(remote.SteamId);
+				continue;
+			}
+
 			// Mark the clone's carry role BEFORE applying stream state, so
 			// SessionStatePump can suppress the native sit replay in the same
 			// frame — this is not limited to the local carrier's view, because a

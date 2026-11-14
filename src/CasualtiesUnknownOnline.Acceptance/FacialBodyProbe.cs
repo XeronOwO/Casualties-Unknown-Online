@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using UComponent = UnityEngine.Component;
 using UDebug = UnityEngine.Debug;
 
 namespace CasualtiesUnknownOnline.Acceptance;
@@ -67,7 +68,7 @@ internal static class FacialBodyProbe
 			var hasDisplay = false;
 			if (__instance.transform != null && __instance.transform.root != null)
 			{
-				foreach (var component in __instance.transform.root.GetComponentsInChildren<UnityEngine.Component>(true))
+				foreach (var component in __instance.transform.root.GetComponentsInChildren<UComponent>(true))
 				{
 					if (component == null)
 					{

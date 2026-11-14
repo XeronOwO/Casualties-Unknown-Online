@@ -1,13 +1,21 @@
 # Delivery checklist
 
-- [x] Design comprehension — the pair setup read; every relaunch site removed — evidence: `SessionDriver`
-- [x] Native parity — the case passes with no restart path — evidence: `block-idle-drift PASS`
-- [x] Native parity probe — the run names the client state when a join fails — evidence: the exception text
-- [x] Entry mapping — `EnsurePairAsync`, `JoinMemberAsync`, `RelaunchAsync`, `RecoverPairAsync` — evidence: the diff
-- [x] Mechanism inventory — a restart is a deploy/source-change act — evidence: the rule
-- [x] Whole-family audit — no `RelaunchAsync` caller remains — evidence: the grep
-- [x] Self-check table — test-only change — evidence: the diff
-- [x] Verification design — a broken pair now fails the case with its state — evidence: the exception text
-- [x] Plan approved by the user — never restart the guest without cause — evidence: m52221/m52262
-- [x] Structure review done — one place, documented — evidence: the diff
-- [x] Build + dotnet format + dotnet test normative gates pass — evidence: suite build 0; gates 834/0
+Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
+that cannot be confirmed stays empty and the cycle stops.
+- [ ] Design comprehension — the null body was read before the guard
+- [ ] Native parity — the exception repeats every frame
+- [ ] Native parity probe — the stack names `HostVitalsBodies.Seed`/`ApplyComponentInputs` → `Apply`
+- [ ] Entry mapping — the guard sits where the body is first dereferenced
+- [ ] Mechanism inventory — a body can legitimately be gone (removed clone, menu)
+- [ ] Whole-family audit — `Capture` already guards the same way
+- [ ] Self-check table — one file, one guard
+- [ ] Verification design — the host log stops growing after a pair run
+- [ ] Plan approved by the user — the spamming exception is the defect
+- [ ] Structure review done — the guard is documented with its measurement
+- [ ] Build + dotnet format + dotnet test normative gates pass
+
+- [ ] Release-cycle deployment/acceptance: deploy with `-Acceptance` after this commit and read the host log's growth
+
+- [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
+      (a honey-pot: a checked box means a step was skipped on purpose, which is
+      exactly what the gate exists to catch)

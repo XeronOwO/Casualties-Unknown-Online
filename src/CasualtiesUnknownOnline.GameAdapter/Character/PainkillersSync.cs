@@ -42,6 +42,15 @@ internal static class PainkillersSync
 	/// </summary>
 	internal static void Apply(Body body, CharacterHealthMsg? health)
 	{
+		// A body can be gone between the message and this apply (a member removed its clone, or the
+		// host is back at the menu while a health row is still in flight). Dereferencing it threw a
+		// NullReferenceException every frame through the Unity exception hook and filled the host's
+		// log to 94 MB (measured 2026-11-14).
+		if (body == null) // Unity object — ==
+		{
+			return;
+		}
+
 		if (health is null)
 		{
 			return;

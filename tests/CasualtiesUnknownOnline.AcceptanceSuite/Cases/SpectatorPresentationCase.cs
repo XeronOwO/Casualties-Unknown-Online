@@ -20,6 +20,12 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
+		// Earlier rows can leave the native wound view open (medical-chart does). While it is open the bottom
+		// strip belongs to that panel, not to the spectator; close it so this row measures the spectator HUD.
+		var closedView = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off")).ConfigureAwait(false);
+		context.Note("closed any open wound view before spectating: " + Raw(closedView));
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+
 		var host = context.Session.HostUrl;
 		var member = context.Session.MemberUrl;
 		var memberId = context.MemberId;

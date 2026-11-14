@@ -7,12 +7,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// frame, ~15 items) whose stack trace is bare Item.Update. The method's
 /// nullable dereferences are rb (Awake's GetComponent<Rigidbody2D> — nullable)
 /// and WorldGeneration.world (absent in the menu scene). Report the culprit
-/// once per object — the domain dedupes, the patch stays a thin adapter.
+/// once per object, then skip the native body: it dereferences both on its
+/// first line, so running it again only repeats the exception every frame.
 /// </summary>
 [HarmonyPatch(typeof(Item), "Update")]
 internal static class ItemUpdateDiagnosticPatch
 {
-	private static void Prefix(Item __instance)
+	private static bool Prefix(Item __instance)
 	{
 		// Unity objects — == (a destroyed rb reads as null; a destroyed item
 		// never reaches this method).
@@ -20,6 +21,9 @@ internal static class ItemUpdateDiagnosticPatch
 		{
 			PatchBridge.Impl?.OnBrokenItemUpdate(__instance,
 				__instance.rb == null ? "rb-null" : "world-null");
+			return false;
 		}
+
+		return true;
 	}
 }

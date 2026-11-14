@@ -93,6 +93,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A destroyed body keeps its facial updating](review/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — every frame, 94 MB of log.
 - [Late-layer mechanism switches need one answer](review/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients must agree.
 - [A session ignores the solo character unlocks](review/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — and never writes them.
+- [A trigger event waits for the whole living team](review/1.0-trigger-events-wait-for-the-whole-team.md) — **Medium** — no teleporting passengers.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 - [Nobody counts a player's deaths](review/1.0-player-death-stats-missing.md) — **Low** — the run keeps no per-player count.

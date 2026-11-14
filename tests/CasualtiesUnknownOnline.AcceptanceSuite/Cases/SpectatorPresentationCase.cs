@@ -33,10 +33,13 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			// prosthetic at limb 4 as the control: the strip must show the member's 3, not the host's 4.
 			await MemberRecipeAsync(context, "limb-prosthetic4", cancellationToken, ("mode", "set"), ("limb", "3"), ("item", "steelprosthesis")).ConfigureAwait(false);
 			await context.RecipeAsync("limb-prosthetic4", cancellationToken, ("mode", "set"), ("limb", "4"), ("item", "peo")).ConfigureAwait(false);
-			await SeedWatchedPainAsync(context, cancellationToken).ConfigureAwait(false);
 
 			await EnterSpectatorAsync(context, host, memberId, cancellationToken).ConfigureAwait(false);
 			await context.Session.WaitForLogAsync(host, "[Spectator] mirror", 10_000, cancellationToken).ConfigureAwait(false);
+
+			// Seed AFTER the watch starts: the host's simulated clone lets limb pain decay at the
+			// game's own rate, so a wound seeded before the setup would be flat before the first read.
+			await SeedWatchedPainAsync(context, cancellationToken).ConfigureAwait(false);
 
 			// Pain and prosthetic: the screen shader and the limb strip are the watched body's.
 			var presentation = await WaitForPresentationAsync(context, cancellationToken).ConfigureAwait(false);
@@ -97,7 +100,7 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			try
 			{
 				var seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken,
-					("limb", "5"), ("force", "40"), ("infection", "0")).ConfigureAwait(false);
+					("limb", "5"), ("force", "100"), ("infection", "0")).ConfigureAwait(false);
 				context.Read("watched wound", seeded);
 				Require(Boolean(seeded, "ok"), "the watched body's wound could not be seeded: " + Raw(seeded));
 
@@ -124,11 +127,13 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 		var modeLine = Text(mode, "lastLine");
 		Require(modeLine.Contains("Spectator mode", StringComparison.Ordinal), "/gamemode spectator did not report the mode: " + modeLine);
 
-		var watch = await context.Session.ActionAsync(host, "console", cancellationToken, ("-Text", "/spectate " + memberId)).ConfigureAwait(false);
+		// The console selector vocabulary is Minecraft's: a bare id matches nothing. The member's display
+		// name may be absent, so name the SteamId the session always holds.
+		var watch = await context.Session.ActionAsync(host, "console", cancellationToken, ("-Text", "/spectate @a[name=" + memberId + "]")).ConfigureAwait(false);
 		context.Read("spectate", watch);
 		Require(Boolean(watch, "applied"), "/spectate was refused: " + Raw(watch));
 		var watchLine = Text(watch, "lastLine");
-		Require(watchLine.Contains("Watching", StringComparison.Ordinal), "/spectate did not report the watched player: " + watchLine);
+		Require(watchLine.Contains(memberId, StringComparison.Ordinal), "/spectate did not report the watched player: " + watchLine);
 	}
 
 	private static async Task<JsonElement?> WaitForPresentationAsync(CaseContext context, CancellationToken cancellationToken)

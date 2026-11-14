@@ -1,7 +1,7 @@
 // recipe: spectator-read
 // args: none
 // returns: ok, cameraBody, cameraPain, woundBody, woundPain, woundBodyIsCamera, hudBodyIsWound,
-//          woundLimb3Prosthetic, woundLimb3Item, cameraLimb4Prosthetic, shaderPain, shaderBlood,
+//          woundLimb3Prosthetic, woundLimb3Item, woundLimb5Pain, woundLimb5Skin, cameraLimb4Prosthetic, shaderPain, shaderBlood,
 //          shaderLowOxy, shaderBrainDamage, shaderBloodloss, shaderBlur, shaderDistort,
 //          blackAmount, sleepFill, sleepFillAlpha, ecgActive, vignetteAlpha, consciousnessFadeAlpha,
 //          worldSoundsTotal, error
@@ -40,6 +40,7 @@
 	var wound = view.body;
 	var limb = wound.limbs != null && wound.limbs.Length > 3 ? wound.limbs[3] : null;
 	var cameraLimb = camera.body.limbs != null && camera.body.limbs.Length > 4 ? camera.body.limbs[4] : null;
+	var woundPainLimb = wound.limbs != null && wound.limbs.Length > 5 ? wound.limbs[5] : null;
 
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	return "{\"ok\":true"
@@ -51,6 +52,8 @@
 		+ ",\"hudBodyIsWound\":" + (hud != null && hud == wound ? "true" : "false")
 		+ ",\"woundLimb3Prosthetic\":" + (limb != null && limb.prostheticInfo.hasProsthetic ? "true" : "false")
 		+ ",\"woundLimb3Item\":\"" + (limb != null && limb.prostheticInfo.itemId != null ? limb.prostheticInfo.itemId.Replace("\"", "'") : "") + "\""
+		+ ",\"woundLimb5Pain\":" + (woundPainLimb != null ? woundPainLimb.pain.ToString("0.###", inv) : "-1")
+		+ ",\"woundLimb5Skin\":" + (woundPainLimb != null ? woundPainLimb.skinHealth.ToString("0.###", inv) : "-1")
 		+ ",\"cameraLimb4Prosthetic\":" + (cameraLimb != null && cameraLimb.prostheticInfo.hasProsthetic ? "true" : "false")
 		+ ",\"cameraLimb4Item\":\"" + (cameraLimb != null && cameraLimb.prostheticInfo.itemId != null ? cameraLimb.prostheticInfo.itemId.Replace("\"", "'") : "") + "\""
 		+ ",\"shaderPain\":" + read(material, "_Pain").ToString("0.####", inv)

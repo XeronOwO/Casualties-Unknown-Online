@@ -55,7 +55,7 @@ internal static partial class Program
 		var suiteClock = Stopwatch.StartNew();
 		var sharedSetup = Stopwatch.StartNew();
 		var session = new SessionDriver(options);
-		(string sessionNote, string memberNote) = options.Reuse
+		(var sessionNote, var memberNote) = options.Reuse
 			? await TryReusePairAsync(session).ConfigureAwait(false)
 			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
 		if (session.MemberRelaunches > 0)

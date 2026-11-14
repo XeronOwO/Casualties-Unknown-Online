@@ -522,5 +522,9 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 Classify every case as `InRun`/`NewWorld`/`ClientRestart`, report connect/setup/case time, and optimize the largest bucket before adding another case (rule 10) — `.acceptance/late-layer3/report-all/report.md`.
 
+## 2026-11-15 — Count both Sound.Play overloads
+
+A watched eat replays through the `AudioClip` overload, so a spectator sound count installed only on the `string` overload reads zero while the host log says `replay consume eatFlesh`. Gate and count both overloads, and let the string call's nested AudioClip skip the second count.
+
 
 

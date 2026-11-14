@@ -37,7 +37,28 @@ internal static class SoundPlayAudioClipPatch
 			return false;
 		}
 
-		if (CallContext.IsWithin(CallContext.Origin.RemoteApply) || SoundCaptureContext.SkipAudioClipCapture)
+		if (SoundCaptureContext.SkipAudioClipCapture)
+		{
+			return true;
+		}
+
+		// The string overload counts a sound it lets through; a DIRECT AudioClip play is the other
+		// half of the same family (a replayed eat/footstep clip, and the local body's own clips).
+		// Enforce the same spectator gate here, then count what passes so the acceptance reading
+		// can prove the watched player's audio reached the spectator.
+		if (SpectatorPresentationGate.IsActive
+			&& !SpectatorPresentationGate.AllowsWatchedSound
+			&& !CallContext.IsWithin(CallContext.Origin.RemoteApply))
+		{
+			return false;
+		}
+
+		if (SpectatorPresentationGate.IsActive)
+		{
+			SpectatorPresentationGate.NoteWorldSound();
+		}
+
+		if (CallContext.IsWithin(CallContext.Origin.RemoteApply))
 		{
 			return true;
 		}

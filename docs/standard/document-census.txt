@@ -1397,13 +1397,13 @@ docs/backlog/review/1.0-transport-handover-identity.md | keep | claim | docs/bac
 docs/evidence/acceptance/ip-direct-notice-20261111-a.md | keep | claim | docs/backlog/done/ip-direct-shows-the-purchase-notice.md
 docs/backlog/done/1.0-member-waits-for-a-host-that-waits-for-it.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-enemy-roster-adopts-unresolved-rows.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-pinyin-search-finds-no-chinese-name.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-pinyin-search-finds-no-chinese-name.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/split-block-break-remote-apply.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-member-removal-throws-in-the-renderer.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-crafting-screen-throws-on-a-recipe-sprite.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-a-guest-keeps-its-role-after-the-session-ends.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-remote-players-carry-no-character.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-cross-player-item-use-has-no-consent.md | keep | claim | docs/backlog/README.md
+docs/backlog/future/1.0-cross-player-item-use-has-no-consent.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-rule-toggles-missing-for-carry-and-push.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-player-death-stats-missing.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/split-session-service.md | keep | claim | docs/backlog/README.md

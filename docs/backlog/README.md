@@ -83,10 +83,10 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
-- [The pinyin search finds no Chinese name](review/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — the filter runs; the mapping finds nothing.
+
 - [The crafting screen cannot open](review/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — the game's own refresh throws on a recipe product.
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
-- [A teammate can feed you without asking](review/1.0-cross-player-item-use-has-no-consent.md) — **High** — the target is never asked.
+
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 - [Nobody counts a player's deaths](review/1.0-player-death-stats-missing.md) — **Low** — the run keeps no per-player count.
 
@@ -110,6 +110,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Future
 
+- [A teammate can feed you without asking](future/1.0-cross-player-item-use-has-no-consent.md) — **High** — the target is never asked; parked by the user.
 - [PVP](future/pvp.md) — **Low** — deferred until PvE is stable.
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — **Low** — voice and vote-kick.
 - [EnemyCombatOrderPolicy follow-up](future/enemy-combat-order-policy-kernel.md) — **Low** — the kernel-process follow-up.
@@ -136,6 +137,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Bilingual human documentation](resolved/bilingual-human-docs.md) — **Medium** — absorbed by the two-block `en/` + `zh/` standard.
 
 ### Done
+- [The pinyin search follows the game language](done/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — zh-CN matches; English is a documented limit.
 - [The member waits for a host that waits for it](done/1.0-member-waits-for-a-host-that-waits-for-it.md) — **High** — the heartbeat holds the join open.
 - [A guest keeps its role after the session ends](done/1.0-a-guest-keeps-its-role-after-the-session-ends.md) — **High** — the role clears; a session joins.
 - [A member's removal throws in the renderer](done/1.0-member-removal-throws-in-the-renderer.md) — **High** — read at a leave.

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -38,9 +39,19 @@ internal sealed class EatSoundCase : AcceptanceCase
 			context.Notes.Add("the provided snack did not name its slot; the use reads the hand's own item");
 		}
 
+		// The action's sound is a reliable message, not a synchronous return: the host's use answer can
+		// arrive before the member has replayed the clip. Poll the recorder instead of racing one read.
 		var heard = await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "eatFlesh")).ConfigureAwait(false);
-		context.Read("member heard", heard);
 		var line = Text(heard, "line");
+		var deadline = Stopwatch.StartNew();
+		while (!line.Contains("eatFlesh@", StringComparison.Ordinal) && deadline.Elapsed < TimeSpan.FromSeconds(5))
+		{
+			await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+			heard = await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "eatFlesh")).ConfigureAwait(false);
+			line = Text(heard, "line");
+		}
+
+		context.Read("member heard", heard);
 		Require(line.Contains("eatFlesh@", StringComparison.Ordinal),
 			"the member's recorder did not carry the eat: " + Raw(heard));
 	}

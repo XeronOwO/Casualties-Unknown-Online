@@ -46,6 +46,13 @@ internal static class LiquidAffectPatches
 
 		private static bool Prefix(LiquidAffect __instance)
 		{
+			// A destroyed item can still receive one last FixedUpdate, and the world/fluid manager can already be
+			// gone while that callback runs. The vanilla body dereferences all three; there is nothing to simulate.
+			if (__instance == null || WorldGeneration.world == null || FluidManager.main == null) // Unity objects — ==
+			{
+				return false;
+			}
+
 			var rb = RbField(__instance);
 			return rb != null && rb.bodyType == RigidbodyType2D.Dynamic;
 		}

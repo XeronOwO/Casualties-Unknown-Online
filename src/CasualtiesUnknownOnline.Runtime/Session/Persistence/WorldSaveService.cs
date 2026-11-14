@@ -497,7 +497,13 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			return;
 		}
 
-		if (!batch.Events.Any(@event => @event is RunAdvancedEvent))
+		// The layer-end cut snapshots the layer being ENTERED. A run that has just
+		// taken its ending has no next layer, and by the time its final advance
+		// commits the live world is already gone; the native read then refuses the
+		// cut, which is the right refusal but an error the player never earned.
+		// The last mid-run cut is the continuation point.
+		var advanced = batch.Events.OfType<RunAdvancedEvent>().LastOrDefault();
+		if (advanced is null || advanced.Run.Ending != RunEnding.None)
 		{
 			return;
 		}

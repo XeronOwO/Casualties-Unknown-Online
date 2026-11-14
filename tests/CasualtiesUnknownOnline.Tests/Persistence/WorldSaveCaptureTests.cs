@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -125,6 +126,25 @@ public class WorldSaveCaptureTests
 		Assert.Equal(1, LiveRunLayer(live));
 		var backup = Assert.Single(Directory.GetFiles(fixture.Repository.Workspace.BackupsDirectory(worldId), "*.cuoz"));
 		Assert.Contains("layer-end-", Path.GetFileName(backup), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void LayerAdvance_AtAnEnding_DoesNotAttemptACut()
+	{
+		using var fixture = WorldSaveFixture.Create(
+			"save-ending",
+			nativeWorldFacts: new FakeNativeWorldFacts { CaptureRunFieldsFailure = "no live world is present" },
+			loggerFactory: new RecordingLoggerFactory());
+		Assert.True(fixture.Service.TryBeginRun(isTutorial: false));
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 9), out _, out _));
+
+		// The final advance carries the run ending; there is no next layer to snapshot,
+		// and the world is already gone, so a cut here can only refuse. The last mid-run
+		// cut is the continuation point.
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 10, ending: RunEnding.Merc), out _, out _));
+
+		Assert.Empty(fixture.Recorder.Messages(LogLevel.Error, "WorldCutWriter"));
+		Assert.Empty(fixture.Recorder.Messages(LogLevel.Error, "NativeWorldFacts"));
 	}
 
 	[Fact]
@@ -328,8 +348,8 @@ public class WorldSaveCaptureTests
 		return document.RootElement.Clone();
 	}
 
-	internal static RunState Run(int layerIndex) =>
-		new(RunId, [1, 2, 3, 4], 0, 2, 10, false, [new RunSetting("speed", RunSettingKind.Float, FloatValue: 1.5f)], layerIndex);
+	internal static RunState Run(int layerIndex, RunEnding ending = RunEnding.None) =>
+		new(RunId, [1, 2, 3, 4], 0, 2, 10, false, [new RunSetting("speed", RunSettingKind.Float, FloatValue: 1.5f)], layerIndex, Ending: ending);
 
 	internal static CharacterDataMsg Character(ulong instanceId, string definitionId) =>
 		new() { SlotCount = 5, Items = [new CharacterItemMsg { InstanceId = instanceId, ItemId = definitionId, Condition = 0.9f }] };

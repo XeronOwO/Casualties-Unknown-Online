@@ -3,19 +3,19 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the isolation's save points were read
-- [ ] Native parity — the segment lists come from both clients' own logs
-- [ ] Native parity probe — segments 1-16 agree and 17 slides by eight bytes
-- [ ] Entry mapping — the first divergence is between segment 16's continuation and 17's save
-- [ ] Mechanism inventory — the pod stage is the prime candidate
-- [ ] Whole-family audit — the two clients stay in one session on the same run
-- [ ] Self-check table — log reads and one ticket section
-- [ ] Verification design — the next probe reads the pod stage's draws on both sides
-- [ ] Plan approved by the user — root cause before the terrain backstop
-- [ ] Structure review done — the finding is appended, the earlier misreads kept and corrected
+- [ ] Design comprehension — the isolation's log line and the game's loading text were read
+- [ ] Native parity — the stage name is the game's own text
+- [ ] Native parity probe — the two clients' segment 17 is eight bytes apart
+- [ ] Entry mapping — the log runs at every generation save
+- [ ] Mechanism inventory — the seasonal branch is excluded (11-14 is not Halloween)
+- [ ] Whole-family audit — the probe adds one field to the existing segment line
+- [ ] Self-check table — one diagnostic line, no behaviour change
+- [ ] Verification design — the next real run reads `stage=` on both clients at segment 17
+- [ ] Plan approved by the user — locate the root cause, no workaround
+- [ ] Structure review done — the probe lives in the isolation that already owns the boundary
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: no deploy in this cycle
+- [ ] Release-cycle deployment/acceptance: deploy and read the stage field
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

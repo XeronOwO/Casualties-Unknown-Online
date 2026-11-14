@@ -2,9 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.World;
-using HarmonyLib;
 using UnityEngine;
-using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
@@ -38,6 +36,7 @@ internal static class WorldGenRandomIsolation
 	internal static Action<string>? Log;
 
 	private static int _segments;
+	private static string? _activeFrame;
 	private static string? _lastSavedHex;
 
 	/// <summary>The random stream state at the most recent segment start. The
@@ -60,23 +59,10 @@ internal static class WorldGenRandomIsolation
 		// then sample the tail — a full 1024-column generation is ~40 segments.
 		if (Log is not null && (_segments <= 24 || _segments % 8 == 0))
 		{
-			Log($"[GenStream] segment {_segments}: {_lastSavedHex} stage={Stage()}");
+			Log($"[GenStream] segment {_segments}: {_lastSavedHex} stage={_activeFrame ?? "?"}");
 		}
 	}
 
-	/// <summary>The game's own loading text at the save — names the generation stage this boundary fell in (the block-table divergence parts inside one of these stages).</summary>
-	private static string Stage()
-	{
-		var world = WorldGeneration.world;
-		if (world is null)
-		{
-			return "?";
-		}
-
-		return AccessTools.Field(typeof(WorldGeneration), "loadingText")?.GetValue(world) is Text text
-			? text.text
-			: "?";
-	}
 
 	private static void Restore()
 	{
@@ -142,6 +128,7 @@ internal static class WorldGenRandomIsolation
 				continue;
 			}
 
+			_activeFrame = sub.GetType().Name;
 			Save();
 			yield return current;
 			Restore();

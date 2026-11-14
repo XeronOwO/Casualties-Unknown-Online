@@ -179,6 +179,7 @@ internal sealed class RunCoordinator(
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.WorldReadyReceived += OnRemoteWorldReady;
 		_world.LayerDescentReceived += OnLayerDescent;
+		_world.RunEndedReceived += OnRunEnded;
 	}
 
 	/// <summary>The exact reverse of <see cref="BindToSession"/>: every edge the run follows is released here, in the same set.</summary>
@@ -190,6 +191,7 @@ internal sealed class RunCoordinator(
 		_world.WorldJoinReceived -= OnWorldJoin;
 		_world.WorldReadyReceived -= OnRemoteWorldReady;
 		_world.LayerDescentReceived -= OnLayerDescent;
+		_world.RunEndedReceived -= OnRunEnded;
 	}
 
 	/// <summary>Pump: scene state, guest menu lock, the WorldJoin follow retry, body state publishing. The menu return and the cuts are taken by <see cref="SaveCutSeam"/> at the frame-end seam.</summary>
@@ -418,6 +420,29 @@ internal sealed class RunCoordinator(
 
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>
 	private void OnLayerDescent(bool twice) => _descentPlumbing.OnEdge(twice);
+
+	/// <summary>
+	/// The host's world ended (measured 2026-11-14: the member kept standing in it with the departed host's
+	/// clone still updating): the member's world is over, so it takes its own leave path — a guest's answer
+	/// is menu-only, so no cut is written on its side.
+	/// </summary>
+	private void OnRunEnded(RunEndedMsg msg) =>
+		_menuReturn.Request(_session.Role, RunMenuReturnOrigin.HostPull, inWorld: true);
+
+	/// <summary>
+	/// Host: this host's world has ended — tell the members still standing in it. Called after the leave
+	/// actually ran, so the message cannot be read as "the host wants to stay"; a guest's leave publishes
+	/// nothing, because the only world it ends is its own copy.
+	/// </summary>
+	internal void PublishRunEndIfHost()
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		_world.PublishRunEnded(0);
+	}
 
 	private void OnWorldJoin(bool isTutorial) => Join.OnJoin(isTutorial);
 

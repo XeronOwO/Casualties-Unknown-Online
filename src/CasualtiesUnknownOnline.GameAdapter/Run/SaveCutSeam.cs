@@ -146,6 +146,9 @@ internal sealed class SaveCutSeam(
 		if (_menuReturn.Leave())
 		{
 			_menuReturn.Clear();
+			// The host's leave ends the world for everyone; the members still in it are told before the
+			// scene unloads the transport's world (measured 2026-11-14: they stayed behind otherwise).
+			_run.PublishRunEndIfHost();
 		}
 
 		return true;

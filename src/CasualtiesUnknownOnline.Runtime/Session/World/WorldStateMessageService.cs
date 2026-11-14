@@ -500,6 +500,19 @@ internal sealed class WorldStateMessageService(
 
 	public void FireLayerDescentReceived(bool twice, WorldGenerationMsg? generation) => Descent.Receive(twice, generation);
 
+	/// <summary>
+	/// Host: the world has ended — tell every member still standing in it to leave. Sent once, after the
+	/// host's own leave completed; a member answers it through its own exit path.
+	/// </summary>
+	public void PublishRunEnded(long runId) =>
+		_sender.SendToAll(_session.InWorldRemoteSteamIds(), NetMsg.RunEnded, new RunEndedMsg { RunId = runId });
+
+	/// <summary>Guest: the host's world ended — raise it so the member's own leave path runs.</summary>
+	public void FireRunEndedReceived(RunEndedMsg msg) => RunEndedReceived?.Invoke(msg);
+
+	/// <summary>Guest: the host's world ended.</summary>
+	public event Action<RunEndedMsg>? RunEndedReceived;
+
 	public void PublishWorldParams(WorldStartParams parameters)
 	{
 		WorldParams = parameters;

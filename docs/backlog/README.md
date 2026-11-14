@@ -73,6 +73,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
+- [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
 
 

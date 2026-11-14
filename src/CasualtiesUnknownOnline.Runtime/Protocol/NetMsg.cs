@@ -501,4 +501,10 @@ public enum NetMsg : byte
 	// handshake, and the member's client ends its session on it (its retry would fail the same way).
 	HandshakeRefused = 166,
 
+	// The host's world ended: the host has already performed its own leave, so a member still standing in that
+	// world leaves it through the same path it uses for its own exit. Measured 2026-11-14: a member kept the
+	// world (and the departed host's clone) after the host left — its page read Home while its state still said
+	// in world, with nothing to play with and no message to tell it so.
+	RunEnded = 167,
+
 }

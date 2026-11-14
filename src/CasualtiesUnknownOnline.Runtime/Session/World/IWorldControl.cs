@@ -77,6 +77,19 @@ public interface IWorldControl : IWorldSocialControl
 	/// <summary>Host only: relay damage this host APPLIED to the other members (source excluded). The damage is the increment in the game's accumulated units, and no contribution rides along — a third party accumulates what it is handed, and only the host keeps the per-sender ledger.</summary>
 	void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
+	/// <summary>
+	/// Host only: this host's world has ENDED (it performed its own leave) — every handshaken member still
+	/// standing in it must leave too. Sent once, after the leave, and never for a member's own exit: a
+	/// member's leave removes only its own copy of the world.
+	/// </summary>
+	void PublishRunEnded(long runId);
+
+	/// <summary>Guest: the host's world ended — raised so the member's own leave path can run against a world that still exists.</summary>
+	void FireRunEndedReceived(RunEndedMsg msg);
+
+	/// <summary>Guest: the host's world ended; the member leaves through the same path it uses for its own exit (no cut is written on its side).</summary>
+	event Action<RunEndedMsg>? RunEndedReceived;
+
 	/// <summary>Guest side of the enter-the-world instruction. <paramref name="baselineFollows"/> is the instruction's promise that the run-baseline checkpoint set follows it: the receiver drops the params it still holds (a previous run's) and its generation waits for that set to restore the host's baseline.</summary>
 	void FireWorldJoinReceived(bool isTutorial, bool baselineFollows);
 

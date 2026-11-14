@@ -25,6 +25,7 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		var harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
 		SoundPlayRecorder.Install(harmony);
 		BlockWriteRecorder.Install(harmony);
+		FacialBodyProbe.Install(harmony);
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
 	}
 }

@@ -567,6 +567,7 @@ internal static class CaseRegistry
 		// (a row the sweep lists under the unhooked item families).
 		new ProstheticCase(),
 		new RunSettingsCase(),
+		new LateLayerSwitchesCase(), // the host's unchipped preset reaches the member's WorldGeneration.Start, not just its dictionary
 		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds
 		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
 		// the reading is on the suite ticket.

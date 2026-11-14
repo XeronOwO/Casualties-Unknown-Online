@@ -41,6 +41,20 @@ internal sealed class WorldJoinFollow(
 	private int joinPendingSinceMs;
 
 	/// <summary>
+	/// How long a guest may wait for the host's run baseline before the instruction is dropped. The
+	/// baseline rides the checkpoint set that follows the WorldJoin instruction; a normal round trip is
+	/// a frame or two, and this bound only turns a producer/delivery failure into a named refusal instead
+	/// of a member starting from its own menu settings and generating a different run.
+	/// </summary>
+	private const int BaselineWaitTimeoutMs = 20_000;
+
+	/// <summary>The tick the current join began waiting for the host's baseline (0 = not waiting).</summary>
+	private int baselinePendingSinceMs;
+
+	/// <summary>The "holding for the host's baseline" line fired for this wait, so the hold is observable once and not every frame.</summary>
+	private bool baselineWaitLogged;
+
+	/// <summary>
 	/// Guest side: the host told us to enter the world (WorldJoin). The menu
 	/// may still be loading when it arrives (a right-click "Join Game" launches
 	/// a fresh process) — wait for PreRunScript, then start the run. The entry
@@ -74,6 +88,8 @@ internal sealed class WorldJoinFollow(
 
 		joinIsTutorial = isTutorial;
 		joinPendingSinceMs = Environment.TickCount;
+		baselinePendingSinceMs = 0;
+		baselineWaitLogged = false;
 		setJoinPending();
 		TryStart();
 	}
@@ -109,6 +125,68 @@ internal sealed class WorldJoinFollow(
 			return; // stay in JoinPending — the pump retries
 		}
 
+		// The host's run baseline is the input the native Start derives the run's live switches from:
+		// unchipped, the layer time limit, decay, temperature offset, liquid pushing and the depth-0 body
+		// effects are all read once at WorldGeneration.Start (WorldGeneration.cs:253-331). Starting before
+		// it is in hand makes Start read this guest's menu settings instead (PreRunScript.StartRun assigns
+		// WorldGeneration.runSettings from PreRunScript.runSettings, PreRunScript.cs:400-416), and those
+		// cached fields do not follow the baseline later applied at the generation boundary. Wait for the
+		// baseline, then hand it to Start through the game's own field.
+		WorldStartParams? baseline = null;
+		if (!joinIsTutorial)
+		{
+			baseline = world.WorldParams;
+			if (baseline is null)
+			{
+				if (baselinePendingSinceMs == 0)
+				{
+					baselinePendingSinceMs = Environment.TickCount;
+				}
+
+				if ((uint)(Environment.TickCount - baselinePendingSinceMs) >= BaselineWaitTimeoutMs)
+				{
+					baselineWaitLogged = false;
+					setIdle();
+					log.LogError(
+						"World join refused: the host's run baseline did not arrive within {Seconds} s — starting now would derive the run's switches from this client's menu settings and generate a different run.",
+						BaselineWaitTimeoutMs / 1000);
+					return;
+				}
+
+				if (!baselineWaitLogged)
+				{
+					baselineWaitLogged = true;
+					log.LogInformation(
+						"World join received — holding the local start until the host's run baseline arrives (the game derives unchipped, the time limit, decay, temperature and liquid pushing from it at WorldGeneration.Start).");
+				}
+
+				return;
+			}
+
+			baselinePendingSinceMs = 0;
+			baselineWaitLogged = false;
+			if (baseline.IsTutorial)
+			{
+				setIdle();
+				log.LogError("World join refused: the instruction says a run, but the host's baseline is a tutorial.");
+				return;
+			}
+
+			if (baseline.RunSettings is null)
+			{
+				setIdle();
+				log.LogError(
+					"World join refused: the host's run baseline carries no run settings — starting from this client's menu settings would generate a different run.");
+				return;
+			}
+		}
+		else if (world.WorldParams is { IsTutorial: false })
+		{
+			setIdle();
+			log.LogError("World join refused: the instruction says a tutorial, but the host's baseline is a run.");
+			return;
+		}
+
 		setStarting();
 		guestMenu.AuthorizeNextStart(); // the gate refuses unauthorised (manual) guest starts
 
@@ -126,7 +204,25 @@ internal sealed class WorldJoinFollow(
 		}
 		else
 		{
+			// StartRun copies this client's menu table onto WorldGeneration.runSettings and starts WaitLoad,
+			// which yields through the darkening before it loads SampleScene (PreRunScript.cs:391-416). The
+			// native Start therefore reads the host's table, not the local one. The assignment is immediate
+			// (the coroutine has not resumed yet), and a missing field is named rather than silently leaving
+			// the guest on its own settings.
+			var runSettings = baseline!.RunSettings!;
 			PreRunScript.instance.StartRun();
+			if (HarmonyTraverse.WriteRunSettings(runSettings))
+			{
+				log.LogInformation(
+					"World join — applied the host's {SettingCount} run settings to WorldGeneration before the scene load, so the native Start derives the run's switches from the host's baseline.",
+					runSettings.Count);
+			}
+			else
+			{
+				log.LogError(
+					"World join — could not overwrite WorldGeneration.runSettings with the host's {SettingCount} run settings: the field was not found, so the guest may start from its local menu settings.",
+					runSettings.Count);
+			}
 		}
 	}
 }

@@ -47,13 +47,16 @@ internal static class HarmonyTraverse
 		return preRun.FieldExists() && preRun.GetValue() is Dictionary<string, object> settings ? settings : null;
 	}
 
-	public static void WriteRunSettings(Dictionary<string, object> settings)
+	public static bool WriteRunSettings(Dictionary<string, object> settings)
 	{
 		var worldGen = Traverse.Create(typeof(WorldGeneration)).Field("runSettings");
-		if (worldGen.FieldExists())
+		if (!worldGen.FieldExists())
 		{
-			worldGen.SetValue(settings);
+			return false;
 		}
+
+		worldGen.SetValue(settings);
+		return true;
 	}
 
 	public static bool IsGenerating()

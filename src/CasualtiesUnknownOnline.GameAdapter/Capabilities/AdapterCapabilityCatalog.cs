@@ -208,7 +208,7 @@ internal static class AdapterCapabilityCatalog
 			AdapterCapabilityIds.Crafting,
 			"Recipes, combination and cooking",
 			AdapterCapabilityKind.Required,
-			[typeof(CraftingPatches), typeof(HeaterCookPatch)],
+			[typeof(CraftingPatches), typeof(HeaterCookPatch), typeof(RecipeSpriteFallbackPatch)],
 			[],
 			[],
 			[]),

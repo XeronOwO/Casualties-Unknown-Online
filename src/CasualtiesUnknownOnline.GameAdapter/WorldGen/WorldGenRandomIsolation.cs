@@ -50,7 +50,9 @@ internal static class WorldGenRandomIsolation
 
 		var merc = AccessTools.Field(typeof(WorldGeneration), "isMercRun")?.GetValue(world);
 		var depth = AccessTools.Field(typeof(WorldGeneration), "biomeDepth")?.GetValue(world);
-		return $"merc={merc} depth={depth}";
+		var h = AccessTools.Field(typeof(WorldGeneration), "height")?.GetValue(world);
+		var w = AccessTools.Field(typeof(WorldGeneration), "width")?.GetValue(world);
+		return $"merc={merc} depth={depth} h={h} w={w}";
 	}
 	private static string? _lastSavedHex;
 

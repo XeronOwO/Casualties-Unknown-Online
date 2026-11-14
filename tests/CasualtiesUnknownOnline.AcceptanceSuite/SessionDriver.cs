@@ -35,16 +35,10 @@ internal sealed class SessionDriver(Options options)
 		// loading line nobody can explain. Wait until the world is up and the gate has released.
 		await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 		await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-		var deadline = Stopwatch.StartNew();
-		while (deadline.Elapsed < TimeSpan.FromSeconds(20))
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
-			var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-			if (!IsTrue(state, "inWorld"))
-			{
-				break;
-			}
-		}
+		// The driver blocks inside the client until the world is gone, so this is one call instead of
+		// a 750 ms poll for twenty seconds (the user's rule: a wait is a measurement, and a fixed
+		// sleep is a dead wait, 2026-11-14).
+		await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
 
 		var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
 		var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
@@ -353,11 +347,65 @@ internal sealed class SessionDriver(Options options)
 
 	private Task RelaunchHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
 
-	private Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
+	private async Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
 	{
-		throw new InvalidOperationException(
-			$"the {only} client is not answering. The suite does not restart a client to make a run work: a restart is a "
-			+ "deploy or a source change (the user's rule, 2026-11-14). Read its state and fix the cause.");
+		// Only a client that is DOWN is started. A client that answers but cannot join is a finding,
+		// never a restart (the user's rule, 2026-11-14): a restart would throw away the session being
+		// measured and hide the cause.
+		try
+		{
+			await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+			throw new InvalidOperationException(
+				$"the {only} client answers but cannot join. The suite does not restart a client: a restart is a deploy or a "
+				+ "source change (the user's rule, 2026-11-14). Read its state and fix the cause.");
+		}
+		catch (InvalidOperationException)
+		{
+			throw;
+		}
+		catch (Exception)
+		{
+			// Not answering: the client is not running. Start it (a start, not a restart).
+		}
+
+		var launcher = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "launch-clients.ps1");
+		var start = new ProcessStartInfo("pwsh")
+		{
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+		};
+		start.ArgumentList.Add("-NoProfile");
+		start.ArgumentList.Add("-File");
+		start.ArgumentList.Add(launcher);
+		start.ArgumentList.Add("-Only");
+		start.ArgumentList.Add(only);
+		start.ArgumentList.Add("-NoJoin");
+		start.ArgumentList.Add("-AllowOfflineSteam");
+		if (!string.IsNullOrEmpty(_options.GameDir))
+		{
+			start.ArgumentList.Add("-GameDir");
+			start.ArgumentList.Add(_options.GameDir!);
+		}
+
+		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
+		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(120))
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			try
+			{
+				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+				return;
+			}
+			catch (Exception)
+			{
+			}
+		}
+
+		throw new InvalidOperationException($"the suite started the {only} but its driver never answered: " + output.Trim());
 	}
 
 	/// <summary>

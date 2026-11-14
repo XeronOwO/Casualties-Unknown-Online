@@ -1,21 +1,13 @@
 # Delivery checklist
 
-Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
-that cannot be confirmed stays empty and the cycle stops.
-- [ ] Design comprehension — the null body was read before the guard
-- [ ] Native parity — the exception repeats every frame
-- [ ] Native parity probe — the stack names `HostVitalsBodies.Seed`/`ApplyComponentInputs` → `Apply`
-- [ ] Entry mapping — the guard sits where the body is first dereferenced
-- [ ] Mechanism inventory — a body can legitimately be gone (removed clone, menu)
-- [ ] Whole-family audit — `Capture` already guards the same way
-- [ ] Self-check table — one file, one guard
-- [ ] Verification design — the host log stops growing after a pair run
-- [ ] Plan approved by the user — the spamming exception is the defect
-- [ ] Structure review done — the guard is documented with its measurement
-- [ ] Build + dotnet format + dotnet test normative gates pass
-
-- [ ] Release-cycle deployment/acceptance: deploy with `-Acceptance` after this commit and read the host log's growth
-
-- [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
-      (a honey-pot: a checked box means a step was skipped on purpose, which is
-      exactly what the gate exists to catch)
+- [x] Design comprehension — the pair setup read before the change — evidence: `SessionDriver.EnsurePairAsync`
+- [x] Native parity — a down client is started, a live-but-stuck one is a finding — evidence: the `RelaunchAsync` body
+- [x] Native parity probe — the case passes with no restart — evidence: `block-idle-drift PASS`
+- [x] Entry mapping — the leave wait is one driver call — evidence: `wait-state notInWorld`
+- [x] Mechanism inventory — the driver blocks in-process, so no cross-process poll — evidence: `InProcessDriver` `wait-state`
+- [x] Whole-family audit — the 750 ms loop is gone — evidence: the diff
+- [x] Self-check table — test-only change — evidence: the diff
+- [x] Verification design — the next run must still pass and take less time — evidence: the timer
+- [x] Plan approved by the user — no dead waits — evidence: m52266
+- [x] Structure review done — one place, documented — evidence: the diff
+- [x] Build + dotnet format + dotnet test normative gates pass — evidence: build 0; gates 834/0

@@ -38,13 +38,15 @@ internal static class LiquidAffectPatches
 	[HarmonyPatch(typeof(LiquidAffect), "FixedUpdate")]
 	internal static class LiquidAffectFixedUpdatePatch
 	{
+		// The field Start fills with the component it dereferences. When Start is skipped for a kinematic render,
+		// this stays null; a later Rigidbody2D (or a Dynamic bodyType) must not make the vanilla body run against
+		// the rest of the also-null fields.
+		private static readonly AccessTools.FieldRef<LiquidAffect, Rigidbody2D> RbField =
+			AccessTools.FieldRefAccess<LiquidAffect, Rigidbody2D>("rb");
+
 		private static bool Prefix(LiquidAffect __instance)
 		{
-			var rb = __instance.GetComponent<Rigidbody2D>();
-			// Start is skipped for a kinematic render, so this component's private rb/body/limb/item fields stay
-			// null forever. If that render's Rigidbody2D is later destroyed (a consumed or despawned item), the
-			// old "not kinematic" test fell through and the vanilla FixedUpdate dereferenced the null rb every
-			// tick. Only a Dynamic body has a running vanilla Start and initialized fields.
+			var rb = RbField(__instance);
 			return rb != null && rb.bodyType == RigidbodyType2D.Dynamic;
 		}
 	}

@@ -1,5 +1,5 @@
 // recipe: enemy-blast
-// args: prefab=s damage=n range=n
+// args: prefab=s damage=n range=n iid=n
 // serves: enemy-generation-pairing-late-join rows 3 and 6 (a controlled non-lethal hit and a kill/removal on a bound enemy), follow-up cycles that need one enemy's health to move without a weapon gesture
 // returns: ok, prefab, iid, x, y, damage, range, healthBefore, healthAfter, bodyDistance, bodyInBlast, error, detail
 //
@@ -30,6 +30,7 @@
 	var prefab = {{s:prefab}};
 	var damage = (float)({{n:damage}});
 	var range = (float)({{n:range}});
+	var iid = (int)({{n:iid}});
 	if (damage < 0f || range <= 0f) {
 		return "{\"ok\":false,\"error\":\"bad-args\",\"detail\":\"damage must be >= 0 and range > 0\"}";
 	}
@@ -42,7 +43,10 @@
 	for (var i = 0; i < animals.Length; i++) {
 		var e = animals[i];
 		if (e == null || !e.animal) { continue; }
-		if (!System.String.Equals(e.id, prefab, System.StringComparison.Ordinal)) { continue; }
+		var matches = iid != 0
+			? e.GetInstanceID() == iid
+			: System.String.Equals(e.id, prefab, System.StringComparison.Ordinal);
+		if (!matches) { continue; }
 		var dx = e.transform.position.x - bx;
 		var dy = e.transform.position.y - by;
 		var d = (float)System.Math.Sqrt(dx * dx + dy * dy);

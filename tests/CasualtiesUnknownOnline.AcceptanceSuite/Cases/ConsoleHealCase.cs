@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -83,6 +84,32 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// wound then reopens over the healed body — measured: a heal answered applied and stored while
 		// the member's limb read 0.309). The case waits for the wound before it heals.
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
+
+		// A body left by an earlier case can carry a prosthetic limb whose `Limb.body` is null; the seed
+		// dereferences that field. Pick an attached, non-head limb from the member's own reading instead
+		// of assuming limb 0.
+		var limbIndex = -1;
+		for (var candidate = 0; candidate < 6; candidate++)
+		{
+			var probe = await context.MemberRecipeAsync("limb-read", cancellationToken,
+				("source", "local"),
+				("limb", candidate.ToString(CultureInfo.InvariantCulture)),
+				("target", context.MemberId)).ConfigureAwait(false);
+			if (probe is { ValueKind: JsonValueKind.Object } element
+				&& element.TryGetProperty("dismembered", out var dismembered) && dismembered.ValueKind == JsonValueKind.False
+				&& element.TryGetProperty("hasBody", out var hasBody) && hasBody.ValueKind == JsonValueKind.True
+				&& (!element.TryGetProperty("isHead", out var isHead) || isHead.ValueKind != JsonValueKind.True)
+				&& element.TryGetProperty("skinHealth", out var skin) && skin.ValueKind == JsonValueKind.Number)
+			{
+				limbIndex = candidate;
+				break;
+			}
+		}
+
+		Require(limbIndex >= 0, "the member has no attached non-head limb to wound");
+		var limb = limbIndex.ToString(CultureInfo.InvariantCulture);
+		context.Note($"wounding the member's limb {limbIndex}");
+
 		// The seed dereferences the limb's own body, and a member that joined a moment ago can still be
 		// between frames (a null inside ImpactDamage). Retry before calling it a finding.
 		JsonElement? seeded = null;
@@ -90,7 +117,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		{
 			try
 			{
-				seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
+				seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", limb), ("force", "300"), ("infection", "0")).ConfigureAwait(false);
 				break;
 			}
 			catch (Exception) when (seedAttempt < 3)
@@ -104,7 +131,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		var woundLanded = false;
 		for (var wait = 0; wait < 40; wait++)
 		{
-			wounded = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+			wounded = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId)).ConfigureAwait(false);
 			woundLanded = Number(wounded, "skinHealth") < 80 || Number(wounded, "bleedAmount") > 0.5 || Boolean(wounded, "dislocated") == true;
 			if (woundLanded)
 			{
@@ -137,7 +164,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// The reset's own frame: read the limb the moment the member's client reports it, so a value
 		// that is healthy here and hurt later separates "the reset never wrote" from "the damage
 		// comes back" (the 2026-11-14 reading has both shapes in the ticket).
-		var immediate = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+		var immediate = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId)).ConfigureAwait(false);
 		context.Read("member-limb-at-reset", immediate);
 
 		JsonElement? healed = null;
@@ -145,7 +172,7 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		for (var wait = 0; wait < 60; wait++)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			healed = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+			healed = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb), ("target", context.MemberId)).ConfigureAwait(false);
 			restored = Boolean(healed, "dismembered") == false
 				&& Number(healed, "skinHealth") >= 99
 				&& Number(healed, "bleedAmount") <= 1;

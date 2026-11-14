@@ -18,9 +18,16 @@
 	if (limbIndex < 0 || limbIndex >= body.limbs.Length) { return "{\"ok\":false,\"error\":\"limb-out-of-range\"}"; }
 	var limb = body.limbs[limbIndex];
 	if (limb == null) { return "{\"ok\":false,\"error\":\"no-such-limb\"}"; }
+	if (limb.body == null) { return "{\"ok\":false,\"error\":\"no-limb-body\",\"detail\":\"limb " + limbIndex + " is not attached to a body\"}"; }
+	if (WorldGeneration.world == null) { return "{\"ok\":false,\"error\":\"no-world\"}"; }
 
 	var before = limb.skinHealth;
-	limb.ImpactDamage(force, new Vector2(0f, -1f));
+	try {
+		limb.ImpactDamage(force, new Vector2(0f, -1f));
+	} catch (System.Exception ex) {
+		var detail = ex.ToString().Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", "\\n");
+		return "{\"ok\":false,\"error\":\"impact-failed\",\"limb\":" + limbIndex + ",\"detail\":\"" + detail + "\"}";
+	}
 	// A seeded infection is a SUBSTITUTION, named as one: `Item.DoAmputate` only offers the amputation when `limb.infectionAmount > 60f`, and infection grows
 	// only with game time. The value is written, never derived, and the answer reports it so the reading cannot mistake it for a natural infection.
 	if (infection > 0f) { limb.infectionAmount = infection; }

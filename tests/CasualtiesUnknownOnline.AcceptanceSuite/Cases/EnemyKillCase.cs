@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -33,7 +34,8 @@ internal sealed class EnemyKillCase : AcceptanceCase
 		var blast = await context.RecipeAsync("enemy-blast", cancellationToken,
 			("prefab", target!.Value.Id),
 			("damage", "1000"),
-			("range", "0.5")).ConfigureAwait(false);
+			("range", "0.5"),
+			("iid", target.Value.Iid.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("blast", blast);
 		var healthAfter = Number(blast, "healthAfter");
 		Require(healthAfter is <= 0, "the host's blast did not kill the animal: " + Raw(blast));
@@ -56,7 +58,7 @@ internal sealed class EnemyKillCase : AcceptanceCase
 	}
 
 	/// <summary>The nearest animal that stands outside the blast's own body radius.</summary>
-	private static (string Id, double Distance)? PickAnimal(JsonElement? scene)
+	private static (string Id, int Iid, double Distance)? PickAnimal(JsonElement? scene)
 	{
 		if (scene is not { ValueKind: JsonValueKind.Object } root
 			|| !root.TryGetProperty("animals", out var animals)
@@ -65,11 +67,12 @@ internal sealed class EnemyKillCase : AcceptanceCase
 			return null;
 		}
 
-		(string Id, double Distance)? best = null;
+		(string Id, int Iid, double Distance)? best = null;
 		foreach (var animal in animals.EnumerateArray())
 		{
 			if (animal.ValueKind != JsonValueKind.Object
 				|| !animal.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String
+				|| !animal.TryGetProperty("iid", out var iid) || iid.ValueKind != JsonValueKind.Number
 				|| !animal.TryGetProperty("bodyDistance", out var distance) || distance.ValueKind != JsonValueKind.Number)
 			{
 				continue;
@@ -91,7 +94,7 @@ internal sealed class EnemyKillCase : AcceptanceCase
 
 			if (best is null || d < best.Value.Distance)
 			{
-				best = (idText, d);
+				best = (idText, iid.GetInt32(), d);
 			}
 		}
 

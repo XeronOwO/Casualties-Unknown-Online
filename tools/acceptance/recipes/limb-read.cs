@@ -2,7 +2,7 @@
 // args: source=s limb=n target=s
 // serves: medical-state-names-no-kind, cross-player-item-use-random-determinism, heal-cheat-command-state-reset
 // returns: ok, source, limb, skinHealth, bleedAmount, pain, muscleHealth, shrapnel, hasShrapnel, splinted,
-//          dislocated, dismembered, isHead, isVital, distanceToHeart, components, error, detail
+//          dislocated, dismembered, isHead, isVital, distanceToHeart, hasBody, components, error, detail
 //
 // Reads ONE limb through the surface a row names, so a run compares what each side actually holds
 // instead of inferring it:
@@ -45,6 +45,7 @@
 	var infectionAmount = 0f;
 	var broken = false;
 	var distanceToHeart = 0;
+	var hasBody = true;
 	var componentText = "";
 
 	if (source == "local" || source == "display") {
@@ -87,6 +88,7 @@
 		infectionAmount = limb.infectionAmount;
 		broken = limb.broken;
 		distanceToHeart = limb.distanceToHeart;
+		hasBody = limb.body != null;
 		if (limb.GetComponent<SplintLimb>() != null) { componentText = "SplintLimb"; }
 		if (limb.GetComponent<TourniquetScript>() != null) { componentText = componentText.Length > 0 ? componentText + ",TourniquetScript" : "TourniquetScript"; }
 		if (limb.GetComponent<ChilledLimb>() != null) { componentText = componentText.Length > 0 ? componentText + ",ChilledLimb" : "ChilledLimb"; }
@@ -136,5 +138,6 @@
 		+ ",\"infectionAmount\":" + num(infectionAmount)
 		+ ",\"broken\":" + (broken ? "true" : "false")
 		+ ",\"distanceToHeart\":" + distanceToHeart
+		+ ",\"hasBody\":" + (hasBody ? "true" : "false")
 		+ ",\"components\":\"" + componentText + "\"}";
 }))()

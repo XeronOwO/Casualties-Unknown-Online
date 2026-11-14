@@ -160,7 +160,7 @@ internal static class SoundPlayRecorder
 
 	private static void Record(string clip, Vector2 position)
 	{
-		if (!Enabled || clip.Length == 0)
+		if (!Enabled || string.IsNullOrEmpty(clip))
 		{
 			return;
 		}

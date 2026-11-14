@@ -89,6 +89,8 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			if (probe is not { ValueKind: JsonValueKind.Object } element
 				|| !element.TryGetProperty("dismembered", out var dismembered)
 				|| dismembered.ValueKind != JsonValueKind.False
+				|| !element.TryGetProperty("hasBody", out var hasBody)
+				|| hasBody.ValueKind != JsonValueKind.True
 				|| (element.TryGetProperty("isHead", out var isHead) && isHead.ValueKind == JsonValueKind.True)
 				|| !element.TryGetProperty("skinHealth", out var skin)
 				|| !skin.TryGetDouble(out _))

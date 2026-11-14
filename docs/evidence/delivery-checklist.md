@@ -14,7 +14,7 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: pending the post-commit deploy, `verify-deploy`, and the acceptance batch
+- [ ] Release-cycle deployment/acceptance: pending the post-commit deploy, `verify-deploy`, the targeted batch and the full 33-case batch
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

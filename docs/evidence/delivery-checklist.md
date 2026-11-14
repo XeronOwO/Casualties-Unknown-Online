@@ -3,16 +3,16 @@
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops. Documentation-only cycles fill every box in one pass and
 leave the release-cycle deployment/acceptance line and the FORBIDDEN line unchecked.
-- [ ] Design comprehension — the divergence is a write the relay does not cover; the fix moves the relay to `SetBlock`
-- [ ] Native parity — the game's own `GenerateObjectAtPos` is the named writer (not our code)
-- [ ] Native parity probe — `[SetBlock] 523,1015 -> 0 from WorldGeneration.GenerateObjectAtPos` and 34 differing rows, first at 988
-- [ ] Entry mapping — `SetBlock` is the single runtime write entry for the block table
-- [ ] Mechanism inventory — the deferred-apply path and the remote-apply guard already exist in `BlockBreakSync`
-- [ ] Whole-family audit — every other block-table writer now has a named channel or a recorded reason
-- [ ] Self-check table — the fix design names message, interface pair, handler and tests
-- [ ] Verification design — the case `block-idle-drift` becomes the acceptance row once the channel lands
+- [ ] Design comprehension — the SetBlock seam is already patched; the write is captured on the host
+- [ ] Native parity — the capture path is the mod's own, the writer is the game's
+- [ ] Native parity probe — the host's diff table is updated via `ReportBlockState`
+- [ ] Entry mapping — the open question moved to live delivery, not the entry point
+- [ ] Mechanism inventory — the generation-relation guard that could refuse a live report is named with its lines
+- [ ] Whole-family audit — the next probe reads the member's log and `ReportBlockState`'s send path
+- [ ] Self-check table — no code changed in this cycle
+- [ ] Verification design — the probe names the branch before a message is added
 - [ ] Plan approved by the user — "locate the root cause and fix it"
-- [ ] Structure review done — no code in this cycle; the record is the input for the next
+- [ ] Structure review done — the record is the next slice's input
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: no deploy in this cycle

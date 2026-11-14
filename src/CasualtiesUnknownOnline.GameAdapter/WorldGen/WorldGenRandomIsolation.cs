@@ -130,10 +130,30 @@ internal static class WorldGenRandomIsolation
 			if (kind == GenerationYield.Kind.Nested)
 			{
 				var nestedBefore = StateHex();
-				yield return Drive(nested!, adapter, resetFirst: false);
+				// The borders and the chip are launched as nested coroutines whose body
+				// runs in ONE step (neither yields internally before it ends, except the
+				// chip's own yield break), so the outer segment (the `yield return null`
+				// after them) records their joint consumption as one number. Bracket
+				// each launch as its own segment so the measured split can name the
+				// step that produced it (2026-11-14: segments 16->17 differ by eight
+				// bytes while the borders/chip have no segment of their own).
+				var nestedName = nested!.GetType().Name;
+				var ownSegment = IsGenerationStage(nestedName);
+				if (ownSegment)
+				{
+					_activeFrame = nestedName;
+					Save();
+				}
+
+				yield return Drive(nested, adapter, resetFirst: false);
+				if (ownSegment)
+				{
+					Restore();
+				}
+
 				if (Log is not null)
 				{
-					Log($"[GenStream] nested {nested!.GetType().Name} before={nestedBefore} after={StateHex()} {WorldFacts()}");
+					Log($"[GenStream] nested {nestedName} before={nestedBefore} after={StateHex()} {WorldFacts()}");
 				}
 
 				continue;
@@ -156,6 +176,19 @@ internal static class WorldGenRandomIsolation
 			yield return current;
 			Restore();
 		}
+	}
+
+	/// <summary>
+	/// The two nested coroutines whose whole body runs in one step (no internal
+	/// yield before it ends) and therefore have no segment of their own in the
+	/// strapped log: the world borders and the chip. Their launch is bracketed
+	/// so the split between the terrain segments and the `yield return null`
+	/// after them can be attributed to one of the two.
+	/// </summary>
+	private static bool IsGenerationStage(string nestedTypeName)
+	{
+		return nestedTypeName.Contains("WorldGenerateWorldBorders")
+			|| nestedTypeName.Contains("WorldPlaceChip");
 	}
 
 	/// <summary>

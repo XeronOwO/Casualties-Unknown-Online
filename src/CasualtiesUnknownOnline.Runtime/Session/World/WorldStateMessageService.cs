@@ -399,6 +399,29 @@ internal sealed class WorldStateMessageService(
 		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
 	}
 
+	/// <summary>The rows each member has been told about, so a reconcile sends differences only.</summary>
+	private readonly BlockTableReconciler _blockReconciler = new();
+
+	/// <summary>
+	/// Host: the drift backstop. The entry snapshot is the only time a member hears the table; a
+	/// write no live event carried stayed wrong for the run. Every step this sends each in-world
+	/// member only the rows that changed (an idle run sends nothing; the cap bounds the payload).
+	/// </summary>
+	public void ReconcileBlockTable(long nowMs)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_blockReconciler.TryBegin(nowMs))
+		{
+			return;
+		}
+
+		foreach (var (member, rows) in _blockReconciler.Diff(_session.InWorldRemoteSteamIds(), _damagedBlocks.Values))
+		{
+			_sender.Send(member, NetMsg.WorldBlockState, new BlockStateMsg { Blocks = [.. rows] });
+			_log.LogInformation("Reconciled {Count} block row(s) to {Peer}.", rows.Count, member);
+		}
+	}
+
+
 	/// <summary>
 	/// Host: invite every handshaken member that is not in the world, and — when
 	/// this host holds a run — send the run-baseline checkpoint set right after the

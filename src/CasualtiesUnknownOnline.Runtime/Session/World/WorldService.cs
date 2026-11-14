@@ -148,6 +148,9 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 			_blockReports.GuestReports.PendingBreakDropCount,
 			_blockReports.GuestReports.ResendBreakDrops);
 
+	/// <summary>Host: the periodic block-table reconcile's tick. The clock and the per-member baselines live in the message service.</summary>
+	internal void PumpLiveBlockReconcile(long nowMs) => _messages.ReconcileBlockTable(nowMs);
+
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest partial-damage reports are outstanding.</summary>
 	internal int PendingBlockDamageReportCount => _blockReports.PendingBlockDamageReportCount;
 

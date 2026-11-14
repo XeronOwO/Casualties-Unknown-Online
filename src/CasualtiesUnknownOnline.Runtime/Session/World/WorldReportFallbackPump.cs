@@ -39,6 +39,7 @@ internal sealed class WorldReportFallbackPump(WorldService world, RuntimeEntityC
 	{
 		var nowMs = _time.NowMs;
 		_world.PumpReportFallbacks(nowMs);
+		_world.PumpLiveBlockReconcile(nowMs);
 		_entities.PumpEntityReportFallback(nowMs);
 		_craft.PumpRecipeUnlockFallback(nowMs);
 	}

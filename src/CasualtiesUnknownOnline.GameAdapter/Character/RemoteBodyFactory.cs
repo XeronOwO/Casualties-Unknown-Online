@@ -126,6 +126,15 @@ internal static class RemoteBodyFactory
 		}
 
 		body.transform.position = anchor;
+		// A FacialExpression caches its Body: on a clone whose body the framework destroys while
+		// the head survives, the cache points at a dead component and the game's own Update
+		// throws Body.get_peekingBehind every frame (measured 2026-11-14). Point every facial
+		// in the clone at this clone's own body.
+		foreach (var facial in clone.GetComponentsInChildren<FacialExpression>(true))
+		{
+			facial.body = body;
+		}
+
 		body.targetLookPos = new Vector2(1000f, 460f);
 		// MUST go on the Body component's GameObject: the proxy-detection
 		// patches query GetComponent<RemoteBodyDriver>() on the Body (which is a

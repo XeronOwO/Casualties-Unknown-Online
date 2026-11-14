@@ -348,93 +348,16 @@ internal sealed class SessionDriver(Options options)
 	/// <summary>How many times the member had to be recreated to join (0 is the healthy reading; every trigger is a finding).</summary>
 	public int MemberRelaunches { get; private set; }
 
-	/// <summary>Quits the member's client, starts it again through the launcher, and waits for its driver.</summary>
+	/// <summary>A restart is a deploy or a source change, never a fixture repair (the user's rule, 2026-11-14).</summary>
 	private Task RelaunchMemberAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.MemberUrl, "guest", cancellationToken);
 
 	private Task RelaunchHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
 
-	private async Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
+	private Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
 	{
-		await TryActionAsync(url, "quit", cancellationToken).ConfigureAwait(false);
-		// The launcher reuses a client that is still running, so the quit must be observed: a game
-		// whose main thread is stuck in a world that never finishes generating ignores
-		// Application.Quit (measured: `IP-direct start refused: a world is running or generating`
-		// kept looping while the process stayed alive). The suite owns the client it started, so it
-		// asks the client for its own pid and reclaims it — no duplicate process is ever started.
-		var gone = Stopwatch.StartNew();
-		while (gone.Elapsed < TimeSpan.FromSeconds(20))
-		{
-			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-			try
-			{
-				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
-			}
-			catch (Exception)
-			{
-				break;
-			}
-		}
-
-		try
-		{
-			var pidAnswer = await ActionAsync(url, "pid", cancellationToken).ConfigureAwait(false);
-			if (pidAnswer.ValueKind == JsonValueKind.Object
-				&& pidAnswer.TryGetProperty("pid", out var pidValue)
-				&& pidValue.ValueKind == JsonValueKind.Number
-				&& pidValue.TryGetInt32(out var pid))
-			{
-				using var client = Process.GetProcessById(pid);
-				client.Kill(entireProcessTree: true);
-				await client.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-			}
-		}
-		catch (Exception)
-		{
-			// The client may have exited on its own; the launcher answers next.
-		}
-
-		var launcher = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "launch-clients.ps1");
-		var start = new ProcessStartInfo("pwsh")
-		{
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-		};
-		start.ArgumentList.Add("-NoProfile");
-		start.ArgumentList.Add("-File");
-		start.ArgumentList.Add(launcher);
-		start.ArgumentList.Add("-Only");
-		start.ArgumentList.Add(only);
-		start.ArgumentList.Add("-NoJoin");
-		start.ArgumentList.Add("-Restart");
-
-		// The boxed clients' Steam accounts do not own the game: the pair runs offline over IP direct,
-		// and a box must never be told to start its own Steam (measured 2026-11-12, the user's report).
-		start.ArgumentList.Add("-AllowOfflineSteam");
-		if (!string.IsNullOrEmpty(_options.GameDir))
-		{
-			start.ArgumentList.Add("-GameDir");
-			start.ArgumentList.Add(_options.GameDir!);
-		}
-
-		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
-		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-		var deadline = Stopwatch.StartNew();
-		while (deadline.Elapsed < TimeSpan.FromSeconds(120))
-		{
-			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
-			try
-			{
-				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
-				return;
-			}
-			catch (Exception)
-			{
-			}
-		}
-
-		throw new InvalidOperationException($"the suite relaunched the {only} but its driver never answered: " + output.Trim());
+		throw new InvalidOperationException(
+			$"the {only} client is not answering. The suite does not restart a client to make a run work: a restart is a "
+			+ "deploy or a source change (the user's rule, 2026-11-14). Read its state and fix the cause.");
 	}
 
 	/// <summary>
@@ -519,18 +442,14 @@ internal sealed class SessionDriver(Options options)
 		return (hostNote, memberNote);
 	}
 
-	private async Task<string> RecoverPairAsync(CancellationToken cancellationToken)
+	private Task<string> RecoverPairAsync(CancellationToken cancellationToken)
 	{
-		await RelaunchHostAsync(cancellationToken).ConfigureAwait(false);
-		await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
-		var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
-		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-		if (members.Length == 0)
-		{
-			throw new InvalidOperationException("the host's roster stayed empty after the host was recreated and the run restarted");
-		}
-
-		return memberNote + " (after the host was recreated)";
+		// The pair is never recreated to make a run work: a restart throws away the session being
+		// measured and hides the reason the pair stopped answering (the user's rule, 2026-11-14).
+		// The failure names the client state instead, and the cause is fixed in the product.
+		throw new InvalidOperationException(
+			"the pair is not answering: the suite does not restart clients (a restart is a deploy or a source change). "
+			+ "Read the host's and the member's state and fix the cause.");
 	}
 
 	/// <summary>Reads the host's in-world members' session ids — the ids the cases address a member by.</summary>

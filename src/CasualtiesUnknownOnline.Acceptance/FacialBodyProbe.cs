@@ -55,7 +55,12 @@ internal static class FacialBodyProbe
 		{
 			LastLogMs[id] = nowMs;
 			var root = __instance.transform != null ? __instance.transform.root.name : "<destroyed>";
-			UDebug.LogWarning($"[FacialProbe] facial {id} on root '{root}' has no body (destroyed) — its Update is skipped.");
+			// A managed null (never wired) and a destroyed Unity object both answer `== null`; the two
+			// need different fixes, so the reading separates them (2026-11-14).
+			var managedNull = ReferenceEquals(body, null);
+			var scene = __instance.gameObject.scene.name;
+			UDebug.LogWarning($"[FacialProbe] facial {id} on '{__instance.gameObject.name}' under '{root}' scene '{scene}' "
+				+ $"body managedNull={managedNull} unityNull={body == null} — its Update is skipped.");
 		}
 
 		return false;

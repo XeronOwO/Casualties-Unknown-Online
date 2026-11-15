@@ -69,6 +69,17 @@ N compressed archive backups — the Minecraft world layout, plus backups.
 - `damaged-<stamp>/` is a snapshot that was REFUSED and then replaced by a promoted backup: it is
   evidence, nothing reads it, and no cut, prune or load ever deletes it (§6).
 
+### 2.1 Planned live archive
+
+The live snapshot payload is planned to become one compressed archive, `live.cuoz`, instead of
+the unpacked `live/` folder. The archive carries the same `manifest.json` and domain entries, so
+§3's file contracts, §5's stage/verify/backup/rename discipline and §6's manifest gate and salvage
+stay unchanged; only the committed live form changes. `world.json`, `world.lease` and `backups/`
+remain as shown above because they are repository metadata, not snapshot payload. A world written
+in the old `live/` layout stays readable; the first successful save writes the archive and only then
+removes the unpacked payload, so a failed migration leaves the old snapshot in place. This is a
+planned change: until the writer and reader land, `live/` in the layout above is the current form.
+
 ## 3. File contracts
 
 ### 3.1 `index.json`

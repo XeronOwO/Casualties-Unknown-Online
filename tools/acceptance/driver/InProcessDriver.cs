@@ -147,6 +147,11 @@
 	var session = services == null ? null : (services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.SessionService)) as CasualtiesUnknownOnline.Runtime.Session.SessionService);
 	var presence = services == null ? null : (services.GetService(typeof(CasualtiesUnknownOnline.Runtime.GameAdapter.IWorldPresenceQuery)) as CasualtiesUnknownOnline.Runtime.GameAdapter.IWorldPresenceQuery);
 	var gate = services == null ? null : (services.GetService(typeof(CasualtiesUnknownOnline.Runtime.GameAdapter.IStartGateState)) as CasualtiesUnknownOnline.Runtime.GameAdapter.IStartGateState);
+	var kernelType = System.Type.GetType("CasualtiesUnknownOnline.Runtime.Session.Items.ItemKernelAuthority, CasualtiesUnknownOnline.Runtime");
+	var kernelOwner = kernelType == null || services == null ? null : services.GetService(kernelType);
+	var kernelRun = kernelOwner == null ? null : kernelOwner.GetType().GetMethod("QueryRun").Invoke(kernelOwner, null);
+	var runIdProperty = kernelRun == null ? null : kernelRun.GetType().GetProperty("RunId");
+	var runId = runIdProperty == null ? 0UL : System.Convert.ToUInt64(runIdProperty.GetValue(kernelRun, null), System.Globalization.CultureInfo.InvariantCulture);
 
 	var fields = new System.Collections.Generic.List<string>();
 
@@ -178,6 +183,7 @@
 		putRaw(fields, escape, "active", session != null && session.SessionActive ? "true" : "false");
 		putText(fields, escape, "steamId", session == null ? "" : session.LocalSteamId.ToString());
 		putText(fields, escape, "hostId", session == null ? "0" : session.HostSteamId.ToString());
+		putRaw(fields, escape, "runId", runId.ToString(System.Globalization.CultureInfo.InvariantCulture));
 		putRaw(fields, escape, "steamInit", steam != null && steam.IsInitialized ? "true" : "false");
 		putRaw(fields, escape, "inWorld", presence != null && presence.IsInWorldOrGenerating ? "true" : "false");
 		putRaw(fields, escape, "gateWaiting", gate != null && gate.IsWaitingForReady ? "true" : "false");

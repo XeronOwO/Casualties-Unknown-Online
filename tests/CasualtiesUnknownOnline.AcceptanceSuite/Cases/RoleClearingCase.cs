@@ -17,6 +17,10 @@ internal sealed class RoleClearingCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		// This row opens with a host leave; it needs a pair that is actually in the same run. The
+		// preceding remote-removal case deliberately leaves the member, so a NewWorld row must
+		// establish its own world instead of inheriting that half-session.
+		await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
 

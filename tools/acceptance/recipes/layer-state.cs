@@ -1,6 +1,6 @@
 // recipe: layer-state
 // args: none
-// returns: ok, biomeDepth, halfHeight, panelActive, generating, worldExists, error
+// returns: ok, biomeDepth, halfHeight, panelActive, generating, regenerating, worldExists, error
 //
 // Reads the live layer state the descent decisions use. The drill pod's sink patches run inside
 // WorldGeneration.RegenerateWorld; a blocked team gate must leave biomeDepth unchanged. During the
@@ -26,6 +26,7 @@
 		var halfProperty = genType.GetProperty("halfHeight", InstanceAny);
 		var panelField = genType.GetField("savePanel", InstanceAny);
 		var generatingField = genType.GetField("generatingWorld", InstanceAny);
+		var regeneratingField = genType.GetField("doingRegen", InstanceAny);
 		var existsProperty = genType.GetProperty("worldExists", InstanceAny);
 
 		var depth = depthField == null ? -1 : System.Convert.ToInt32(depthField.GetValue(world), System.Globalization.CultureInfo.InvariantCulture);
@@ -33,12 +34,14 @@
 		var panel = panelField == null ? null : panelField.GetValue(world);
 		var panelActive = panel is UnityEngine.GameObject panelObject && panelObject != null && panelObject.activeSelf;
 		var generating = generatingField != null && generatingField.GetValue(world) is bool flag && flag;
+		var regenerating = regeneratingField != null && regeneratingField.GetValue(world) is bool regenFlag && regenFlag;
 		var exists = existsProperty != null && existsProperty.GetValue(world, null) is bool alive && alive;
 
 		return "{\"ok\":true,\"biomeDepth\":" + depth
 			+ ",\"halfHeight\":" + half
 			+ ",\"panelActive\":" + (panelActive ? "true" : "false")
 			+ ",\"generating\":" + (generating ? "true" : "false")
+			+ ",\"regenerating\":" + (regenerating ? "true" : "false")
 			+ ",\"worldExists\":" + (exists ? "true" : "false") + "}";
 	}
 	catch {

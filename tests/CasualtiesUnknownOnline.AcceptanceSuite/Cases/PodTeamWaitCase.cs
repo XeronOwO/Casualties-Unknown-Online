@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -77,10 +78,6 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 
 		// Both living bodies at the pod: the same native sink must now take both clients down two layers.
 		await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
-		// The host acts on its replicated copy of the member's position; on an older run the
-		// 500 ms used by the fresh-run version was enough, but the shared world has a longer
-		// stream, so give the position one measured second to arrive before the one native sink.
-		await Task.Delay(TimeSpan.FromMilliseconds(2000), cancellationToken).ConfigureAwait(false);
 		var hostReady = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberReady = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		context.Read("host:ready", hostReady);
@@ -88,14 +85,36 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 		Require(Int(hostReady, "biomeDepth") == depthBefore,
 			"placing the member at the pod changed the layer before the trigger: " + Raw(hostReady));
 
-		var fired = await context.Session.ActionAsync(
-			context.Session.HostUrl,
-			"pod-descent",
-			cancellationToken).ConfigureAwait(false);
-		context.Read("host:fired", fired);
-		// One native sink starts the descent; polling re-fires it while the world is generating
+		// The host acts on its replicated copy of the member's position. The copy reaches the host
+		// asynchronously, so retry the native sink until the gate accepts it; a refusal returns an
+		// empty coroutine and cannot start a generation. Stop as soon as the world is generating.
+		var fired = (JsonElement?)null;
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			var hostDuring = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
+			if (Int(hostDuring, "biomeDepth") != depthBefore
+				|| IsTrue(hostDuring, "generating")
+				|| IsTrue(hostDuring, "regenerating"))
+			{
+				break;
+			}
+
+			fired = await context.Session.ActionAsync(
+				context.Session.HostUrl,
+				"pod-descent",
+				cancellationToken).ConfigureAwait(false);
+			context.Read("host:fired[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", fired);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		var hostAfterFire = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
+		Require(Int(hostAfterFire, "biomeDepth") != depthBefore
+			|| IsTrue(hostAfterFire, "generating")
+			|| IsTrue(hostAfterFire, "regenerating"),
+			"the host never accepted the pod trigger after the member reached it: " + Raw(hostAfterFire));
+		// A single native sink starts the descent; polling re-fires it while the world is generating
 		// and produced a corrupt half-descent on 2026-11-15. Wait for the in-flight descent.
-		var descended = await WaitForDepthAsync(context, depthBefore + 2, cancellationToken, polls: 60).ConfigureAwait(false);
+		var descended = await WaitForDepthAsync(context, depthBefore + 2, cancellationToken, polls: 90).ConfigureAwait(false);
 		context.Read("host:descended", descended.host);
 		context.Read("member:descended", descended.member);
 		Require(descended.hostDepth == depthBefore + 2,
@@ -135,6 +154,11 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			: await context.RecipeAsync("body-place", cancellationToken, ("x", x), ("y", y)).ConfigureAwait(false);
 		context.Read(member ? "place:member" : "place:host", placed);
 	}
+
+	private static bool IsTrue(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
 
 	private static int Int(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

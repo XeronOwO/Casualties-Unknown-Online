@@ -1086,7 +1086,6 @@ internal static class CaseRegistry
 		new ItemCustomizationCase(),
 		new GiveItemCase(),
 		new OverlaySoundCase(),
-		new WorldsPageCase(),
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run
 		new WorldClockCase(), // the run's clock is the host's: a requested speed reaches the member
@@ -1162,6 +1161,9 @@ internal static class CaseRegistry
 		// staged attack moves its own native attack state.
 		new LastLayerGateCase(),
 		new SaveContinueCase(),
+		// The worlds page lists archive rows; it needs a run that has actually produced a cut, so it
+		// follows save-continue instead of reading an empty fresh save root.
+		new WorldsPageCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
 		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)

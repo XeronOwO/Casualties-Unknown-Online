@@ -93,7 +93,9 @@ internal sealed class SessionDriver(Options options)
 			}
 
 			var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
-			var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+			// A restart is a full leave + generation + member world; the normal join budget is deliberately
+			// short so a stuck join fails fast, but the measured restart path is 41.7 s even when it succeeds.
+			var joined = await EnsureMemberAsync(cancellationToken, TimeSpan.FromSeconds(50)).ConfigureAwait(false);
 			return "fresh run: " + started + "; " + joined;
 		}
 		finally
@@ -205,7 +207,8 @@ internal sealed class SessionDriver(Options options)
 	}
 
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
-	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true));
+	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken, TimeSpan? budget = null) =>
+		MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true, budget));
 
 	/// <summary>
 	/// Poll the client's state from the suite side. The in-process wait-state command sleeps on the
@@ -337,9 +340,10 @@ internal sealed class SessionDriver(Options options)
 		throw new InvalidOperationException("the member's world was not ready after the host started");
 	}
 
-	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
+	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch, TimeSpan? budget = null)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		var hostState = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		var hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 		// A non-empty host roster is not proof that THIS member is in it. After a run restart the host
 		// can still list the previous session's member while the new guest sits in the world unlisted;
@@ -348,9 +352,12 @@ internal sealed class SessionDriver(Options options)
 		var hostCarriesLocal = localId.Length > 0
 			? hostMembers.Contains(localId, StringComparer.Ordinal)
 			: hostMembers.Length > 0;
-		if (IsTrue(state, "inWorld") && hostCarriesLocal)
+		var hostRunId = StateUInt64(hostState, "runId");
+		var memberRunId = StateUInt64(state, "runId");
+		var sameRun = hostRunId != 0 && memberRunId == hostRunId;
+		if (IsTrue(state, "inWorld") && hostCarriesLocal && sameRun)
 		{
-			return "the member was already in a world";
+			return "the member was already in the host's run";
 		}
 
 		if (IsTrue(state, "inWorld"))
@@ -373,7 +380,8 @@ internal sealed class SessionDriver(Options options)
 
 		var deadline = Stopwatch.StartNew();
 		var activeSince = Stopwatch.StartNew();
-		while (deadline.Elapsed < JoinBudget)
+		var joinBudget = budget ?? JoinBudget;
+		while (deadline.Elapsed < joinBudget)
 		{
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 			// The IP-direct identity is assigned by the transport when the session connects; a fresh
@@ -387,23 +395,30 @@ internal sealed class SessionDriver(Options options)
 
 			if (IsTrue(state, "inWorld"))
 			{
-				// A member can be in a world the host does not share (it joined a run the host
-				// started and then waited for a host that never listed it). Success is both sides
-				// naming the same world: the member in it AND the host's roster carrying it. The
-				// roster read is cheap and is the judge.
+				// A member can be in the previous run's world while the host has already started a new
+				// one. Presence plus roster is not enough: both sides must name the same kernel run.
+				// A member still in the old world leaves and joins the host's current run.
 				hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+				hostState = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 				var listed = localId.Length > 0
 					? hostMembers.Contains(localId, StringComparer.Ordinal)
 					: hostMembers.Length > 0;
-				if (listed)
+				var hostRun = StateUInt64(hostState, "runId");
+				var memberRun = StateUInt64(state, "runId");
+				if (listed && hostRun != 0 && memberRun == hostRun)
 				{
-					return $"the suite joined the member to the host's session after {deadline.Elapsed.TotalSeconds:F1}s";
+					return $"the suite joined the member to the host's run after {deadline.Elapsed.TotalSeconds:F1}s";
 				}
 
-				// The ghost: the menu is up (page Home, no role) while the world presence still says
-				// in world, so every join answers "a world is running or generating" (measured on the
-				// boxed member). The window offers no leave control there; the driver's own leave is
-				// the only way out of a world the window does not show.
+				if (memberRun != hostRun)
+				{
+					await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+					await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+					continue;
+				}
+
+				// The window can be up over a world the roster does not carry; the driver's own leave
+				// is the only way out of a world the window does not show.
 				var ghostControls = Controls(state);
 				if (!ghostControls.Contains("home.leave") && string.Equals(StringValue(state, "page"), "Home", StringComparison.Ordinal))
 				{
@@ -933,6 +948,27 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return [];
+	}
+
+	/// <summary>One unsigned number of a state answer, at the top level or under the older result wrapper.</summary>
+	private static ulong StateUInt64(JsonElement state, string name)
+	{
+		if (state.ValueKind != JsonValueKind.Object)
+		{
+			return 0;
+		}
+
+		if (state.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetUInt64(out var direct))
+		{
+			return direct;
+		}
+
+		return state.TryGetProperty("result", out var result)
+			&& result.TryGetProperty(name, out value)
+			&& value.ValueKind == JsonValueKind.Number
+			&& value.TryGetUInt64(out var nested)
+			? nested
+			: 0;
 	}
 
 	/// <summary>One boolean of a state answer, at the top level or under the older result wrapper.</summary>

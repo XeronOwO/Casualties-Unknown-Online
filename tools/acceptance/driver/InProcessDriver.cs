@@ -269,6 +269,29 @@
 		return finish(fields);
 	}
 
+	if (command == "pod-descent") {
+		System.Type worldType = null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && worldType == null; i++) {
+			worldType = loaded[i].GetType("WorldGeneration", false);
+		}
+		if (worldType == null) { return fail(escape, "no-worldgeneration", "WorldGeneration is not loaded in this process"); }
+		var worldField = worldType.GetField("world", staticFlags);
+		var world = worldField == null ? null : worldField.GetValue(null);
+		if (world == null) { return fail(escape, "no-world", "there is no live world in this client"); }
+		var doPodField = worldType.GetField("doPod", instanceFlags);
+		if (doPodField == null) { return fail(escape, "no-dopod", "WorldGeneration.doPod was not found"); }
+		doPodField.SetValue(world, true);
+		var start = worldType.GetMethod("StartCoroutine", instanceFlags, null, new System.Type[] { typeof(string), typeof(object) }, null);
+		if (start == null) { return fail(escape, "no-startcoroutine", "WorldGeneration.StartCoroutine(string, object) was not found"); }
+		try { start.Invoke(world, new object[] { "RegenerateWorld", true }); }
+		catch (System.Exception exception) { return fail(escape, "pod-descent-failed", unwrap(exception)); }
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "called", "true");
+		return finish(fields);
+	}
+
 	if (command == "pick-character") {
 		System.Type preRunType = null;
 		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();

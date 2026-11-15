@@ -44,6 +44,21 @@ internal static class WorldGenerationRegenerateWorldPatch
 		var fromPod = world != null && world.doPod; // Unity object — ==
 		var twice = __args is { Length: > 0 } && __args[0] is bool flag && flag;
 
+		// The pod's team gate runs at its own sink, before the local regeneration starts: the native trigger has
+		// already set `doPod` and the 5 s latch, but the descent belongs to every living member, not to one press.
+		// On a guest this returns true unchanged and the request path below still applies the host's gate.
+		if (fromPod && !LayerAdvanceCoordinator.InHostEdgeDescent
+			&& !(PatchBridge.LayerAdvance?.TryBeginHostPodDescent() ?? true))
+		{
+			if (world != null) // Unity object — ==
+			{
+				world.doPod = false;
+			}
+
+			__result = Delegated();
+			return false;
+		}
+
 		// One delegation for both session-owned calls (the panel's click and the pod's own descent): a guest in
 		// a live session reports the step instead of taking it. The console's own descent keeps the game's
 		// semantics and never reaches this branch, and the member's OWN regeneration for the host's descent edge

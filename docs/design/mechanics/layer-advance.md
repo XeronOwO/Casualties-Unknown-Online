@@ -33,6 +33,15 @@ co-op the choice must be one member's choice applied to a host-owned world.
   answer "whether the HOST's body is among the finished (a dead host has no bod[y]) and how much of the LIVING group is down
   there", so the host "counts its own body (only while aliv[e]) … in-world member whose reported vitals say alive, and applies
   `LayerPanelVisibility`".
+- **The drill pod's trigger belongs to the living team, not to the nearest press.**
+  `DrillPod.cs:18-33` fires after ONE body holds crouch under the pod for 5 s (inside `|x - pod.x| < 1.5` and
+  `|y - pod.y| < 5`). In co-op that press starts a two-layer descent for the whole session, so the host applies
+  `Runtime/Session/World/PodTeamGate.cs`: every living, connected member must be inside the same 1.5 × 5 area before
+  the descent may start. Dead and disconnected members are not counted; a living member whose body the host cannot
+  place yet counts as missing (a body that has not loaded is never treated as a body that is away), and the host's
+  refusal names the missing members. The gate is enforced both for a host's own pod press and for a member's request;
+  a refused member's native 5 s latch is reset so the next press can try again. The end-of-layer panel keeps its own
+  all-living rule above; the console's debug descent is untouched.
 - **A layer-relative request carries the generation it was made in.** `LayerAdvanceRequestMsg` "carries the requester's
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is

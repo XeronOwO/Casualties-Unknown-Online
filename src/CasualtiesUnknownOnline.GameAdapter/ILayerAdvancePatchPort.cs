@@ -30,6 +30,16 @@ internal interface ILayerAdvancePatchPort
 	bool TryDelegateLocalAdvance(bool twice);
 
 	/// <summary>
+	/// Host only, at the drill pod's own sink: whether every living, connected member is standing inside the pod's
+	/// 1.5 x 5 area (<see cref="Runtime.Session.World.PodTeamGate"/>). The native pod fires
+	/// after one body crouches under it for 5 s (<c>DrillPod.cs:18-33</c>); a session must not take the whole party
+	/// down from one player's press. True means the descent may start; false means the host's coordinator has already
+	/// reset the pod and named the missing members. Guests and solo play return true — their own call never asks the
+	/// host's roster, and the host's request path enforces the same gate for them.
+	/// </summary>
+	bool TryBeginHostPodDescent();
+
+	/// <summary>
 	/// A local <c>WorldGeneration.RegenerateWorld</c> is about to start and the local
 	/// regeneration was NOT suppressed. On the host of a live session this is the
 	/// shared descent edge: the members are told now, before the regeneration's scene

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging;
@@ -88,6 +90,9 @@ public class LayerAdvanceCoordinatorTests
 		// The host's descent send is the other direction and needs a live world; these cases exercise the
 		// member's own choice, which never reads it.
 		: dependency == typeof(IWorldControl) ? null
+		// The pod gate reads these at the drill pod's sink; the panel-delegation cases never call it.
+		: dependency == typeof(IEntitySyncControl) ? null
+		: dependency == typeof(RemoteVitalsService) ? null
 		: dependency.IsGenericType && dependency.GetGenericTypeDefinition() == typeof(ILogger<>)
 			? Activator.CreateInstance(typeof(Logger<>).MakeGenericType(dependency.GetGenericArguments()[0]), factory)!
 			: throw new InvalidOperationException($"LayerAdvanceCoordinator gained a dependency this fixture does not know: {dependency.FullName}.");

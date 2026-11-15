@@ -60,6 +60,7 @@ public class PatchBridgePortContractTests
 	private static readonly string[] LayerAdvanceMembers =
 	[
 		"OnHostDescent",
+		"TryBeginHostPodDescent",
 		"TryDelegateLocalAdvance",
 	];
 

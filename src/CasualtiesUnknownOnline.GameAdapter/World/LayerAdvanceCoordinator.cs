@@ -1,9 +1,15 @@
 using System;
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -59,19 +65,31 @@ internal sealed class LayerAdvanceCoordinator(
 	ISessionControl session,
 	IWorldControl world,
 	ILayerAdvanceControl layerAdvance,
+	IEntitySyncControl entities,
+	RemoteVitalsService vitals,
 	ILogger<LayerAdvanceCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly ILayerAdvanceControl _layerAdvance = layerAdvance;
+	private readonly IEntitySyncControl _entities = entities;
+	private readonly RemoteVitalsService _vitals = vitals;
 	private readonly ILogger<LayerAdvanceCoordinator> _log = log;
 
 	/// <summary>The panel whose choices this client already hid (Unity object); a new activation is a new panel object.</summary>
 	private GameObject? _choicesHiddenFor;
 
-	internal void BindToSession() => _layerAdvance.LayerAdvanceRequested += OnLayerAdvanceRequested;
+	internal void BindToSession()
+	{
+		_layerAdvance.LayerAdvanceRequested += OnLayerAdvanceRequested;
+		_layerAdvance.LayerAdvanceRefused += OnLayerAdvanceRefused;
+	}
 
-	internal void Unbind() => _layerAdvance.LayerAdvanceRequested -= OnLayerAdvanceRequested;
+	internal void Unbind()
+	{
+		_layerAdvance.LayerAdvanceRequested -= OnLayerAdvanceRequested;
+		_layerAdvance.LayerAdvanceRefused -= OnLayerAdvanceRefused;
+	}
 
 	/// <summary>
 	/// The end-of-layer panel's two choices belong to the HOST (the user's 2026-10-24 ruling): on a member both
@@ -238,6 +256,156 @@ internal sealed class LayerAdvanceCoordinator(
 	/// </summary>
 	internal static bool InHostEdgeDescent { get; private set; }
 
+	/// <summary>
+	/// Host only, at the drill pod's own sink: the native pod fires after ONE body crouches under it for 5 s
+	/// (<c>DrillPod.cs:18-33</c>), but a session must not take the whole party down from one player's press. Every
+	/// living, connected member has to stand inside the pod's own 1.5 x 5 area; dead and disconnected members are not
+	/// counted, and a living member whose body the host cannot place yet counts as missing. The panel's own
+	/// all-living rule (<see cref="LayerPanelGate"/>) is separate and unchanged.
+	/// </summary>
+	internal bool TryBeginHostPodDescent()
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return true; // solo, or a guest's own call: the host's request path is the gate
+		}
+
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return true; // no local pod trigger; the native guard cannot fire either
+		}
+
+		var pod = ToNet(body.transform.position);
+		if (TryPodTeam(pod, out var gate))
+		{
+			return true;
+		}
+
+		ResetNearestPod();
+		_log.LogWarning(
+			"[PodTrigger] the descent waits for every living member at the drill pod: {Living} living, {AtPod} at the pod; missing: {Missing}.",
+			gate.Living, gate.AtPod, string.Join(", ", gate.Missing));
+		return false;
+	}
+
+	/// <summary>Whether every living, connected member is inside the pod (plus the host's own body when it exists).</summary>
+	private bool TryPodTeam(NetVector2 pod, out PodGateResult gate)
+	{
+		var members = new List<PodMember>();
+		var hostBody = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (hostBody != null) // Unity object — ==
+		{
+			members.Add(new PodMember(
+				_session.LocalSteamId,
+				NameOf(_session.LocalSteamId),
+				InWorld: true,
+				Alive: hostBody.alive,
+				Position: ToNet(hostBody.transform.position)));
+		}
+
+		foreach (var steamId in _session.InWorldRemoteSteamIds())
+		{
+			if (steamId == _session.LocalSteamId)
+			{
+				continue;
+			}
+
+			var entity = _entities.GetRemotePlayer(steamId);
+			var alive = entity?.Alive ?? true;
+			if (_vitals.TryGet(steamId, out var snapshot))
+			{
+				alive = snapshot.Alive;
+			}
+
+			members.Add(new PodMember(
+				steamId,
+				NameOf(steamId),
+				InWorld: true,
+				Alive: alive,
+				Position: entity?.Position));
+		}
+
+		gate = PodTeamGate.Evaluate(pod, members);
+		return gate.CanFire;
+	}
+
+	/// <summary>The requester's synced body is the pod position the host evaluates the whole team against.</summary>
+	private bool TryRequesterAtPod(ulong sender, out PodGateResult gate)
+	{
+		var entity = _entities.GetRemotePlayer(sender);
+		if (entity == null)
+		{
+			gate = new PodGateResult(false, 0, 0, [PodTeamGate.Label(sender, null)]);
+			return false;
+		}
+
+		return TryPodTeam(entity.Position, out gate);
+	}
+
+	private string NameOf(ulong steamId) =>
+		_session.TryGetMember(steamId, out var member)
+			? PodTeamGate.Label(steamId, member.DisplayName)
+			: PodTeamGate.Label(steamId, null);
+
+	/// <summary>Guest: the host refused this descent. The native pod has already set <c>didTeleport</c>; restore it so the next press can fire again.</summary>
+	private void OnLayerAdvanceRefused(string reason)
+	{
+		ResetNearestPod();
+		_log.LogInformation("[PodTrigger] the host refused the descent: {Reason}", reason);
+	}
+
+	/// <summary>Undo the native pod's 5 s latch on this client: the next press must be able to try again.</summary>
+	private static void ResetNearestPod()
+	{
+		var world = WorldGeneration.world;
+		if (world != null) // Unity object — ==
+		{
+			world.doPod = false;
+		}
+
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		DrillPod? nearest = null;
+		var best = float.MaxValue;
+		foreach (var pod in Object.FindObjectsOfType<DrillPod>())
+		{
+			if (pod == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var dx = pod.transform.position.x - body.transform.position.x;
+			var dy = pod.transform.position.y - body.transform.position.y;
+			var distance = (dx * dx) + (dy * dy);
+			if (distance >= best)
+			{
+				continue;
+			}
+
+			best = distance;
+			nearest = pod;
+		}
+
+		if (nearest == null) // Unity object — ==
+		{
+			return;
+		}
+
+		AccessTools.Field(typeof(DrillPod), "didTeleport")?.SetValue(nearest, false);
+		AccessTools.Field(typeof(DrillPod), "timeHeld")?.SetValue(nearest, 0f);
+		if (PlayerCamera.main != null) // Unity object — ==
+		{
+			PlayerCamera.main.bonusActionBarTime = 0f;
+		}
+	}
+
+	private static NetVector2 ToNet(Vector3 value) => new(value.x, value.y);
+
 	/// <summary>Host only: an admitted member choice (handshaken member, this host's generation) — drive the layer's advance unless the world cannot take it.</summary>
 	private void OnLayerAdvanceRequested(ulong sender, bool twice)
 	{
@@ -246,6 +414,16 @@ internal sealed class LayerAdvanceCoordinator(
 		{
 			_log.LogWarning("[LayerChoice] {Sender} chose to continue but this host has no live world — nothing to advance.", sender);
 			_layerAdvance.RefuseLayerAdvance(sender, "this host has no live world.");
+			return;
+		}
+
+		if (twice && !TryRequesterAtPod(sender, out var podGate))
+		{
+			var waiting = podGate.Missing.Count == 0 ? "the group" : string.Join(", ", podGate.Missing);
+			_log.LogInformation(
+				"[PodTrigger] {Sender}'s pod request waits for every living member: {Living} living, {AtPod} at the pod; missing: {Missing}.",
+				sender, podGate.Living, podGate.AtPod, waiting);
+			_layerAdvance.RefuseLayerAdvance(sender, "every living member must be at the drill pod; still waiting for: " + waiting + ".");
 			return;
 		}
 

@@ -936,6 +936,9 @@ internal static class CaseRegistry
 		// dictionary. It restarts into an unchipped run and leaves that world to the next new-world
 		// case (it no longer restarts twice): every case after it is also NewWorld.
 		new LateLayerSwitchesCase(),
+		// The drill pod is the native two-layer trigger: it waits for every living member to stand at
+		// the pod before the host's descent, and refuses (with the missing names) when one is away.
+		new PodTeamWaitCase(),
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart

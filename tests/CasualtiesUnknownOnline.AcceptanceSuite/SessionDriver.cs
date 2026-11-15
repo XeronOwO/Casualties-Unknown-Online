@@ -571,10 +571,24 @@ internal sealed class SessionDriver(Options options)
 		}
 		memberClock.Stop();
 
+		// The member can answer inWorld while the host's start gate still waits for its world-ready
+		// report. Every InRun case depends on the native update loop being live: a pause written
+		// during the gate is skipped by PauseHandlerUpdatePatch, so the first early case can read
+		// isPaused=true with timeScale=1 and leave the pause on for the next row (measured
+		// 2026-11-15: pause-clock failed after a 86.9 s pair setup, while the same pair passed at
+		// 42.3 s). Wait for the host itself to report the gate clear before the batch starts.
+		var gateClock = Stopwatch.StartNew();
+		await WaitUntilAsync(
+			_options.HostUrl,
+			candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"),
+			TimeSpan.FromSeconds(30),
+			cancellationToken).ConfigureAwait(false);
+		gateClock.Stop();
+
 		hostNote = hostNote + "; " + startNote
 			+ $"; pair ready in {pairClock.Elapsed.TotalSeconds:F1}s"
 			+ $" (host session {hostClock.Elapsed.TotalSeconds:F1}s, run start {startClock.Elapsed.TotalSeconds:F1}s,"
-			+ $" member world {memberClock.Elapsed.TotalSeconds:F1}s; serial)";
+			+ $" member world {memberClock.Elapsed.TotalSeconds:F1}s, gate clear {gateClock.Elapsed.TotalSeconds:F1}s; serial)";
 
 		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 		if (members.Length > 0)

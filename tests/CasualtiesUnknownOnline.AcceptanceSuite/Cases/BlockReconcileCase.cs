@@ -108,15 +108,20 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 			"the member's second cell stayed at " + Int(memberSecond, "block") + " after one reconcile interval: " + Raw(memberSecond));
 
 		// Tie the line to THIS member: the host's log also carries reconciles for members of earlier
-		// sessions, and a substring alone would accept one of those. The member's table is updated by
-		// the network frame before the host's log line reaches the file, so poll the file briefly
-		// instead of reading it once at the instant the member's read succeeds.
-		var expectedLine = "Reconciled 2 block row(s) to " + context.MemberId;
+		// sessions, and a substring alone would accept one of those. The message carries every row
+		// that changed since the previous reconcile, so the two forced rows can travel with an
+		// unrelated live row (measured 2026-11-15: a healthy message carried four). The member's own
+		// two reads above are the proof that the forced rows arrived; the line only proves a reconcile
+		// message to this member carried at least those two rows. The network frame lands before the
+		// host's log line reaches the file, so poll the file briefly instead of reading it once.
+		var memberSuffix = " to " + context.MemberId;
 		JsonElement? reconciled = null;
+		var reconciledRows = 0;
 		for (var attempt = 0; attempt < 40; attempt++)
 		{
-			reconciled = await context.Session.LogTailAsync(context.Session.HostUrl, expectedLine, 1, cancellationToken).ConfigureAwait(false);
-			if (Raw(reconciled).Contains(expectedLine, StringComparison.Ordinal))
+			reconciled = await context.Session.LogTailAsync(context.Session.HostUrl, "Reconciled ", 20, cancellationToken).ConfigureAwait(false);
+			reconciledRows = ReconcileRows(reconciled, memberSuffix);
+			if (reconciledRows >= 2)
 			{
 				break;
 			}
@@ -125,8 +130,59 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		}
 
 		context.Read("host:reconcile-log", reconciled);
-		Require(Raw(reconciled).Contains(expectedLine, StringComparison.Ordinal),
-			"the host did not log the two-row reconcile to this member: " + Raw(reconciled));
+		Require(reconciledRows >= 2,
+			"the host did not log a reconcile carrying at least two rows to this member: " + Raw(reconciled));
+	}
+
+	/// <summary>The largest reconcile row count addressed to this member among the returned log lines.</summary>
+	private static int ReconcileRows(JsonElement? tail, string memberSuffix)
+	{
+		if (tail is not { ValueKind: JsonValueKind.Object } element
+			|| !int.TryParse(StringValue(element, "count"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var matched)
+			|| matched <= 0)
+		{
+			return 0;
+		}
+
+		var best = 0;
+		for (var index = 0; index < Math.Min(matched, 20); index++)
+		{
+			var line = StringValue(element, "line" + index.ToString(CultureInfo.InvariantCulture));
+			if (line is null || !line.Contains(memberSuffix, StringComparison.Ordinal))
+			{
+				continue;
+			}
+
+			const string marker = "Reconciled ";
+			var start = line.IndexOf(marker, StringComparison.Ordinal) + marker.Length;
+			var end = start;
+			while (end < line.Length && char.IsDigit(line[end]))
+			{
+				end++;
+			}
+
+			if (end > start && int.TryParse(line.AsSpan(start, end - start), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rows))
+			{
+				best = Math.Max(best, rows);
+			}
+		}
+
+		return best;
+	}
+
+	private static string? StringValue(JsonElement element, string property)
+	{
+		if (!element.TryGetProperty(property, out var value))
+		{
+			return null;
+		}
+
+		return value.ValueKind switch
+		{
+			JsonValueKind.String => value.GetString(),
+			JsonValueKind.Number => value.GetRawText(),
+			_ => null,
+		};
 	}
 
 	private static async Task<JsonElement?> ReadAsync(CaseContext context, bool member, int x, int y, CancellationToken cancellationToken)

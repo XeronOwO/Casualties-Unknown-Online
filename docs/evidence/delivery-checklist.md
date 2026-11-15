@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the pre-change copy Continue row is the remaining acceptance.
+- [ ] Release-cycle deployment/acceptance: `0.1.0+265a3d85` was deployed and verified; the legacy copy Continue and its `/save` to a 24,024-byte `live.cuoz` are recorded.
 - [ ] FORBIDDEN — never check this box

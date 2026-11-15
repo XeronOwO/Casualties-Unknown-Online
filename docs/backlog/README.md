@@ -63,6 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 - [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 358.8 s now; reuse the run rows.
+- [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
 
 
 
@@ -82,7 +83,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
-- [A world's live save is loose JSON](review/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest; pre-change copy Continue pending.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
 
@@ -137,6 +137,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A world's live save is one archive](done/1.0-save-live-snapshot-single-file.md) — **High** — one `live.cuoz`, no loose JSON; legacy Continue, 38/38 green.
 - [The block tables differ](done/1.0-block-table-diverges-between-clients.md) — **High** — entry and post-break totals agree.
 - [A live member's block table can drift](done/1.0-live-block-table-never-resyncs.md) — **High** — 60 s fallback read on the member.
 - [The item colour survives save/continue](done/1.0-item-colour-does-not-survive-continue.md) — **High** — both players' colours come back after the reconnect.

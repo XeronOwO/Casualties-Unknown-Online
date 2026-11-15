@@ -664,29 +664,30 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	/// </summary>
 	public async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(int startX, int startY, CancellationToken cancellationToken)
 	{
-		for (var y = startY + 24; y >= startY - 40; y--)
+		var read = await RecipeAsync("block-find-breakable", cancellationToken, ("count", "1")).ConfigureAwait(false);
+		if (read is not { ValueKind: JsonValueKind.Object } root
+			|| !root.TryGetProperty("cells", out var cells)
+			|| cells.ValueKind != JsonValueKind.Array
+			|| cells.GetArrayLength() == 0)
 		{
-			for (var offset = 0; offset <= 16; offset++)
-			{
-				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
-				{
-					var read = await RecipeAsync("block-read-at", cancellationToken,
-						("x", x.ToString(CultureInfo.InvariantCulture)),
-						("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-					var block = read is { ValueKind: JsonValueKind.Object } element
-						&& element.TryGetProperty("block", out var value) && value.ValueKind == JsonValueKind.Number
-							? value.GetDouble()
-							: (double?)null;
-					if (block is not null && block.Value != 0 && block.Value != 14)
-					{
-						Read("scan " + x + "," + y, read);
-						return (x, y, (int)block.Value);
-					}
-				}
-			}
+			Read("scan " + startX + "," + startY, read);
+			return null;
 		}
 
-		return null;
+		var cell = cells[0];
+		if (!cell.TryGetProperty("x", out var xValue) || xValue.ValueKind != JsonValueKind.Number
+			|| !cell.TryGetProperty("y", out var yValue) || yValue.ValueKind != JsonValueKind.Number
+			|| !cell.TryGetProperty("block", out var blockValue) || blockValue.ValueKind != JsonValueKind.Number)
+		{
+			Read("scan " + startX + "," + startY, read);
+			return null;
+		}
+
+		var x = (int)xValue.GetDouble();
+		var y = (int)yValue.GetDouble();
+		var block = (int)blockValue.GetDouble();
+		Read("scan " + x + "," + y, read);
+		return (x, y, block);
 	}
 
 	public async Task ClearBodyAsync(CancellationToken cancellationToken)

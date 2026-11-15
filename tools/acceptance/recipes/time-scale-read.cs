@@ -16,6 +16,7 @@
 		+ ",\"timeScale\":" + num(UnityEngine.Time.timeScale)
 		+ ",\"curTimeScale\":\"" + camera.curTimeScale + "\""
 		+ ",\"paused\":" + (PauseHandler.paused ? "true" : "false")
+		+ ",\"pauseProgress\":" + (PauseHandler.main != null ? num(PauseHandler.main.pauseProgress) : "-1")
 		+ ",\"sleeping\":" + (body != null && body.sleeping ? "true" : "false")
 		+ ",\"conscious\":" + (body != null && body.conscious ? "true" : "false")
 		+ ",\"alive\":" + (body != null && body.alive ? "true" : "false")

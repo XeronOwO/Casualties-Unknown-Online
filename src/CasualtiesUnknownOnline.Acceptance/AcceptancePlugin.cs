@@ -1,5 +1,6 @@
 using BepInEx;
 using HarmonyLib;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.Acceptance;
 
@@ -21,6 +22,12 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 
 	private void Awake()
 	{
+		// A batch drives two clients at once; the host's window is usually behind the member's. Unity stops
+		// advancing frames for a backgrounded window by default, which leaves time-based rows reading a stale
+		// pause ramp or a frozen clock. The acceptance channel is test-only, so keep its frames live while it is
+		// behind another client (measured 2026-11-15: pauseProgress 0.006 after three seconds).
+		Application.runInBackground = true;
+
 		// The recorder's patches are attributes on the type and nothing applies them unless something asks. Without this
 		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two
 		// clients answered count=0 for every Sound.Play of the batch).

@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance
+- [ ] Release-cycle deployment/acceptance: deployed build still to be verified by the full suite.
 - [ ] FORBIDDEN — never check this box

@@ -25,7 +25,7 @@ internal static partial class Program
 		if (options.Problem is { } problem)
 		{
 			Console.Error.WriteLine(problem);
-			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse|--fresh] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
+			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse|--fresh] [--parallel-setup|--serial-setup] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
 			return 64;
 		}
 
@@ -949,6 +949,14 @@ internal sealed record Options
 
 	public bool Fresh { get; init; }
 
+	/// <summary>
+	/// Join the member while the host generates its world, so the two loads overlap. On 2026-11-15 this also
+	/// removed the visible lobby wait: the member used to sit in the lobby for the host's whole generation
+	/// (23 s) before its own load began. Parallel pairing measured 40.9 s from endpoints to a ready pair,
+	/// serial 47.8 s. `--serial-setup` restores the serial order for a case that needs it.
+	/// </summary>
+	public bool ParallelSetup { get; init; } = true;
+
 	public string HostUrl { get; init; } = "ws://127.0.0.1:18590";
 
 	public string MemberUrl { get; init; } = "ws://127.0.0.1:18591";
@@ -982,6 +990,12 @@ internal sealed record Options
 					break;
 				case "--fresh":
 					options = options with { Fresh = true };
+					break;
+				case "--parallel-setup":
+					options = options with { ParallelSetup = true };
+					break;
+				case "--serial-setup":
+					options = options with { ParallelSetup = false };
 					break;
 				case "--out" when index + 1 < args.Length:
 					options = options with { OutputDirectory = args[++index] };

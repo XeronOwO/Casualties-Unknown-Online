@@ -252,20 +252,23 @@ function Ensure-BoxSteam([string]$Box) {
 	if (@(Get-BoxProcesses $Box 'steam').Count -gt 0) { Write-Run "$Box has a Steam process (left alone; IP direct does not need it)" }
 	return
 }
-function Start-ClientProcess([string]$Client) {
+function Start-ClientProcess([string]$Client, [hashtable]$NoReuse) {
 	# Start the process for one client and return immediately: this function never waits. Waiting is one loop for all clients, below.
+	# A client named by -Restart was just stopped and must be started again: its old listener can still answer for a
+	# moment after the kill, and the reuse check would then hand the caller the old world back (measured 2026-11-15:
+	# the host was "reused" three seconds after the restart and the suite spent 25 s leaving its old world).
 	switch ($Client) {
 		'host' {
-			if (Test-Endpoint 'host') { Write-Run 'host already running (reused)'; return }
+			if (-not $NoReuse['host'] -and (Test-Endpoint 'host')) { Write-Run 'host already running (reused)'; return }
 			Start-Process -FilePath (Join-Path $GameDir 'CasualtiesUnknown.exe') -WorkingDirectory $GameDir
 			Write-Run 'host started'
 		}
-		'guest' { Start-BoxGame $GuestBox 'guest' $GuestRoot }
-		alt { Start-BoxGame $AltBox 'alt' $AltRoot }
+		'guest' { Start-BoxGame $GuestBox 'guest' $GuestRoot $NoReuse['guest'] }
+		alt { Start-BoxGame $AltBox 'alt' $AltRoot $NoReuse['alt'] }
 	}
 }
-function Start-BoxGame([string]$Box, [string]$Client, [string]$GameRoot) {
-	if (Test-Endpoint $Client) { Write-Run "$Client already running (reused)"; return }
+function Start-BoxGame([string]$Box, [string]$Client, [string]$GameRoot, [bool]$NoReuse) {
+	if (-not $NoReuse -and (Test-Endpoint $Client)) { Write-Run "$Client already running (reused)"; return }
 
 	# A box whose game already runs but has not answered yet is NOT started again: the game refuses a second instance, and the wait loop
 	# below will see it the moment it answers.
@@ -325,26 +328,44 @@ if ($Restart) {
 	$boxPids += @(Get-BoxProcesses $AltBox 'CasualtiesUnknown' | ForEach-Object { $_.Id })
 	$boxPids = @($boxPids | Sort-Object -Unique)
 	if ($clients -contains 'host') {
-		# The host is the process listening on the HOST's driver port. A member that is still booting
-		# owns no listener yet, and a path-based guess would stop it too (measured: the member was
-		# killed during the host restart and the suite then met "connection refused" at 18591).
-		$hostPid = $null
-		if (-not [string]::IsNullOrWhiteSpace($HostUrl)) {
-			$hostPid = @(Get-NetTCPConnection -LocalPort ([uri]$HostUrl).Port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.OwningProcess } | Select-Object -First 1)
+		# Stop the DESKTOP host by its executable path. The listener PID is not reliable: after a killed
+		# driver the port can still answer from the old process for a moment, and a process-name sweep
+		# would also take a booting member. The path names exactly the install this launcher was given
+		# (measured 2026-11-15: the listener-PID path left the old host in a world, and the suite spent
+		# 25 s leaving a run that should have been fresh).
+		$hostExe = [System.IO.Path]::GetFullPath((Join-Path $GameDir 'CasualtiesUnknown.exe'))
+		$hostStopped = $false
+		foreach ($process in @(Get-Process -Name CasualtiesUnknown -ErrorAction SilentlyContinue)) {
+			$path = $null
+			try { $path = $process.Path } catch { }
+			if ($path -and ([System.IO.Path]::GetFullPath($path) -eq $hostExe)) {
+				Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+				$hostStopped = $true
+			}
 		}
 
-		if ($hostPid) {
-			Stop-Process -Id $hostPid -Force -ErrorAction SilentlyContinue
+		# A client whose path cannot be read still owns the host port; fall back to that one process.
+		if (-not $hostStopped -and -not [string]::IsNullOrWhiteSpace($HostUrl)) {
+			$hostPid = @(Get-NetTCPConnection -LocalPort ([uri]$HostUrl).Port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $_.OwningProcess } | Select-Object -First 1)
+			if ($hostPid) { Stop-Process -Id $hostPid -Force -ErrorAction SilentlyContinue }
 		}
-		# With no listener on the host port the host is already gone; nothing is killed by guess. A
-		# process-name sweep once took the member with it while it was still booting (measured: the
-		# suite then met "connection refused" at 18591 and lost the pair).
+
+		# Do not start the next host while the old port still answers: that is how the stale run is reused.
+		$deadline = [DateTime]::UtcNow.AddSeconds(10)
+		while ([DateTime]::UtcNow -lt $deadline -and (Test-Port 'host')) {
+			Start-Sleep -Milliseconds 250
+		}
 	}
 	Start-Sleep -Seconds 3
 	Write-Run ("restarted: " + ($clients -join ', '))
 }
 
-foreach ($client in $clients) { Start-ClientProcess $client }
+$noReuse = @{}
+if ($Restart) {
+	foreach ($client in $clients) { $noReuse[$client] = $true }
+}
+
+foreach ($client in $clients) { Start-ClientProcess $client $noReuse }
 
 $boxes = @{ 'guest' = $GuestBox; 'alt' = $AltBox }
 $roots = @{ 'guest' = $GuestRoot; 'alt' = $AltRoot }
@@ -352,12 +373,10 @@ $restarted = @{}
 
 $ready = Wait-Endpoints $clients $ReadyTimeoutSeconds
 Write-Run ("endpoints ready=" + $ready)
-foreach ($client in @($clients)) {
-	if ($ready -and -not (Test-Endpoint $client)) {
-		# The port answered but this is not our plug-in (another listener): treat as not ready and keep waiting.
-		$ready = $false
-	}
-}
+# Do not ping every endpoint here. The ping is one PowerShell process per client (measured 2.9 s each on 2026-11-15),
+# and it runs AFTER the game is already at its main menu; the suite then starts seconds later while the player watches
+# a ready game do nothing. The first suite action is itself a protocol handshake, so a listener that is not our plug-in
+# fails there with the protocol error instead of being pre-screened here.
 
 if (-not $ready) {
 	# Give each box whose game died before answering exactly one restart, then wait again inside what is left of the deadline.

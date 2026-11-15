@@ -177,7 +177,9 @@ internal sealed class SessionDriver(Options options)
 	public async Task<string> StartHostRunAsync(CancellationToken cancellationToken)
 	{
 		WorldStartLogOffset = await LogOffsetAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
+		var startDispatch = Stopwatch.StartNew();
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
+		startDispatch.Stop();
 
 		// The wait is a measurement made in the client that owns the fact: the driver blocks on its
 		// own presence and answers how long it took, instead of this caller sleeping and re-asking.
@@ -190,7 +192,7 @@ internal sealed class SessionDriver(Options options)
 		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (IsTrue(state, "inWorld") && string.Equals(StringValue(reached, "reached"), "true", StringComparison.Ordinal))
 		{
-			return "the suite started a fresh run (the host answered in-world after " + StringValue(reached, "waitedMs") + " ms)";
+			return "the suite started a fresh run (start-run dispatch " + startDispatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms; the host answered in-world after " + StringValue(reached, "waitedMs") + " ms)";
 		}
 		var startDeadline = Stopwatch.StartNew();
 		while (startDeadline.Elapsed < StartBudget)
@@ -199,7 +201,7 @@ internal sealed class SessionDriver(Options options)
 			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 			if (IsTrue(state, "inWorld"))
 			{
-				return "the suite started a fresh run";
+				return "the suite started a fresh run (start-run dispatch " + startDispatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms)";
 			}
 		}
 
@@ -541,10 +543,11 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
-		// The host starts the run first, then the member joins the running world. The alternative
-		// (member joins the session before the start) was measured at 71.8 s to the member's world
-		// on 2026-11-15, because both clients generate the world at once and the start gate then
-		// waits for the slower one; the serial order is the faster measured path.
+		// The default overlaps the host's generation with the member's join. Serial pairing made the
+		// member sit in the lobby for the host's whole generation before its own world load began
+		// (the player sees "joined the lobby" and then tens of seconds of nothing). Overlapping
+		// measured 40.9 s from endpoints to a ready pair on 2026-11-15, serial 47.8 s; the earlier
+		// 71.8 s/99.1 s readings were the same overlap on a stale pair and are superseded.
 		var pairClock = Stopwatch.StartNew();
 		var hostClock = Stopwatch.StartNew();
 		string hostNote;
@@ -561,28 +564,39 @@ internal sealed class SessionDriver(Options options)
 		hostClock.Stop();
 
 		var startClock = Stopwatch.StartNew();
-		var startNote = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
-		startClock.Stop();
-
 		var memberClock = Stopwatch.StartNew();
+		string startNote;
 		string memberNote;
-		try
+		if (_options.ParallelSetup)
 		{
-			memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+			var startTask = StartHostRunAsync(cancellationToken);
+			var memberTask = EnsureMemberAsync(cancellationToken);
+			await Task.WhenAll(startTask, memberTask).ConfigureAwait(false);
+			startNote = startTask.Result;
+			memberNote = memberTask.Result;
 		}
-		catch (Exception)
+		else
 		{
-			await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
+			startNote = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
 			try
 			{
 				memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception)
 			{
-				memberNote = await RecoverPairAsync(cancellationToken).ConfigureAwait(false);
-				return (hostNote, memberNote);
+				await RelaunchMemberAsync(cancellationToken).ConfigureAwait(false);
+				try
+				{
+					memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception)
+				{
+					memberNote = await RecoverPairAsync(cancellationToken).ConfigureAwait(false);
+					return (hostNote, memberNote);
+				}
 			}
 		}
+		startClock.Stop();
 		memberClock.Stop();
 
 		// The member can answer inWorld while the host's start gate still waits for its world-ready

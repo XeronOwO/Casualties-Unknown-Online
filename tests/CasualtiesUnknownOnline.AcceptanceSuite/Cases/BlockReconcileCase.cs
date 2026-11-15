@@ -23,20 +23,25 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		Require(members.Length == 1, "the run does not have exactly one member on the host: " + members.Length);
 		context.UseMember(members[0]);
 
-		var body = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
-		context.Read("body", body);
-		var localBody = body is { ValueKind: JsonValueKind.Object } bodyElement
-		&& bodyElement.TryGetProperty("localBody", out var bodyValue)
-			? bodyValue
-			: (JsonElement?)null;
-		var bodyX = Number(localBody, "positionX");
-		var bodyY = Number(localBody, "positionY");
-		Require(bodyX is not null && bodyY is not null, "the host body has no position: " + Raw(body));
+		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "2")).ConfigureAwait(false);
+		context.Read("scan", scan);
+		JsonElement? cells = null;
+		if (scan is { ValueKind: JsonValueKind.Object } scanElement
+			&& scanElement.TryGetProperty("cells", out var scannedCells)
+			&& scannedCells.ValueKind == JsonValueKind.Array)
+		{
+			cells = scannedCells;
+		}
 
-		var firstX = (int)Math.Floor(bodyX!.Value);
-		var firstY = (int)Math.Floor(bodyY!.Value) - 1;
-		var secondX = firstX + 1;
-		var secondY = firstY;
+		var resolvedCells = cells.GetValueOrDefault();
+		Require(resolvedCells.ValueKind == JsonValueKind.Array && resolvedCells.GetArrayLength() >= 2,
+			"the host has fewer than two breakable cells: " + Raw(scan));
+		var firstCell = resolvedCells[0];
+		var secondCell = resolvedCells[1];
+		var firstX = firstCell.GetProperty("x").GetInt32();
+		var firstY = firstCell.GetProperty("y").GetInt32();
+		var secondX = secondCell.GetProperty("x").GetInt32();
+		var secondY = secondCell.GetProperty("y").GetInt32();
 
 		var hostFirstBefore = await ReadAsync(context, false, firstX, firstY, cancellationToken).ConfigureAwait(false);
 		var hostSecondBefore = await ReadAsync(context, false, secondX, secondY, cancellationToken).ConfigureAwait(false);

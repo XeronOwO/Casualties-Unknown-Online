@@ -14,10 +14,10 @@ internal sealed class BlockIdleDriftCase : AcceptanceCase
 	private const int BandStart = 900;
 	private const int BandEnd = 1024;
 	private const int BandWidth = 1024;
-	// 10 s is 600 frames — enough to catch a per-frame writer — and deliberately shorter than
+	// 5 s is 300 frames — enough to catch a per-frame writer — and deliberately shorter than
 	// the host's 60 s reconcile step, so a difference seen here is drift, not the reconciler.
 	// The old 45 s window measured the same zero changes and cost 35 s per batch (2026-11-15).
-	private static readonly TimeSpan Idle = TimeSpan.FromSeconds(10);
+	private static readonly TimeSpan Idle = TimeSpan.FromSeconds(5);
 
 	public override string Name => "block-idle-drift";
 

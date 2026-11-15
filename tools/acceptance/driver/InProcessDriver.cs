@@ -346,18 +346,17 @@
 		// Resolve through the loaded assemblies so the driver template keeps its pinned compile
 		// surface; the type is ours, but the template deliberately does not reference the Runtime
 		// assembly by name.
-		System.Type messageType = null;
+		System.Type worldType = null;
 		var loadedAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-		for (var i = 0; i < loadedAssemblies.Length && messageType == null; i++) {
-			messageType = loadedAssemblies[i].GetType("CasualtiesUnknownOnline.Runtime.Session.World.WorldStateMessageService", false);
+		for (var i = 0; i < loadedAssemblies.Length && worldType == null; i++) {
+			worldType = loadedAssemblies[i].GetType("CasualtiesUnknownOnline.Runtime.Session.World.WorldService", false);
 		}
-		if (messageType == null) { return fail(escape, "no-world-messages", "WorldStateMessageService is not loaded in this process"); }
-		var messageService = services.GetService(messageType);
-		var reconcile = messageType.GetMethod("ReconcileBlockTable", new[] { typeof(long) });
-		if (messageService == null || reconcile == null) { return fail(escape, "no-world-messages", "WorldStateMessageService is not available"); }
+		if (worldType == null) { return fail(escape, "no-world-service", "WorldService is not loaded in this process"); }
+		var worldService = services.GetService(worldType);
+		var pump = worldType.GetMethod("PumpLiveBlockReconcile", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, new[] { typeof(long) }, null);
+		if (worldService == null || pump == null) { return fail(escape, "no-world-service", "WorldService.PumpLiveBlockReconcile is not available"); }
 		var now = (long)System.Environment.TickCount + 120_000;
-		reconcile.Invoke(messageService, new object[] { now });
-		reconcile.Invoke(messageService, new object[] { now + 120_000 });
+		pump.Invoke(worldService, new object[] { now });
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "command", command);
 		putRaw(fields, escape, "now", now.ToString(System.Globalization.CultureInfo.InvariantCulture));

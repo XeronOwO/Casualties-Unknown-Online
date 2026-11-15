@@ -12,11 +12,16 @@ internal sealed class SaveContinueCase : AcceptanceCase
 {
 	public override string Name => "save-continue";
 
-	public override CaseCost Cost => CaseCost.NewWorld;
+	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		var hostState = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (!IsTrue(hostState, "inWorld"))
+		{
+			await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
+		}
+
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
 

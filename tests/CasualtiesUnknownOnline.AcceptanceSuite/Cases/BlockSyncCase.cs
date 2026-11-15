@@ -31,7 +31,7 @@ internal sealed class BlockSyncCase : AcceptanceCase
 
 		var cellX = (int)Math.Floor(bodyX!.Value);
 		var cellY = (int)Math.Floor(bodyY!.Value) - 1;
-		var target = await FindBreakableCellAsync(context, false, cellX, cellY, cancellationToken).ConfigureAwait(false);
+		var target = await FindBreakableCellAsync(context, false, cancellationToken).ConfigureAwait(false);
 		Require(target is not null, "no breakable terrain cell was found below the host at (" + cellX + ", " + cellY + ")");
 
 		var (targetX, targetY, blockBefore) = target!.Value;
@@ -81,7 +81,7 @@ internal sealed class BlockSyncCase : AcceptanceCase
 
 		var memberCellX = (int)Math.Floor(memberX!.Value);
 		var memberCellY = (int)Math.Floor(memberY!.Value) - 1;
-		var memberTarget = await FindBreakableCellAsync(context, true, memberCellX, memberCellY, cancellationToken).ConfigureAwait(false);
+		var memberTarget = await FindBreakableCellAsync(context, true, cancellationToken).ConfigureAwait(false);
 		Require(memberTarget is not null, "no breakable terrain cell was found below the member at (" + memberCellX + ", " + memberCellY + ")");
 
 		var (memberTargetX, memberTargetY, memberBlockBefore) = memberTarget!.Value;
@@ -120,37 +120,33 @@ internal sealed class BlockSyncCase : AcceptanceCase
 	}
 
 	private static async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(
-		CaseContext context, bool member, int startX, int startY, CancellationToken cancellationToken)
+		CaseContext context, bool member, CancellationToken cancellationToken)
 	{
-		// The life pod's own shell is block 14 with no BlockInfo row; the terrain around and below
-		// the pod is ordinary soil, but a host that spawned inside the pod's cave sees air below it
-		// and the shell on every side (measured 2026-11-13: 504 cells, all 0 or 14), so the band
-		// reaches above the body as well and widens before it gives up.
-		for (var y = startY + 24; y >= startY - 40; y--)
+		// The live table is local to the client, so the 65x33 band scan is one evaluator call.
+		// Reading it cell by cell used to cost 2,145 driver round-trips (46.5 s in the 1.0.2
+		// full batch); the recipe returns the first breakable cell.
+		var read = member
+			? await context.MemberRecipeAsync("block-find-breakable", cancellationToken, ("count", "1")).ConfigureAwait(false)
+			: await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1")).ConfigureAwait(false);
+		if (read is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("cells", out var cells)
+			|| cells.ValueKind != JsonValueKind.Array
+			|| cells.GetArrayLength() == 0)
 		{
-			for (var offset = 0; offset <= 16; offset++)
-			{
-				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
-				{
-					var read = member
-						? await context.MemberRecipeAsync("block-read-at", cancellationToken,
-							("x", x.ToString(CultureInfo.InvariantCulture)),
-							("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false)
-						: await context.RecipeAsync("block-read-at", cancellationToken,
-							("x", x.ToString(CultureInfo.InvariantCulture)),
-							("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-					var block = Number(read, "block");
-					// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
-					if (block is not null && block.Value != 0 && block.Value != 14)
-					{
-						context.Read("scan " + x + "," + y, read);
-						return (x, y, (int)block.Value);
-					}
-				}
-			}
+			throw new AssertionException("the block-find-breakable recipe answered no cell: " + Raw(read));
 		}
 
-		return null;
+		var cell = cells[0];
+		var x = Number(cell, "x");
+		var y = Number(cell, "y");
+		var block = Number(cell, "block");
+		if (x is null || y is null || block is null)
+		{
+			throw new AssertionException("the block-find-breakable cell is incomplete: " + Raw(read));
+		}
+
+		context.Read("scan", read);
+		return ((int)x.Value, (int)y.Value, (int)block.Value);
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

@@ -56,18 +56,24 @@ internal static partial class Program
 
 		var outputDirectory = Path.GetFullPath(options.OutputDirectory ?? Path.Combine(RepositoryPaths.Root, ".acceptance", "suite"));
 		Directory.CreateDirectory(outputDirectory);
+		var suiteStartedUtc = DateTimeOffset.UtcNow;
 		var results = new List<CaseResult>();
 		var suiteClock = Stopwatch.StartNew();
 		var sharedSetup = Stopwatch.StartNew();
-		var session = new SessionDriver(options);
+		var timeline = new Timeline();
+		timeline.Begin("suite");
+		var session = new SessionDriver(options) { Timeline = timeline.Step };
 		// The per-case marks cover only the case's own window. Everything the pair writes during setup,
 		// a restart, the gap between cases or the teardown would otherwise be invisible: the 2026-11-15
 		// member log carried 184,942 TurretScript errors after the suite had already reported 0/0. Mark
 		// the whole run before the pair starts, then subtract the case windows at the end.
 		var suiteLogStart = await MarkSuiteLogsAsync(session, options).ConfigureAwait(false);
+		timeline.Begin("setup");
+		var pairStartedUtc = DateTimeOffset.UtcNow;
 		(var sessionNote, var memberNote) = tryReuse
 			? await TryReusePairAsync(session).ConfigureAwait(false)
 			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+		var pairReadyUtc = DateTimeOffset.UtcNow;
 		if (session.MemberRelaunches > 0)
 		{
 			memberNote += $" (the member was recreated {session.MemberRelaunches} time(s) to join: a ghost world it could not leave is a finding)";
@@ -97,6 +103,8 @@ internal static partial class Program
 			options = options with { MemberId = members[0] };
 		}
 
+		timeline.Step($"member id {options.MemberId ?? "(none)"}; pair setup {sharedSetup.Elapsed.TotalSeconds:F1}s");
+		timeline.End("setup");
 		sharedSetup.Stop();
 		Console.WriteLine($"session\t{sessionNote}");
 		Console.WriteLine($"member\t{memberNote}");
@@ -115,7 +123,7 @@ internal static partial class Program
 				}
 			}
 
-			results.Add(await RunAsync(acceptanceCase, options, outputDirectory).ConfigureAwait(false));
+			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline).ConfigureAwait(false));
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Cost}\tsetup {results[^1].SetupMs / 1000:F1}s\tcase {results[^1].CaseMs / 1000:F1}s\ttotal {results[^1].TotalMs / 1000:F1}s\t{results[^1].Note}");
 			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
 			{
@@ -125,11 +133,16 @@ internal static partial class Program
 
 		var suiteLogs = await ReadSuiteLogsAsync(session, options, suiteLogStart, results).ConfigureAwait(false);
 		suiteClock.Stop();
-		var reportPath = Path.Combine(outputDirectory, "report.md");
-		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs)).ConfigureAwait(false);
-		await SuiteReport.WriteJsonAsync(Path.Combine(outputDirectory, "report.json"), options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs).ConfigureAwait(false);
-		Console.WriteLine($"report: {reportPath}");
+		var suiteFinishedUtc = DateTimeOffset.UtcNow;
 		var passed = results.All(result => result.Passed) && suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null;
+		timeline.End("suite", passed ? "ok" : "fail");
+		var timelinePath = Path.Combine(outputDirectory, "timeline.txt");
+		await File.WriteAllLinesAsync(timelinePath, timeline.Lines).ConfigureAwait(false);
+		var reportPath = Path.Combine(outputDirectory, "report.md");
+		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs, suiteStartedUtc, suiteFinishedUtc, pairStartedUtc, pairReadyUtc, timeline)).ConfigureAwait(false);
+		await SuiteReport.WriteJsonAsync(Path.Combine(outputDirectory, "report.json"), options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs, suiteStartedUtc, suiteFinishedUtc, pairStartedUtc, pairReadyUtc, timeline).ConfigureAwait(false);
+		Console.WriteLine($"report: {reportPath}");
+		Console.WriteLine($"timeline: {timelinePath}");
 		if (suiteLogs.OutsideErrors > 0)
 		{
 			Console.WriteLine($"outside-case log errors: host {suiteLogs.HostOutside?.Errors ?? 0}, member {suiteLogs.MemberOutside?.Errors ?? 0}; see the report");
@@ -203,8 +216,10 @@ internal static partial class Program
 		return end > start ? line[start..end] : "-";
 	}
 
-	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory)
+	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory, Timeline timeline)
 	{
+		var startedUtc = DateTimeOffset.UtcNow;
+		timeline.Begin(acceptanceCase.Name);
 		await using var host = new DriverClient(options.HostUrl);
 		CaseContext? context = null;
 		var connect = Stopwatch.StartNew();
@@ -216,7 +231,8 @@ internal static partial class Program
 		{
 			await host.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
 			connect.Stop();
-			context = new CaseContext(options, outputDirectory, host, new SessionDriver(options));
+			var caseSession = new SessionDriver(options) { Timeline = timeline.Step };
+			context = new CaseContext(options, outputDirectory, host, caseSession, timeline);
 
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count.
@@ -248,6 +264,7 @@ internal static partial class Program
 			var caseMs = Math.Max(0, run.Elapsed.TotalMilliseconds - setup);
 			var (hostLogs, memberLogs, logProblem) = await ReadLogsAsync(context.Session, options, hostMark, memberMark, markProblem).ConfigureAwait(false);
 			var logFailure = JudgeLogs(acceptanceCase, hostLogs, memberLogs, logProblem);
+			timeline.End(acceptanceCase.Name, logFailure is null ? "ok" : "fail");
 			return new CaseResult(
 				acceptanceCase.Name,
 				acceptanceCase.Cost,
@@ -259,7 +276,9 @@ internal static partial class Program
 				context.Readings,
 				context.Notes,
 				hostLogs,
-				memberLogs);
+				memberLogs,
+				startedUtc,
+				DateTimeOffset.UtcNow);
 		}
 		catch (Exception exception) when (exception is DriverException or AssertionException or IOException or InvalidOperationException)
 		{
@@ -271,6 +290,7 @@ internal static partial class Program
 				? (null, null, (string?)null)
 				: await ReadLogsAsync(context.Session, options, hostMark, memberMark, markProblem).ConfigureAwait(false);
 			var note = exception.Message + (logProblem is null ? string.Empty : $" ({logProblem})");
+			timeline.End(acceptanceCase.Name, "fail");
 			return new CaseResult(
 				acceptanceCase.Name,
 				acceptanceCase.Cost,
@@ -282,7 +302,9 @@ internal static partial class Program
 				context?.Readings ?? new Dictionary<string, string>(StringComparer.Ordinal),
 				context?.Notes ?? [],
 				hostLogs,
-				memberLogs);
+				memberLogs,
+				startedUtc,
+				DateTimeOffset.UtcNow);
 		}
 		finally
 		{
@@ -443,9 +465,10 @@ internal static partial class Program
 	}
 }
 
-internal sealed class CaseContext(Options options, string outputDirectory, DriverClient host, SessionDriver session) : IAsyncDisposable
+internal sealed class CaseContext(Options options, string outputDirectory, DriverClient host, SessionDriver session, Timeline timeline) : IAsyncDisposable
 {
 	private readonly Options _options = options;
+	private readonly Timeline _timeline = timeline;
 	private DriverClient? _member;
 	private string? _memberId = options.MemberId;
 
@@ -618,9 +641,14 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	{
 		Readings[key] = reading is { } value ? value.GetRawText() : "null";
 		Notes.Add($"{key} = {Readings[key]}");
+		_timeline.Step($"{key} = {Readings[key]}");
 	}
 
-	public void Note(string text) => Notes.Add(text);
+	public void Note(string text)
+	{
+		Notes.Add(text);
+		_timeline.Step(text);
+	}
 
 	/// <summary>
 	/// Empties the player's body slots through the game's own drop entry, so a case that needs a
@@ -774,7 +802,9 @@ internal sealed record CaseResult(
 	IReadOnlyDictionary<string, string> Readings,
 	IReadOnlyList<string> Notes,
 	LogCounts? HostLogs,
-	LogCounts? MemberLogs)
+	LogCounts? MemberLogs,
+	DateTimeOffset StartedUtc,
+	DateTimeOffset FinishedUtc)
 {
 	public double TotalMs => ConnectMs + SetupMs + CaseMs;
 }
@@ -799,21 +829,26 @@ internal sealed record SuiteLogs(
 
 internal static class SuiteReport
 {
-	public static string Render(Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs)
+	public static string Render(Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs, DateTimeOffset startedUtc, DateTimeOffset finishedUtc, DateTimeOffset pairStartedUtc, DateTimeOffset pairReadyUtc, Timeline timeline)
 	{
 		var builder = new StringBuilder();
 		builder.AppendLine("# Acceptance suite report");
 		builder.AppendLine();
 		builder.AppendLine($"- Host: `{options.HostUrl}`");
-		builder.AppendLine($"- Started: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
+		builder.AppendLine($"- Start (UTC): `{Timestamp(startedUtc)}`");
+		builder.AppendLine($"- Pair start (UTC): `{Timestamp(pairStartedUtc)}`");
+		builder.AppendLine($"- Pair ready (UTC): `{Timestamp(pairReadyUtc)}`");
+		builder.AppendLine($"- Finish (UTC): `{Timestamp(finishedUtc)}`");
 		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
+		builder.AppendLine();
+		builder.Append(timeline.Render());
 		builder.AppendLine($"- Logs outside cases: host {Counts(suiteLogs.HostOutside)}, member {Counts(suiteLogs.MemberOutside)} — {(suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null ? "PASS" : "FAIL")}");
 		builder.AppendLine();
-		builder.AppendLine("| Case | Cost | Connect | Setup | Case | Total | Host W/E | Member W/E | Verdict | Note |");
-		builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
+		builder.AppendLine("| Case | Cost | Start (UTC) | End (UTC) | Connect | Setup | Case | Total | Host W/E | Member W/E | Verdict | Note |");
+		builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
 		foreach (var result in results)
 		{
-			builder.AppendLine($"| {result.Name} | {result.Cost} | {Seconds(result.ConnectMs)} | {Seconds(result.SetupMs)} | {Seconds(result.CaseMs)} | {Seconds(result.TotalMs)} | {Counts(result.HostLogs)} | {Counts(result.MemberLogs)} | {(result.Passed ? "PASS" : "FAIL")} | {Escape(result.Note)} |");
+			builder.AppendLine($"| {result.Name} | {result.Cost} | {Timestamp(result.StartedUtc)} | {Timestamp(result.FinishedUtc)} | {Seconds(result.ConnectMs)} | {Seconds(result.SetupMs)} | {Seconds(result.CaseMs)} | {Seconds(result.TotalMs)} | {Counts(result.HostLogs)} | {Counts(result.MemberLogs)} | {(result.Passed ? "PASS" : "FAIL")} | {Escape(result.Note)} |");
 		}
 
 		builder.AppendLine();
@@ -864,6 +899,7 @@ internal static class SuiteReport
 		{
 			builder.AppendLine();
 			builder.AppendLine($"## {result.Name} — {(result.Passed ? "PASS" : "FAIL")}");
+			builder.AppendLine($"- start `{Timestamp(result.StartedUtc)}`, end `{Timestamp(result.FinishedUtc)}`");
 			builder.AppendLine($"- cost: `{result.Cost}`; connect `{Seconds(result.ConnectMs)}` s; setup `{Seconds(result.SetupMs)}` s; case `{Seconds(result.CaseMs)}` s; total `{Seconds(result.TotalMs)}` s");
 			builder.AppendLine($"- logs: host {Counts(result.HostLogs)}; member {Counts(result.MemberLogs)}");
 			if (!string.IsNullOrEmpty(result.HostLogs?.FirstError))
@@ -890,14 +926,18 @@ internal static class SuiteReport
 		return builder.ToString();
 	}
 
-	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs)
+	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs, DateTimeOffset startedUtc, DateTimeOffset finishedUtc, DateTimeOffset pairStartedUtc, DateTimeOffset pairReadyUtc, Timeline timeline)
 	{
 		var payload = new
 		{
 			suite = options.Suite,
 			host = options.HostUrl,
-			startedAt = DateTimeOffset.Now,
+			startedAtUtc = Timestamp(startedUtc),
+			pairStartedAtUtc = Timestamp(pairStartedUtc),
+			pairReadyAtUtc = Timestamp(pairReadyUtc),
+			finishedAtUtc = Timestamp(finishedUtc),
 			totalMs,
+			timeline = timeline.Lines,
 			sharedSetupMs,
 			logsOutsideCases = new
 			{
@@ -915,6 +955,8 @@ internal static class SuiteReport
 				cost = result.Cost.ToString(),
 				verdict = result.Passed ? "PASS" : "FAIL",
 				note = result.Note,
+				startedAtUtc = Timestamp(result.StartedUtc),
+				finishedAtUtc = Timestamp(result.FinishedUtc),
 				connectMs = result.ConnectMs,
 				setupMs = result.SetupMs,
 				caseMs = result.CaseMs,
@@ -933,6 +975,8 @@ internal static class SuiteReport
 	private static string Counts(LogCounts? counts) => counts is null ? "-" : $"{counts.Warnings}/{counts.Errors}";
 
 	private static string Seconds(double milliseconds) => (milliseconds / 1000).ToString("F1", CultureInfo.InvariantCulture);
+
+	private static string Timestamp(DateTimeOffset value) => value.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
 
 	private static string Escape(string text) => text.Replace("|", "\\|", StringComparison.Ordinal).ReplaceLineEndings(" ");
 }

@@ -9,9 +9,9 @@
 ((System.Func<string>)(() => {
 	var count = {{n:count}};
 	var services = CasualtiesUnknownOnline.Runtime.CuoBootstrap.Services;
-	var console = services == null ? null : services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService));
+	var console = services == null ? null : services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandControl));
 	if (console == null) { return "{\"ok\":false,\"error\":\"no-console-service\"}"; }
-	var lines = ((CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService)console).Lines;
+	var lines = ((CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandControl)console).Lines;
 	var start = lines.Count - count;
 	if (start < 0) { start = 0; }
 	var builder = new System.Text.StringBuilder();

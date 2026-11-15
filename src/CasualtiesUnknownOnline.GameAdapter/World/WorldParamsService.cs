@@ -71,6 +71,17 @@ internal sealed class WorldParamsService(
 
 		var randomState = RandomStateSerializer.Serialize(Random.state);
 		var runSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings();
+		if (!isTutorial && (runSettings == null || runSettings.Count == 0))
+		{
+			// A host that returned to the menu can hold an empty PreRunScript settings dictionary;
+			// the native WorldGeneration.Start would fall back to the normal preset in that case.
+			// Capture that same preset explicitly, otherwise the baseline carries zero settings and
+			// every guest correctly refuses to start a different run (measured 2026-11-15: a fresh
+			// pair waited the full 30 s start gate while the guest rejected "no run settings").
+			runSettings = RunSettings.GetPreset("normal").presetValues;
+			_log.LogWarning("Captured an empty menu run-settings dictionary; using the native normal preset ({Count} settings) so the baseline matches WorldGeneration.Start.", runSettings.Count);
+		}
+
 		_world.PublishWorldParams(new WorldStartParams
 		{
 			RandomState = randomState,

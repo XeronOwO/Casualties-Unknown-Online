@@ -32,6 +32,9 @@ internal sealed class SessionDriver(Options options)
 
 	public double SetupMilliseconds => _setup.Elapsed.TotalMilliseconds;
 
+	/// <summary>The suite's timeline, called at the phase boundaries that are otherwise only a duration.</summary>
+	public Action<string>? Timeline { get; init; }
+
 	private void BeginSetup()
 	{
 		if (_setupDepth++ == 0)
@@ -250,6 +253,90 @@ internal sealed class SessionDriver(Options options)
 			TimeSpan.FromSeconds(10),
 			cancellationToken).ConfigureAwait(false);
 	}
+	/// <summary>
+	/// Joins the IP-direct session before the host opens its world. The host's start message is sent
+	/// to session members, but a member that arrives after the start has already passed the gate has
+	/// to wait for the host's 30 s start-gate timeout (measured 2026-11-15: host "waiting for 1
+	/// member", member "waiting for the host to start", both already loaded). Handshaking the
+	/// session first removes that wait; the world generation still overlaps the host's start.
+	/// </summary>
+	private async Task<string> JoinMemberSessionAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "active") && string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+		{
+			return "the member's session was already connected before the host started";
+		}
+
+		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		var deadline = Stopwatch.StartNew();
+		var lastJoinClick = DateTimeOffset.MinValue;
+		while (deadline.Elapsed < TimeSpan.FromSeconds(20))
+		{
+			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "active") && string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			{
+				return $"the member's session connected before the host started ({deadline.Elapsed.TotalSeconds:F1}s)";
+			}
+
+			var controls = Controls(state);
+			if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.notice_confirm"))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.join"))
+			{
+				if (lastJoinClick == DateTimeOffset.MinValue || (DateTimeOffset.UtcNow - lastJoinClick).TotalSeconds >= 2)
+				{
+					await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+					await TryActionAsync(_options.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+					await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+					lastJoinClick = DateTimeOffset.UtcNow;
+				}
+			}
+			else if (controls.Contains("home.transport.ip"))
+			{
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the member's session did not connect before the host's run start");
+	}
+
+	private async Task<string> WaitMemberWorldAsync(string sessionNote, CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < JoinBudget)
+		{
+			var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "inWorld"))
+			{
+				var localId = StringValue(state, "steamId");
+				var hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+				var listed = localId.Length > 0
+					? hostMembers.Contains(localId, StringComparer.Ordinal)
+					: hostMembers.Length > 0;
+				if (listed)
+				{
+					return sessionNote + $"; the member entered the world after {deadline.Elapsed.TotalSeconds:F1}s";
+				}
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the member's world was not ready after the host started");
+	}
+
 	private async Task<string> JoinMemberAsync(CancellationToken cancellationToken, bool allowRelaunch)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -562,6 +649,21 @@ internal sealed class SessionDriver(Options options)
 			hostNote = await EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false);
 		}
 		hostClock.Stop();
+		Timeline?.Invoke("host IP session ready");
+
+		var sessionNote = string.Empty;
+		try
+		{
+			sessionNote = await JoinMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+			Timeline?.Invoke(sessionNote);
+		}
+		catch (Exception exception) when (exception is DriverException or InvalidOperationException)
+		{
+			// Fall back to the old post-start join: a session handshake that the client refuses is
+			// a reading, not a reason to abandon the pair.
+			sessionNote = "session-first join failed: " + exception.Message;
+			Timeline?.Invoke(sessionNote);
+		}
 
 		var startClock = Stopwatch.StartNew();
 		var memberClock = Stopwatch.StartNew();
@@ -570,7 +672,9 @@ internal sealed class SessionDriver(Options options)
 		if (_options.ParallelSetup)
 		{
 			var startTask = StartHostRunAsync(cancellationToken);
-			var memberTask = EnsureMemberAsync(cancellationToken);
+			var memberTask = sessionNote.StartsWith("session-first join failed", StringComparison.Ordinal)
+				? EnsureMemberAsync(cancellationToken)
+				: WaitMemberWorldAsync(sessionNote, cancellationToken);
 			await Task.WhenAll(startTask, memberTask).ConfigureAwait(false);
 			startNote = startTask.Result;
 			memberNote = memberTask.Result;
@@ -580,7 +684,9 @@ internal sealed class SessionDriver(Options options)
 			startNote = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
 			try
 			{
-				memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+				memberNote = sessionNote.StartsWith("session-first join failed", StringComparison.Ordinal)
+					? await EnsureMemberAsync(cancellationToken).ConfigureAwait(false)
+					: await WaitMemberWorldAsync(sessionNote, cancellationToken).ConfigureAwait(false);
 			}
 			catch (Exception)
 			{
@@ -598,6 +704,7 @@ internal sealed class SessionDriver(Options options)
 		}
 		startClock.Stop();
 		memberClock.Stop();
+		Timeline?.Invoke("host run start dispatched and member world wait finished");
 
 		// The member can answer inWorld while the host's start gate still waits for its world-ready
 		// report. Every InRun case depends on the native update loop being live: a pause written
@@ -611,6 +718,7 @@ internal sealed class SessionDriver(Options options)
 			candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"),
 			TimeSpan.FromSeconds(30),
 			cancellationToken).ConfigureAwait(false);
+		Timeline?.Invoke("host start gate clear");
 		gateClock.Stop();
 
 		hostNote = hostNote + "; " + startNote

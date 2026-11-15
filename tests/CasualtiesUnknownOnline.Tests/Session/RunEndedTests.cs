@@ -35,6 +35,20 @@ public class RunEndedTests
 	}
 
 	[Fact]
+	public void HostRunEnd_WithoutARun_SendsNothing()
+	{
+		using var w = ItemSimWorld.Create();
+		w.SetInWorld(w.G1, true);
+		var received = new List<RunEndedMsg>();
+		w.G1.Services.GetRequiredService<IWorldControl>().RunEndedReceived += received.Add;
+
+		w.Host.Services.GetRequiredService<IWorldControl>().PublishRunEnded(0);
+		w.Driver.Tick(50);
+
+		Assert.Empty(received);
+	}
+
+	[Fact]
 	public void HostRunEnd_ForAnotherRun_IsIgnoredByTheMemberInANewerRun()
 	{
 		using var w = ItemSimWorld.Create();

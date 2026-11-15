@@ -58,11 +58,13 @@ internal static class HotReplRoslynGameReferencePatch
 			return __result;
 		}
 
-		var metadataReference = Type.GetType("Microsoft.CodeAnalysis.MetadataReference, Microsoft.CodeAnalysis");
+		var metadataReference = AppDomain.CurrentDomain.GetAssemblies()
+			.Select(assembly => assembly.GetType("Microsoft.CodeAnalysis.MetadataReference", throwOnError: false))
+			.FirstOrDefault(type => type != null);
 		var createFromFile = metadataReference == null ? null : metadataReference.GetMethod("CreateFromFile", [typeof(string)]);
 		if (createFromFile == null)
 		{
-			Debug.LogWarning("[Acceptance] Microsoft.CodeAnalysis.MetadataReference.CreateFromFile not found.");
+			Debug.LogWarning("[Acceptance] Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(string) not found; type=" + (metadataReference?.AssemblyQualifiedName ?? "(null)"));
 			return __result;
 		}
 

@@ -357,9 +357,11 @@ internal static partial class Program
 		long hostMark = -1;
 		long memberMark = -1;
 		string? problem = null;
+		var hostMarkTask = session.LogOffsetAsync(options.HostUrl, CancellationToken.None);
+		var memberMarkTask = session.LogOffsetAsync(options.MemberUrl, CancellationToken.None);
 		try
 		{
-			hostMark = await session.LogOffsetAsync(options.HostUrl, CancellationToken.None).ConfigureAwait(false);
+			hostMark = await hostMarkTask.ConfigureAwait(false);
 		}
 		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 		{
@@ -368,7 +370,7 @@ internal static partial class Program
 
 		try
 		{
-			memberMark = await session.LogOffsetAsync(options.MemberUrl, CancellationToken.None).ConfigureAwait(false);
+			memberMark = await memberMarkTask.ConfigureAwait(false);
 		}
 		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 		{

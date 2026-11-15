@@ -164,15 +164,6 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 
 	private static async Task TriggerSessionWinAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var declaration = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "run-ending-a.cs");
-		var source = await File.ReadAllTextAsync(declaration, cancellationToken).ConfigureAwait(false);
-		var declared = await context.Session.ActionAsync(
-			context.Session.HostUrl,
-			"declare",
-			cancellationToken,
-			("-Declare", "run-ending-a"),
-			("-Text", source)).ConfigureAwait(false);
-		context.Note("declaration: " + Raw(declared));
 		await context.RecipeAsync("run-ending-a", cancellationToken, ("mode", "reset"), ("kind", "merc")).ConfigureAwait(false);
 		var called = await context.RecipeAsync("run-ending-a", cancellationToken, ("mode", "call"), ("kind", "merc")).ConfigureAwait(false);
 		context.Read("ending", called);

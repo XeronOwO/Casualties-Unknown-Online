@@ -123,7 +123,7 @@ internal sealed class SessionDriver(Options options)
 		// the host, then start the run. The home page answers only while its window is up, and a
 		// client loading a scene can refuse the first click, so it retries with a fresh open.
 		await ActionAsync(_options.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
 		// The window reopens on the tab it last showed; the transport controls live on Home.
 		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
@@ -136,7 +136,7 @@ internal sealed class SessionDriver(Options options)
 		catch (Exception)
 		{
 		}
-		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
 		try
 		{
 			// A host whose earlier IP session is still alive refuses a second create; the run
@@ -269,7 +269,7 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		var deadline = Stopwatch.StartNew();
 		var lastJoinClick = DateTimeOffset.MinValue;
@@ -368,7 +368,7 @@ internal sealed class SessionDriver(Options options)
 		// client shows the notice INSTEAD of the join controls, so the loop acts on what the state
 		// offers instead of clicking a control that may not be built yet.
 		await ActionAsync(_options.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
 		await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 
 		var deadline = Stopwatch.StartNew();

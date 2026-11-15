@@ -501,9 +501,10 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		// taken its ending has no next layer, and by the time its final advance
 		// commits the live world is already gone; the native read then refuses the
 		// cut, which is the right refusal but an error the player never earned.
-		// The last mid-run cut is the continuation point.
+		// The last mid-run cut is the continuation point. The ending patch records
+		// the branch before the kernel row carries it, so both sources must agree.
 		var advanced = batch.Events.OfType<RunAdvancedEvent>().LastOrDefault();
-		if (advanced is null || advanced.Run.Ending != RunEnding.None)
+		if (advanced is null || advanced.Run.Ending != RunEnding.None || RunEndingTracker.Current != RunEnding.None)
 		{
 			return;
 		}

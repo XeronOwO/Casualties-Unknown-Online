@@ -1009,6 +1009,9 @@ internal static class CaseRegistry
 {
 	public static IReadOnlyList<AcceptanceCase> All { get; } =
 	[
+		// Run before any case moves the world: the two entry tables are the generation's own output,
+		// and a later case's exploration tears the comparison down to a time-dependent reading.
+		new WorldFingerprintCase(),
 		// Parked (2026-11-12): the starting kit is granted when a character FIRST enters a world, and
 		// this fixture reuses one long-lived session — the member's kit is long consumed by the time
 		// any case runs (measured: 0 items; 2026-11-15: [emergencylight] only). The row needs a
@@ -1073,7 +1076,8 @@ internal static class CaseRegistry
 		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		new EatSoundCase(), // a host's own eat plays on the member's machine
-		new BlockSyncCase(), // a break the host applies reaches the member's own block table
+		new BlockSyncCase(), // a break the host applies reaches the member's own block table, and the reverse
+		new WorldFingerprintCase("world-fingerprint-after-mutation"), // both tables still agree after both breaks
 		new BlockIdleDriftCase(), // the two tables agree and stay agreed while neither body moves (the divergence probe)
 		new MineBlastCase(), // a mine the host fires destroys a building on the member's own copy
 		// save-continue leaves the world and restores it: it goes after every case that only needs

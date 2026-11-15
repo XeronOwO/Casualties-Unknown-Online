@@ -31,7 +31,7 @@ internal sealed class BlockSyncCase : AcceptanceCase
 
 		var cellX = (int)Math.Floor(bodyX!.Value);
 		var cellY = (int)Math.Floor(bodyY!.Value) - 1;
-		var target = await FindBreakableCellAsync(context, cellX, cellY, cancellationToken).ConfigureAwait(false);
+		var target = await FindBreakableCellAsync(context, false, cellX, cellY, cancellationToken).ConfigureAwait(false);
 		Require(target is not null, "no breakable terrain cell was found below the host at (" + cellX + ", " + cellY + ")");
 
 		var (targetX, targetY, blockBefore) = target!.Value;
@@ -67,10 +67,60 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		Require(Boolean(memberRead, "ok") == true, "the member could not read the cell: " + Raw(memberRead));
 		Require(memberBlock is not null && memberBlock.Value == blockAfter!.Value,
 			"the member still reads block " + memberBlock + " where the host now has " + blockAfter + ": " + Raw(memberRead));
+
+		// The reverse direction: a break the member applies must reach the host's own table.
+		var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		context.Read("member body", memberBody);
+		var memberLocalBody = memberBody is { ValueKind: JsonValueKind.Object } memberBodyElement
+		&& memberBodyElement.TryGetProperty("localBody", out var memberBodyValue)
+			? memberBodyValue
+			: (JsonElement?)null;
+		var memberX = Number(memberLocalBody, "positionX");
+		var memberY = Number(memberLocalBody, "positionY");
+		Require(memberX is not null && memberY is not null, "the member body has no position: " + Raw(memberBody));
+
+		var memberCellX = (int)Math.Floor(memberX!.Value);
+		var memberCellY = (int)Math.Floor(memberY!.Value) - 1;
+		var memberTarget = await FindBreakableCellAsync(context, true, memberCellX, memberCellY, cancellationToken).ConfigureAwait(false);
+		Require(memberTarget is not null, "no breakable terrain cell was found below the member at (" + memberCellX + ", " + memberCellY + ")");
+
+		var (memberTargetX, memberTargetY, memberBlockBefore) = memberTarget!.Value;
+		context.Read("member target", JsonDocument.Parse("{\"x\":" + memberTargetX + ",\"y\":" + memberTargetY + ",\"block\":" + memberBlockBefore + "}").RootElement.Clone());
+
+		var memberBroken = await context.MemberRecipeAsync("block-break-at", cancellationToken,
+			("x", memberTargetX.ToString(CultureInfo.InvariantCulture)),
+			("y", memberTargetY.ToString(CultureInfo.InvariantCulture)),
+			("dmg", "1000")).ConfigureAwait(false);
+		context.Read("member break", memberBroken);
+		Require(Boolean(memberBroken, "ok") == true, "the member's block break failed: " + Raw(memberBroken));
+		var memberBlockAfter = Number(memberBroken, "blockAfter");
+		Require(memberBlockAfter is not null && memberBlockAfter.Value != memberBlockBefore,
+			"the member's own world did not change the block: " + Raw(memberBroken));
+
+		JsonElement? hostRead = null;
+		double? hostBlock = null;
+		for (var attempt = 0; attempt < 12; attempt++)
+		{
+			hostRead = await context.RecipeAsync("block-read-at", cancellationToken,
+				("x", memberTargetX.ToString(CultureInfo.InvariantCulture)),
+				("y", memberTargetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			hostBlock = Number(hostRead, "block");
+			if (hostBlock is not null && hostBlock.Value == memberBlockAfter!.Value)
+			{
+				context.Read("host read", hostRead);
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		Require(Boolean(hostRead, "ok") == true, "the host could not read the member's cell: " + Raw(hostRead));
+		Require(hostBlock is not null && hostBlock.Value == memberBlockAfter!.Value,
+			"the host still reads block " + hostBlock + " where the member now has " + memberBlockAfter + ": " + Raw(hostRead));
 	}
 
 	private static async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(
-		CaseContext context, int startX, int startY, CancellationToken cancellationToken)
+		CaseContext context, bool member, int startX, int startY, CancellationToken cancellationToken)
 	{
 		// The life pod's own shell is block 14 with no BlockInfo row; the terrain around and below
 		// the pod is ordinary soil, but a host that spawned inside the pod's cave sees air below it
@@ -82,9 +132,13 @@ internal sealed class BlockSyncCase : AcceptanceCase
 			{
 				foreach (var x in offset == 0 ? new[] { startX } : [startX - offset, startX + offset])
 				{
-					var read = await context.RecipeAsync("block-read-at", cancellationToken,
-						("x", x.ToString(CultureInfo.InvariantCulture)),
-						("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					var read = member
+						? await context.MemberRecipeAsync("block-read-at", cancellationToken,
+							("x", x.ToString(CultureInfo.InvariantCulture)),
+							("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false)
+						: await context.RecipeAsync("block-read-at", cancellationToken,
+							("x", x.ToString(CultureInfo.InvariantCulture)),
+							("y", y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 					var block = Number(read, "block");
 					// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
 					if (block is not null && block.Value != 0 && block.Value != 14)

@@ -13,6 +13,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Plan approved by the user
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
-
-- [ ] Release-cycle deployment/acceptance: this is a source change; deploy and the shared/full acceptance batch are the remaining proof.
+- [ ] Release-cycle deployment/acceptance
 - [ ] FORBIDDEN — never check this box

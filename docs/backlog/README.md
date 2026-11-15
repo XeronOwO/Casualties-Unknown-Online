@@ -85,8 +85,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
 
-- [Late-layer mechanism switches need one answer](review/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients must agree.
-
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 - [Nobody counts a player's deaths](review/1.0-player-death-stats-missing.md) — **Low** — the run keeps no per-player count.
 
@@ -141,6 +139,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The block tables differ](done/1.0-block-table-diverges-between-clients.md) — **High** — entry and post-break totals agree.
 - [A live member's block table can drift](done/1.0-live-block-table-never-resyncs.md) — **High** — 60 s fallback read on the member.
 - [A session ignores the solo character unlocks](done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — any pick; solo unchanged.
+- [Late-layer mechanism switches need one answer](done/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients attack after the cutscene.
 - [A destroyed body keeps its facial updating](done/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — clone dropped with the body.
 - [A guest holds a role without a world](done/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — run-end scope clears the stale join.
 - [1.0: `/heal @a` leaves the member unchanged](done/1.0-console-heal-does-not-restore-a-member.md) — **High** — restore read on the member.

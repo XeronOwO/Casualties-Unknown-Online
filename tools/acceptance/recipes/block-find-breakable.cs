@@ -32,6 +32,9 @@
 				var block = System.Convert.ToUInt16(blocks.GetValue(x, y));
 				// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
 				if (block == 0 || block == 14) { continue; }
+				// The callers damage the cell with 1,000; a tougher block keeps its sprite and
+				// cannot witness the damage path (measured 2026-11-16: block 6 survived 1,000).
+				if (world.GetBlockInfo(block).health > 1000f) { continue; }
 				rows.Add("{\"x\":" + x + ",\"y\":" + y + ",\"block\":" + block + "}");
 			}
 		}

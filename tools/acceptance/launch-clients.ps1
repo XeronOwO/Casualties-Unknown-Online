@@ -267,8 +267,8 @@ function Start-ClientProcess([string]$Client, [hashtable]$NoReuse) {
 			Start-Process -FilePath (Join-Path $GameDir 'CasualtiesUnknown.exe') -WorkingDirectory $GameDir
 			Write-Run 'host started'
 		}
-		'guest' { Start-BoxGame $GuestBox 'guest' $GuestRoot $NoReuse['guest'] }
-		alt { Start-BoxGame $AltBox 'alt' $AltRoot $NoReuse['alt'] }
+		'guest' { Start-BoxGame $GuestBox 'guest' $GuestRoot ([bool]($NoReuse['guest'] -eq $true)) }
+		alt { Start-BoxGame $AltBox 'alt' $AltRoot ([bool]($NoReuse['alt'] -eq $true)) }
 	}
 }
 function Start-BoxGame([string]$Box, [string]$Client, [string]$GameRoot, [bool]$NoReuse) {

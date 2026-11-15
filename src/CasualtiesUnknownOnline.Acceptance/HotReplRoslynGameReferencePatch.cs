@@ -61,14 +61,38 @@ internal static class HotReplRoslynGameReferencePatch
 		var metadataReference = AppDomain.CurrentDomain.GetAssemblies()
 			.Select(assembly => assembly.GetType("Microsoft.CodeAnalysis.MetadataReference", throwOnError: false))
 			.FirstOrDefault(type => type != null);
-		var createFromFile = metadataReference == null ? null : metadataReference.GetMethod("CreateFromFile", [typeof(string)]);
+		var createFromFile = metadataReference?
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.FirstOrDefault(method =>
+			{
+				if (method.Name != "CreateFromFile")
+				{
+					return false;
+				}
+
+				var parameters = method.GetParameters();
+				return parameters.Length >= 1 && parameters[0].ParameterType == typeof(string);
+			});
 		if (createFromFile == null)
 		{
-			Debug.LogWarning("[Acceptance] Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(string) not found; type=" + (metadataReference?.AssemblyQualifiedName ?? "(null)"));
+			Debug.LogWarning("[Acceptance] Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(string, ...) not found; type=" + (metadataReference?.AssemblyQualifiedName ?? "(null)"));
 			return __result;
 		}
 
-		var reference = createFromFile.Invoke(null, [gameAssembly]);
+		var referenceParameters = createFromFile.GetParameters();
+		var referenceArguments = new object?[referenceParameters.Length];
+		referenceArguments[0] = gameAssembly;
+		for (var i = 1; i < referenceParameters.Length; i++)
+		{
+			var parameter = referenceParameters[i];
+			referenceArguments[i] = parameter.HasDefaultValue && parameter.DefaultValue != null
+				? parameter.DefaultValue
+				: parameter.ParameterType.IsValueType
+					? Activator.CreateInstance(parameter.ParameterType)
+					: null;
+		}
+
+		var reference = createFromFile.Invoke(null, referenceArguments);
 		if (reference == null)
 		{
 			return __result;

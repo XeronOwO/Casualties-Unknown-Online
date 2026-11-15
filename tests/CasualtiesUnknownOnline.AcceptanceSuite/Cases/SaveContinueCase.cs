@@ -129,7 +129,13 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			}
 		}
 
-		return null;
+		// A long-lived suite world may have consumed the starting kit. Create one
+		// carried item instead; the customizer close re-reports the inventory, so
+		// the new item is in the character record by the time the save runs.
+		var created = member
+			? await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false)
+			: await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
+		return Boolean(created, "found") ? created : null;
 	}
 
 	private static async Task<JsonElement?> WaitForCloneAsync(Func<Task<JsonElement?>> read, string label, int swatch, CancellationToken cancellationToken)

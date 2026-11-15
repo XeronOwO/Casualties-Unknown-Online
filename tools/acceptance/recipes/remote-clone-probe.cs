@@ -1,6 +1,6 @@
 // recipe: remote-clone-probe
 // args: mode=s
-// returns: ok, mode, cloneCount, playerCount, cloneType, componentCount, components, facing, error, detail
+// returns: ok, mode, cloneCount, playerCount, cloneType, cloneCharType, componentCount, components, facing, error, detail
 //
 // Names the real type behind a remote player's clone and the facing data it carries — the reading the pose/head-orientation ticket
 // stopped at: a `Body` scan found no remote body on either client, so the host's view of the teammate is rendered by something else
@@ -21,12 +21,23 @@
 
 	var found = UnityEngine.Object.FindObjectsOfType(cloneType);
 	if (found == null || found.Length == 0) { return "{\"ok\":true,\"cloneCount\":0}"; }
-	var clone = found[0] as UnityEngine.Component;
-	if (clone == null) { return "{\"ok\":false,\"error\":\"clone-not-component\"}"; }
+	// The marker also sits on carried-item clones. The player's clone is the one whose hierarchy
+	// carries the game's own Body; selecting the first marker read an item and reported charType -1.
+	UnityEngine.Component clone = null;
+	Body cloneBody = null;
+	for (var i = 0; i < found.Length; i++) {
+		var candidate = found[i] as UnityEngine.Component;
+		if (candidate == null) { continue; }
+		var body = candidate.GetComponentInChildren<Body>();
+		if (body != null) { clone = candidate; cloneBody = body; break; }
+	}
+	if (clone == null) { clone = found[0] as UnityEngine.Component; }
+	if (clone == null) { return "{\"ok\":false,\"error\":\"no-clone-body\",\"cloneCount\":" + found.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}"; }
 
 	var components = clone.GetComponents<UnityEngine.Component>();
 	var names = "";
 	var facing = "";
+	var cloneCharType = cloneBody != null ? cloneBody.charType : -1;
 	var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	for (var i = 0; i < components.Length; i++) {
 		var component = components[i];
@@ -34,6 +45,16 @@
 		var type = component.GetType();
 		if (names.Length > 0) { names += ","; }
 		names += type.Name;
+		if (cloneCharType < 0 && type.Name == "Body") {
+			var charField = type.GetField("charType", flags);
+			if (charField != null) {
+				try {
+					var raw = charField.GetValue(component);
+					if (raw is int) { cloneCharType = (int)raw; }
+				}
+				catch { cloneCharType = -1; }
+			}
+		}
 
 		if (facing.Length > 0) { continue; }
 		var fields = type.GetFields(flags);
@@ -60,6 +81,7 @@
 
 	return "{\"ok\":true,\"mode\":\"" + mode + "\",\"cloneCount\":" + found.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"playerCount\":" + playerCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
-		+ ",\"cloneType\":\"" + cloneType.Name + "\",\"componentCount\":" + components.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"cloneType\":\"" + cloneType.Name + "\",\"cloneCharType\":" + cloneCharType.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"componentCount\":" + components.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"components\":\"" + names + "\",\"facing\":\"" + facing + "\"}";
 }))()

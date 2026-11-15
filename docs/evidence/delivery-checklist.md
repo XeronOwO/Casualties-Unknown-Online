@@ -14,7 +14,7 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: pending the post-commit deploy, `verify-deploy`, and the focused `character-choice` run
+- [ ] Release-cycle deployment/acceptance: the product artifact `0.1.0+4d37f810e` was deployed and verified before the full suite; this commit only carries acceptance evidence and the ticket close.
 
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked box means a step was skipped on purpose, which is

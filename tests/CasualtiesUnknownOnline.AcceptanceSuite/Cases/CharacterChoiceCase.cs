@@ -68,10 +68,14 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			context.Read("member:body", memberBody);
 			Require(Int(memberBody, "charType") == memberChoice, "the member spawned character " + Int(memberBody, "charType") + ", not " + memberChoice + ": " + Raw(memberBody));
 
-			var hostJoined = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
-			var memberJoined = await context.MemberRecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
+			var hostJoined = await WaitForRemoteCharTypeAsync(context, memberSide: false, memberChoice, cancellationToken).ConfigureAwait(false);
+			var memberJoined = await WaitForRemoteCharTypeAsync(context, memberSide: true, hostChoice, cancellationToken).ConfigureAwait(false);
 			context.Read("host:joined", hostJoined);
 			context.Read("member:joined", memberJoined);
+			// Row 2: the other client's display body carries the chosen character. `character-read`
+			// lists the bodies with CUO's RemoteBodyDriver, which is exactly the remote display set.
+			Require(HasCharType(hostJoined, memberChoice), "the host's remote display does not carry the member's character " + memberChoice + ": " + Raw(hostJoined));
+			Require(HasCharType(memberJoined, hostChoice), "the member's remote display does not carry the host's character " + hostChoice + ": " + Raw(memberJoined));
 			RequireSameUnlocks(hostBefore, hostJoined, "host after the member joined");
 			RequireSameUnlocks(memberBefore, memberJoined, "member after joining");
 
@@ -83,6 +87,16 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			context.Read("member:after-win", memberAfterWin);
 			RequireSameUnlocks(hostBefore, hostAfterWin, "host after the session's ending");
 			RequireSameUnlocks(memberBefore, memberAfterWin, "member after the session's ending");
+
+			// Row 4: leave the session and read the native solo picker again. The host still has the
+			// third character locked (wonchar1=0), so its unlocked-only state must come back exactly.
+			await LeaveHostSessionAsync(context, cancellationToken).ConfigureAwait(false);
+			var outside = await WaitForPickerAsync(context, cancellationToken).ConfigureAwait(false);
+			context.Read("picker:outside", outside);
+			Require(Boolean(outside, "hasInstance") == true, "the host's pre-run picker did not load after leaving the session: " + Raw(outside));
+			Require(ButtonAt(outside, "buttons", hostChoice) == "false", "the host's solo picker still offers the locked character after the session: " + Raw(outside));
+			Require(ButtonAt(outside, "tooltips", hostChoice) == "true", "the host's solo picker lost the unlock tooltip after the session: " + Raw(outside));
+			RequireSameUnlocks(hostBefore, outside, "host outside the session");
 		}
 		finally
 		{
@@ -111,6 +125,42 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		return picker;
 	}
 
+	private static async Task<JsonElement?> WaitForRemoteCharTypeAsync(CaseContext context, bool memberSide, int expected, CancellationToken cancellationToken)
+	{
+		// The remote clone is built after the peer's body report; the member's own body can exist a
+		// moment before the host has drawn it. A single read at that instant measured an empty
+		// remoteCharTypes in the full order (2026-11-15), while the focused run happened to be warm.
+		JsonElement? reading = null;
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			reading = memberSide
+				? await context.MemberRecipeAsync("character-read", cancellationToken).ConfigureAwait(false)
+				: await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
+			if (HasCharType(reading, expected))
+			{
+				return reading;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return reading;
+	}
+
+	private static bool HasCharType(JsonElement? reading, int expected)
+	{
+		var csv = StringValue(reading, "remoteCharTypes");
+		foreach (var part in csv.Split(','))
+		{
+			if (int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number == expected)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static async Task TriggerSessionWinAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var declaration = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "run-ending-a.cs");
@@ -126,6 +176,44 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		context.Read("ending", called);
 		var text = called is { ValueKind: JsonValueKind.String } value ? value.GetString() ?? string.Empty : Raw(called);
 		Require(text.Contains("ending=Merc", StringComparison.Ordinal), "the host's Merc ending did not run: " + text);
+	}
+
+	private static async Task LeaveHostSessionAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await context.Session.ActionAsync(context.Session.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+			await context.Session.ActionAsync(
+				context.Session.HostUrl,
+				"wait-state",
+				cancellationToken,
+				("-Control", "notInWorld"),
+				("-Text", "20000")).ConfigureAwait(false);
+		}
+		catch (Exception exception)
+		{
+			context.Note("the host was already out of the world: " + exception.Message);
+		}
+
+		try
+		{
+			await context.Session.ActionAsync(
+				context.Session.HostUrl,
+				"click",
+				cancellationToken,
+				("-Control", "home.leave")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception exception)
+		{
+			context.Note("could not leave the host's session: " + exception.Message);
+		}
+	}
+
+	private static string ButtonAt(JsonElement? reading, string property, int index)
+	{
+		var parts = StringValue(reading, property).Split(',');
+		return index >= 0 && index < parts.Length ? parts[index] : string.Empty;
 	}
 
 	private static async Task TryPickAsync(CaseContext context, int choice, CancellationToken cancellationToken)
@@ -162,8 +250,10 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 
 	private static int FirstLocked(JsonElement? reading)
 	{
-		if (Int(reading, "wonchar0") == 0) { return 0; }
-		if (Int(reading, "wonchar1") == 0) { return 1; }
+		// `wonchar<character-1>` gates the next character: wonchar0 gates index 1, wonchar1
+		// gates index 2. A zero key means that character is still locked.
+		if (Int(reading, "wonchar0") == 0) { return 1; }
+		if (Int(reading, "wonchar1") == 0) { return 2; }
 		return -1;
 	}
 

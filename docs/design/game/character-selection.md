@@ -55,6 +55,16 @@ locks must be exactly where they were.
 3. The `wonchar0`/`wonchar1` values before and after a session win are identical.
 4. Outside a session, a character without the unlock remains unselectable.
 
+## Acceptance evidence (2026-11-15)
+
+- Focused `character-choice` PASS on `0.1.0+4d37f810e`: session picker
+  `buttons=true,true,true`, `tooltips=false,false,false`; host body `charType=2`, member body
+  `charType=1`; host `remoteCharTypes=1`, member `remoteCharTypes=2`; host `wonchar0=1,
+  wonchar1=0` before and after `ending=Merc`; after leaving the session the picker reads
+  `buttons=true,true,false`, `tooltips=false,false,true`.
+- Final full suite on `0.1.0+4d37f810e`: 34 passed, 0 failed, wall 477.7 s; the `character-choice`
+  row took 64.4 s with host 21 warnings/0 errors and member 34 warnings/0 errors.
+
 ## Gaps
 
 - The native portrait color targets are noted in the source but not reproduced here; the view must use the game's own

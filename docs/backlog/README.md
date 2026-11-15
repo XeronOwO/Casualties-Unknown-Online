@@ -92,7 +92,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A live member never resyncs the block table](review/1.0-live-block-table-never-resyncs.md) — **High** — only entry sends it.
 - [A destroyed body keeps its facial updating](review/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — every frame, 94 MB of log.
 - [Late-layer mechanism switches need one answer](review/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients must agree.
-- [A session ignores the solo character unlocks](review/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — and never writes them.
 - [A trigger event waits for the whole living team](review/1.0-trigger-events-wait-for-the-whole-team.md) — **Medium** — no teleporting passengers.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
@@ -146,6 +145,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A session ignores the solo character unlocks](done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — any pick; solo unchanged.
 - [A host leaving the world strands the members](done/1.0-a-host-leaving-the-world-strands-the-members.md) — **High** — relay pulls them out.
 - [The pinyin search follows the game language](done/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — zh-CN matches; English is a documented limit.
 - [The crafting screen opens again](done/1.0-crafting-screen-throws-on-a-recipe-sprite.md) — **High** — our recipe had no prefab; a placeholder holds.

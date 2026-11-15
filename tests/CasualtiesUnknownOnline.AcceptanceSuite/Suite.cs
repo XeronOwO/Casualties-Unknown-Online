@@ -1095,6 +1095,10 @@ internal static class CaseRegistry
 		// The drill pod is the native two-layer trigger: it waits for every living member to stand at
 		// the pod before the host's descent, and refuses (with the missing names) when one is away.
 		new PodTeamWaitCase(),
+		// The last layer's own gate: both clients generate layer 10 of an unchipped run,
+		// the cutscene clears each client's local blockItemUsage, and each client's own
+		// staged attack moves its own native attack state.
+		new LastLayerGateCase(),
 		new SaveContinueCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart

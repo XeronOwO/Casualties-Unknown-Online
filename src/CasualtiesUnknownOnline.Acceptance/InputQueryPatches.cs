@@ -140,6 +140,29 @@ internal static class InputQueryPatches
 			}
 		}
 
+		// The attack path: `PlayerCamera.HandleAttacks` asks Input.GetKey/GetKeyDown for the attack
+		// bind directly, outside HandleInput. The last-layer gate sits at the top of that method, so a
+		// staged press has to be answered there before the gate's acceptance row can read the native
+		// attack state instead of only the gate flag.
+		var handleAttacks = AccessTools.Method(typeof(PlayerCamera), "HandleAttacks", Type.EmptyTypes);
+		if (handleAttacks == null)
+		{
+			report.Add("PlayerCamera.HandleAttacks: no method on this build");
+		}
+		else
+		{
+			try
+			{
+				ResetReplacementCount();
+				harmony.Patch(handleAttacks, transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(TranspileKeyReads)));
+				report.Add("PlayerCamera.HandleAttacks: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
+			}
+			catch (Exception exception)
+			{
+				report.Add("PlayerCamera.HandleAttacks: FAILED " + DescribeFailure(exception));
+			}
+		}
+
 		// The minigame's own hand read. `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(attack)` DIRECTLY — outside
 		// `PlayerCamera.HandleInput`, so the replacement above never reaches it — and a detour on Input's own methods is never invoked on
 		// this build (see the type's header). The same call-site replacement therefore has to be applied to it as well: without this a

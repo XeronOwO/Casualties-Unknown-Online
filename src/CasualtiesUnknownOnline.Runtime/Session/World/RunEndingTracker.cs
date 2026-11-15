@@ -16,6 +16,9 @@ public static class RunEndingTracker
 	/// <summary>True when <see cref="Current"/> came from the authoritative run row rather than this client's own resolution.</summary>
 	public static bool FromAuthority { get; private set; }
 
+	/// <summary>The run id <see cref="Current"/> belongs to; zero before the first projection.</summary>
+	public static ulong RunId { get; private set; }
+
 	/// <summary>The host's game resolved an ending — record it for the run row this client is about to advance.</summary>
 	public static void Record(RunEnding ending)
 	{
@@ -23,9 +26,20 @@ public static class RunEndingTracker
 		FromAuthority = false;
 	}
 
-	/// <summary>The run row arrived from the host (or this client's own committed batch) — adopt its kind.</summary>
-	public static void Apply(RunEnding ending)
+	/// <summary>
+	/// The run row arrived from the host (or this client's own committed batch) — adopt its kind.
+	/// A row for the SAME run that still says None must not erase an ending this client already
+	/// recorded: the ending patch runs before the kernel row carrying it can be advanced.
+	/// </summary>
+	public static void Apply(ulong runId, RunEnding ending)
 	{
+		var sameRun = RunId == runId;
+		RunId = runId;
+		if (sameRun && ending == RunEnding.None && Current != RunEnding.None)
+		{
+			return;
+		}
+
 		Current = ending;
 		FromAuthority = ending != RunEnding.None;
 	}
@@ -35,5 +49,6 @@ public static class RunEndingTracker
 	{
 		Current = RunEnding.None;
 		FromAuthority = false;
+		RunId = 0;
 	}
 }

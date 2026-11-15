@@ -30,7 +30,16 @@ internal sealed class WorldRunProjection(
 		var current = kernelAuthority.QueryRun();
 		var runId = current?.RunId ?? kernelAuthority.CreateCheckpoint().RunEpoch.Value;
 		var layerIndex = current is null ? 0 : current.LayerIndex + 1;
-		var run = WorldRunStateMapper.ToRunState(runId, parameters, layerIndex) with { Ending = RunEndingTracker.Current };
+		if (current is null)
+		{
+			// A new run never inherits the previous run's ending.
+			RunEndingTracker.Clear();
+		}
+
+		var run = WorldRunStateMapper.ToRunState(runId, parameters, layerIndex) with
+		{
+			Ending = current is null ? RunEnding.None : RunEndingTracker.Current,
+		};
 
 		if (current is null)
 		{
@@ -105,7 +114,7 @@ internal sealed class WorldRunProjection(
 
 	private void Apply(RunState run)
 	{
-		RunEndingTracker.Apply(run.Ending);
+		RunEndingTracker.Apply(run.RunId, run.Ending);
 		applyWorldParams(WorldRunStateMapper.ToWorldStartParams(run));
 		log.LogInformation("Projected kernel run baseline (run {RunId}, layer {Layer}, {StateBytes} RNG bytes, ending {Ending}).",
 			run.RunId, run.LayerIndex, run.RandomState.Length, run.Ending);

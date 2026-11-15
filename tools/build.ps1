@@ -29,7 +29,8 @@ Push-Location $root
 try {
 	if ($Format) {
 		& dotnet format CasualtiesUnknownOnline.slnx
-		exit $LASTEXITCODE
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		if (-not $Test -and -not $Gates) { exit 0 }
 	}
 
 	& dotnet build CasualtiesUnknownOnline.slnx -nodeReuse:false

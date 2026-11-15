@@ -88,11 +88,14 @@ internal sealed class PluginHost : MonoBehaviour
 				hostBanFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.host-bans.bin"),
 				// The CUO world archive lives under the game's persistent-data root,
 				// never in the install folder and never in save.sv (decisions 164/165).
-				savesRoot: Path.Combine(UnityApplication.persistentDataPath, "cuo", SaveArchiveFormat.SavesFolderName),
+				// An acceptance batch points CUO_SAVE_ROOT at its own directory: test worlds
+				// must never be mixed into the player's real save library.
+				savesRoot: ResolveSavesRoot(),
 				gameBuild: UnityApplication.version,
 				extraRegistrations: services => PluginDependencyRegistrar.Apply(_config, services));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
+			_log.LogInformation("World archive root: {Root}", ResolveSavesRoot());
 			_steam = _services.GetRequiredService<SteamService>();
 			_lifecycle = _services.GetService<IGameIntegrationLifecycle>();
 			_carryPump = _services.GetService<ICarryPresentationPump>();
@@ -337,6 +340,19 @@ internal sealed class PluginHost : MonoBehaviour
 				_log.LogWarning("[Unity] {Message}", message);
 				break;
 		}
+	}
+
+	/// <summary>
+	/// The world archive root. Production keeps the game's persistent-data root; an
+	/// acceptance batch sets <c>CUO_SAVE_ROOT</c> so its throwaway worlds never join the
+	/// player's real library.
+	/// </summary>
+	private static string ResolveSavesRoot()
+	{
+		var configured = Environment.GetEnvironmentVariable("CUO_SAVE_ROOT");
+		return string.IsNullOrWhiteSpace(configured)
+			? Path.Combine(UnityApplication.persistentDataPath, "cuo", SaveArchiveFormat.SavesFolderName)
+			: Path.GetFullPath(configured);
 	}
 
 	// Unity broadcasts OnApplicationQuit BEFORE the scene teardown; the world

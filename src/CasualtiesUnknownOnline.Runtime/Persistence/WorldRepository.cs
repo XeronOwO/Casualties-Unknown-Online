@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -19,6 +20,8 @@ namespace CasualtiesUnknownOnline.Runtime.Persistence;
 /// </summary>
 public sealed class WorldRepository(string root, ILogger<WorldRepository> log, SaveArchiveWriter writer, SaveArchiveReader reader, Func<DateTime>? utcNow = null)
 {
+	private static readonly bool TimingEnabled = Environment.GetEnvironmentVariable("CUO_SAVE_TIMING") == "1";
+
 	private readonly string _root = Path.GetFullPath(root);
 	private readonly ILogger<WorldRepository> _log = log;
 	private readonly SaveArchiveWriter _writer = writer;
@@ -275,7 +278,9 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 				worldId, request.Meta.DisplayName, displayName);
 		}
 
+		var writeClock = Stopwatch.StartNew();
 		var result = _writer.WriteWorldSnapshot(directory, request with { Meta = request.Meta.WithDisplayName(displayName) });
+		writeClock.Stop();
 		if (!result.Success || result.Manifest is null)
 		{
 			return result;
@@ -295,16 +300,33 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 			BackupCount = CountBackups(worldId),
 		};
 
+		var indexClock = Stopwatch.StartNew();
 		try
 		{
 			_catalog.WriteMetadata(directory, updated);
-			_catalog.RefreshIndex();
+			// One row, not a scan of every world folder: the picker cache is a cache, and a
+			// KB-sized cut must not pay for the whole save library on the frame thread.
+			if (!_catalog.UpdateWorldEntry(updated))
+			{
+				_log.LogInformation("Snapshot for world {WorldId} was committed; the picker index was absent and stays for the next full refresh.", worldId);
+			}
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
 			// The snapshot is committed; a failed cache update must not lose it.
 			_log.LogError(ex, "Snapshot for world {WorldId} is committed, but {File} or the index could not be updated.",
 				worldId, SaveArchiveFormat.MetadataFileName);
+		}
+		finally
+		{
+			indexClock.Stop();
+		}
+
+		if (TimingEnabled)
+		{
+			_log.LogInformation(
+				"Snapshot write timing for world {WorldId}: files {WriteMs} ms, metadata/index {IndexMs} ms, total {TotalMs} ms.",
+				worldId, writeClock.ElapsedMilliseconds, indexClock.ElapsedMilliseconds, writeClock.ElapsedMilliseconds + indexClock.ElapsedMilliseconds);
 		}
 
 		return result;

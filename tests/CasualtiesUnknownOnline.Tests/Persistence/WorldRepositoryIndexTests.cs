@@ -151,6 +151,26 @@ public class WorldRepositoryIndexTests
 	}
 
 	[Fact]
+	public void WriteSnapshot_ReplacesOnlyItsOwnIndexEntry_AndKeepsTheLastOpenedPointer()
+	{
+		var fixture = SaveTestRepository.Create("write-one-index-entry");
+		var second = fixture.Repository.CreateWorld("Second World");
+		Assert.True(second.Success, second.Failure);
+		Assert.True(fixture.Repository.SetLastOpenedWorld(second.WorldId));
+
+		var result = fixture.Repository.WriteSnapshot(fixture.WorldId, fixture.Request(WorldCutKind.MidRun, fixture.Now, SaveTestData.RunPayload("fresh")));
+
+		Assert.True(result.Success, result.Detail);
+		var index = ReadIndex(Path.Combine(fixture.Workspace.Root, SaveArchiveFormat.IndexFileName));
+		Assert.Equal(2, index.Worlds.Count);
+		Assert.Equal(second.WorldId, index.LastOpenedWorldId);
+		var untouched = index.Worlds.Single(entry => entry.WorldId == second.WorldId);
+		Assert.Equal("Second World", untouched.DisplayName);
+		Assert.Equal(string.Empty, untouched.LastKind);
+		Assert.Equal("mid-run", index.Worlds.Single(entry => entry.WorldId == fixture.WorldId).LastKind);
+	}
+
+	[Fact]
 	public void CreateWorld_UsesAnImmutableShortIdAndSeedMetadata()
 	{
 		var fixture = SaveTestRepository.Create("create");

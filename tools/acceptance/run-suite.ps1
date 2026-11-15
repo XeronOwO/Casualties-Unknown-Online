@@ -72,6 +72,7 @@ if (-not $NoLaunch)
 		OutDir = $outPath
 		GameDir = $GameDir
 		AllowOfflineSteam = $true
+		SaveRoot = (Join-Path $outPath "saves")
 	}
 	if (-not $Reuse)
 	{

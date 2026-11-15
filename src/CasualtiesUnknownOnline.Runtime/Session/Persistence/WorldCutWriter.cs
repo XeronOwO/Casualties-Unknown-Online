@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
@@ -36,6 +37,8 @@ internal sealed class WorldCutWriter(
 	string gameBuild,
 	Func<DateTime> utcNow)
 {
+	private static readonly bool TimingEnabled = Environment.GetEnvironmentVariable("CUO_SAVE_TIMING") == "1";
+
 	private readonly WorldRepository _repository = repository;
 	private readonly ItemKernelAuthority _kernel = kernel;
 	private readonly WorldSnapshotEncoder _encoder = encoder;
@@ -66,14 +69,19 @@ internal sealed class WorldCutWriter(
 		// The revision is frozen BEFORE any table is read: everything this cut
 		// carries comes from the one instant the caller timed (the kernel commits
 		// synchronously, so a checkpoint cannot straddle a batch).
+		var totalClock = Stopwatch.StartNew();
+		var checkpointClock = Stopwatch.StartNew();
 		var checkpoint = _kernel.CreateCheckpoint();
+		checkpointClock.Stop();
 		if (checkpoint.Run is null)
 		{
 			_log.LogWarning("No cut taken ({Reason}): the kernel holds no run baseline yet.", request.Reason);
 			return WorldCutWriteResult.Refused("the kernel holds no run baseline yet");
 		}
 
+		var factsClock = Stopwatch.StartNew();
 		var facts = CaptureWorldFacts(request.Reason, request.Kind);
+		factsClock.Stop();
 		if (facts.Failure is not null)
 		{
 			// A native table that cannot be read is NOT an empty table: writing the
@@ -104,6 +112,7 @@ internal sealed class WorldCutWriter(
 		IReadOnlyList<SavePayloadFile> files;
 		WorldSnapshotCounts counts;
 		SaveManifestMeta meta;
+		long encodeMs = 0;
 		try
 		{
 			var payload = new WorldSnapshotPayload(
@@ -118,7 +127,10 @@ internal sealed class WorldCutWriter(
 				facts.Transients,
 				request.Kind,
 				facts.RunFields);
+			var encodeClock = Stopwatch.StartNew();
 			var encoded = _encoder.EncodeWithCounts(payload);
+			encodeClock.Stop();
+			encodeMs = encodeClock.ElapsedMilliseconds;
 			files = encoded.Files;
 			counts = encoded.Counts;
 			meta = MetaOf(checkpoint, request.DisplayName, placement.Characters.Count, request.Reason, request.CutPhase);
@@ -129,6 +141,7 @@ internal sealed class WorldCutWriter(
 			return WorldCutWriteResult.Refused($"the checkpoint could not be encoded ({ex.Message})");
 		}
 
+		var writeClock = Stopwatch.StartNew();
 		var write = _repository.WriteSnapshot(request.WorldId, new SaveWorldRequest
 		{
 			WorldId = request.WorldId,
@@ -142,11 +155,20 @@ internal sealed class WorldCutWriter(
 			SavedAtUtc = _utcNow(),
 		});
 
+		writeClock.Stop();
 		if (!write.Success)
 		{
 			_log.LogError("Cut {Reason} of world {WorldId} failed at {Step}: {Detail}",
 				request.Reason, request.WorldId, write.Reason, write.Detail);
 			return WorldCutWriteResult.Refused($"the write transaction failed at {write.Reason} ({write.Detail})");
+		}
+
+		totalClock.Stop();
+		if (TimingEnabled)
+		{
+			_log.LogInformation(
+				"Cut timing for world {WorldId} ({Reason}): checkpoint {Checkpoint} ms, facts {Facts} ms, encode {Encode} ms, write {Write} ms, total {Total} ms.",
+				request.WorldId, request.Reason, checkpointClock.ElapsedMilliseconds, factsClock.ElapsedMilliseconds, encodeMs, writeClock.ElapsedMilliseconds, totalClock.ElapsedMilliseconds);
 		}
 
 		// ONE line per cut (S4 scope 3): the trigger, the kind and phase the manifest

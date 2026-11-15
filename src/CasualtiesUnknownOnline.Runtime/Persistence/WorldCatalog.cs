@@ -207,6 +207,36 @@ internal sealed class WorldCatalog(string root, ILogger log, Func<DateTime> utcN
 	}
 
 	/// <summary>
+	/// Replaces ONE picker row in the index without scanning the world folders. The index is a
+	/// cache (§3.1), so a save must not pay for every world on disk: the full
+	/// <see cref="RefreshIndex"/> belongs to a page that asks to rebuild it, not to a KB-sized
+	/// cut on the frame thread. Returns false when no readable index exists; the next full
+	/// refresh rebuilds it from the folders.
+	/// </summary>
+	internal bool UpdateWorldEntry(WorldMetadata metadata)
+	{
+		var index = ReadIndex();
+		if (index is null)
+		{
+			return false;
+		}
+
+		var entry = ToEntry(metadata);
+		var worlds = index.Worlds
+			.Where(candidate => !string.Equals(candidate.WorldId, entry.WorldId, StringComparison.Ordinal))
+			.Append(entry)
+			.OrderByDescending(candidate => candidate.LastSavedUtc, StringComparer.Ordinal)
+			.ThenBy(candidate => candidate.WorldId, StringComparer.Ordinal)
+			.ToList();
+		return TryWriteIndex(new WorldIndex
+		{
+			SchemaVersion = WorldIndex.CurrentSchemaVersion,
+			Worlds = worlds,
+			LastOpenedWorldId = index.LastOpenedWorldId,
+		});
+	}
+
+	/// <summary>
 	/// Creates a directory the save layer is about to use, reporting an unusable path
 	/// instead of throwing at the caller. Every case S4 scope 5 names — a read-only save
 	/// directory, a drive that went away, a file where the root should be — arrives here

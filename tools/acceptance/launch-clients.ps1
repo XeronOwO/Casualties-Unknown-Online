@@ -42,6 +42,10 @@ param(
 	# An IP-direct session does not initialize Steam on a boxed client; this switch accepts such a client instead of
 	# failing the launch on the Steam readiness line. It is the caller's claim, never inferred.
 	[switch]$AllowOfflineSteam,
+	# Keep the batch's throwaway world archive out of the player's real save library.
+	# The plugin reads this through CUO_SAVE_ROOT; both the desktop host and the boxed
+	# clients inherit the variable from this process.
+	[string]$SaveRoot,
 	# One client only, by name. Every row that is the CLIENT's own (an input patch, a UI frame, a console line) needs one client and no lobby, so
 	# a single-client launch is the cheap shape for those — and it never touches the other boxes.
 	[ValidateSet('host', 'guest', 'alt')]
@@ -358,6 +362,13 @@ if ($Restart) {
 	}
 	Start-Sleep -Seconds 3
 	Write-Run ("restarted: " + ($clients -join ', '))
+}
+
+if (-not [string]::IsNullOrWhiteSpace($SaveRoot)) {
+	$env:CUO_SAVE_ROOT = [System.IO.Path]::GetFullPath($SaveRoot)
+	$env:CUO_SAVE_TIMING = '1'
+	New-Item -ItemType Directory -Force -Path $env:CUO_SAVE_ROOT | Out-Null
+	Write-Run ("acceptance save root: " + $env:CUO_SAVE_ROOT)
 }
 
 $noReuse = @{}

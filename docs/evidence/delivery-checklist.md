@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: verify the next run-suite leaves no build workers.
+- [ ] Release-cycle deployment/acceptance: run character-choice on the deployed artifact.
 - [ ] FORBIDDEN — never check this box

@@ -114,7 +114,14 @@ internal sealed class SaveCutSeam(
 			// reaches this branch (the policy answers MenuOnly for it, and the save
 			// layer refuses a guest anyway), so solo play — which has no session role
 			// — takes the same cut a host does.
-			if (_saves.TryRequestCut(WorldCutReason.MenuReturn, out var refusal))
+			if (RunEndingTracker.Current != RunEnding.None)
+			{
+				// The ending has already left the run: there is no live world to read
+				// the native run fields from, and the last mid-run cut is the correct
+				// continuation point. Leaving must still publish the run end.
+				_log.LogInformation("[SaveSeam] the run has ended; the menu-return cut is skipped.");
+			}
+			else if (_saves.TryRequestCut(WorldCutReason.MenuReturn, out var refusal))
 			{
 				var report = _saves.TryCaptureArmedCut(_run.CaptureLocalCharacter(), frame, LiveTransients());
 				if (report is { Result: WorldCutResult.Deferred })

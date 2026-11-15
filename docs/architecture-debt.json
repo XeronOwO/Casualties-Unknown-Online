@@ -4,6 +4,11 @@
 		"BoolFlags": 2,
 		"Ticket": "docs/backlog/in-progress/split-block-break-remote-apply.md"
 	},
+	"CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
+		"Lines": 625,
+		"BoolFlags": 0,
+		"Ticket": "docs/backlog/review/1.0-transport-handover-identity.md"
+	},
 	"CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
 		"Lines": 603,
 		"BoolFlags": 0,

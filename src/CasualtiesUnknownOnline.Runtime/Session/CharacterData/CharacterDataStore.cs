@@ -43,6 +43,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	private readonly AppliedItemConditionProjection _appliedItems;
 	private readonly PlayerKernelRestoreProjection _playerKernelRestore;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
+	private readonly Dictionary<ulong, string> _savedNames = []; // host: the display name each saved report arrived under
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	/// <summary>Members whose latest report was refused for a non-finite physiological field; the warning is named once, not at 1 Hz.</summary>
@@ -121,6 +122,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			return false;
 		}
 
+		if (_session.TryGetMember(steamId, out var member))
+		{
+			_savedNames[steamId] = member.DisplayName;
+		}
+
 		_savedCharacters[steamId] = msg;
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 		_appliedItems.SyncFromCharacterData(steamId, msg);
@@ -193,6 +199,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		// Preserve can copy a non-finite stored value into this report only if an earlier path
 		// bypassed both guards; the inner save refuses it and THIS return must tell the caller, or
 		// the handler would relay a snapshot the store never kept.
+		if (_session.TryGetMember(steamId, out var member))
+		{
+			_savedNames[steamId] = member.DisplayName;
+		}
+
 		return SaveCharacterData(steamId, CharacterDataClone.Of(msg)); // the store owns its copy: the presentation mutates its own (see CharacterDataClone)
 	}
 
@@ -216,6 +227,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public void ClearSavedCharacters()
 	{
 		_savedCharacters.Clear();
+		_savedNames.Clear();
 		_hostData = null;
 		_refusedReports.Clear();
 		_refusalFields.Clear();
@@ -227,6 +239,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	public void ResetSessionState()
 	{
 		_savedCharacters.Clear();
+		_savedNames.Clear();
 		_hostData = null;
 		_refusedReports.Clear();
 		_refusalFields.Clear();
@@ -262,6 +275,27 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			var source = member is null
 				? null
 				: CharacterReconnectAdoption.FindSource(steamId, member.DisplayName, candidates, _savedCharacters.Keys);
+			if (source is null && member is not null && !string.IsNullOrWhiteSpace(member.DisplayName))
+			{
+				// The old presence may already be gone (the guest left the session
+				// before reconnecting). The store remembers the name each report
+				// arrived under, so the same one-match rule still applies.
+				var name = member.DisplayName.Trim();
+				var matches = _savedCharacters.Keys
+					.Where(id => _savedNames.TryGetValue(id, out var savedName)
+						&& string.Equals(savedName?.Trim(), name, StringComparison.OrdinalIgnoreCase))
+					.ToList();
+				if (matches.Count == 1)
+				{
+					var candidatePeer = matches[0];
+					var oldPresence = _session.Members.FirstOrDefault(m => m.SteamId == candidatePeer);
+					if (oldPresence is null || !oldPresence.InWorld)
+					{
+						source = candidatePeer;
+					}
+				}
+			}
+
 			if (source is { } oldPeer && _savedCharacters.TryGetValue(oldPeer, out var adopted))
 			{
 				_savedCharacters.Remove(oldPeer);

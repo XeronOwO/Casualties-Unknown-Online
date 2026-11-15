@@ -945,6 +945,10 @@ internal static class CaseRegistry
 		// (0.742 in twenty seconds at an angle 24 degrees off) and the case's poll ends first. The row
 		// needs a longer, angle-corrected hold; the case carries the readings in `LockpickCase.cs`.
 		// new LockpickCase(),
+		// The session picker unlocks all three portraits and the session's ending must not write the
+		// host's or member's solo `wonchar` keys. It ends its own run; the ending case follows with a
+		// fresh world.
+		new CharacterChoiceCase(),
 		// The ending ends the run: it goes last, after every case that needs a world.
 		new EndingCase(),
 	];

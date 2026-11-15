@@ -38,7 +38,8 @@ internal static class AdapterCapabilityCatalog
 			AdapterCapabilityKind.Required,
 			[
 				typeof(PreRunScriptStartPatch), typeof(PreRunScriptStartRunPatch), typeof(PreRunScriptLoadRunPatch),
-				typeof(PreRunScriptIntroSkipPatch), typeof(SceneLoadPatches), typeof(PauseHandlerUpdatePatch),
+				typeof(PreRunScriptIntroSkipPatch), typeof(PreRunScriptCharacterGateViewPatch),
+				typeof(WorldGenerationSetGameWonPatch), typeof(SceneLoadPatches), typeof(PauseHandlerUpdatePatch),
 				typeof(PauseHandlerTogglePausePatch), typeof(PlayerCameraHandleInputPatch), typeof(PlayerCameraMenuExitPatches),
 				typeof(PlayerCameraSetTimeScalePatch), typeof(PlayerCameraDoAlertPatch),
 				typeof(PlayerCameraHandleUnconsciousScreenPatch), typeof(PlayerCameraToMainMenuPatch),

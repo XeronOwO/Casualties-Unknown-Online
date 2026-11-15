@@ -22,10 +22,11 @@ does not cover are named.
 | `world-objects.md` | buildings, openables, containers, traders, scavenging | `BuildingScript.cs`, `Openable.cs`, `TraderScript.cs` |
 | `fluids-and-climate.md` | liquids, temperature, radiation, weather | `FluidManager.cs`, `Liquids.cs`, `Body.cs` |
 | `ui-and-settings.md` | the game's windows, run settings, measurement units, language | `PlayerCamera.cs`, `RunSetting*.cs`, `Settings.cs` |
+| `character-selection.md` | the pre-run character picker, the solo unlock store, the session view | `PreRunScript.cs`, `PlayerCamera.cs`, `WorldGeneration.cs` |
 | `console-and-save.md` | console commands, the save file, run settings persistence | `ConsoleScript.cs`, `SaveSystem.cs` |
 | `principles.md` | the gameplay principles the systems imply (why the rules are shaped this way) | derived from the pages above |
 
 Order of work: the pages the mod touches first (worldgen, items, medical, crafting), then combat/traps, then the rest.
 `principles.md` is written last, from the finished pages — never before them.
 
-Written so far: `worldgen-and-layers.md`, `items.md`, `medical.md`, `crafting.md`, `combat.md`, `traps-and-events.md`, `world-objects.md`, `fluids-and-climate.md`, `ui-and-settings.md`, `console-and-save.md`, and `principles.md` (derived last).
+Written so far: `worldgen-and-layers.md`, `items.md`, `medical.md`, `crafting.md`, `combat.md`, `traps-and-events.md`, `world-objects.md`, `fluids-and-climate.md`, `ui-and-settings.md`, `character-selection.md`, `console-and-save.md`, and `principles.md` (derived last).

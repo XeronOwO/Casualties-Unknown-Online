@@ -15,8 +15,15 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// aggregate keeps the frozen <see cref="IPatchBridge"/> surface, and <see cref="PatchBridge"/>
 /// resolves each port by casting this object. Every member is a one-line forward to its domain.
 /// </summary>
-internal sealed class PatchPortsBridge(GameAdapterDomains domains) : IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort
+internal sealed class PatchPortsBridge(GameAdapterDomains domains) : IFluidPatchPort, ILayerAdvancePatchPort, IItemCategoryPatchPort, IWearablePatchPort, IDragUseCuePatchPort, ISpectatorPatchPort, ISaveCutPatchPort, ILayerPanelPatchPort, ICharacterUnlockPatchPort
 {
+	// ===== Character picker =====
+
+	public bool InSession => domains.CharacterUnlock.InSession;
+
+	public void ApplyPicker(PreRunScript pre) => domains.CharacterUnlock.ApplyPicker(pre);
+
+	public bool SuppressWinWrite() => domains.CharacterUnlock.SuppressWinWrite();
 	// ===== Fluid =====
 
 	public void OnFluidFixedUpdate() => domains.FluidSync.OnFluidFixedUpdate();

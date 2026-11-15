@@ -269,6 +269,50 @@
 		return finish(fields);
 	}
 
+	if (command == "pick-character") {
+		System.Type preRunType = null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && preRunType == null; i++) {
+			preRunType = loaded[i].GetType("PreRunScript", false);
+		}
+		if (preRunType == null) {
+			return fail(escape, "no-prerun-type", "the game's PreRunScript type is not loaded in this process");
+		}
+		object preRun = null;
+		var instanceProperty = preRunType.GetProperty("instance", staticFlags);
+		if (instanceProperty != null) { preRun = instanceProperty.GetValue(null, null); }
+		if (preRun == null) {
+			var instanceField = preRunType.GetField("instance", staticFlags);
+			if (instanceField != null) { preRun = instanceField.GetValue(null); }
+		}
+		int choice;
+		if (!int.TryParse(argument, out choice) || choice < 0 || choice > 2) {
+			return fail(escape, "bad-character", "the choice must be 0, 1 or 2");
+		}
+		var selectedField = preRunType.GetField("characterSelected", staticFlags);
+		if (selectedField == null) {
+			return fail(escape, "no-character-selected", "PreRunScript.characterSelected was not found");
+		}
+		if (preRun != null) {
+			var selectCharacter = findMethodWith(preRun, "SelectCharacter", 1);
+			if (selectCharacter != null) {
+				try { selectCharacter.Invoke(preRun, new object[] { choice }); }
+				catch (System.Exception exception) { return fail(escape, "pick-character-failed", unwrap(exception)); }
+			}
+			else {
+				selectedField.SetValue(null, choice);
+			}
+		}
+		else {
+			selectedField.SetValue(null, choice);
+		}
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "selected", ((int)selectedField.GetValue(null)).ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putRaw(fields, escape, "instance", preRun != null ? "true" : "false");
+		return finish(fields);
+	}
+
 	if (command == "select-character") {
 		System.Type preRunType = null;
 		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();

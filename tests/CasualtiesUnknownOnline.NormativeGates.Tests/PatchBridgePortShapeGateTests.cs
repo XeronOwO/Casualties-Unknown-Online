@@ -163,6 +163,12 @@ public class PatchBridgePortShapeGateTests
 	/// </summary>
 	private static readonly (string Interface, string File, bool Composed, string[] Members)[] Seams =
 	[
+		("ICharacterUnlockPatchPort", AdapterDir + "ICharacterUnlockPatchPort.cs", false,
+		[
+			"ApplyPicker",
+			"InSession",
+			"SuppressWinWrite",
+		]),
 		("IRemoteBackpackPatchBridge", AdapterDir + "IRemoteBackpackPatchBridge.cs", true,
 		[
 			"AutoOpenRemoteBackpackForDrag",
@@ -277,6 +283,7 @@ public class PatchBridgePortShapeGateTests
 	private static readonly string[] SeamMembers =
 	[
 		"Bind",
+		"CharacterUnlock",
 		"DragUseCue",
 		"Fluid",
 		"Impl",
@@ -317,6 +324,7 @@ public class PatchBridgePortShapeGateTests
 	/// </summary>
 	private static readonly string[] BridgePorts =
 	[
+		"ICharacterUnlockPatchPort",
 		"IFluidPatchPort",
 		"ILayerAdvancePatchPort",
 		"IItemCategoryPatchPort",

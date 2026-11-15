@@ -125,6 +125,7 @@ internal sealed class GameAdapterDomains
 	internal readonly WorldParamsService WorldParams;
 	internal readonly StartGateCoordinator Gate;
 	internal readonly GuestMenuGuard GuestMenu;
+	internal readonly CharacterUnlockView CharacterUnlock;
 	internal readonly RunSettingsRangeService RunSettingsRange;
 	internal readonly OnlineMenuInputGuard MenuInput;
 	internal readonly GeneratedItemAuthority GenItemAuthority;
@@ -431,6 +432,7 @@ internal sealed class GameAdapterDomains
 		WorldItemImpactSync = new WorldItemImpactSync(items, session, loggerFactory.CreateLogger<WorldItemImpactSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
+		CharacterUnlock = new CharacterUnlockView(session, loggerFactory.CreateLogger<CharacterUnlockView>());
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, RunClockFacts, loggerFactory.CreateLogger<WorldParamsService>());

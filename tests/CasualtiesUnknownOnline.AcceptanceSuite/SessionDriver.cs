@@ -92,12 +92,6 @@ internal sealed class SessionDriver(Options options)
 				await WaitWorldExitAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 			}
 
-			// The host's world is gone now, so the member's own run-end path is already taking it to
-			// the menu. Clear the session here, before the host starts the replacement run: clearing
-			// it while the old host was still up left an inWorld ghost whose Home > Leave was refused
-			// (measured 2026-11-15, late-layer-switches).
-			await ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
-
 			var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
 			var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 			return "fresh run: " + started + "; " + joined;
@@ -243,20 +237,11 @@ internal sealed class SessionDriver(Options options)
 	public async Task ClearMemberSessionAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
-		if (!IsTrue(state, "active")
-			&& !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal)
-			&& !IsTrue(state, "inWorld"))
+		if (!IsTrue(state, "active") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
 		{
 			return;
 		}
 
-		// Leave the world through the driver first, then clear the session through the window. The
-		// window's Home > Leave can clear the session while leaving a stale inWorld flag behind
-		// (measured 2026-11-15: role=None, active=false, inWorld=true, page=Home); the direct world
-		// leave is what clears that presence.
-		await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-		await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
-		state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (Controls(state).Contains("home.leave"))
 		{
 			await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
@@ -264,10 +249,8 @@ internal sealed class SessionDriver(Options options)
 
 		await WaitUntilAsync(
 			_options.MemberUrl,
-			probe => !IsTrue(probe, "active")
-				&& !string.Equals(StringValue(probe, "role"), "Guest", StringComparison.Ordinal)
-				&& !IsTrue(probe, "inWorld"),
-			TimeSpan.FromSeconds(10),
+			probe => !IsTrue(probe, "active") && !string.Equals(StringValue(probe, "role"), "Guest", StringComparison.Ordinal),
+			TimeSpan.FromSeconds(5),
 			cancellationToken).ConfigureAwait(false);
 	}
 	/// <summary>
@@ -417,23 +400,15 @@ internal sealed class SessionDriver(Options options)
 					return $"the suite joined the member to the host's session after {deadline.Elapsed.TotalSeconds:F1}s";
 				}
 
-				// The ghost: the menu is up (page Home) while the world presence still says in
-				// world, so every join answers "a world is running or generating" (measured on the
-				// boxed member). Leave through the visible Home > Leave when it exists; otherwise
-				// the driver's own leave is the only way out of a world the window does not show.
+				// The ghost: the menu is up (page Home, no role) while the world presence still says
+				// in world, so every join answers "a world is running or generating" (measured on the
+				// boxed member). The window offers no leave control there; the driver's own leave is
+				// the only way out of a world the window does not show.
 				var ghostControls = Controls(state);
-				if (string.Equals(StringValue(state, "page"), "Home", StringComparison.Ordinal))
+				if (!ghostControls.Contains("home.leave") && string.Equals(StringValue(state, "page"), "Home", StringComparison.Ordinal))
 				{
-					if (ghostControls.Contains("home.leave"))
-					{
-						await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
-					}
-					else
-					{
-						await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-					}
-
-					await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+					await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
+					await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
 					continue;
 				}
 			}
@@ -690,11 +665,6 @@ internal sealed class SessionDriver(Options options)
 			Timeline?.Invoke(sessionNote);
 		}
 
-		// The first run carries the game's own unchipped preset: the late-layer switch case reads that
-		// switch on both clients without restarting the world. Clear the static right after the start so
-		// later runs that deliberately restart (ending/character) get the normal preset again.
-		await ActionAsync(_options.HostUrl, "run-preset", cancellationToken, ("-Argument", "unchipped")).ConfigureAwait(false);
-
 		var startClock = Stopwatch.StartNew();
 		var memberClock = Stopwatch.StartNew();
 		string startNote;
@@ -708,12 +678,10 @@ internal sealed class SessionDriver(Options options)
 			await Task.WhenAll(startTask, memberTask).ConfigureAwait(false);
 			startNote = startTask.Result;
 			memberNote = memberTask.Result;
-			await ActionAsync(_options.HostUrl, "run-preset", cancellationToken, ("-Argument", string.Empty)).ConfigureAwait(false);
 		}
 		else
 		{
 			startNote = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
-			await ActionAsync(_options.HostUrl, "run-preset", cancellationToken, ("-Argument", string.Empty)).ConfigureAwait(false);
 			try
 			{
 				memberNote = sessionNote.StartsWith("session-first join failed", StringComparison.Ordinal)

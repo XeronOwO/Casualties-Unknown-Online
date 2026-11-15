@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: deploy this driver, run the shared unchipped pair, and read the full-suite wall time.
+- [ ] Release-cycle deployment/acceptance: deploy the acceptance plugin, run one log-waiting case, and verify no in-client sleep remains.
 - [ ] FORBIDDEN — never check this box

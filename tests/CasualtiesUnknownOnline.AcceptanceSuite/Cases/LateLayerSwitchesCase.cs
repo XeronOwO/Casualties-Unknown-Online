@@ -15,13 +15,17 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 {
 	public override string Name => "late-layer-switches";
 
-	public override CaseCost Cost => CaseCost.InRun;
+	public override CaseCost Cost => CaseCost.NewWorld;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The shared pair's first run carries the unchipped preset (SessionDriver.EnsurePairAsync), so
-		// this case reads the derived switch without a restart. A restart here left the member in an
-		// inWorld ghost (measured 2026-11-15) and cost another 40 s.
+		var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
+		context.Read("preset", preset);
+		Require(Boolean(preset, "ok") == true, "the host's run preset could not be selected: " + Raw(preset));
+
+		var restart = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
+		context.Note(restart);
+		await UseCurrentMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		try
@@ -54,6 +58,25 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 			{
 				context.Note("could not clear the run preset after the case: " + exception.Message);
 			}
+		}
+	}
+
+	private static async Task UseCurrentMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		// A restart gives the member a new session id on the host. Later cases address the member by
+		// that id; keeping the pre-restart one made the medical view open for a member that no longer
+		// exists (measured 2026-11-15: medical-dose read the old id and opened nothing). The roster
+		// can trail the world by a moment, so wait for the row before taking it.
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			if (members.Length > 0)
+			{
+				context.UseMember(members[0]);
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 	}
 

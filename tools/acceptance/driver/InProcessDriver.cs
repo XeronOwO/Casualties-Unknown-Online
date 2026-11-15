@@ -663,24 +663,6 @@
 		return finish(fields);
 	}
 
-	if (command == "run-preset") {
-		// The suite's first run carries the game's own unchipped preset so the late-layer switch case
-		// can read it on both clients without restarting the world. The static lives on the GameAdapter;
-		// find it by name across the loaded assemblies, never by a compile-time reference.
-		const System.Reflection.BindingFlags staticAny = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-		System.Type presetType = null;
-		for (var i = 0; i < assemblies.Length && presetType == null; i++) {
-			try { presetType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Run.RunPresetDecision", false); }
-			catch { presetType = null; }
-		}
-		var presetProperty = presetType == null ? null : presetType.GetProperty("Preset", staticAny);
-		if (presetProperty == null) { return fail(escape, "no-run-preset", "RunPresetDecision.Preset was not found"); }
-		presetProperty.SetValue(null, argument.Length == 0 ? null : argument, null);
-		putRaw(fields, escape, "ok", "true");
-		putText(fields, escape, "preset", argument);
-		return finish(fields);
-	}
-
 	if (command == "log-path") {
 		// The suite watches this file instead of asking the game to sleep until a line appears.
 		var pathOnly = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");

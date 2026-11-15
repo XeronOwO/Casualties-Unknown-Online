@@ -8,9 +8,9 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// normal host write is broadcast live, so this case injects the one shape the live path cannot stage:
 /// the host table changes and the difference table records it, but the live write is not sent (the
 /// <c>block-force</c> driver action writes the table and reports it without calling
-/// <c>WorldGeneration.SetBlock</c>). The 60 s pump must then carry exactly those two rows to the member,
-/// whose own <c>block-read-at</c> must read both new values. The idle/no-message half is the
-/// <c>BlockTableReconcilerTests.AnUnchangedTableSendsNothing</c> fact; this case judges the live send.
+/// <c>WorldGeneration.SetBlock</c>). The production reconcile body must then carry exactly those two
+/// rows to the member, whose own <c>block-read-at</c> must read both new values. The case forces the
+/// due time instead of waiting the 60 s step; the interval is the reconciler's unit fact.
 /// </summary>
 internal sealed class BlockReconcileCase : AcceptanceCase
 {
@@ -84,11 +84,19 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		Require(Int(memberFirstStale, "block") == firstOld && Int(memberSecondStale, "block") == secondOld,
 			"the member was not stale before the reconcile: " + Raw(memberFirstStale) + " " + Raw(memberSecondStale));
 
-		// The production pump runs on the real 60 s clock; the case waits one interval and reads the
-		// member's own table, not the host's answer.
+		// The 60 s step is the reconciler's unit fact; this action calls the production reconcile
+		// body at a due timestamp, so the wire diff/send path is exercised without a production
+		// interval of idle suite time. The member's own table is still the judge.
+		var reconciledNow = await context.Session.ActionAsync(
+			context.Session.HostUrl,
+			"block-reconcile-now",
+			cancellationToken).ConfigureAwait(false);
+		context.Read("host:reconcile-now", reconciledNow);
+		Require(Boolean(reconciledNow, "ok") == true, "the host could not run the reconcile body: " + Raw(reconciledNow));
+
 		JsonElement? memberFirst = null;
 		JsonElement? memberSecond = null;
-		for (var attempt = 0; attempt < 140; attempt++)
+		for (var attempt = 0; attempt < 20; attempt++)
 		{
 			memberFirst = await ReadAsync(context, true, firstX, firstY, cancellationToken).ConfigureAwait(false);
 			memberSecond = await ReadAsync(context, true, secondX, secondY, cancellationToken).ConfigureAwait(false);
@@ -97,7 +105,7 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 				break;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("member:first-after", memberFirst);

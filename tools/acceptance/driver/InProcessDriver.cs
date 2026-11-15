@@ -335,6 +335,35 @@
 		return finish(fields);
 	}
 
+	if (command == "block-reconcile-now") {
+		// Test-only clock advance for the host's reconcile: call the production body with a due
+		// timestamp instead of waiting the 60 s step. The step itself is
+		// BlockTableReconcilerTests' fact; this action exercises the same difference, wire and log
+		// path the pump runs.
+		if (session == null || session.Role.ToString() != "Host") {
+			return fail(escape, "not-host", "block-reconcile-now only runs on the host");
+		}
+		// Resolve through the loaded assemblies so the driver template keeps its pinned compile
+		// surface; the type is ours, but the template deliberately does not reference the Runtime
+		// assembly by name.
+		System.Type messageType = null;
+		var loadedAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loadedAssemblies.Length && messageType == null; i++) {
+			messageType = loadedAssemblies[i].GetType("CasualtiesUnknownOnline.Runtime.Session.World.WorldStateMessageService", false);
+		}
+		if (messageType == null) { return fail(escape, "no-world-messages", "WorldStateMessageService is not loaded in this process"); }
+		var messageService = services.GetService(messageType);
+		var reconcile = messageType.GetMethod("ReconcileBlockTable", new[] { typeof(long) });
+		if (messageService == null || reconcile == null) { return fail(escape, "no-world-messages", "WorldStateMessageService is not available"); }
+		var now = System.Environment.TickCount64 + 120_000;
+		reconcile.Invoke(messageService, new object[] { now });
+		reconcile.Invoke(messageService, new object[] { now + 120_000 });
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "now", now.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return finish(fields);
+	}
+
 	if (command == "pick-character") {
 		System.Type preRunType = null;
 		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();

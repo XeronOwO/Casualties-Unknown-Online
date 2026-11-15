@@ -154,7 +154,7 @@ public class AcceptanceDriverGateTests
 		// Their census is pinned, so a template that picked up a typo, a wrong argument count or a duplicate
 		// declaration is refused here instead of hiding behind the version comparison.
 		var shared = SharedErrors(source);
-		Assert.True(shared.Length == UnresolvedReferenceCensus, $"the offline compile reported {shared.Length} shared error(s), not the pinned {UnresolvedReferenceCensus}; an ordinary template error changes this census — fix the template, or update the census deliberately if the template gained a new game/plugin reference");
+		Assert.True(shared.Length == UnresolvedReferenceCensus, $"the offline compile reported {shared.Length} shared error(s), not the pinned {UnresolvedReferenceCensus}; an ordinary template error changes this census — fix the template, or update the census deliberately if the template gained a new game/plugin reference:{Environment.NewLine}{string.Join(Environment.NewLine, shared.Select(diagnostic => diagnostic.ToString()))}");
 		var unexpected = shared.Where(diagnostic => !UnresolvedReferenceIds.Contains(diagnostic.Id, StringComparer.Ordinal)).ToArray();
 		Assert.True(unexpected.Length == 0, "the shared errors must all be unresolved CUO/Unity references:" + Environment.NewLine + string.Join(Environment.NewLine, unexpected.Select(diagnostic => diagnostic.ToString())));
 

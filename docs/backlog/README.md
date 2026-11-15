@@ -86,7 +86,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
 
-- [A live member never resyncs the block table](review/1.0-live-block-table-never-resyncs.md) — **High** — only entry sends it.
+- [A live member's block table can drift](review/1.0-live-block-table-never-resyncs.md) — **High** — live fallback driven; idle row open.
 - [Late-layer mechanism switches need one answer](review/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients must agree.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.

@@ -79,6 +79,14 @@ internal sealed class WorldTimeSync(
 			return; // the start gate owns timeScale 0 while everyone loads — world time must not touch it
 		}
 
+		if (PauseHandler.main != null && PauseHandler.main.isPaused)
+		{
+			// The native pause owns the clock while the player is in the pause UI. The world-time pump
+			// must not re-assert the session speed over PauseHandler's 0, or the pause appears to do
+			// nothing (measured 2026-11-15: `isPaused=true` while `Time.timeScale` stayed 1).
+			return;
+		}
+
 		if (IsHostMode)
 		{
 			AdoptDirectTimeScaleWrite();

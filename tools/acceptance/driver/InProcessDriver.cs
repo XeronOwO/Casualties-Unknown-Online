@@ -292,6 +292,48 @@
 		return finish(fields);
 	}
 
+	if (command == "block-force") {
+		// Test-only fault injection for the host-to-member reconcile: write the host's live table
+		// WITHOUT WorldGeneration.SetBlock, so the live BlockPlaced broadcast is not sent. The host's
+		// difference table is updated through the same IWorldControl.ReportBlockState the real write
+		// path uses, and the next reconcile tick must carry this row to the member.
+		if (session == null || session.Role != CasualtiesUnknownOnline.Runtime.Session.SessionRole.Host) {
+			return fail(escape, "not-host", "block-force only runs on the host");
+		}
+		var parts = text.Split(',');
+		int forceX;
+		int forceY;
+		ushort forceBlock;
+		if (parts.Length != 3 || !int.TryParse(parts[0], out forceX) || !int.TryParse(parts[1], out forceY) || !ushort.TryParse(parts[2], out forceBlock)) {
+			return fail(escape, "bad-args", "expected text=x,y,block");
+		}
+		System.Type worldType = null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && worldType == null; i++) {
+			worldType = loaded[i].GetType("WorldGeneration", false);
+		}
+		if (worldType == null) { return fail(escape, "no-worldgeneration", "WorldGeneration is not loaded in this process"); }
+		var worldField = worldType.GetField("world", staticFlags);
+		var world = worldField == null ? null : worldField.GetValue(null);
+		if (world == null) { return fail(escape, "no-world", "there is no live world in this client"); }
+		var blocksField = worldType.GetField("worldBlocks", instanceFlags);
+		var blocks = blocksField == null ? null : blocksField.GetValue(world) as System.Array;
+		if (blocks == null || blocks.Rank != 2) { return fail(escape, "no-worldblocks", "WorldGeneration.worldBlocks was not found"); }
+		if (forceX < blocks.GetLowerBound(0) || forceX > blocks.GetUpperBound(0) || forceY < blocks.GetLowerBound(1) || forceY > blocks.GetUpperBound(1)) {
+			return fail(escape, "out-of-range", "the forced cell is outside the live table");
+		}
+		blocks.SetValue(forceBlock, forceX, forceY);
+		var worldControl = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.World.IWorldControl)) as CasualtiesUnknownOnline.Runtime.Session.World.IWorldControl;
+		if (worldControl == null) { return fail(escape, "no-world-control", "IWorldControl is not available"); }
+		worldControl.ReportBlockState(forceX, forceY, forceBlock);
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "x", forceX.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putRaw(fields, escape, "y", forceY.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		putRaw(fields, escape, "block", forceBlock.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return finish(fields);
+	}
+
 	if (command == "pick-character") {
 		System.Type preRunType = null;
 		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();

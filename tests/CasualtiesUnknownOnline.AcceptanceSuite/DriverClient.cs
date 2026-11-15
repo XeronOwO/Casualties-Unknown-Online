@@ -27,6 +27,42 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 		// a direct ClientWebSocket to the same URL answered).
 		_socket.Options.Proxy = null;
 		await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
+		await SelectEvaluatorAsync(cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// The 1.0.2 game no longer ships Mono.CSharp, so HotRepl's default Mono evaluator cannot compile a
+	/// snippet. Its Roslyn evaluator is shipped with the plugin; select it per connection before the first
+	/// eval. The driver snippets are still written in the one-expression shape both evaluators accept.
+	/// </summary>
+	private async Task SelectEvaluatorAsync(CancellationToken cancellationToken)
+	{
+		var id = Guid.NewGuid().ToString("N");
+		var frame = JsonSerializer.Serialize(new { type = "select_evaluator", id, evaluator = "Roslyn.Script" });
+		await SendAsync(frame, cancellationToken).ConfigureAwait(false);
+		while (true)
+		{
+			var text = await ReceiveAsync(cancellationToken).ConfigureAwait(false);
+			using var document = JsonDocument.Parse(text);
+			var root = document.RootElement;
+			if (!root.TryGetProperty("id", out var idElement)
+				|| idElement.ValueKind != JsonValueKind.String
+				|| !string.Equals(idElement.GetString(), id, StringComparison.Ordinal))
+			{
+				continue;
+			}
+
+			var type = root.TryGetProperty("type", out var typeElement) ? typeElement.GetString() : null;
+			if (string.Equals(type, "select_evaluator_result", StringComparison.Ordinal)
+				&& root.TryGetProperty("success", out var success)
+				&& success.ValueKind == JsonValueKind.True)
+			{
+				return;
+			}
+
+			var detail = root.TryGetProperty("error", out var error) ? error.GetRawText() : text;
+			throw new DriverException($"the client refused the Roslyn evaluator: {detail}");
+		}
 	}
 
 	/// <summary>Reconnects after the game closed the socket (a scene change does this): one retry, then the case fails.</summary>

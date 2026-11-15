@@ -369,6 +369,25 @@ function Receive-DriverFrame {
 	}
 }
 
+function Select-DriverEvaluator {
+	param([System.Net.WebSockets.ClientWebSocket]$Socket, [int]$Timeout, [string]$Evaluator = 'Roslyn.Script')
+	$id = [guid]::NewGuid().ToString('N')
+	$frame = @{ type = 'select_evaluator'; id = $id; evaluator = $Evaluator } | ConvertTo-Json -Compress
+	Send-DriverFrame -Socket $Socket -Frame $frame -Timeout $Timeout
+	$deadline = [System.Diagnostics.Stopwatch]::StartNew()
+	while ($true) {
+		$remaining = $Timeout - [int]$deadline.ElapsedMilliseconds
+		if ($remaining -le 0) {
+			throw [System.TimeoutException]::new("the client did not answer the evaluator selection within $Timeout ms")
+		}
+		$message = (Receive-DriverFrame -Socket $Socket -Timeout $remaining) | ConvertFrom-Json
+		if ($message.id -ne $id) { continue }
+		if ($message.type -eq 'select_evaluator_result' -and $message.success -eq $true) { return }
+		$detail = if ($message.error -and $message.error.message) { [string]$message.error.message } else { ($message | Out-String).Trim() }
+		throw [System.InvalidOperationException]::new("the client refused the $Evaluator evaluator: $detail")
+	}
+}
+
 function Invoke-DriverCode {
 	param(
 		[System.Net.WebSockets.ClientWebSocket]$Socket,
@@ -911,6 +930,7 @@ $exitCode = 0
 $socket = $null
 try {
 	$socket = Connect-DriverSocket -Address $Url -Timeout $connectTimeoutMs
+	Select-DriverEvaluator -Socket $socket -Timeout $connectTimeoutMs
 	$result = Invoke-DriverAction -Socket $socket -Template $template -ActionName $Action -BudgetMs $TimeoutMs -EvalTimeoutMs $evalTimeoutMs -RetryDelayMs $RetryDelayMs -RecipeCode $recipeCode
 }
 catch {

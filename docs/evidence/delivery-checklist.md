@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the forced reconcile case still needs a focused run on the deployed artifact.
+- [ ] Release-cycle deployment/acceptance: the deployed artifact still needs the evaluator bridge verified with `body-items`/`item-customization`.
 - [ ] FORBIDDEN — never check this box

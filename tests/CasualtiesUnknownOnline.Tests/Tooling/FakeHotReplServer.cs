@@ -171,6 +171,18 @@ internal sealed class FakeHotReplServer : IDisposable
 
 				var frame = text.ToString();
 				text.Clear();
+				if (frame.Contains("\"type\":\"select_evaluator\"", StringComparison.Ordinal))
+				{
+					// The script selects HotRepl's Roslyn evaluator on every connection since 1.0.2
+					// removed Mono.CSharp. The fake endpoint answers that handshake itself; the tests
+					// below pin the eval vocabulary, not the evaluator handshake.
+					var selected = "{\"type\":\"select_evaluator_result\",\"id\":\"" + RequestId(frame)
+						+ "\",\"success\":true,\"evaluator\":\"Roslyn.Script\"}";
+					var selectedBytes = Encoding.UTF8.GetBytes(selected);
+					await socket.SendAsync(new ArraySegment<byte>(selectedBytes), WebSocketMessageType.Text, true, CancellationToken.None).ConfigureAwait(false);
+					continue;
+				}
+
 				lock (_gate)
 				{
 					_frames.Add(frame);

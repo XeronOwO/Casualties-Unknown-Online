@@ -355,7 +355,7 @@
 		var messageService = services.GetService(messageType);
 		var reconcile = messageType.GetMethod("ReconcileBlockTable", new[] { typeof(long) });
 		if (messageService == null || reconcile == null) { return fail(escape, "no-world-messages", "WorldStateMessageService is not available"); }
-		var now = System.Environment.TickCount64 + 120_000;
+		var now = (long)System.Environment.TickCount + 120_000;
 		reconcile.Invoke(messageService, new object[] { now });
 		reconcile.Invoke(messageService, new object[] { now + 120_000 });
 		putRaw(fields, escape, "ok", "true");
@@ -527,7 +527,7 @@
 		if (services == null) {
 			return fail(escape, "no-services", "the CUO container is not available in this process");
 		}
-		var console = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService)) as CasualtiesUnknownOnline.Runtime.Session.Commands.CommandConsoleService;
+		var console = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandControl)) as CasualtiesUnknownOnline.Runtime.Session.Commands.ICommandControl;
 		if (console == null) {
 			return fail(escape, "no-console", "the command console service is not available in this process");
 		}

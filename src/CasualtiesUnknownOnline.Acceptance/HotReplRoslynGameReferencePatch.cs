@@ -1,0 +1,103 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using BepInEx;
+using HarmonyLib;
+using UnityEngine;
+
+namespace CasualtiesUnknownOnline.Acceptance;
+
+/// <summary>
+/// 1.0.2 removed Mono.CSharp, so HotRepl runs its Roslyn evaluator. That evaluator builds its
+/// ScriptOptions from the AppDomain's assemblies and skips any assembly whose Location is empty.
+/// Unity loads Assembly-CSharp from memory, so Location is empty and a recipe that names a game type
+/// (PlayerCamera, Item, ...) fails with CS0103. Add the on-disk assembly as a metadata reference.
+///
+/// This is acceptance-channel plumbing only: the production plugin never loads this assembly.
+/// The patch is reflection-only on HotRepl's side so this project does not take a Roslyn reference.
+/// </summary>
+internal static class HotReplRoslynGameReferencePatch
+{
+	private static bool _installed;
+
+	internal static void TryInstall(Harmony harmony)
+	{
+		if (_installed)
+		{
+			return;
+		}
+
+		var evaluator = AccessTools.TypeByName("HotRepl.Evaluator.Roslyn.RoslynScriptEvaluator");
+		var buildOptions = evaluator == null ? null : AccessTools.Method(evaluator, "BuildOptions");
+		if (buildOptions == null)
+		{
+			return;
+		}
+
+		harmony.Patch(buildOptions, postfix: new HarmonyMethod(typeof(HotReplRoslynGameReferencePatch), nameof(Postfix)));
+		_installed = true;
+		Debug.Log("[Acceptance] HotRepl Roslyn evaluator now references the on-disk game assembly.");
+	}
+
+	private static void Postfix(ref object __result)
+	{
+		if (__result == null)
+		{
+			return;
+		}
+
+		var gameAssembly = Path.Combine(Paths.ManagedPath ?? Path.Combine(Paths.GameRootPath, "CasualtiesUnknown_Data", "Managed"), "Assembly-CSharp.dll");
+		if (!File.Exists(gameAssembly))
+		{
+			return;
+		}
+
+		var metadataReference = Type.GetType("Microsoft.CodeAnalysis.MetadataReference, Microsoft.CodeAnalysis");
+		var createFromFile = metadataReference == null ? null : metadataReference.GetMethod("CreateFromFile", [typeof(string)]);
+		if (createFromFile == null)
+		{
+			return;
+		}
+
+		var reference = createFromFile.Invoke(null, [gameAssembly]);
+		if (reference == null)
+		{
+			return;
+		}
+
+		var addReferences = __result.GetType()
+			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+			.FirstOrDefault(method => method.Name == "AddReferences" && method.GetParameters().Length == 1);
+		if (addReferences == null)
+		{
+			return;
+		}
+
+		var parameterType = addReferences.GetParameters()[0].ParameterType;
+		object argument;
+		if (parameterType.IsArray)
+		{
+			var array = Array.CreateInstance(parameterType.GetElementType()!, 1);
+			array.SetValue(reference, 0);
+			argument = array;
+		}
+		else
+		{
+			var elementType = parameterType.GetGenericArguments().FirstOrDefault();
+			if (elementType == null)
+			{
+				return;
+			}
+
+			var listType = typeof(List<>).MakeGenericType(elementType);
+			var list = (IList)Activator.CreateInstance(listType)!;
+			list.Add(reference);
+			argument = list;
+		}
+
+		__result = addReferences.Invoke(__result, [argument]);
+	}
+}

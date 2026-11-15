@@ -17,15 +17,28 @@ namespace CasualtiesUnknownOnline.Acceptance;
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public sealed class AcceptancePlugin : BaseUnityPlugin
 {
+	private Harmony? _harmony;
+
 	private void Awake()
 	{
 		// The recorder's patches are attributes on the type and nothing applies them unless something asks. Without this
 		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two
 		// clients answered count=0 for every Sound.Play of the batch).
-		var harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
-		SoundPlayRecorder.Install(harmony);
-		BlockWriteRecorder.Install(harmony);
-		FacialBodyProbe.Install(harmony);
+		_harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
+		SoundPlayRecorder.Install(_harmony);
+		BlockWriteRecorder.Install(_harmony);
+		FacialBodyProbe.Install(_harmony);
+		HotReplRoslynGameReferencePatch.TryInstall(_harmony);
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
+	}
+
+	private void Update()
+	{
+		// HotRepl's Roslyn evaluator type is loaded lazily; keep trying until it is present. The patch only
+		// changes the evaluator's compilation options, so a late installation is safe.
+		if (_harmony != null)
+		{
+			HotReplRoslynGameReferencePatch.TryInstall(_harmony);
+		}
 	}
 }

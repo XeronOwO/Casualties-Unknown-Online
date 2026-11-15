@@ -83,7 +83,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
-- [A guest holds a role without a world](review/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — a stale session hides the join.
 - [1.0: `/heal @a` leaves the member unchanged](review/1.0-console-heal-does-not-restore-a-member.md) — **High** — the reset runs; the limb stays damaged.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
@@ -145,6 +144,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [A session ignores the solo character unlocks](done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — any pick; solo unchanged.
+- [A guest holds a role without a world](done/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — run-end scope clears the stale join.
 - [A trigger event waits for the whole living team](done/1.0-trigger-events-wait-for-the-whole-team.md) — **Medium** — the pod names the missing; no passengers.
 - [A host leaving the world strands the members](done/1.0-a-host-leaving-the-world-strands-the-members.md) — **High** — relay pulls them out.
 - [The pinyin search follows the game language](done/1.0-pinyin-search-finds-no-chinese-name.md) — **Medium** — zh-CN matches; English is a documented limit.

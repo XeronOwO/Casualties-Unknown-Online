@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the deployed artifact still needs the evaluator bridge verified with `body-items`/`item-customization`.
+- [ ] Release-cycle deployment/acceptance: the deployed artifact still needs the game-type recipe reading.
 - [ ] FORBIDDEN — never check this box

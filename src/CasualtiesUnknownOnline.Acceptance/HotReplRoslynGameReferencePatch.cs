@@ -30,8 +30,10 @@ internal static class HotReplRoslynGameReferencePatch
 			return;
 		}
 
-		var evaluator = AccessTools.TypeByName("HotRepl.Evaluator.Roslyn.RoslynScriptEvaluator");
-		var buildOptions = evaluator == null ? null : AccessTools.Method(evaluator, "BuildOptions");
+		var evaluator = AppDomain.CurrentDomain.GetAssemblies()
+			.Select(assembly => assembly.GetType("HotRepl.Evaluator.Roslyn.RoslynScriptEvaluator", throwOnError: false))
+			.FirstOrDefault(type => type != null);
+		var buildOptions = evaluator?.GetMethod("BuildOptions", BindingFlags.Instance | BindingFlags.NonPublic);
 		if (buildOptions == null)
 		{
 			return;

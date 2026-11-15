@@ -176,6 +176,7 @@
 		putText(fields, escape, "lobby", steam == null ? "0" : steam.CurrentLobbyId.ToString());
 		putText(fields, escape, "role", session == null ? "" : session.Role.ToString());
 		putRaw(fields, escape, "active", session != null && session.SessionActive ? "true" : "false");
+		putText(fields, escape, "steamId", session == null ? "" : session.LocalSteamId.ToString());
 		putText(fields, escape, "hostId", session == null ? "0" : session.HostSteamId.ToString());
 		putRaw(fields, escape, "steamInit", steam != null && steam.IsInitialized ? "true" : "false");
 		putRaw(fields, escape, "inWorld", presence != null && presence.IsInWorldOrGenerating ? "true" : "false");

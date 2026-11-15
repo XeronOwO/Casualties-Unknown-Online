@@ -62,8 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-
-
+- [A world's live save is loose JSON](todo/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest.
 
 
 

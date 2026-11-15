@@ -252,7 +252,14 @@ internal sealed class SessionDriver(Options options)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		var hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-		if (IsTrue(state, "inWorld") && hostMembers.Length > 0)
+		// A non-empty host roster is not proof that THIS member is in it. After a run restart the host
+		// can still list the previous session's member while the new guest sits in the world unlisted;
+		// that produced a pod refusal that named an old member id on 2026-11-15.
+		var localId = StringValue(state, "steamId");
+		var hostCarriesLocal = localId.Length > 0
+			? hostMembers.Contains(localId, StringComparer.Ordinal)
+			: hostMembers.Length > 0;
+		if (IsTrue(state, "inWorld") && hostCarriesLocal)
 		{
 			return "the member was already in a world";
 		}
@@ -280,6 +287,10 @@ internal sealed class SessionDriver(Options options)
 		while (deadline.Elapsed < JoinBudget)
 		{
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			// The IP-direct identity is assigned by the transport when the session connects; a fresh
+			// client reads 0 until then, so the roster check must use the id from THIS probe rather
+			// than the id captured before the join began.
+			localId = StringValue(state, "steamId");
 			if (!string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal) || IsTrue(state, "inWorld"))
 			{
 				activeSince.Restart();
@@ -292,7 +303,10 @@ internal sealed class SessionDriver(Options options)
 				// naming the same world: the member in it AND the host's roster carrying it. The
 				// roster read is cheap and is the judge.
 				hostMembers = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-				if (hostMembers.Length > 0)
+				var listed = localId.Length > 0
+					? hostMembers.Contains(localId, StringComparer.Ordinal)
+					: hostMembers.Length > 0;
+				if (listed)
 				{
 					return $"the suite joined the member to the host's session after {deadline.Elapsed.TotalSeconds:F1}s";
 				}

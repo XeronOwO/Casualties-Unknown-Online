@@ -22,6 +22,6 @@
 	"CasualtiesUnknownOnline.Runtime.Persistence.SaveArchiveReader": {
 		"Lines": 619,
 		"BoolFlags": 0,
-		"Ticket": "docs/backlog/in-progress/1.0-save-live-snapshot-single-file.md"
+		"Ticket": "docs/backlog/review/1.0-save-live-snapshot-single-file.md"
 	}
 }

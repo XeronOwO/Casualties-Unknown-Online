@@ -71,7 +71,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
-- [A world's live save is loose JSON](in-progress/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest; live archive landed.
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
@@ -83,6 +82,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
+- [A world's live save is loose JSON](review/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest; pre-change copy Continue pending.
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
 
 

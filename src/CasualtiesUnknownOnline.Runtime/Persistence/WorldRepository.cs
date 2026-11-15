@@ -52,7 +52,8 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	/// </summary>
 	public bool HasSnapshot(string worldId) =>
 		TryPathOfWorld(worldId) is { } directory
-		&& File.Exists(Path.Combine(directory, SaveArchiveFormat.LiveFolderName, SaveArchiveFormat.ManifestFileName));
+		&& (File.Exists(Path.Combine(directory, SaveArchiveFormat.LiveArchiveFileName))
+			|| File.Exists(Path.Combine(directory, SaveArchiveFormat.LiveFolderName, SaveArchiveFormat.ManifestFileName)));
 
 	/// <summary>
 	/// The folder a world id names. The id is the directory key, so it is validated

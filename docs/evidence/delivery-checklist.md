@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the writer/reader and the two-client row are still open.
+- [ ] Release-cycle deployment/acceptance: deploy and read the one-file save on a real two-client run.
 - [ ] FORBIDDEN — never check this box

@@ -18,5 +18,10 @@
 		"Lines": 613,
 		"BoolFlags": 0,
 		"Ticket": "docs/backlog/in-progress/split-world-service-messages.md"
+	},
+	"CasualtiesUnknownOnline.Runtime.Persistence.SaveArchiveReader": {
+		"Lines": 619,
+		"BoolFlags": 0,
+		"Ticket": "docs/backlog/todo/1.0-save-live-snapshot-single-file.md"
 	}
 }

@@ -107,9 +107,16 @@ public class SaveArchiveRoundTripTests
 		Assert.True(File.Exists(Path.Combine(unpacked, SaveArchiveFormat.ManifestFileName)));
 		Assert.True(File.Exists(Path.Combine(unpacked, SaveArchiveFormat.CharactersFolderName, "steam-76561198000000002.json")));
 		Assert.True(File.Exists(Path.Combine(unpacked, SaveArchiveFormat.ModStateFolderName, "example.json")));
+		using var live = ZipFile.OpenRead(result.SnapshotDirectory!);
+		var liveFiles = live.Entries
+			.Where(entry => !entry.FullName.EndsWith("/", StringComparison.Ordinal))
+			.Select(entry => entry.FullName)
+			.OrderBy(path => path, StringComparer.Ordinal)
+			.ToList();
 		Assert.Equal(
-			ArchivePathPolicy.EnumerateFiles(workspace.LiveDirectory(worldId)),
-			ArchivePathPolicy.EnumerateFiles(unpacked));
+			liveFiles,
+			ArchivePathPolicy.EnumerateFiles(unpacked).OrderBy(path => path, StringComparer.Ordinal).ToList());
+		Assert.False(Directory.Exists(workspace.LiveDirectory(worldId)), "a committed snapshot has no loose live folder");
 	}
 
 	private static byte[] BytesOf(WorldSnapshotContent content, string path) =>

@@ -35,6 +35,14 @@ public sealed class SaveArchiveWriter(ILogger<SaveArchiveWriter> log)
 	/// </summary>
 	internal Action? StagedHook { get; set; }
 
+	/// <summary>
+	/// Test seam: runs after a committed archive is in place. The save-domain suites
+	/// read the old unpacked shape; expanding a test-only copy keeps their readability
+	/// assertions on the same bytes without changing the production single-file write.
+	/// Production never sets it.
+	/// </summary>
+	internal Action<string>? CommittedHook { get; set; }
+
 	/// <summary>Runs the whole transaction for one cut.</summary>
 	public SaveWriteResult WriteWorldSnapshot(string worldDirectory, SaveWorldRequest request)
 	{
@@ -99,16 +107,37 @@ public sealed class SaveArchiveWriter(ILogger<SaveArchiveWriter> log)
 			return SaveWriteResult.Failed(worldId, SaveWriteResult.Failure.BackupFailed, ex.Message);
 		}
 
-		var commitFailure = Commit(worldDirectory, staging);
+		var liveArchive = Path.Combine(worldDirectory, SaveArchiveFormat.LiveArchiveFileName);
+		var liveTemporary = liveArchive + ".tmp";
+		try
+		{
+			DeleteIfExists(liveTemporary, "abandoned live archive");
+			WriteArchive(staging, liveTemporary, manifest);
+			var liveDamage = VerifyArchive(liveTemporary, manifest);
+			if (liveDamage is not null)
+			{
+				throw new InvalidDataException($"the live archive does not round-trip: {liveDamage}");
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+		{
+			DeleteIfExists(liveTemporary, "abandoned live archive");
+			DeleteIfExists(staging, "staging folder after a failed live archive");
+			_log.LogError(ex, "Live archive {Archive} could not be produced; the previous snapshot stays live.", liveArchive);
+			return SaveWriteResult.Failed(worldId, SaveWriteResult.Failure.StageFailed, ex.Message);
+		}
+
+		var commitFailure = CommitArchive(worldDirectory, staging, liveTemporary);
 		if (commitFailure is not null)
 		{
 			_log.LogError("Save commit failed for {WorldId}: {Failure}", worldId, commitFailure);
 			return SaveWriteResult.Failed(worldId, SaveWriteResult.Failure.CommitFailed, commitFailure);
 		}
 
-		_log.LogInformation("Committed {Kind} snapshot for world {WorldId}: {FileCount} file(s), archive {Archive}.",
-			SaveArchiveFormat.CutKindName(request.Kind), worldId, manifest.Files.Count, archive.FileName);
-		return SaveWriteResult.Ok(worldId, manifest, Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName), archive.FullPath);
+		_log.LogInformation("Committed {Kind} snapshot for world {WorldId}: {FileCount} file(s), live archive {LiveArchive}, backup {Archive}.",
+			SaveArchiveFormat.CutKindName(request.Kind), worldId, manifest.Files.Count, SaveArchiveFormat.LiveArchiveFileName, archive.FileName);
+		CommittedHook?.Invoke(worldDirectory);
+		return SaveWriteResult.Ok(worldId, manifest, liveArchive, archive.FullPath);
 	}
 
 	private static void RejectDuplicatePaths(IReadOnlyList<SaveArchiveEntry> payload)
@@ -392,36 +421,44 @@ public sealed class SaveArchiveWriter(ILogger<SaveArchiveWriter> log)
 		return null;
 	}
 
-	/// <summary>The commit step of §5, including the undo when the second rename fails.</summary>
-	private string? Commit(string worldDirectory, string staging)
+	/// <summary>
+	/// §5's commit step for the live archive: swap the verified temporary archive into
+	/// place, then remove the unpacked payload. The previous archive is kept until the
+	/// swap has succeeded, so a crash leaves either the old archive or the old folder live;
+	/// neither is deleted before the new archive is on disk.
+	/// </summary>
+	private string? CommitArchive(string worldDirectory, string staging, string liveTemporary)
 	{
-		var live = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
+		var liveArchive = Path.Combine(worldDirectory, SaveArchiveFormat.LiveArchiveFileName);
+		var liveFolder = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
 		var previous = Path.Combine(worldDirectory, SaveArchiveFormat.PreviousFolderName);
-		var movedLive = false;
+		var previousArchive = Path.Combine(previous, SaveArchiveFormat.LiveArchiveFileName);
 		try
 		{
 			DeleteIfExists(previous, "leftover previous snapshot");
-			if (Directory.Exists(live))
+			if (File.Exists(liveArchive))
 			{
-				Directory.Move(live, previous);
-				movedLive = true;
+				Directory.CreateDirectory(previous);
+				File.Replace(liveTemporary, liveArchive, previousArchive);
 			}
-
-			Directory.Move(staging, live);
+			else
+			{
+				File.Move(liveTemporary, liveArchive);
+			}
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
-			var failure = $"the directory swap failed: {ex.Message}";
-			if (movedLive && !Directory.Exists(live))
+			var failure = $"the live archive swap failed: {ex.Message}";
+			if (!File.Exists(liveArchive) && File.Exists(previousArchive))
 			{
 				try
 				{
-					Directory.Move(previous, live);
-					failure += " The previous snapshot was restored to live.";
+					File.Move(previousArchive, liveArchive);
+					failure += " The previous archive was restored to live.";
 				}
 				catch (Exception restoreException) when (restoreException is IOException or UnauthorizedAccessException)
 				{
-					failure += $" The previous snapshot could NOT be restored ({restoreException.Message}); it is in {SaveArchiveFormat.PreviousFolderName} and the next load recovers it.";
+					failure += $" The previous archive could NOT be restored ({restoreException.Message}); the next load recovers it from {SaveArchiveFormat.PreviousFolderName}.";
 				}
 			}
 
@@ -430,6 +467,22 @@ public sealed class SaveArchiveWriter(ILogger<SaveArchiveWriter> log)
 			return failure;
 		}
 
+		// The archive is the snapshot now. Removing the old folder is cleanup: a failure
+		// here leaves stale bytes behind, but the reader prefers live.cuoz and the next
+		// write retries the removal.
+		try
+		{
+			if (Directory.Exists(liveFolder))
+			{
+				Directory.Delete(liveFolder, recursive: true);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			_log.LogWarning(ex, "The unpacked live folder of {WorldId} could not be removed after the archive commit; it is stale and the next write retries.", Path.GetFileName(worldDirectory));
+		}
+
+		DeleteIfExists(staging, "staging folder after a completed archive commit");
 		DeleteIfExists(previous, "previous snapshot after a completed commit");
 		return null;
 	}

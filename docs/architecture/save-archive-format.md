@@ -30,8 +30,8 @@ N compressed archive backups — the Minecraft world layout, plus backups.
   index.json                                  # world list + last-opened pointer
   <worldId>/                                  # one folder archive per world
     world.json                                # metadata: display name, times, kind, counters
-    live/                                     # the current state, as JSON files
-      manifest.json
+    live.cuoz                                 # the current state: one ZIP archive, same file set
+      manifest.json                           # (entries inside the archive)
       run.json
       players.json
       items.json
@@ -47,11 +47,12 @@ N compressed archive backups — the Minecraft world layout, plus backups.
       mid-run-<yyyyMMdd-HHmmss>.cuoz
       auto-<yyyyMMdd-HHmmss>.cuoz
     world.lease                               # which process is writing this world right now (§5)
-    damaged-<yyyyMMdd-HHmmss>/                # a REFUSED live snapshot, kept as evidence (§6)
+    damaged-<yyyyMMdd-HHmmss>/                # a REFUSED live archive, kept as evidence (§6)
 ```
 
-- `live/` stays **unpacked** so a save is a fast file write, and a human can inspect or repair a
-  world without unpacking anything.
+- The committed live snapshot is **one compressed archive**, `live.cuoz`. A human who needs to
+  inspect or repair a world copies it and extracts it with any ZIP tool; the backup archives are the
+  same shape. The writer never leaves a loose payload for the next cut to race.
 - Every backup is a **single ZIP archive** (`.cuoz`) containing the same file set with directory
   entries preserved. A new domain adds a file inside the archive; it never rewrites one blob.
 - `worldId` is immutable and is the directory key: `w-<yyyyMMdd>-<4 hex>`, generated once at
@@ -66,19 +67,18 @@ N compressed archive backups — the Minecraft world layout, plus backups.
 - `world.lease` names the PROCESS writing the world (`<machine>:<pid>`) and the instant of its last
   write. It is not part of a backup and never travels; it is what keeps two CUO instances pointed at
   one folder from interleaving §5's transaction (§5, concurrent-host case).
-- `damaged-<stamp>/` is a snapshot that was REFUSED and then replaced by a promoted backup: it is
-  evidence, nothing reads it, and no cut, prune or load ever deletes it (§6).
+- `damaged-<stamp>/` is a live archive that was REFUSED and then replaced by a promoted backup: it
+  holds `live.cuoz` as evidence, nothing reads it, and no cut, prune or load ever deletes it (§6).
 
-### 2.1 Planned live archive
+### 2.1 Live archive
 
-The live snapshot payload is planned to become one compressed archive, `live.cuoz`, instead of
-the unpacked `live/` folder. The archive carries the same `manifest.json` and domain entries, so
-§3's file contracts, §5's stage/verify/backup/rename discipline and §6's manifest gate and salvage
-stay unchanged; only the committed live form changes. `world.json`, `world.lease` and `backups/`
-remain as shown above because they are repository metadata, not snapshot payload. A world written
-in the old `live/` layout stays readable; the first successful save writes the archive and only then
-removes the unpacked payload, so a failed migration leaves the old snapshot in place. This is a
-planned change: until the writer and reader land, `live/` in the layout above is the current form.
+The committed live snapshot is one compressed archive, `live.cuoz`, instead of an unpacked `live/`
+folder. The archive carries the same `manifest.json` and domain entries, so §3's file contracts,
+§5's stage/verify/backup/rename discipline and §6's manifest gate and salvage stay unchanged; only
+the committed live form changes. `world.json`, `world.lease` and `backups/` remain as shown above
+because they are repository metadata, not snapshot payload. A world written in the old `live/`
+layout stays readable; the first successful save writes the archive and only then removes the
+unpacked payload, so a failed migration leaves the old snapshot in place.
 
 ## 3. File contracts
 
@@ -364,16 +364,20 @@ Every save is a transaction; a crash can only leave the previous snapshot intact
 stage:   write <worldId>/.staging/  (manifest last, after all payload files)
 verify:  re-read every file and compare against manifest checksums
 backup:  ZIP .staging/ → <worldId>/backups/<kind>-<stamp>.cuoz.tmp → rename to .cuoz
-commit:  rename <worldId>/live → <worldId>/.previous/ → rename .staging → live
-         then delete .previous/ and refresh index.json
+live:    ZIP .staging/ → <worldId>/live.cuoz.tmp → reopen and verify → rename to live.cuoz
+commit:  if an old live.cuoz exists, rename it to .previous/live.cuoz
+         then delete .previous/ and the migrated live/ folder; refresh index.json
 ```
 
 - The staging directory is always inside the target world folder, so the final rename is a
   same-volume metadata operation.
-- `live/` is replaced only after the archive is safely written, so a crash between any two steps
-  leaves either the old snapshot or the new one — never a half-written world.
-- A leftover `.staging/` or `.previous/` from an interrupted run is detected at load: `.staging/`
-  is discarded, `.previous/` is restored, both with a warning.
+- `live.cuoz` is replaced only after the backup and the new archive both verify, so a crash between
+  any two steps leaves either the old snapshot or the new one — never a half-written world. A world
+  written in the old `live/` layout is read through the compatibility path; the first successful
+  archive save removes that folder after the commit.
+- A leftover `.staging/`, `live.cuoz.tmp`, or `.previous/live.cuoz` from an interrupted run is
+  detected at load: the temporary archive and staging are discarded, the previous archive is
+  restored, both with a warning.
 - The world folder has **one writer**, and the folder — not the process — is what that rule protects
   (`WorldLease`). Every write refreshes `world.lease`; a write that finds a lease another process
   refreshed inside a 30-minute window AND whose owner is a live process on this machine is REFUSED with
@@ -414,29 +418,30 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   payload decodes into a self-contradictory snapshot, or the run baseline cannot be read — happens
   after that fallback returned, so the restore walks the world's backups itself
   (`WorldRestoreRecovery`), newest first, skipping the one the load already used, and takes the first
-  that DECODES. The one it takes is then **promoted** (`WorldBackupPromotion`): the refused snapshot is
-  moved to `damaged-<stamp>/` untouched, the snapshot about to be replaced is archived into `backups/`
-  as the pre-restore copy, and the backup becomes `live/`. Without the promotion the very next cut
-  would rename the refused snapshot to `.previous/` and delete it — the evidence of what went wrong
-  destroyed by an autosave. Nothing is moved until the replacement is unpacked and verified in a fresh
-  `.staging/`, and a promotion that cannot finish puts the preserved folder back and refuses. When no
-  backup decodes, the continue is refused with the reason it already had and the folder is left exactly
-  as it was found.
+  that DECODES. The one it takes is then **promoted** (`WorldBackupPromotion`): the refused archive is
+  moved to `damaged-<stamp>/live.cuoz` untouched, the snapshot about to be replaced is copied into
+  `backups/` as the pre-restore copy, and the backup archive is copied to `live.cuoz` through a
+  temporary name and reopened before the rename. Without the promotion the very next cut would rename
+  the refused archive to `.previous/` and delete it — the evidence of what went wrong destroyed by an
+  autosave. Nothing is moved until the promoted archive opens and carries a manifest, and a promotion
+  that cannot finish puts the preserved archive back and refuses. When no backup decodes, the continue
+  is refused with the reason it already had and the folder is left exactly as it was found.
 - **A restore the PLAYER chooses is the same promotion with a different trigger** (decision 198). The
   Worlds page lists a world's archives and restores the one the player picks, and the archive is put
   through the reader's manifest/checksum gate BEFORE anything is replaced: a package that cannot be
-  opened is refused while the working snapshot is still `live/`, instead of being promoted over it and
-  discovered at the next Continue. The replaced snapshot is archived as the pre-restore copy, the
-  chosen archive becomes `live/`, and the restored world becomes the Continue target (restoring a world
-  is also choosing it). Only the fate of the replaced snapshot's folder differs from the recovery: a
-  REFUSED snapshot is kept as `damaged-<stamp>/` evidence, while a snapshot the player deliberately
-  stepped back from is already in `backups/` as that pre-restore archive and is swapped out through the
-  writer's own `.previous/` (removed once the new snapshot is in place) — a `damaged-` folder per
-  restore would accumulate one full snapshot each time under a name that means "refused" and that
-  nothing in the layout ever deletes. If the pre-restore archive could NOT be written, the folder is
-  preserved after all, because then it is the only copy. A player-chosen restore runs only while no
-  world is loaded and no other CUO process holds the world's lease (§5): it replaces the very folder a
-  running world plays from. It participates in the retention policy of §7 like any committed write.
+  opened is refused while the working snapshot is still `live.cuoz`, instead of being promoted over it
+  and discovered at the next Continue. The replaced snapshot is copied as the pre-restore backup, the
+  chosen archive becomes `live.cuoz` through a temporary rename, and the restored world becomes the
+  Continue target (restoring a world is also choosing it). Only the fate of the replaced archive
+  differs from the recovery: a REFUSED snapshot is kept as `damaged-<stamp>/live.cuoz` evidence, while
+  a snapshot the player deliberately stepped back from is already in `backups/` as that pre-restore
+  archive and is swapped out through the writer's own `.previous/live.cuoz` (removed once the new
+  snapshot is in place) — a `damaged-` folder per restore would accumulate one full snapshot each time
+  under a name that means "refused" and that nothing in the layout ever deletes. If the pre-restore
+  archive could NOT be written, the archive is preserved after all, because then it is the only copy.
+  A player-chosen restore runs only while no world is loaded and no other CUO process holds the
+  world's lease (§5): it replaces the very archive a running world plays from. It participates in the
+  retention policy of §7 like any committed write.
 - If the manifest reads, the load proceeds in **repair mode**. Per domain file:
   - An unreadable domain file is skipped with a warning; the other domains still load.
   - A readable domain file is decoded **entry by entry**: an entry that cannot be materialized —

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -15,7 +16,10 @@ internal sealed record SaveTestRepository(WorldRepository Repository, SaveTestWo
 	internal static SaveTestRepository Create(string label, string displayName = "Index World")
 	{
 		var workspace = SaveTestWorkspace.Create(label);
-		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance);
+		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance)
+		{
+			CommittedHook = directory => workspace.MaterializeLegacyLive(Path.GetFileName(directory)),
+		};
 		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
 		var now = new DateTime(2026, 9, 10, 12, 0, 0, DateTimeKind.Utc);
 		var repository = new WorldRepository(workspace.Root, NullLogger<WorldRepository>.Instance, writer, reader, () => now);

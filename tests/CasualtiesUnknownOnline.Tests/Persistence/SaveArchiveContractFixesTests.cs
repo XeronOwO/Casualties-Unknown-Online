@@ -27,6 +27,7 @@ public class SaveArchiveContractFixesTests
 		var worldId = workspace.NewWorldId();
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var text = File.ReadAllText(workspace.ManifestPath(worldId));
 
@@ -46,6 +47,7 @@ public class SaveArchiveContractFixesTests
 		var worldId = workspace.NewWorldId();
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var text = File.ReadAllText(workspace.ManifestPath(worldId));
 
@@ -60,6 +62,7 @@ public class SaveArchiveContractFixesTests
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut,
 				SaveTestData.RunPayload("fresh"), SaveTestData.ItemsPayload(SaveTestData.ItemId))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var path = workspace.ManifestPath(worldId);
 		var conforming = File.ReadAllText(path)
@@ -89,6 +92,7 @@ public class SaveArchiveContractFixesTests
 		var worldId = workspace.NewWorldId();
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 		File.WriteAllText(workspace.ManifestPath(worldId), "{}");
 
 		var load = Reader().LoadSnapshot(workspace.WorldDirectory(worldId), new WorldLoadOptions());
@@ -106,6 +110,7 @@ public class SaveArchiveContractFixesTests
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut,
 				SaveTestData.RunPayload("fresh"), SaveTestData.ItemsPayload(SaveTestData.ItemId))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var path = workspace.ManifestPath(worldId);
 		var node = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
@@ -126,6 +131,7 @@ public class SaveArchiveContractFixesTests
 		var worldId = workspace.NewWorldId();
 		Assert.True(Writer().WriteWorldSnapshot(workspace.WorldDirectory(worldId),
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var path = workspace.ManifestPath(worldId);
 		var text = File.ReadAllText(path);
@@ -154,6 +160,7 @@ public class SaveArchiveContractFixesTests
 			SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
 		var backup = Directory.GetFiles(workspace.BackupsDirectory(worldId), "*" + SaveArchiveFormat.BackupExtension).Single();
 		DuplicateEntry(backup, SaveArchiveFormat.ManifestFileName);
+		workspace.MaterializeLegacyLive(worldId);
 		File.WriteAllBytes(workspace.ManifestPath(worldId), SaveTestData.Bytes("{ broken"));
 
 		var load = Reader().LoadSnapshot(workspace.WorldDirectory(worldId), new WorldLoadOptions());

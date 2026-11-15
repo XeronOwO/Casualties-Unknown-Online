@@ -28,6 +28,7 @@ public class SaveArchiveDamageTests
 		var run = SaveTestData.RunPayload("fresh");
 		var items = SaveTestData.ItemsPayload(SaveTestData.ItemId);
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, run, items)).Success);
+		workspace.MaterializeLegacyLive(worldId);
 		File.WriteAllBytes(workspace.ManifestPath(worldId), SaveTestData.Bytes("{ this is not json"));
 
 		var load = reader.LoadSnapshot(directory, new WorldLoadOptions());
@@ -57,6 +58,7 @@ public class SaveArchiveDamageTests
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, run, items)).Success);
 
 		// An empty items.json stands in for a file damaged after the manifest was written.
+		workspace.MaterializeLegacyLive(worldId);
 		File.WriteAllBytes(Path.Combine(workspace.LiveDirectory(worldId), SaveTestData.ItemsFileName), []);
 
 		var load = reader.LoadSnapshot(directory, new WorldLoadOptions { VerifyChecksums = true });
@@ -91,6 +93,7 @@ public class SaveArchiveDamageTests
 		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
 		var run = SaveTestData.RunPayload("fresh");
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, run, SaveTestData.ItemsPayload(SaveTestData.ItemId))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 		File.Delete(Path.Combine(workspace.LiveDirectory(worldId), SaveTestData.ItemsFileName));
 
 		var load = reader.LoadSnapshot(directory, new WorldLoadOptions());
@@ -112,6 +115,7 @@ public class SaveArchiveDamageTests
 		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance);
 		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("fresh"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 		File.Delete(Path.Combine(workspace.LiveDirectory(worldId), SaveTestData.RunFileName));
 
 		var load = reader.LoadSnapshot(directory, new WorldLoadOptions { RepairMode = false });
@@ -214,6 +218,7 @@ public class SaveArchiveDamageTests
 
 		// A newer writer bumped the manifest schema; this build must not guess the
 		// payload, and the only backup is broken too, so hard refusal is observable.
+		workspace.MaterializeLegacyLive(worldId);
 		var original = File.ReadAllText(workspace.ManifestPath(worldId));
 		var bumped = original.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2");
 		Assert.NotEqual(original, bumped);

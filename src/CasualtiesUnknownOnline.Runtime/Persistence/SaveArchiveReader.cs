@@ -46,6 +46,16 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 		CollectRecoveryDamage(recovery, damage);
 
 		var liveDirectory = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
+		var liveArchive = Path.Combine(worldDirectory, SaveArchiveFormat.LiveArchiveFileName);
+		if (File.Exists(liveArchive))
+		{
+			var archived = TryReadLiveArchive(worldId, liveArchive, options, damage, recovery.RecoveredAnything);
+			if (archived is not null)
+			{
+				return Finish(archived.State, archived, damage, options);
+			}
+		}
+
 		if (recovery.LiveExists && Directory.Exists(liveDirectory))
 		{
 			var live = TryReadLiveSnapshot(worldId, liveDirectory, options, damage, recovery.RecoveredAnything);
@@ -54,7 +64,7 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 				return Finish(live.State, live, damage, options);
 			}
 		}
-		else if (recovery.FailureDetail is not null)
+		else if (recovery.FailureDetail is not null && !File.Exists(liveArchive))
 		{
 			damage.Add(RepositoryEntry(DamageReport.EntryReason.ManifestUnreadable, SaveArchiveFormat.LiveFolderName, recovery.FailureDetail));
 		}
@@ -74,10 +84,76 @@ public sealed class SaveArchiveReader(ILogger<SaveArchiveReader> log)
 	}
 
 	/// <summary>
-	/// Reads the live snapshot, or null when it is unusable (a damage entry is
-	/// recorded in every failure case). A load never throws out of the archive layer:
-	/// a hostile or corrupt folder is a *reported* damaged snapshot, because this code
-	/// runs on the host's main thread in S2.
+	/// Reads the one-file live snapshot, or null when the archive is unusable. The
+	/// manifest is still the gate and every listed entry is read from this archive; the
+	/// bytes never touch the filesystem on the load path.
+	/// </summary>
+	private WorldSnapshotContent? TryReadLiveArchive(
+		string worldId,
+		string archivePath,
+		WorldLoadOptions options,
+		List<DamageReport.Entry> damage,
+		bool recoveredFolder)
+	{
+		try
+		{
+			var entries = ReadArchiveEntries(archivePath);
+			if (!TryReadManifest(entries, out var manifest, out var reason))
+			{
+				damage.Add(RepositoryEntry(DamageReport.EntryReason.ManifestUnreadable,
+					SaveArchiveFormat.LiveArchiveFileName, reason));
+				_log.LogError("Live archive of world {WorldId} is unreadable ({Reason}); trying the unpacked snapshot or the newest backup.", worldId, reason);
+				return null;
+			}
+
+			NoteProtocolMismatch(manifest, damage);
+			NoteContentMismatch(manifest, options, damage);
+			var byPath = entries.ToDictionary(entry => entry.Path, entry => entry, StringComparer.Ordinal);
+			var files = new List<SnapshotFile>(manifest.Files.Count);
+			foreach (var file in manifest.Files)
+			{
+				if (!byPath.TryGetValue(file.Path, out var archiveEntry))
+				{
+					damage.Add(FileEntry(DamageReport.EntryReason.FileUnreadable, file.Path,
+						$"live archive {SaveArchiveFormat.LiveArchiveFileName} has no such entry"));
+					continue;
+				}
+
+				if (ShouldVerify(manifest, options))
+				{
+					VerifyBytes(file, archiveEntry.Bytes, damage);
+				}
+
+				files.Add(new SnapshotFile(file.Path, archiveEntry.Bytes, file));
+			}
+
+			if (files.Count == 0 && manifest.Files.Count > 0)
+			{
+				damage.Add(RepositoryEntry(DamageReport.EntryReason.FileUnreadable,
+					SaveArchiveFormat.LiveArchiveFileName,
+					"every file listed by the live archive manifest was missing from the archive"));
+				_log.LogError("Live archive of world {WorldId} lists {Count} file(s) but none could be read; trying the newest backup.", worldId, manifest.Files.Count);
+				return null;
+			}
+
+			var state = recoveredFolder ? WorldLoadState.RecoveredLive : WorldLoadState.Current;
+			return new WorldSnapshotContent(state, manifest, files, archivePath);
+		}
+		catch (Exception ex) when (IsRecoverableReadFailure(ex))
+		{
+			damage.Add(RepositoryEntry(DamageReport.EntryReason.ManifestUnreadable,
+				SaveArchiveFormat.LiveArchiveFileName,
+				$"the live archive could not be read: {ex.GetType().Name}: {ex.Message}"));
+			_log.LogError(ex, "Live archive of world {WorldId} could not be read; trying the unpacked snapshot or the newest backup.", worldId);
+			return null;
+		}
+	}
+
+	/// <summary>
+	/// Reads the legacy unpacked live snapshot, or null when it is unusable (a damage
+	/// entry is recorded in every failure case). A load never throws out of the archive
+	/// layer: a hostile or corrupt folder is a *reported* damaged snapshot, because this
+	/// code runs on the host's main thread in S2.
 	/// </summary>
 	private WorldSnapshotContent? TryReadLiveSnapshot(
 		string worldId,

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -45,7 +46,7 @@ public class SaveArchiveWriterVerificationTests
 		Assert.False(result.Success);
 		Assert.Equal(SaveWriteResult.Failure.VerifyFailed, result.Reason);
 		Assert.Contains(SaveTestData.RunFileName, result.Detail, StringComparison.Ordinal);
-		Assert.Equal(fresh.Content, File.ReadAllBytes(Path.Combine(workspace.LiveDirectory(worldId), SaveTestData.RunFileName)));
+		Assert.Equal(fresh.Content, workspace.ReadLiveFile(worldId, SaveTestData.RunFileName));
 		Assert.False(Directory.Exists(workspace.StagingDirectory(worldId)), "an aborted transaction must clean its staging folder");
 		Assert.Equal(1, Directory.GetFiles(workspace.BackupsDirectory(worldId), "*.cuoz").Length);
 	}
@@ -83,8 +84,8 @@ public class SaveArchiveWriterVerificationTests
 		// The leftover must not merge into the new snapshot: only the payload of this
 		// write is committed.
 		Assert.True(result.Success, result.Detail);
-		Assert.False(File.Exists(Path.Combine(workspace.LiveDirectory(worldId), SaveArchiveFormat.CharactersFolderName, "steam-1.json")));
-		Assert.Empty(Directory.GetDirectories(workspace.LiveDirectory(worldId)));
+		using var live = ZipFile.OpenRead(workspace.LiveArchivePath(worldId));
+		Assert.Null(live.GetEntry(SaveArchiveFormat.CharactersFolderName + "/steam-1.json"));
 	}
 
 	[Fact]

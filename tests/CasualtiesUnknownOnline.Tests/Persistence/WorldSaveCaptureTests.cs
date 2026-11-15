@@ -122,8 +122,7 @@ public class WorldSaveCaptureTests
 		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
 
 		var worldId = fixture.WorldId;
-		var live = fixture.Repository.Workspace.LiveDirectory(worldId);
-		Assert.Equal(1, LiveRunLayer(live));
+		Assert.Equal(1, LiveRunLayer(fixture.Repository.Workspace, worldId));
 		var backup = Assert.Single(Directory.GetFiles(fixture.Repository.Workspace.BackupsDirectory(worldId), "*.cuoz"));
 		Assert.Contains("layer-end-", Path.GetFileName(backup), StringComparison.Ordinal);
 	}
@@ -341,12 +340,8 @@ public class WorldSaveCaptureTests
 	}
 
 	/// <summary>The live snapshot's manifest as JSON.</summary>
-	internal static JsonElement LiveManifest(WorldSaveFixture fixture)
-	{
-		var path = Path.Combine(fixture.Repository.Workspace.LiveDirectory(fixture.WorldId), SaveArchiveFormat.ManifestFileName);
-		using var document = JsonDocument.Parse(File.ReadAllBytes(path));
-		return document.RootElement.Clone();
-	}
+	internal static JsonElement LiveManifest(WorldSaveFixture fixture) =>
+		fixture.Repository.Workspace.ReadLiveManifest(fixture.WorldId);
 
 	internal static RunState Run(int layerIndex, RunEnding ending = RunEnding.None) =>
 		new(RunId, [1, 2, 3, 4], 0, 2, 10, false, [new RunSetting("speed", RunSettingKind.Float, FloatValue: 1.5f)], layerIndex, Ending: ending);
@@ -354,9 +349,9 @@ public class WorldSaveCaptureTests
 	internal static CharacterDataMsg Character(ulong instanceId, string definitionId) =>
 		new() { SlotCount = 5, Items = [new CharacterItemMsg { InstanceId = instanceId, ItemId = definitionId, Condition = 0.9f }] };
 
-	internal static int LiveRunLayer(string liveDirectory)
+	internal static int LiveRunLayer(SaveTestWorkspace workspace, string worldId)
 	{
-		var bytes = File.ReadAllBytes(Path.Combine(liveDirectory, SaveArchiveFormat.RunFileName));
+		var bytes = workspace.ReadLiveFile(worldId, SaveArchiveFormat.RunFileName);
 		using var document = JsonDocument.Parse(bytes);
 
 		// run.json carries typed rows: the kernel baseline and, when the cut could

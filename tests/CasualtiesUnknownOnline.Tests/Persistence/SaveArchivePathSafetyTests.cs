@@ -88,6 +88,7 @@ public class SaveArchivePathSafetyTests
 
 		// The live snapshot is unusable, so the load falls to the only backup — which
 		// carries a hostile entry name and must be refused instead of extracted.
+		workspace.MaterializeLegacyLive(worldId);
 		File.WriteAllBytes(workspace.ManifestPath(worldId), SaveTestData.Bytes("{ broken"));
 
 		var load = reader.LoadSnapshot(directory, new WorldLoadOptions());
@@ -116,7 +117,7 @@ public class SaveArchivePathSafetyTests
 
 		Assert.False(result.Success);
 		Assert.Equal(SaveWriteResult.Failure.InvalidRequest, result.Reason);
-		Assert.Equal(fresh.Content, File.ReadAllBytes(Path.Combine(workspace.LiveDirectory(worldId), SaveTestData.RunFileName)));
+		Assert.Equal(fresh.Content, workspace.ReadLiveFile(worldId, SaveTestData.RunFileName));
 		Assert.Equal(1, Directory.GetFiles(workspace.BackupsDirectory(worldId), "*.cuoz").Length);
 		AssertNoFileEscaped(workspace);
 	}

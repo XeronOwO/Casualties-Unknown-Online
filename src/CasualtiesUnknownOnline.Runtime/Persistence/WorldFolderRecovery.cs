@@ -54,12 +54,22 @@ public static class WorldFolderRecovery
 	{
 		var actions = new List<RecoveryAction>();
 		var live = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
+		var liveArchive = Path.Combine(worldDirectory, SaveArchiveFormat.LiveArchiveFileName);
+		var liveTemp = liveArchive + ".tmp";
 		var staging = Path.Combine(worldDirectory, SaveArchiveFormat.StagingFolderName);
 		var previous = Path.Combine(worldDirectory, SaveArchiveFormat.PreviousFolderName);
+		var previousArchive = Path.Combine(previous, SaveArchiveFormat.LiveArchiveFileName);
 
 		try
 		{
-			if (Directory.Exists(previous) && !Directory.Exists(live))
+			if (File.Exists(previousArchive) && !File.Exists(liveArchive))
+			{
+				File.Move(previousArchive, liveArchive);
+				actions.Add(new RecoveryAction(RecoveryKind.RestoredPrevious, liveArchive,
+					"An interrupted archive swap left the previous live archive without a live one; the previous archive is live again."));
+			}
+
+			if (Directory.Exists(previous) && !Directory.Exists(live) && !File.Exists(liveArchive))
 			{
 				Directory.Move(previous, live);
 				actions.Add(new RecoveryAction(RecoveryKind.RestoredPrevious, live,
@@ -79,17 +89,25 @@ public static class WorldFolderRecovery
 					"An uncommitted staging folder was discarded; the live snapshot was never replaced."));
 			}
 
+			if (File.Exists(liveTemp))
+			{
+				File.Delete(liveTemp);
+				actions.Add(new RecoveryAction(RecoveryKind.DiscardedAbandonedArchive, liveTemp,
+					"An archive was written but never renamed into place; it was discarded (the cut it belonged to never committed)."));
+			}
+
 			SweepAbandonedArchivesInto(worldDirectory, actions, log);
 
-			var liveExists = Directory.Exists(live);
+			var liveExists = File.Exists(liveArchive) || Directory.Exists(live);
 			var failure = liveExists ? null : "the world folder holds no live snapshot";
 			Log(log, actions, liveExists, failure);
 			return new RecoveryResult(actions, liveExists, failure);
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{
-			Log(log, actions, Directory.Exists(live), ex.Message);
-			return new RecoveryResult(actions, Directory.Exists(live), ex.Message);
+			var exists = File.Exists(liveArchive) || Directory.Exists(live);
+			Log(log, actions, exists, ex.Message);
+			return new RecoveryResult(actions, exists, ex.Message);
 		}
 	}
 

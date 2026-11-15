@@ -350,7 +350,7 @@ public sealed class WorldLibraryServiceTests
 	private const ulong HostId = 1001UL;
 
 	private static string LiveRunText(Library library) =>
-		File.ReadAllText(Path.Combine(library.World.LiveDirectory, SaveTestData.RunFileName));
+		Encoding.UTF8.GetString(library.World.Workspace.ReadLiveFile(library.World.WorldId, SaveTestData.RunFileName));
 
 	private static void Cut(SaveTestRepository world, string marker, int minute = 0) =>
 		Cut(world, world.WorldId, marker, minute);

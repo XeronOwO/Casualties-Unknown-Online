@@ -29,6 +29,7 @@ public class WorldFolderRecoveryTests
 		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
 		var live = SaveTestData.RunPayload("live");
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, live)).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var staging = Directory.CreateDirectory(workspace.StagingDirectory(worldId));
 		File.WriteAllBytes(Path.Combine(staging.FullName, SaveArchiveFormat.ManifestFileName), Encoding.UTF8.GetBytes("{ \"partial\": true }"));
@@ -57,6 +58,7 @@ public class WorldFolderRecoveryTests
 		// A complete snapshot, taken the way §5 takes it, then left in .previous
 		// with no live folder: exactly the window between the two commit renames.
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, restored)).Success);
+		workspace.MaterializeLegacyLive(worldId);
 		Directory.Move(workspace.LiveDirectory(worldId), workspace.PreviousDirectory(worldId));
 		Assert.False(Directory.Exists(workspace.LiveDirectory(worldId)), "the crash left no live folder");
 
@@ -95,6 +97,7 @@ public class WorldFolderRecoveryTests
 		var directory = workspace.WorldDirectory(worldId);
 		var writer = new SaveArchiveWriter(NullLogger<SaveArchiveWriter>.Instance);
 		Assert.True(writer.WriteWorldSnapshot(directory, SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, SaveTestData.RunPayload("live"))).Success);
+		workspace.MaterializeLegacyLive(worldId);
 
 		var previous = Directory.CreateDirectory(workspace.PreviousDirectory(worldId));
 		File.WriteAllBytes(Path.Combine(previous.FullName, SaveTestData.RunFileName), SaveTestData.RunPayload("old").Content);

@@ -154,20 +154,18 @@ public class SaveArchiveSalvageTests
 		var reader = new SaveArchiveReader(NullLogger<SaveArchiveReader>.Instance);
 		var payload = new[] { SaveTestData.RunPayload("fresh"), SaveTestData.ItemsPayload(SaveTestData.ItemId) };
 		Assert.True(writer.WriteWorldSnapshot(workspace.WorldDirectory(worldId), SaveTestData.Request(worldId, WorldCutKind.LayerEnd, Cut, payload)).Success);
-		var before = LiveFileSnapshot(workspace.LiveDirectory(worldId));
+		var before = File.ReadAllBytes(workspace.LiveArchivePath(worldId));
 
 		var first = reader.LoadSnapshot(workspace.WorldDirectory(worldId), new WorldLoadOptions());
 		var second = reader.LoadSnapshot(workspace.WorldDirectory(worldId), new WorldLoadOptions());
 
 		Assert.True(first.Loaded, first.Summary);
 		Assert.True(second.Loaded, second.Summary);
-		Assert.Equal(before, LiveFileSnapshot(workspace.LiveDirectory(worldId)));
+		Assert.Equal(before, File.ReadAllBytes(workspace.LiveArchivePath(worldId)));
 		Assert.Equal(
 			first.Content!.Files.Select(file => file.Path),
 			second.Content!.Files.Select(file => file.Path));
 	}
 
-	private static IReadOnlyList<string> LiveFileSnapshot(string directory) =>
-		[.. ArchivePathPolicy.EnumerateFiles(directory)
-			.Select(path => path + ":" + Convert.ToBase64String(File.ReadAllBytes(Path.Combine(directory, path.Replace('/', Path.DirectorySeparatorChar)))))];
+
 }

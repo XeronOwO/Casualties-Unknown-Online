@@ -64,6 +64,12 @@ internal static class WorldBackupPromotion
 	internal static Result Promote(string worldDirectory, WorldBackup backup, WorldPromotionTrigger trigger, DateTime nowUtc, ILogger log)
 	{
 		var live = Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName);
+		var liveArchive = Path.Combine(worldDirectory, SaveArchiveFormat.LiveArchiveFileName);
+		if (File.Exists(liveArchive) || !Directory.Exists(live))
+		{
+			return PromoteArchive(worldDirectory, liveArchive, backup, trigger, nowUtc, log);
+		}
+
 		var staging = Path.Combine(worldDirectory, SaveArchiveFormat.StagingFolderName);
 		var account = new List<string>();
 
@@ -138,6 +144,212 @@ internal static class WorldBackupPromotion
 		account.Add($"{replaced}; backup {backup.FileName} was promoted to the live snapshot");
 		log.LogWarning("World {Directory}: {Account}", worldDirectory, account[account.Count - 1]);
 		return new Result(true, $"backup {backup.FileName} promoted to the live snapshot", account);
+	}
+
+	/// <summary>
+	/// Promotion for the one-file live snapshot: the backup already is a ZIP, so the
+	/// transaction copies it to <c>live.cuoz.tmp</c>, proves it opens, moves the replaced
+	/// live archive aside and renames the copy into place. No extraction and no loose
+	/// <c>live/</c> folder — that is the single-file shape of §2.
+	/// </summary>
+	private static Result PromoteArchive(string worldDirectory, string liveArchive, WorldBackup backup, WorldPromotionTrigger trigger, DateTime nowUtc, ILogger log)
+	{
+		var account = new List<string>();
+		var staging = Path.Combine(worldDirectory, SaveArchiveFormat.StagingFolderName);
+		DiscardStaging(staging, log);
+		var preRestore = ArchivePreRestoreArchive(liveArchive, worldDirectory, nowUtc, log);
+		account.Add(preRestore.Line);
+		var keepEvidence = trigger == WorldPromotionTrigger.RefusedSnapshot || !preRestore.Archived;
+		string? aside;
+		try
+		{
+			aside = MoveLiveArchiveAside(worldDirectory, liveArchive, keepEvidence, nowUtc, log);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogError(ex, "The live archive could not be moved aside; nothing was promoted.");
+			return Result.Refused($"the live archive could not be moved aside ({ex.Message})");
+		}
+
+		var liveTemporary = liveArchive + ".tmp";
+		try
+		{
+			DeleteIfExists(liveTemporary, log);
+			File.Copy(backup.FullPath, liveTemporary, overwrite: false);
+			using (var archive = ZipFile.OpenRead(liveTemporary))
+			{
+				if (archive.GetEntry(SaveArchiveFormat.ManifestFileName) is null)
+				{
+					throw new InvalidDataException("the promoted backup has no manifest entry");
+				}
+			}
+
+			File.Move(liveTemporary, liveArchive);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+		{
+			DeleteIfExists(liveTemporary, log);
+			PutArchiveBack(aside, liveArchive, log);
+			log.LogError(ex, "Backup {Backup} could not replace the live archive; the replaced snapshot is put back.", backup.FileName);
+			return Result.Refused($"the promoted backup could not replace the live snapshot ({ex.Message})");
+		}
+
+		if (!keepEvidence)
+		{
+			DeletePreviousArchive(aside, log);
+		}
+
+		DeleteLegacyLiveFolder(Path.Combine(worldDirectory, SaveArchiveFormat.LiveFolderName), log);
+		var replaced = aside is null
+			? "there was no live snapshot to replace"
+			: keepEvidence
+				? $"the refused live archive is preserved at {Path.GetFileName(aside)}/live.cuoz"
+				: "the replaced live archive is copied to the pre-restore backup and removed";
+		account.Add($"{replaced}; backup {backup.FileName} was promoted to the live archive");
+		log.LogWarning("World {Directory}: {Account}", worldDirectory, account[account.Count - 1]);
+		return new Result(true, $"backup {backup.FileName} promoted to the live archive", account);
+	}
+
+	private static (string Line, bool Archived) ArchivePreRestoreArchive(string liveArchive, string worldDirectory, DateTime nowUtc, ILogger log)
+	{
+		if (!File.Exists(liveArchive))
+		{
+			return ("there was no live snapshot to archive (the world folder held none)", false);
+		}
+
+		try
+		{
+			var manifest = ReadArchiveManifest(liveArchive);
+			if (manifest is null)
+			{
+				return ("the snapshot about to be replaced carries no readable manifest, so no pre-restore archive was written", false);
+			}
+
+			var backups = Path.Combine(worldDirectory, SaveArchiveFormat.BackupsFolderName);
+			Directory.CreateDirectory(backups);
+			var pre = WorldBackup.Create(backups, manifest.Kind, nowUtc);
+			File.Copy(liveArchive, pre.FullPath, overwrite: true);
+			return ($"the snapshot about to be replaced was copied to {pre.FileName} (pre-restore backup)", true);
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+		{
+			return ($"the pre-restore archive of the snapshot about to be replaced could not be written ({ex.Message})", false);
+		}
+	}
+
+	private static SaveManifest? ReadArchiveManifest(string archivePath)
+	{
+		using var archive = ZipFile.OpenRead(archivePath);
+		var entry = archive.GetEntry(SaveArchiveFormat.ManifestFileName);
+		if (entry is null)
+		{
+			return null;
+		}
+
+		using var stream = entry.Open();
+		using var copy = new MemoryStream();
+		stream.CopyTo(copy);
+		return SaveArchiveJson.Deserialize<SaveManifest>(copy.ToArray());
+	}
+
+	private static string? MoveLiveArchiveAside(string worldDirectory, string liveArchive, bool keepEvidence, DateTime nowUtc, ILogger log)
+	{
+		if (!File.Exists(liveArchive))
+		{
+			return null;
+		}
+
+		var stem = keepEvidence
+			? SaveArchiveFormat.DamagedFolderPrefix + SaveArchiveFormat.StampOf(nowUtc)
+			: SaveArchiveFormat.PreviousFolderName;
+		var directory = Path.Combine(worldDirectory, stem);
+		for (var suffix = 2; Directory.Exists(directory); suffix++)
+		{
+			if (!keepEvidence)
+			{
+				DeletePreviousArchive(directory, log);
+				break;
+			}
+
+			directory = Path.Combine(worldDirectory, $"{stem}-{suffix}");
+		}
+
+		Directory.CreateDirectory(directory);
+		var target = Path.Combine(directory, SaveArchiveFormat.LiveArchiveFileName);
+		File.Move(liveArchive, target);
+		log.LogWarning("The replaced live archive was moved to {Target}.", target);
+		return directory;
+	}
+
+	private static void PutArchiveBack(string? aside, string liveArchive, ILogger log)
+	{
+		if (aside is null)
+		{
+			return;
+		}
+
+		try
+		{
+			var source = Path.Combine(aside, SaveArchiveFormat.LiveArchiveFileName);
+			if (File.Exists(source) && !File.Exists(liveArchive))
+			{
+				File.Move(source, liveArchive);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogError(ex, "The replaced live archive {Source} could not be put back; it stays where it is.", aside);
+		}
+	}
+
+	private static void DeletePreviousArchive(string? previousDirectory, ILogger log)
+	{
+		if (previousDirectory is null)
+		{
+			return;
+		}
+
+		try
+		{
+			if (Directory.Exists(previousDirectory))
+			{
+				Directory.Delete(previousDirectory, recursive: true);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogWarning(ex, "The transient promotion folder {Directory} could not be removed.", previousDirectory);
+		}
+	}
+
+	private static void DeleteLegacyLiveFolder(string live, ILogger log)
+	{
+		try
+		{
+			if (Directory.Exists(live))
+			{
+				Directory.Delete(live, recursive: true);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogWarning(ex, "The legacy live folder {Live} could not be removed after the archive promotion.", live);
+		}
+	}
+
+	private static void DeleteIfExists(string path, ILogger log)
+	{
+		try
+		{
+			if (File.Exists(path))
+			{
+				File.Delete(path);
+			}
+		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+		{
+			log.LogWarning(ex, "The temporary file {Path} could not be removed.", path);
+		}
 	}
 
 	/// <summary>

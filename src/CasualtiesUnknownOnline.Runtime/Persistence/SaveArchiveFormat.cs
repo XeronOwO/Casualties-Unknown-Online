@@ -21,6 +21,7 @@ public static class SaveArchiveFormat
 	public const string MetadataFileName = "world.json";
 
 	public const string LiveFolderName = "live";
+	public const string LiveArchiveFileName = "live.cuoz";
 	public const string ManifestFileName = "manifest.json";
 	public const string BackupsFolderName = "backups";
 	public const string StagingFolderName = ".staging";

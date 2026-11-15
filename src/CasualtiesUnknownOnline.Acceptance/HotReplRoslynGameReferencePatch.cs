@@ -44,30 +44,32 @@ internal static class HotReplRoslynGameReferencePatch
 		Debug.Log("[Acceptance] HotRepl Roslyn evaluator now references the on-disk game assembly.");
 	}
 
-	private static void Postfix(ref object __result)
+	private static object? Postfix(object __result)
 	{
 		if (__result == null)
 		{
-			return;
+			return null;
 		}
 
 		var gameAssembly = Path.Combine(Paths.ManagedPath ?? Path.Combine(Paths.GameRootPath, "CasualtiesUnknown_Data", "Managed"), "Assembly-CSharp.dll");
 		if (!File.Exists(gameAssembly))
 		{
-			return;
+			Debug.LogWarning("[Acceptance] game assembly not found for the Roslyn reference: " + gameAssembly);
+			return __result;
 		}
 
 		var metadataReference = Type.GetType("Microsoft.CodeAnalysis.MetadataReference, Microsoft.CodeAnalysis");
 		var createFromFile = metadataReference == null ? null : metadataReference.GetMethod("CreateFromFile", [typeof(string)]);
 		if (createFromFile == null)
 		{
-			return;
+			Debug.LogWarning("[Acceptance] Microsoft.CodeAnalysis.MetadataReference.CreateFromFile not found.");
+			return __result;
 		}
 
 		var reference = createFromFile.Invoke(null, [gameAssembly]);
 		if (reference == null)
 		{
-			return;
+			return __result;
 		}
 
 		var addReferences = __result.GetType()
@@ -75,7 +77,8 @@ internal static class HotReplRoslynGameReferencePatch
 			.FirstOrDefault(method => method.Name == "AddReferences" && method.GetParameters().Length == 1);
 		if (addReferences == null)
 		{
-			return;
+			Debug.LogWarning("[Acceptance] ScriptOptions.AddReferences not found.");
+			return __result;
 		}
 
 		var parameterType = addReferences.GetParameters()[0].ParameterType;
@@ -91,7 +94,7 @@ internal static class HotReplRoslynGameReferencePatch
 			var elementType = parameterType.GetGenericArguments().FirstOrDefault();
 			if (elementType == null)
 			{
-				return;
+				return __result;
 			}
 
 			var listType = typeof(List<>).MakeGenericType(elementType);
@@ -100,6 +103,7 @@ internal static class HotReplRoslynGameReferencePatch
 			argument = list;
 		}
 
-		__result = addReferences.Invoke(__result, [argument]);
+		Debug.Log("[Acceptance] Roslyn ScriptOptions now reference " + gameAssembly + ".");
+		return addReferences.Invoke(__result, [argument]);
 	}
 }

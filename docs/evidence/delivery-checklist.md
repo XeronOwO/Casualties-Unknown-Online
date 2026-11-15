@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: not applicable to a docs-only ticket record.
+- [ ] Release-cycle deployment/acceptance: this is a design record; the writer/reader and the two-client row are still open.
 - [ ] FORBIDDEN — never check this box

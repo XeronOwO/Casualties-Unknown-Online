@@ -88,7 +88,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 - [The block tables differ](review/1.0-block-table-diverges-between-clients.md) — **High** — the host's world moves; the member's does not.
 - [A live member never resyncs the block table](review/1.0-live-block-table-never-resyncs.md) — **High** — only entry sends it.
-- [A destroyed body keeps its facial updating](review/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — every frame, 94 MB of log.
 - [Late-layer mechanism switches need one answer](review/1.0-late-layer-mechanism-switches-need-sync.md) — **High** — both clients must agree.
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
@@ -143,6 +142,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [A session ignores the solo character unlocks](done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md) — **High** — any pick; solo unchanged.
+- [A destroyed body keeps its facial updating](done/1.0-a-destroyed-body-keeps-updating-its-facial.md) — **High** — clone dropped with the body.
 - [A guest holds a role without a world](done/1.0-guest-joins-with-a-role-and-no-world.md) — **High** — run-end scope clears the stale join.
 - [1.0: `/heal @a` leaves the member unchanged](done/1.0-console-heal-does-not-restore-a-member.md) — **High** — restore read on the member.
 - [A trigger event waits for the whole living team](done/1.0-trigger-events-wait-for-the-whole-team.md) — **Medium** — the pod names the missing; no passengers.

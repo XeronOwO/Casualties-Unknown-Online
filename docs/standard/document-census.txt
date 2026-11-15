@@ -216,13 +216,13 @@ docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/REA
 docs/backlog/in-progress/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/in-progress/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/1.0-acceptance-suite.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-block-table-diverges-between-clients.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-live-block-table-never-resyncs.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-a-destroyed-body-keeps-updating-its-facial.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-late-layer-mechanism-switches-need-sync.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-trigger-events-wait-for-the-whole-team.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-trigger-events-wait-for-the-whole-team.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-regression-1-medical-panel.md | keep | claim | docs/backlog/in-progress/1.0-regression-sweep.md
 docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
@@ -1414,5 +1414,5 @@ docs/backlog/future/1.0-cross-player-item-use-has-no-consent.md | keep | claim |
 docs/backlog/review/1.0-rule-toggles-missing-for-carry-and-push.md | keep | claim | docs/backlog/README.md
 docs/backlog/review/1.0-player-death-stats-missing.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/split-session-service.md | keep | claim | docs/backlog/README.md
-docs/backlog/review/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | docs/backlog/README.md
+docs/backlog/done/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-a-host-leaving-the-world-strands-the-members.md | keep | claim | docs/backlog/README.md

@@ -60,6 +60,11 @@ internal static partial class Program
 		var suiteClock = Stopwatch.StartNew();
 		var sharedSetup = Stopwatch.StartNew();
 		var session = new SessionDriver(options);
+		// The per-case marks cover only the case's own window. Everything the pair writes during setup,
+		// a restart, the gap between cases or the teardown would otherwise be invisible: the 2026-11-15
+		// member log carried 184,942 TurretScript errors after the suite had already reported 0/0. Mark
+		// the whole run before the pair starts, then subtract the case windows at the end.
+		var suiteLogStart = await MarkSuiteLogsAsync(session, options).ConfigureAwait(false);
 		(var sessionNote, var memberNote) = tryReuse
 			? await TryReusePairAsync(session).ConfigureAwait(false)
 			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
@@ -118,12 +123,24 @@ internal static partial class Program
 			}
 		}
 
+		var suiteLogs = await ReadSuiteLogsAsync(session, options, suiteLogStart, results).ConfigureAwait(false);
 		suiteClock.Stop();
 		var reportPath = Path.Combine(outputDirectory, "report.md");
-		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds)).ConfigureAwait(false);
-		await SuiteReport.WriteJsonAsync(Path.Combine(outputDirectory, "report.json"), options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds).ConfigureAwait(false);
+		await File.WriteAllTextAsync(reportPath, SuiteReport.Render(options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs)).ConfigureAwait(false);
+		await SuiteReport.WriteJsonAsync(Path.Combine(outputDirectory, "report.json"), options, results, sharedSetup.Elapsed.TotalMilliseconds, suiteClock.Elapsed.TotalMilliseconds, suiteLogs).ConfigureAwait(false);
 		Console.WriteLine($"report: {reportPath}");
-		return results.All(result => result.Passed) ? 0 : 1;
+		var passed = results.All(result => result.Passed) && suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null;
+		if (suiteLogs.OutsideErrors > 0)
+		{
+			Console.WriteLine($"outside-case log errors: host {suiteLogs.HostOutside?.Errors ?? 0}, member {suiteLogs.MemberOutside?.Errors ?? 0}; see the report");
+		}
+
+		if (suiteLogs.Problem is { } logProblem)
+		{
+			Console.Error.WriteLine(logProblem);
+		}
+
+		return passed ? 0 : 1;
 	}
 
 	/// <summary>
@@ -311,6 +328,91 @@ internal static partial class Program
 		}
 
 		return (hostLogs, memberLogs, problem);
+	}
+
+	private static async Task<(long Host, long Member, string? Problem)> MarkSuiteLogsAsync(SessionDriver session, Options options)
+	{
+		long hostMark = -1;
+		long memberMark = -1;
+		string? problem = null;
+		try
+		{
+			hostMark = await session.LogOffsetAsync(options.HostUrl, CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+		{
+			problem = $"the suite could not mark the host log: {exception.Message}";
+		}
+
+		try
+		{
+			memberMark = await session.LogOffsetAsync(options.MemberUrl, CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+		{
+			problem ??= $"the suite could not mark the member log: {exception.Message}";
+		}
+
+		return (hostMark, memberMark, problem);
+	}
+
+	private static async Task<SuiteLogs> ReadSuiteLogsAsync(
+		SessionDriver session,
+		Options options,
+		(long Host, long Member, string? Problem) start,
+		IReadOnlyList<CaseResult> results)
+	{
+		var problem = start.Problem;
+		LogCounts? hostTotal = null;
+		LogCounts? memberTotal = null;
+		if (start.Host >= 0)
+		{
+			try
+			{
+				hostTotal = await session.LogSinceAsync(options.HostUrl, start.Host, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				problem ??= $"the suite's host log count failed: {exception.Message}";
+			}
+		}
+
+		if (start.Member >= 0)
+		{
+			try
+			{
+				memberTotal = await session.LogSinceAsync(options.MemberUrl, start.Member, CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				problem ??= $"the suite's member log count failed: {exception.Message}";
+			}
+		}
+
+		if (start.Host < 0 || start.Member < 0)
+		{
+			problem ??= "the suite could not mark both logs; setup and between-case errors cannot be proven absent";
+		}
+
+		var caseHostWarnings = results.Sum(result => result.HostLogs?.Warnings ?? 0);
+		var caseHostErrors = results.Sum(result => result.HostLogs?.Errors ?? 0);
+		var caseMemberWarnings = results.Sum(result => result.MemberLogs?.Warnings ?? 0);
+		var caseMemberErrors = results.Sum(result => result.MemberLogs?.Errors ?? 0);
+		var hostOutside = hostTotal is null
+			? null
+			: new LogCounts(
+				Math.Max(0, hostTotal.Warnings - caseHostWarnings),
+				Math.Max(0, hostTotal.Errors - caseHostErrors),
+				hostTotal.FirstWarning,
+				hostTotal.FirstError);
+		var memberOutside = memberTotal is null
+			? null
+			: new LogCounts(
+				Math.Max(0, memberTotal.Warnings - caseMemberWarnings),
+				Math.Max(0, memberTotal.Errors - caseMemberErrors),
+				memberTotal.FirstWarning,
+				memberTotal.FirstError);
+		return new SuiteLogs(hostTotal, memberTotal, hostOutside, memberOutside, problem);
 	}
 
 	private static string? JudgeLogs(AcceptanceCase acceptanceCase, LogCounts? hostLogs, LogCounts? memberLogs, string? problem)
@@ -675,9 +777,27 @@ internal sealed record CaseResult(
 	public double TotalMs => ConnectMs + SetupMs + CaseMs;
 }
 
+/// <summary>
+/// The whole-run log count. The case rows cover only the case's own window; this row covers the
+/// pair's setup, restarts, gaps, and teardown, where a stale object can throw without any case
+/// owning it. <see cref="HostOutside"/> and <see cref="MemberOutside"/> are the totals minus the
+/// windows the case rows counted; a non-zero outside error fails the suite.
+/// </summary>
+internal sealed record SuiteLogs(
+	LogCounts? HostTotal,
+	LogCounts? MemberTotal,
+	LogCounts? HostOutside,
+	LogCounts? MemberOutside,
+	string? Problem)
+{
+	public int OutsideErrors => (HostOutside?.Errors ?? 0) + (MemberOutside?.Errors ?? 0);
+
+	public int OutsideWarnings => (HostOutside?.Warnings ?? 0) + (MemberOutside?.Warnings ?? 0);
+}
+
 internal static class SuiteReport
 {
-	public static string Render(Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs)
+	public static string Render(Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs)
 	{
 		var builder = new StringBuilder();
 		builder.AppendLine("# Acceptance suite report");
@@ -685,6 +805,7 @@ internal static class SuiteReport
 		builder.AppendLine($"- Host: `{options.HostUrl}`");
 		builder.AppendLine($"- Started: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
 		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
+		builder.AppendLine($"- Logs outside cases: host {Counts(suiteLogs.HostOutside)}, member {Counts(suiteLogs.MemberOutside)} — {(suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null ? "PASS" : "FAIL")}");
 		builder.AppendLine();
 		builder.AppendLine("| Case | Cost | Connect | Setup | Case | Total | Host W/E | Member W/E | Verdict | Note |");
 		builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
@@ -695,6 +816,26 @@ internal static class SuiteReport
 
 		builder.AppendLine();
 		builder.AppendLine($"**{results.Count(result => result.Passed)} passed, {results.Count(result => !result.Passed)} failed.**");
+		builder.AppendLine();
+		builder.AppendLine("## Logs outside cases");
+		builder.AppendLine();
+		builder.AppendLine($"- Whole run: host {Counts(suiteLogs.HostTotal)}, member {Counts(suiteLogs.MemberTotal)}");
+		builder.AppendLine($"- Outside the case windows: host {Counts(suiteLogs.HostOutside)}, member {Counts(suiteLogs.MemberOutside)}; warnings {suiteLogs.OutsideWarnings}, errors {suiteLogs.OutsideErrors}");
+		if (suiteLogs.Problem is { } suiteProblem)
+		{
+			builder.AppendLine($"- Log capture problem: {Escape(suiteProblem)}");
+		}
+
+		if (!string.IsNullOrEmpty(suiteLogs.HostOutside?.FirstError))
+		{
+			builder.AppendLine($"- Host first error (whole run): `{Escape(suiteLogs.HostOutside!.FirstError)}`");
+		}
+
+		if (!string.IsNullOrEmpty(suiteLogs.MemberOutside?.FirstError))
+		{
+			builder.AppendLine($"- Member first error (whole run): `{Escape(suiteLogs.MemberOutside!.FirstError)}`");
+		}
+
 		builder.AppendLine();
 		builder.AppendLine("## Cost groups");
 		builder.AppendLine();
@@ -747,7 +888,7 @@ internal static class SuiteReport
 		return builder.ToString();
 	}
 
-	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs)
+	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs)
 	{
 		var payload = new
 		{
@@ -756,6 +897,16 @@ internal static class SuiteReport
 			startedAt = DateTimeOffset.Now,
 			totalMs,
 			sharedSetupMs,
+			logsOutsideCases = new
+			{
+				hostTotal = suiteLogs.HostTotal,
+				memberTotal = suiteLogs.MemberTotal,
+				hostOutside = suiteLogs.HostOutside,
+				memberOutside = suiteLogs.MemberOutside,
+				outsideErrors = suiteLogs.OutsideErrors,
+				outsideWarnings = suiteLogs.OutsideWarnings,
+				problem = suiteLogs.Problem,
+			},
 			cases = results.Select(result => new
 			{
 				name = result.Name,

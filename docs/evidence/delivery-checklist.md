@@ -15,3 +15,4 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
 - [ ] Release-cycle deployment/acceptance: this commit carries the pod gate and its live acceptance row; deploy and run after the commit.
+- [ ] FORBIDDEN — never check this box

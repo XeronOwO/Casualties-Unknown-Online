@@ -83,6 +83,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
+- [The item colour does not survive save/continue](review/1.0-item-colour-does-not-survive-continue.md) — **High** — live clone sees it, saved record does not.
 
 
 - [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.

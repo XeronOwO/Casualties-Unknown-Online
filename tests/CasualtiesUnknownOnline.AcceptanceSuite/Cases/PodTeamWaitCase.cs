@@ -55,13 +55,26 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"the member descended although it was 100 m from the pod: " + Raw(memberRefused));
 
 		// The host's own refusal names the member. `PodTeamGate.Label` carries the display name and
-		// the SteamId; the case's member id makes the line specific to this member.
-		var refusalLog = await context.Session.LogTailAsync(
-			context.Session.HostUrl, "[PodTrigger]", 8, cancellationToken).ConfigureAwait(false);
-		context.Read("host:pod-log", refusalLog);
-		var refusalText = refusalLog is { ValueKind: JsonValueKind.String } value ? value.GetString() ?? string.Empty : Raw(refusalLog);
+		// the SteamId; the case's member id makes the line specific to this member. BepInEx's file is
+		// buffered and the line is written from the coroutine's start, so poll the whole tail instead
+		// of racing one fixed sleep (the 2026-11-15 first run read count=0 before the line landed).
+		var refusalText = string.Empty;
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			var tail = await context.Session.LogTailAsync(
+				context.Session.HostUrl, "[PodTrigger]", 8, cancellationToken).ConfigureAwait(false);
+			refusalText = Raw(tail);
+			if (refusalText.Contains(context.MemberId, StringComparison.Ordinal))
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Note("host:pod-log-tail = " + refusalText);
 		Require(refusalText.Contains(context.MemberId, StringComparison.Ordinal),
-			"the host's pod refusal does not name the missing member " + context.MemberId + ": " + refusalText);
+			"the host's pod refusal does not name the missing member " + context.MemberId + " within 5 s: " + refusalText);
 
 		// Both living bodies at the pod: the same native sink must now take both clients down two layers.
 		await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);

@@ -41,7 +41,9 @@ co-op the choice must be one member's choice applied to a host-owned world.
   place yet counts as missing (a body that has not loaded is never treated as a body that is away), and the host's
   refusal names the missing members. The gate is enforced both for a host's own pod press and for a member's request;
   a refused member's native 5 s latch is reset so the next press can try again. The end-of-layer panel keeps its own
-  all-living rule above; the console's debug descent is untouched.
+  all-living rule above; the console's debug descent is untouched. Acceptance (2026-11-15): `PodTeamWaitCase` read
+  the host's refusal naming the away member with both layers unchanged, then both clients at the pod and both at
+  `biomeDepth=2`; the full suite was 35/35 with zero errors.
 - **A layer-relative request carries the generation it was made in.** `LayerAdvanceRequestMsg` "carries the requester's
   kernel generation stamp, the same (run epoch, layer index) identity every layer-relative world report carries, so the host
   arbitrates it against the identity it stamps its own" — which is why a request from a layer the host has already left is

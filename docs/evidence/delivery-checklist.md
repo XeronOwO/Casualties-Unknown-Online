@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: the test-only change needs no deploy; a full 38-case run remains.
+- [ ] Release-cycle deployment/acceptance: deploy the acceptance plugin, run one log-waiting case, and verify no in-client sleep remains.
 - [ ] FORBIDDEN — never check this box

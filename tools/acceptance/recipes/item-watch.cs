@@ -4,17 +4,16 @@
 // returns: ok, attempt, cellX, cellY, blockBefore, blockAfter, scanned, unidentified, items, error, detail
 //
 // Optionally breaks the cell (tx, ty) with the game's own DamageBlock when <dmg> is above zero, then
-// polls up to <window> times, 100 ms apart, for an item NEW to this client within 45 units of the cell
-// and returns the FIRST snapshot that carries one - so the self-destroying FreshItemDrop component
-// (10 s) is read inside its window, on whichever client the run is judging. `new` means the item
+// scans once for an item NEW to this client within 45 units of the cell and returns the first snapshot
+// that carries one - so the self-destroying FreshItemDrop component (10 s) is read inside its window,
+// on whichever client the run is judging. `new` means the item
 // carries a READABLE, non-zero ItemInstanceId that this client's baseline does not hold: the game's
 // generation-time world items carry no such component (CUO attaches it only to the runtime items it
 // registers), so an item whose id is missing or zero is counted in `unidentified` and is never reported
 // as new - otherwise a `dmg=0` observer would call an old ground item the drop it waited for.
-// <window> is capped at 50: 50 x 100 ms of sleep plus one object scan per attempt must stay under the
-// evaluator's 10 s ceiling (the driver clamps the eval timeout to min(10000, TimeoutMs)), or a slow
-// window surfaces as a driver timeout instead of this recipe's own refusal. dmg=0 is the observer
-// shape: poll only, break nothing. One eval.
+// One eval is one frame, so <window> is forced to 1: a caller that wants repeated scans must issue
+// separate evals. Sleeping in the game's main thread is forbidden (acceptance rule, 2026-11-15).
+// dmg=0 is the observer shape: scan only, break nothing. One eval.
 ((System.Func<string>)(() => {
 	const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -27,7 +26,8 @@
 		return "{\"ok\":false,\"error\":\"out-of-range\",\"detail\":\"cell " + cell.x.ToString(inv) + "," + cell.y.ToString(inv) + " is outside the world\"}";
 	}
 	if (window < 1) { window = 1; }
-	if (window > 50) { window = 50; }
+	// One eval is one frame: a window of sleeps would block the game's main thread.
+	if (window > 1) { window = 1; }
 	var center = world.BlockToWorldPos(cell);
 	var before = world.GetBlock(cell);
 	if (dmg > 0f) { world.DamageBlock(cell, dmg, true, false, false); }
@@ -57,7 +57,6 @@
 	var lastScanned = 0;
 	var lastUnidentified = 0;
 	for (var attempt = 0; attempt < window; attempt++) {
-		System.Threading.Thread.Sleep(100);
 		var items = UnityEngine.Object.FindObjectsOfType<Item>(true);
 		var sb = new System.Text.StringBuilder();
 		var emitted = 0;

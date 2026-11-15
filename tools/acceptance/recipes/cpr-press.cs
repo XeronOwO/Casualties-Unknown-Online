@@ -40,11 +40,8 @@
 				for (var n = 0; n < count; n++) {
 					button.onClick.Invoke();
 					pressed++;
-					// The control measures its interval from REAL time, so presses dispatched in one frame all read as
-					// ~0.01 s and the band can never be hit (the residual that named this). A real gap between presses
-					// is the only way an in-process press lands inside the band; stalling the main thread is harmless
-					// here because nothing in the control measures the gap in frames.
-					if (intervalMs > 0 && n + 1 < count) { System.Threading.Thread.Sleep(intervalMs); }
+					// All presses are dispatched in one frame. A caller that needs a real-time rhythm must issue
+					// separate evals; sleeping on the game's main thread is forbidden (acceptance rule, 2026-11-15).
 				}
 			}
 		}

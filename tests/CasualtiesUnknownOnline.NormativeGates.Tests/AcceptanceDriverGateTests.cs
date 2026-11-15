@@ -340,6 +340,22 @@ public class AcceptanceDriverGateTests
 		Assert.Empty(RecipeProblems("sample", "// recipe: sample\r\n// args: none\r\n((System.Func<string>)(() => \"x\"))()\r\n"));
 	}
 
+	[Fact]
+	public void TheDriverAndRecipesNeverBlockTheGameThread()
+	{
+		// Acceptance rule (2026-11-15): the evaluator runs on Unity's main thread. A Thread.Sleep or a
+		// Task.Delay here stalls every frame the game would have run, and hides a stall as a timeout.
+		// The suite may time out a wait; it must never sleep the game to wait for one.
+		var files = Directory.EnumerateFiles(RepositoryPaths.File("tools/acceptance"), "*.cs", SearchOption.AllDirectories)
+			.OrderBy(file => file, StringComparer.Ordinal)
+			.ToArray();
+		var offenders = files
+			.Where(file => Regex.IsMatch(File.ReadAllText(file), @"\b(?:System\.Threading\.)?Thread\.Sleep\s*\("))
+			.Select(file => Path.GetRelativePath(RepositoryPaths.Root, file))
+			.ToArray();
+		Assert.True(offenders.Length == 0, $"blocking sleeps under tools/acceptance/: {string.Join(", ", offenders)}");
+	}
+
 	/// <summary>
 	/// The problems a committed recipe would present to the evaluator, or none. Split out so the gate's
 	/// own matcher is pinned with positive and negative samples instead of trusting the directory scan.

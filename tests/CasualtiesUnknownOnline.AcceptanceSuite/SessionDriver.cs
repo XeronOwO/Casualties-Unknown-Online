@@ -1022,22 +1022,98 @@ internal sealed class SessionDriver(Options options)
 		value.TryGetProperty(name, out var property) && property.ValueKind == JsonValueKind.String ? property.GetString() ?? string.Empty : string.Empty;
 
 	/// <summary>
-	/// Wait inside the client until its own log carries the match, or the budget expires: a case that
-	/// needs a game event to have happened reads it here instead of sleeping and asking again. Returns
-	/// the matching line (the last one written), or null when the budget ran out.
+	/// Wait on the target's log as a file event, not by sleeping on the game's main thread and not by
+	/// polling: the acceptance driver never blocks Unity waiting for a line. The OS watcher wakes the
+	/// suite when the target flushes; only the timeout is a timer. Returns the last matching line
+	/// written after the watch began, or null when the budget ran out.
 	/// </summary>
 	public async Task<string?> WaitForLogAsync(string url, string match, int budgetMs, CancellationToken cancellationToken)
 	{
-		var answer = await ActionAsync(url, "wait-log", cancellationToken, ("-Text", budgetMs.ToString(CultureInfo.InvariantCulture)), ("-Argument", match)).ConfigureAwait(false);
-		if (answer is not { ValueKind: JsonValueKind.Object } value
-			|| !value.TryGetProperty("line", out var line)
-			|| line.ValueKind != JsonValueKind.String)
+		var answer = await ActionAsync(url, "log-path", cancellationToken).ConfigureAwait(false);
+		if (answer is not { ValueKind: JsonValueKind.Object } value)
 		{
 			return null;
 		}
 
-		var text = line.GetString();
-		return string.IsNullOrEmpty(text) ? null : text;
+		var path = ReadString(value, "path");
+		if (string.IsNullOrEmpty(path) || !File.Exists(path))
+		{
+			return null;
+		}
+
+		var directory = Path.GetDirectoryName(path);
+		var fileName = Path.GetFileName(path);
+		if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
+		{
+			return null;
+		}
+
+		var completion = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+		var start = new FileInfo(path).Length;
+		var gate = new object();
+		string? found = null;
+
+		void Inspect()
+		{
+			lock (gate)
+			{
+				if (found is not null || completion.Task.IsCompleted)
+				{
+					return;
+				}
+
+				using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+				if (start > stream.Length)
+				{
+					return;
+				}
+
+				stream.Seek(start, SeekOrigin.Begin);
+				using var reader = new StreamReader(stream);
+				string? line;
+				while ((line = reader.ReadLine()) is not null)
+				{
+					if (line.IndexOf(match, StringComparison.Ordinal) >= 0)
+					{
+						found = line;
+					}
+				}
+
+				if (found is not null)
+				{
+					completion.TrySetResult(found);
+				}
+			}
+		}
+
+		using var watcher = new FileSystemWatcher(directory, fileName)
+		{
+			NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
+			EnableRaisingEvents = true,
+		};
+		FileSystemEventHandler onChange = (_, _) =>
+		{
+			try
+			{
+				Inspect();
+			}
+			catch (IOException)
+			{
+				// The log writer may still hold the file; the next notification reads it.
+			}
+			catch (UnauthorizedAccessException)
+			{
+				completion.TrySetResult(null);
+			}
+		};
+		watcher.Changed += onChange;
+		watcher.Created += onChange;
+		Inspect();
+
+		var timeout = Task.Delay(budgetMs, cancellationToken);
+		await Task.WhenAny(completion.Task, timeout).ConfigureAwait(false);
+		watcher.EnableRaisingEvents = false;
+		return completion.Task.IsCompletedSuccessfully ? await completion.Task.ConfigureAwait(false) : null;
 	}
 
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)

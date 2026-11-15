@@ -663,6 +663,14 @@
 		return finish(fields);
 	}
 
+	if (command == "log-path") {
+		// The suite watches this file instead of asking the game to sleep until a line appears.
+		var pathOnly = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "path", pathOnly);
+		return finish(fields);
+	}
+
 	if (command == "log-tail") {
 		// The last lines of THIS client's own BepInEx log that contain ARGUMENT: the suite judges the
 		// target's side of a relayed effect from the target's own file, not from the host's answer.
@@ -757,68 +765,6 @@
 		putRaw(fields, escape, "errors", errors.ToString(System.Globalization.CultureInfo.InvariantCulture));
 		putText(fields, escape, "firstWarning", firstWarning);
 		putText(fields, escape, "firstError", firstError);
-		return finish(fields);
-	}
-
-	if (command == "wait-log") {
-		// Block until THIS client's own log carries ARGUMENT (`text` is the budget in ms). Only lines
-		// written after the call started count: a line from an earlier run is not this run's event.
-		// The suite's waits are measurements of a game event: the reader polls inside the client
-		// instead of the caller sleeping and re-asking. Answers found=false at the budget.
-		var waitLogPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
-		var budgetMs = 15000;
-		int.TryParse(text, out budgetMs);
-		if (budgetMs < 100) { budgetMs = 100; }
-		var startOffset = 0L;
-		if (System.IO.File.Exists(waitLogPath)) {
-			startOffset = new System.IO.FileInfo(waitLogPath).Length;
-		}
-
-		var started = System.Environment.TickCount;
-		var found = "";
-		while (System.Environment.TickCount - started < budgetMs) {
-			if (System.IO.File.Exists(waitLogPath)) {
-				using (var stream = new System.IO.FileStream(waitLogPath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
-				using (var reader = new System.IO.StreamReader(stream)) {
-					if (startOffset <= stream.Length) {
-						stream.Seek(startOffset, System.IO.SeekOrigin.Begin);
-						string line;
-						while ((line = reader.ReadLine()) != null) {
-							if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) >= 0) { found = line; }
-						}
-					}
-				}
-			}
-			if (found.Length > 0) { break; }
-			System.Threading.Thread.Sleep(100);
-		}
-
-		putText(fields, escape, "ok", "true");
-		putText(fields, escape, "found", found.Length > 0 ? "true" : "false");
-		putText(fields, escape, "waitedMs", (System.Environment.TickCount - started).ToString(System.Globalization.CultureInfo.InvariantCulture));
-		putText(fields, escape, "line", found);
-		return finish(fields);
-	}
-
-	if (command == "wait-state") {
-		// Block until THIS client's own state fact ARGUMENT is true (`text` is the budget in ms).
-		// The caller stops sleeping and re-asking: the wait is a measurement made in the client.
-		// Only `inWorld` is answered today — the one fact every suite run gates on.
-		var stateBudgetMs = 30000;
-		int.TryParse(text, out stateBudgetMs);
-		if (stateBudgetMs < 100) { stateBudgetMs = 100; }
-		var stateStarted = System.Environment.TickCount;
-		var stateReached = false;
-		while (System.Environment.TickCount - stateStarted < stateBudgetMs) {
-			if (argument == "inWorld" && presence != null && presence.IsInWorldOrGenerating) { stateReached = true; break; }
-			if (argument == "notInWorld" && (presence == null || !presence.IsInWorldOrGenerating)) { stateReached = true; break; }
-			System.Threading.Thread.Sleep(100);
-		}
-
-		putText(fields, escape, "ok", "true");
-		putText(fields, escape, "key", argument);
-		putText(fields, escape, "reached", stateReached ? "true" : "false");
-		putText(fields, escape, "waitedMs", (System.Environment.TickCount - stateStarted).ToString(System.Globalization.CultureInfo.InvariantCulture));
 		return finish(fields);
 	}
 

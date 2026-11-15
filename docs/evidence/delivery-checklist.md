@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: no deployment for a docs-only cycle; the 38/38 `colorfull2` report is the last acceptance evidence.
+- [ ] Release-cycle deployment/acceptance: no deploy for test-only changes; the deployed artifact remains `0.1.0+14a548f...`.
 - [ ] FORBIDDEN — never check this box

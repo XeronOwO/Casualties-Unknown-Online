@@ -528,6 +528,47 @@
 		return finish(fields);
 	}
 
+	if (command == "leave-world-intent") {
+		// A member's own leave is a CUO intent, not a bare scene load: PlayerCamera.ToMainMenu alone
+		// never tells the run coordinator that the world is over, so it can keep reporting in-world
+		// after the menu is visible. This path calls the product's own leave coordinator, which records
+		// the intent and lets the frame-end seam take the scene load.
+		if (services == null || session == null) {
+			return fail(escape, "no-session", "the CUO session is not available in this process");
+		}
+		System.Type bridgeType = null;
+		var candidateAssemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < candidateAssemblies.Length && bridgeType == null; i++) {
+			bridgeType = candidateAssemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.PatchBridge", false);
+		}
+		if (bridgeType == null) {
+			return fail(escape, "no-patch-bridge", "PatchBridge is not loaded in this process");
+		}
+		var implProperty = bridgeType.GetProperty("Impl", staticFlags);
+		if (implProperty == null) {
+			return fail(escape, "no-patch-bridge-impl", "PatchBridge.Impl was not found");
+		}
+		var bridge = implProperty.GetValue(null);
+		if (bridge == null) {
+			return fail(escape, "no-patch-bridge-bound", "PatchBridge.Impl is not bound in this process");
+		}
+		var tryDefer = findMethodWith(bridge, "TryDeferMenuReturn", 1);
+		if (tryDefer == null) {
+			return fail(escape, "no-menu-return-defer", "IPatchBridge.TryDeferMenuReturn(bool) was not found");
+		}
+		bool deferred;
+		try {
+			deferred = (bool)tryDefer.Invoke(bridge, new object[] { true });
+		}
+		catch (System.Exception exception) {
+			return fail(escape, "leave-intent-failed", unwrap(exception));
+		}
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "deferred", deferred ? "true" : "false");
+		return finish(fields);
+	}
+
 	if (command == "console") {
 		if (services == null) {
 			return fail(escape, "no-services", "the CUO container is not available in this process");
@@ -671,7 +712,10 @@
 
 	if (command == "log-path") {
 		// The suite watches this file instead of asking the game to sleep until a line appears.
-		var pathOnly = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		var pathOnly = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "logs", "latest.log");
+		if (!System.IO.File.Exists(pathOnly)) {
+			pathOnly = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		}
 		putRaw(fields, escape, "ok", "true");
 		putText(fields, escape, "path", pathOnly);
 		return finish(fields);
@@ -682,7 +726,10 @@
 		// target's side of a relayed effect from the target's own file, not from the host's answer.
 		// `text` is the number of matching lines to return (default 3). A client that never wrote a
 		// log answers no-log by name rather than an empty list.
-		var logPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		var logPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "logs", "latest.log");
+		if (!System.IO.File.Exists(logPath)) {
+			logPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "BepInEx", "LogOutput.log");
+		}
 		if (!System.IO.File.Exists(logPath)) {
 			putText(fields, escape, "ok", "false");
 			putText(fields, escape, "error", "no-log");

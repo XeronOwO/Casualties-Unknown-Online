@@ -245,6 +245,20 @@ internal sealed class SessionDriver(Options options)
 			return;
 		}
 
+		// Inside a world the session-leave control is not the world-leave edge: ask the product's
+		// own leave intent first, then end the session from the menu. A bare home.leave click while
+		// inWorld leaves the presence behind (the ghost measured after remote-removal).
+		if (IsTrue(state, "inWorld"))
+		{
+			await TryActionAsync(_options.MemberUrl, "leave-world-intent", cancellationToken).ConfigureAwait(false);
+			await WaitUntilAsync(
+				_options.MemberUrl,
+				probe => !IsTrue(probe, "inWorld"),
+				TimeSpan.FromSeconds(5),
+				cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+		}
+
 		if (Controls(state).Contains("home.leave"))
 		{
 			await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);

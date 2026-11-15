@@ -13,14 +13,13 @@ internal sealed class RoleClearingCase : AcceptanceCase
 {
 	public override string Name => "role-clearing";
 
-	public override CaseCost Cost => CaseCost.NewWorld;
+	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// This row opens with a host leave; it needs a pair that is actually in the same run. The
-		// preceding remote-removal case deliberately leaves the member, so a NewWorld row must
-		// establish its own world instead of inheriting that half-session.
-		await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
+		// This row opens with a host leave; it needs a pair that is actually in the same run. It
+		// follows save-continue's healthy pair, so it can reuse the running world instead of paying
+		// for a second one; remote-removal runs after it and is the row allowed to leave the member.
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
 
@@ -35,6 +34,9 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		// because a session that no lobby owns must leave no role behind. Leaving only the world keeps
 		// the session alive and is a different row (the member waits for a host that waits for it).
 		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		// The preceding worlds-page row leaves the overlay on the Worlds tab; home.leave is only offered
+		// on Home, so return there before asking the host to end the session.
+		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
 
 		// The member's session ends with the host's world; the role must go with it. The client's own

@@ -63,7 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 - [A world's live save is loose JSON](todo/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest.
-- [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 409.8 s now; reuse the run rows and split the character world.
+- [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 358.8 s now; reuse the run rows.
 
 
 

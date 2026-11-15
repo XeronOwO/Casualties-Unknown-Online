@@ -1165,8 +1165,8 @@ internal static class CaseRegistry
 		// The worlds page lists archive rows; it needs a run that has actually produced a cut, so it
 		// follows save-continue instead of reading an empty fresh save root.
 		new WorldsPageCase(),
-		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
+		new RemoteRemovalCase(), // the member leaves last; the host's displayed body goes and its own log says so
 		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)
 		// Parked 2026-11-14 09:58: with the pointer held on the band every tick the case opens the lock
 		// (three single runs passed), but inside the full order the game's own progress fills slowly

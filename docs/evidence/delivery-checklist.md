@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: deploy and read a passing `save-continue` with both copies surviving.
+- [ ] Release-cycle deployment/acceptance: deploy and read `save-continue` passing.
 - [ ] FORBIDDEN — never check this box

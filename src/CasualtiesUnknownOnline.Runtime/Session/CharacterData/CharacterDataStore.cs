@@ -251,7 +251,30 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			return;
 		}
 
-		if (_savedCharacters.TryGetValue(steamId, out var data))
+		if (!_savedCharacters.TryGetValue(steamId, out var data))
+		{
+			// IP-direct reconnects get a new transport id, while the saved table is
+			// keyed by the old one. The archive is keyed by the display name; adopt
+			// the one old presence with the same name only while it is out of the
+			// world. Two same-name players or an old owner still playing refuse.
+			var member = _session.Members.FirstOrDefault(m => m.SteamId == steamId);
+			ReconnectCandidate[] candidates = [.. _session.Members.Select(m => new ReconnectCandidate(m.SteamId, m.DisplayName, m.Handshaken, m.InWorld))];
+			var source = member is null
+				? null
+				: CharacterReconnectAdoption.FindSource(steamId, member.DisplayName, candidates, _savedCharacters.Keys);
+			if (source is { } oldPeer && _savedCharacters.TryGetValue(oldPeer, out var adopted))
+			{
+				_savedCharacters.Remove(oldPeer);
+				_savedCharacters[steamId] = adopted;
+				data = adopted;
+				_log.LogInformation(
+					"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}.",
+					oldPeer,
+					steamId);
+			}
+		}
+
+		if (data is not null)
 		{
 			MergeTransferredItems(steamId, data);
 			// The kernel is the authority for terminal player facts; project it

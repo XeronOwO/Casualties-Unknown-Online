@@ -50,6 +50,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(HasLabeledItem(memberSeesHostBefore, "HostColor", 3), "the member's displayed copy does not carry the host's colour: " + Raw(memberSeesHostBefore));
 		context.Read("host sees member colour", hostSeesMemberBefore);
 		context.Read("member sees host colour", memberSeesHostBefore);
+		var storedBefore = await context.RecipeAsync("saved-color-read", cancellationToken, ("guest", context.MemberId)).ConfigureAwait(false);
+		context.Read("host stored character before save", storedBefore);
 
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);

@@ -30,11 +30,6 @@ internal sealed class WorldRunProjection(
 		var current = kernelAuthority.QueryRun();
 		var runId = current?.RunId ?? kernelAuthority.CreateCheckpoint().RunEpoch.Value;
 		var layerIndex = current is null ? 0 : current.LayerIndex + 1;
-		if (current is null)
-		{
-			// A new run never inherits the previous run's ending.
-			RunEndingTracker.Clear();
-		}
 
 		var run = WorldRunStateMapper.ToRunState(runId, parameters, layerIndex) with
 		{
@@ -49,6 +44,9 @@ internal sealed class WorldRunProjection(
 				return;
 			}
 
+			// Bind the ending tracker to the run before any batch can project a None row:
+			// the ending patch records the branch before the kernel row carries it.
+			RunEndingTracker.BeginRun(runId);
 			log.LogInformation("Committed kernel run start (run {RunId}, {StateBytes} RNG bytes).",
 				runId, parameters.RandomState.Length);
 			return;

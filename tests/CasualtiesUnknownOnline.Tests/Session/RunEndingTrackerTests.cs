@@ -19,10 +19,10 @@ public sealed class RunEndingTrackerCollection
 public class RunEndingTrackerTests
 {
 	[Fact]
-	public void SameRun_NoneAfterRecord_PreservesTheRecordedEnding()
+	public void RunStart_BindsTheRunIdBeforeTheFirstBatch()
 	{
 		RunEndingTracker.Clear();
-		RunEndingTracker.Apply(1UL, RunEnding.None);
+		RunEndingTracker.BeginRun(1UL);
 		RunEndingTracker.Record(RunEnding.Merc);
 
 		RunEndingTracker.Apply(1UL, RunEnding.None);
@@ -35,9 +35,10 @@ public class RunEndingTrackerTests
 	public void NewRun_None_ClearsThePreviousEnding()
 	{
 		RunEndingTracker.Clear();
-		RunEndingTracker.Apply(1UL, RunEnding.None);
+		RunEndingTracker.BeginRun(1UL);
 		RunEndingTracker.Record(RunEnding.Merc);
 
+		RunEndingTracker.BeginRun(2UL);
 		RunEndingTracker.Apply(2UL, RunEnding.None);
 
 		Assert.Equal(RunEnding.None, RunEndingTracker.Current);
@@ -48,11 +49,24 @@ public class RunEndingTrackerTests
 	public void NewRun_Ending_AppliesTheAuthoritativeBranch()
 	{
 		RunEndingTracker.Clear();
-		RunEndingTracker.Apply(1UL, RunEnding.None);
+		RunEndingTracker.BeginRun(1UL);
 
 		RunEndingTracker.Apply(2UL, RunEnding.SurfaceBreach);
 
 		Assert.Equal(RunEnding.SurfaceBreach, RunEndingTracker.Current);
 		Assert.True(RunEndingTracker.FromAuthority);
+	}
+
+	[Fact]
+	public void BeginRun_AfterAnEnding_ForgetsTheOldRun()
+	{
+		RunEndingTracker.Clear();
+		RunEndingTracker.Apply(1UL, RunEnding.None);
+		RunEndingTracker.Record(RunEnding.Merc);
+
+		RunEndingTracker.BeginRun(2UL);
+
+		Assert.Equal(RunEnding.None, RunEndingTracker.Current);
+		Assert.Equal(2UL, RunEndingTracker.RunId);
 	}
 }

@@ -44,11 +44,14 @@ public static class RunEndingTracker
 		FromAuthority = ending != RunEnding.None;
 	}
 
-	/// <summary>A new run started — forget the previous ending.</summary>
-	public static void Clear()
+	/// <summary>A new run started — forget the previous ending and bind this tracker to the new run.</summary>
+	public static void BeginRun(ulong runId)
 	{
 		Current = RunEnding.None;
 		FromAuthority = false;
-		RunId = 0;
+		RunId = runId;
 	}
+
+	/// <summary>No run exists — forget the ending and the run it belonged to.</summary>
+	public static void Clear() => BeginRun(0UL);
 }

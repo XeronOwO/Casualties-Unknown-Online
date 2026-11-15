@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: deploy and read the one-file save on a real two-client run.
+- [ ] Release-cycle deployment/acceptance: deploy and read the full 38-case report plus a save root without an empty world folder.
 - [ ] FORBIDDEN — never check this box

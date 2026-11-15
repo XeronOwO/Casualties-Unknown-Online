@@ -265,11 +265,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 	/// that is not the attempt it is open for, or when the half already reported at the
 	/// seam (which is why contributing unconditionally is safe).
 	/// </summary>
-	public void ResetSessionState() =>
+	public void ResetSessionState()
+	{
 		_audit?.LiveWriteAbandoned(
 			WorldRestoreHalf.WorldFacts,
 			_worldFacts.AppliedRestoreSequence,
 			"the session ended before the world-entry seam wrote the restored world facts");
+		AbandonEmptyWorld("the session ended");
+	}
 
 	/// <summary>
 	/// The cut writer this service drives. Internal because the save suites pin the
@@ -461,6 +464,38 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 	private WorldCutTarget Target => new(_worldId, _displayName);
 
 	/// <summary>
+	/// A run that never committed a cut owns a folder with only the repository metadata. Leaving
+	/// it behind turns the picker and the save root into a list of empty shells; the folder is
+	/// removed only after <see cref="WorldRepository.HasSnapshot"/> says no snapshot exists, so a
+	/// cut whose index pointer failed to write is never deleted.
+	/// </summary>
+	private void AbandonEmptyWorld(string reason)
+	{
+		if (_worldId.Length == 0 || _repository is null || _worldHasSnapshot)
+		{
+			return;
+		}
+
+		var worldId = _worldId;
+		if (_repository.HasSnapshot(worldId))
+		{
+			_worldHasSnapshot = true;
+			return;
+		}
+
+		_worldId = string.Empty;
+		_displayName = string.Empty;
+		if (_repository.DeleteWorld(worldId, out var refusal))
+		{
+			_log.LogInformation("Removed the empty world folder {WorldId}: {Reason}.", worldId, reason);
+		}
+		else
+		{
+			_log.LogWarning("The empty world folder {WorldId} could not be removed: {Reason}.", worldId, refusal);
+		}
+	}
+
+	/// <summary>
 	/// Every finished cut attempt. The FIRST committed cut of the world this service is
 	/// writing is what makes that world continuable, so it — not whatever world the
 	/// picker last selected — becomes the Continue target: the player leaves the run and
@@ -506,6 +541,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		var advanced = batch.Events.OfType<RunAdvancedEvent>().LastOrDefault();
 		if (advanced is null || advanced.Run.Ending != RunEnding.None || RunEndingTracker.Current != RunEnding.None)
 		{
+			if (advanced is not null && !_worldHasSnapshot)
+			{
+				AbandonEmptyWorld("the run ended before its first committed cut");
+			}
+
 			return;
 		}
 

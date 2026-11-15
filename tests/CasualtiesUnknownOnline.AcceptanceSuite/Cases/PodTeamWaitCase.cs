@@ -77,7 +77,13 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"the host's pod refusal does not name the missing member " + context.MemberId + " within 5 s: " + refusalText);
 
 		// Both living bodies at the pod: the same native sink must now take both clients down two layers.
+		// The gate reads the host's replicated entity table, not the guest's local transform, so wait
+		// until the host has actually received the new position before firing the sink.
 		await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
+		var podMembers = await WaitForPodMemberAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("host:pod-members", podMembers);
+		Require(HasMemberAtPod(podMembers),
+			"the host's entity table never placed the member at the pod: " + Raw(podMembers));
 		var hostReady = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberReady = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		context.Read("host:ready", hostReady);
@@ -123,6 +129,67 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"the member did not follow the pod's two layers: before=" + depthBefore + " " + Raw(descended.member));
 		Require(descended.hostDepth == descended.memberDepth,
 			"the two clients disagree on the layer after the pod descent: host=" + descended.hostDepth + " member=" + descended.memberDepth);
+	}
+
+	private static async Task<JsonElement?> WaitForPodMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? reading = null;
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			reading = await context.RecipeAsync("pod-members", cancellationToken).ConfigureAwait(false);
+			if (reading is { ValueKind: JsonValueKind.Object } element
+				&& element.TryGetProperty("localX", out var localX)
+				&& element.TryGetProperty("localY", out var localY)
+				&& element.TryGetProperty("members", out var members)
+				&& members.ValueKind == JsonValueKind.Array)
+			{
+				var lx = localX.GetDouble();
+				var ly = localY.GetDouble();
+				foreach (var member in members.EnumerateArray())
+				{
+					if (!member.TryGetProperty("x", out var x) || !member.TryGetProperty("y", out var y))
+					{
+						continue;
+					}
+
+					if (Math.Abs(x.GetDouble() - lx) < 1.5 && Math.Abs(y.GetDouble() - ly) < 5)
+					{
+						return reading;
+					}
+				}
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return reading;
+	}
+
+	private static bool HasMemberAtPod(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("localX", out var localX)
+			|| !element.TryGetProperty("localY", out var localY)
+			|| !element.TryGetProperty("members", out var members)
+			|| members.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		var lx = localX.GetDouble();
+		var ly = localY.GetDouble();
+		foreach (var member in members.EnumerateArray())
+		{
+			if (member.TryGetProperty("x", out var x)
+				&& member.TryGetProperty("y", out var y)
+				&& Math.Abs(x.GetDouble() - lx) < 1.5
+				&& Math.Abs(y.GetDouble() - ly) < 5)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static async Task<(int hostDepth, int memberDepth, JsonElement? host, JsonElement? member)> WaitForDepthAsync(

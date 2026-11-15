@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [A world's live save is loose JSON](in-progress/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest; archive writer/reader landed, real-game acceptance pending.
 - [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 358.8 s now; reuse the run rows.
 
 
@@ -72,6 +71,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
+- [A world's live save is loose JSON](in-progress/1.0-save-live-snapshot-single-file.md) — **High** — one compressed file at rest; live archive landed.
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.

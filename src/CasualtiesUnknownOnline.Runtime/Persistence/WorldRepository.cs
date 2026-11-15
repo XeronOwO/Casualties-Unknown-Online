@@ -477,7 +477,10 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 		{
 			WorldLease.Release(directory, _log);
 			Directory.Delete(directory, recursive: true);
-			_catalog.RefreshIndex();
+			if (!_catalog.RemoveWorldEntry(worldId))
+			{
+				_catalog.RefreshIndex();
+			}
 			_log.LogInformation("Deleted world {WorldId} and everything under {Directory}.", worldId, directory);
 			return true;
 		}

@@ -213,6 +213,31 @@ internal sealed class WorldCatalog(string root, ILogger log, Func<DateTime> utcN
 	/// cut on the frame thread. Returns false when no readable index exists; the next full
 	/// refresh rebuilds it from the folders.
 	/// </summary>
+	/// <summary>
+	/// Removes ONE picker row without scanning the world folders. The caller deletes the
+	/// folder because the index is a cache; a full refresh still repairs an unreadable index.
+	/// </summary>
+	internal bool RemoveWorldEntry(string worldId)
+	{
+		var index = ReadIndex();
+		if (index is null)
+		{
+			return false;
+		}
+
+		var worlds = index.Worlds
+			.Where(candidate => !string.Equals(candidate.WorldId, worldId, StringComparison.Ordinal))
+			.ToList();
+		return TryWriteIndex(new WorldIndex
+		{
+			SchemaVersion = WorldIndex.CurrentSchemaVersion,
+			Worlds = worlds,
+			LastOpenedWorldId = string.Equals(index.LastOpenedWorldId, worldId, StringComparison.Ordinal)
+				? string.Empty
+				: index.LastOpenedWorldId,
+		});
+	}
+
 	internal bool UpdateWorldEntry(WorldMetadata metadata)
 	{
 		var index = ReadIndex();

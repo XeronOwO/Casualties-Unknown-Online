@@ -219,6 +219,10 @@ internal sealed class CraftingSync(
 		var branch = DetermineBranch(it1, it2);
 		var gun = branch == CombineBranch.GunLoad ? it1.GetComponent<GunScript>() : null;
 		var ammo = branch == CombineBranch.AmmoLoad ? it1.GetComponent<AmmoScript>() : null;
+		// 1.0.2's Direct + Magazine + charType 1 branch decrements the dragged
+		// magazine's rounds instead of destroying it (GunScript.cs:88-103). Capture
+		// the pre-state so the report can tell that branch from the destroy ones.
+		var draggedAmmo = branch == CombineBranch.GunLoad ? it2.GetComponent<AmmoScript>() : null;
 		var op = _trace.NextOperationId();
 		_trace.Begin(op, 0, "CraftReport", "Combine");
 		return new CombineState(
@@ -226,6 +230,7 @@ internal sealed class CraftingSync(
 			gun != null ? Convert.ToInt32(gun.roundInChamber) : 0, // Unity object — ==
 			gun != null && gun.hasMag, gun != null ? gun.roundsInMag : 0,
 			ammo != null ? ammo.rounds : 0,
+			draggedAmmo != null ? draggedAmmo.rounds : 0,
 			it1.condition, it2.condition, OperationTrace.IdOf(it1), OperationTrace.IdOf(it2), op);
 	}
 
@@ -241,9 +246,22 @@ internal sealed class CraftingSync(
 		{
 			if (state.Branch == CombineBranch.WaterTransfer)
 			{
-				// The transfer UI opened — nothing committed here; the Finish
-				// reports the terminal state (cancel = no report anywhere).
-				_trace.End(state.Op, 0, "CraftReport", "Skipped", "WaterTransferUi");
+				// 1.0.2: holding expanddesc calls CombineLiquids directly inside
+				// CombineItems (Body.cs:1348-1351) instead of opening the transfer
+				// UI. The UI path still owns its terminal report in
+				// LiquidTransfer.Finish; the direct path has no Finish, so commit
+				// both containers' post-state here.
+				if (LiquidTransfer.instance != null) // Unity object — ==
+				{
+					_trace.End(state.Op, 0, "CraftReport", "Skipped", "WaterTransferUi");
+					return;
+				}
+
+				CommitReport(state.Op, CraftOperationKind.LiquidTransfer,
+					[
+						new CraftEntryMsg { Disposition = CraftEntryDisposition.Changed, Item = ItemStateCodec.CaptureDigest(state.Target) },
+						new CraftEntryMsg { Disposition = CraftEntryDisposition.Changed, Item = ItemStateCodec.CaptureDigest(state.Dragged) },
+					], [], "CombineLiquidsDirect");
 				return;
 			}
 
@@ -272,13 +290,30 @@ internal sealed class CraftingSync(
 			};
 			if (state.Branch is CombineBranch.GunLoad or CombineBranch.AmmoLoad)
 			{
-				// The dragged ammo/mag is destroyed (deferred — claim it).
-				_claimedDestroys.Add(state.DraggedId);
-				entries.Add(new CraftEntryMsg
+				var draggedAmmo = state.Dragged.GetComponent<AmmoScript>();
+				var survives = state.Branch == CombineBranch.GunLoad
+					&& draggedAmmo != null // Unity object — ==
+					&& GunLoadAmmoSurvives(state.DraggedAmmoRounds, draggedAmmo.rounds);
+				if (survives)
 				{
-					Disposition = CraftEntryDisposition.Destroyed,
-					Item = new CharacterItemMsg { InstanceId = state.DraggedId, ItemId = state.Dragged.id },
-				});
+					// 1.0.2's 12-gauge branch only spends a round; the magazine item
+					// stays in the inventory with the lower count.
+					entries.Add(new CraftEntryMsg
+					{
+						Disposition = CraftEntryDisposition.Changed,
+						Item = ItemStateCodec.CaptureDigest(state.Dragged),
+					});
+				}
+				else
+				{
+					// The dragged ammo/mag is destroyed (deferred — claim it).
+					_claimedDestroys.Add(state.DraggedId);
+					entries.Add(new CraftEntryMsg
+					{
+						Disposition = CraftEntryDisposition.Destroyed,
+						Item = new CharacterItemMsg { InstanceId = state.DraggedId, ItemId = state.Dragged.id },
+					});
+				}
 			}
 			else
 			{
@@ -301,6 +336,9 @@ internal sealed class CraftingSync(
 			state.Scope.Dispose();
 		}
 	}
+
+	/// <summary>1.0.2's Direct-magazine branch spends exactly one round and leaves the magazine alive; every other gun-load branch destroys it.</summary>
+	internal static bool GunLoadAmmoSurvives(int before, int after) => before > 0 && after == before - 1;
 
 	private bool GunStateChanged(CombineState state)
 	{
@@ -443,6 +481,7 @@ internal sealed class CraftingSync(
 	private sealed class CombineState(
 		IDisposable scope, Item target, Item dragged, CombineBranch branch,
 		int gunRoundInChamber, bool gunHasMag, int gunRoundsInMag, int ammoRounds,
+		int draggedAmmoRounds,
 		float targetCondition, float draggedCondition, ulong targetId, ulong draggedId, long op)
 	{
 		internal IDisposable Scope { get; } = scope;
@@ -460,6 +499,8 @@ internal sealed class CraftingSync(
 		internal int GunRoundsInMag { get; } = gunRoundsInMag;
 
 		internal int AmmoRounds { get; } = ammoRounds;
+
+		internal int DraggedAmmoRounds { get; } = draggedAmmoRounds;
 
 		internal float TargetCondition { get; } = targetCondition;
 

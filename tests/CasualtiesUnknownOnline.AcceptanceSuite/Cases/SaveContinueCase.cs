@@ -22,6 +22,39 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
 		}
 
+		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);
+		var hostProvided = await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
+		var hostSlot = StringValue(hostProvided, "slot");
+		Require(hostSlot.Length > 0, "the host could not take a bandage: " + Raw(hostProvided));
+		var hostCustomized = await context.RecipeAsync("item-customize-native", cancellationToken, ("slot", hostSlot), ("label", "HostColor"), ("swatch", "3")).ConfigureAwait(false);
+		Require(Boolean(hostCustomized, "ok"), "the host could not colour its bandage: " + Raw(hostCustomized));
+
+		var memberProvided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
+		if (!Boolean(memberProvided, "ok"))
+		{
+			memberProvided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "find")).ConfigureAwait(false);
+		}
+
+		var memberSlot = StringValue(memberProvided, "slot");
+		Require(memberSlot.Length > 0, "the member could not take a bandage: " + Raw(memberProvided));
+		var memberCustomized = await context.MemberRecipeAsync("item-customize-native", cancellationToken, ("slot", memberSlot), ("label", "MemberColor"), ("swatch", "5")).ConfigureAwait(false);
+		Require(Boolean(memberCustomized, "ok"), "the member could not colour its bandage: " + Raw(memberCustomized));
+
+		var hostSeesMemberBefore = await WaitForCloneAsync(
+			() => context.RecipeAsync("clone-customization", cancellationToken),
+			"MemberColor",
+			5,
+			cancellationToken).ConfigureAwait(false);
+		Require(HasLabeledItem(hostSeesMemberBefore, "MemberColor", 5), "the host's displayed copy does not carry the member's colour: " + Raw(hostSeesMemberBefore));
+		var memberSeesHostBefore = await WaitForCloneAsync(
+			() => context.MemberRecipeAsync("clone-customization", cancellationToken),
+			"HostColor",
+			3,
+			cancellationToken).ConfigureAwait(false);
+		Require(HasLabeledItem(memberSeesHostBefore, "HostColor", 3), "the member's displayed copy does not carry the host's colour: " + Raw(memberSeesHostBefore));
+		context.Read("host sees member colour", hostSeesMemberBefore);
+		context.Read("member sees host colour", memberSeesHostBefore);
+
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
 
@@ -65,7 +98,90 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			context.UseMember(members[0]);
 			context.Note("member id after continue: " + members[0]);
 		}
+
+		var hostSeesMemberAfter = await WaitForCloneAsync(
+			() => context.RecipeAsync("clone-customization", cancellationToken),
+			"MemberColor",
+			5,
+			cancellationToken).ConfigureAwait(false);
+		Require(HasLabeledItem(hostSeesMemberAfter, "MemberColor", 5), "the member's colour did not survive the save/continue: " + Raw(hostSeesMemberAfter));
+		var memberSeesHostAfter = await WaitForCloneAsync(
+			() => context.MemberRecipeAsync("clone-customization", cancellationToken),
+			"HostColor",
+			3,
+			cancellationToken).ConfigureAwait(false);
+		Require(HasLabeledItem(memberSeesHostAfter, "HostColor", 3), "the host's colour did not survive the save/continue: " + Raw(memberSeesHostAfter));
+		context.Read("host sees member colour after continue", hostSeesMemberAfter);
+		context.Read("member sees host colour after continue", memberSeesHostAfter);
 	}
+
+	private static async Task<JsonElement?> WaitForCloneAsync(Func<Task<JsonElement?>> read, string label, int swatch, CancellationToken cancellationToken)
+	{
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+		while (DateTime.UtcNow < deadline)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var reading = await read().ConfigureAwait(false);
+			if (HasLabeledItem(reading, label, swatch))
+			{
+				return reading;
+			}
+
+			await Task.Yield();
+		}
+
+		return await read().ConfigureAwait(false);
+	}
+
+	private static bool HasLabeledItem(JsonElement? reading, string label, int swatch)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("items", out var items)
+			|| items.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		foreach (var item in items.EnumerateArray())
+		{
+			if (item.ValueKind != JsonValueKind.Object)
+			{
+				continue;
+			}
+
+			var itemLabel = item.TryGetProperty("label", out var labelValue) && labelValue.ValueKind == JsonValueKind.String ? labelValue.GetString() : null;
+			var itemSwatch = item.TryGetProperty("swatch", out var swatchValue) && swatchValue.ValueKind == JsonValueKind.Number ? swatchValue.GetInt32() : -1;
+			if (string.Equals(itemLabel, label, StringComparison.Ordinal) && itemSwatch == swatch)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
+
+	private static string StringValue(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty(property, out var value))
+		{
+			return string.Empty;
+		}
+
+		return value.ValueKind switch
+		{
+			JsonValueKind.String => value.GetString() ?? string.Empty,
+			JsonValueKind.Number => value.GetRawText(),
+			_ => string.Empty,
+		};
+	}
+
+	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
 	private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 

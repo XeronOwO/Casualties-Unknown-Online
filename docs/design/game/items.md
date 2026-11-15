@@ -22,6 +22,9 @@ matter.
   (`:851`), which the tooltip marks with a sprite (`PlayerCamera.cs:1462-1464`).
 - The customizer is opened by `PlayerCamera.OpenItemCustomizer(item)` (`PlayerCamera.cs:90`); the placeholder shows the
   definition's name only when the item is "recognizable" (`item.Stats.rec.recognizable`), otherwise "Something...".
+- Closing the customizer is the edit's completion event. Its native close (`PlayerCamera.CloseItemCustomizer`,
+  `PlayerCamera.cs:101-108`) republishes the owner's character snapshot, so the label, colour and favourite bit are in the
+  record a save or a menu-return cut writes; the 1 Hz report alone can be overtaken by that cut.
 
 ## Liquids
 

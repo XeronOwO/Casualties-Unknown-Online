@@ -49,6 +49,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# A build/test invocation must not leave MSBuild workers or the shared compiler server behind:
+# the suite is run repeatedly, and reused nodes otherwise accumulate for minutes after the parent exits.
+$env:MSBUILDDISABLENODEREUSE = '1'
+$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
+
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $project = Join-Path $repoRoot "tests\CasualtiesUnknownOnline.AcceptanceSuite"
 $launcher = Join-Path $PSScriptRoot "launch-clients.ps1"
@@ -58,7 +63,7 @@ $reportPath = Join-Path $outPath "report"
 New-Item -ItemType Directory -Force -Path $outPath | Out-Null
 
 $buildWatch = [System.Diagnostics.Stopwatch]::StartNew()
-dotnet build $project --nologo
+dotnet build $project --nologo -nodeReuse:false -p:UseSharedCompilation=false
 if ($LASTEXITCODE -ne 0)
 {
 	throw "the acceptance suite did not build"

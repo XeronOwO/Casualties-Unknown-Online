@@ -95,7 +95,7 @@ if ($locked) {
 }
 
 Write-Host "Building solution..."
-dotnet build (Join-Path $RepoRoot "CasualtiesUnknownOnline.slnx") --verbosity quiet
+dotnet build (Join-Path $RepoRoot "CasualtiesUnknownOnline.slnx") --verbosity quiet -nodeReuse:false -p:UseSharedCompilation=false
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Build failed."
     exit $LASTEXITCODE

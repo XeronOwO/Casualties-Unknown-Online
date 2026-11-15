@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;

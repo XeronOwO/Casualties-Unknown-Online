@@ -14,16 +14,24 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 {
 	public override string Name => "last-layer-gate";
 
-	public override CaseCost Cost => CaseCost.NewWorld;
+	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
-		context.Read("preset", preset);
-		Require(Boolean(preset, "ok") == true, "the host's run preset could not be selected: " + Raw(preset));
+		// The full order reaches this case on the unchipped world the switch/pod cases already
+		// established; restarting there would pay another 60-90 s scene load for the same run.
+		// A focused run has the default world, so only then start the preset's fresh run.
+		var switches = await context.RecipeAsync("run-switch-state", cancellationToken).ConfigureAwait(false);
+		context.Read("switch-before", switches);
+		if (Boolean(switches, "unchipped") != true)
+		{
+			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
+			context.Read("preset", preset);
+			Require(Boolean(preset, "ok") == true, "the host's run preset could not be selected: " + Raw(preset));
+			var restart = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
+			context.Note(restart);
+		}
 
-		var restart = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
-		context.Note(restart);
 		await UseCurrentMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
@@ -62,33 +70,27 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 			context.Read("host-before-attack", hostBefore);
 			context.Read("member-before-attack", memberBefore);
 
-			var pressHost = await context.RecipeAsync(
-				"virtual-input",
-				cancellationToken,
-				("mode", "press-key"),
-				("x", "0"),
-				("y", "0"),
-				("button", "0")).ConfigureAwait(false);
-			var pressMember = await context.MemberRecipeAsync(
-				"virtual-input",
-				cancellationToken,
-				("mode", "press-key"),
-				("x", "0"),
-				("y", "0"),
-				("button", "0")).ConfigureAwait(false);
-			context.Read("press-host", pressHost);
-			context.Read("press-member", pressMember);
+			// The in-process input patch cannot observe HandleAttacks when Mono inlines
+			// it into HandleInput (144 HandleInput entries, 0 HandleAttacks entries, all
+			// early-return conditions false). The probe stages the same native key and
+			// calls the game's own method once, so the gate and body path are measured
+			// instead of the inlined call site.
+			var probeHost = await context.RecipeAsync("attack-probe", cancellationToken).ConfigureAwait(false);
+			var probeMember = await context.MemberRecipeAsync("attack-probe", cancellationToken).ConfigureAwait(false);
+			context.Read("host-attack-probe", probeHost);
+			context.Read("member-attack-probe", probeMember);
 
-			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
 			var hostAfter = await context.RecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 			var memberAfter = await context.MemberRecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 			context.Read("host-after-attack", hostAfter);
 			context.Read("member-after-attack", memberAfter);
 
+			Require(Boolean(probeHost, "ok") == true, "the host's native attack probe failed: " + Raw(probeHost));
+			Require(Boolean(probeMember, "ok") == true, "the member's native attack probe failed: " + Raw(probeMember));
 			Require(Boolean(hostAfter, "blockItemUsage") == false, "the host's attack gate closed before the attack: " + Raw(hostAfter));
 			Require(Boolean(memberAfter, "blockItemUsage") == false, "the member's attack gate closed before the attack: " + Raw(memberAfter));
-			Require(Attacked(hostBefore, hostAfter), "the host's staged attack did not reach the native attack state: before " + Raw(hostBefore) + " after " + Raw(hostAfter));
-			Require(Attacked(memberBefore, memberAfter), "the member's staged attack did not reach the native attack state: before " + Raw(memberBefore) + " after " + Raw(memberAfter));
+			Require(Double(probeHost, "after") > Double(probeHost, "before") + 0.01 || Math.Abs(Double(probeHost, "rotAfter")) > 0.1, "the host's native attack did not move: " + Raw(probeHost));
+			Require(Double(probeMember, "after") > Double(probeMember, "before") + 0.01 || Math.Abs(Double(probeMember, "rotAfter")) > 0.1, "the member's native attack did not move: " + Raw(probeMember));
 		}
 		finally
 		{
@@ -174,7 +176,8 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 				: await context.RecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 			if (Boolean(last, "ok") == true
 				&& Int(last, "layer") == 11
-				&& Boolean(last, "blockItemUsage") == false)
+				&& Boolean(last, "blockItemUsage") == false
+				&& Boolean(last, "forceNoMovement") == false)
 			{
 				return last;
 			}
@@ -199,10 +202,6 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 	}
-
-	private static bool Attacked(JsonElement? before, JsonElement? after) =>
-		Double(after, "attackCooldown") > Double(before, "attackCooldown") + 0.01
-		|| Math.Abs(Double(after, "attackRot") - Double(before, "attackRot")) > 0.1;
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 

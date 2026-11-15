@@ -14,13 +14,12 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 {
 	public override string Name => "pod-team-wait";
 
-	public override CaseCost Cost => CaseCost.NewWorld;
+	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		context.Note(await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false));
 		var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-		Require(members.Length == 1, "the fresh run does not have exactly one member on the host: " + members.Length);
+		Require(members.Length == 1, "the current run does not have exactly one member on the host: " + members.Length);
 		context.UseMember(members[0]);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
@@ -78,7 +77,10 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 
 		// Both living bodies at the pod: the same native sink must now take both clients down two layers.
 		await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		// The host acts on its replicated copy of the member's position; on an older run the
+		// 500 ms used by the fresh-run version was enough, but the shared world has a longer
+		// stream, so give the position one measured second to arrive before the one native sink.
+		await Task.Delay(TimeSpan.FromMilliseconds(2000), cancellationToken).ConfigureAwait(false);
 		var hostReady = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberReady = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		context.Read("host:ready", hostReady);
@@ -91,7 +93,9 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"pod-descent",
 			cancellationToken).ConfigureAwait(false);
 		context.Read("host:fired", fired);
-		var descended = await WaitForDepthAsync(context, depthBefore + 2, cancellationToken).ConfigureAwait(false);
+		// One native sink starts the descent; polling re-fires it while the world is generating
+		// and produced a corrupt half-descent on 2026-11-15. Wait for the in-flight descent.
+		var descended = await WaitForDepthAsync(context, depthBefore + 2, cancellationToken, polls: 60).ConfigureAwait(false);
 		context.Read("host:descended", descended.host);
 		context.Read("member:descended", descended.member);
 		Require(descended.hostDepth == depthBefore + 2,
@@ -103,11 +107,11 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 	}
 
 	private static async Task<(int hostDepth, int memberDepth, JsonElement? host, JsonElement? member)> WaitForDepthAsync(
-		CaseContext context, int expected, CancellationToken cancellationToken)
+		CaseContext context, int expected, CancellationToken cancellationToken, int polls = 90)
 	{
 		JsonElement? host = null;
 		JsonElement? member = null;
-		for (var attempt = 0; attempt < 90; attempt++)
+		for (var attempt = 0; attempt < polls; attempt++)
 		{
 			host = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 			member = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);

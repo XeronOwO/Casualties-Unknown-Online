@@ -46,10 +46,10 @@ internal sealed class LateLayerSwitchesCase : AcceptanceCase
 		}
 		finally
 		{
-			// Clear the preset the next StartRun would apply. Do NOT restart here: every case after
-			// this one is a new-world case (save-continue onwards), so the unchipped world is about
-			// to be left anyway; a second restart only bought another 30 s scene load. Clearing the
-			// static preset is what stops the next run from inheriting unchipped.
+			// Clear the preset the next StartRun would apply. Do NOT restart here: the pod and
+			// last-layer cases reuse this unchipped world, and save-continue leaves it afterwards;
+			// a second restart only bought another 30 s scene load. Clearing the static preset is
+			// what stops the next run from inheriting unchipped.
 			try
 			{
 				await context.RecipeAsync("run-preset", cancellationToken, ("name", "")).ConfigureAwait(false);

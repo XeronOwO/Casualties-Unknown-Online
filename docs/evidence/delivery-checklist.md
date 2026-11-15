@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: this is a documentation-only close against the already deployed `0.1.0+66b903120`; no redeploy.
+- [ ] Release-cycle deployment/acceptance: this is a source change; deploy and the shared/full acceptance batch are the remaining proof.
 - [ ] FORBIDDEN — never check this box

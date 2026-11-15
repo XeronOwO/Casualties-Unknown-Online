@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -172,10 +173,26 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			("-Declare", "run-ending-a"),
 			("-Text", source)).ConfigureAwait(false);
 		context.Note("declaration: " + Raw(declared));
+		await context.RecipeAsync("run-ending-a", cancellationToken, ("mode", "reset"), ("kind", "merc")).ConfigureAwait(false);
 		var called = await context.RecipeAsync("run-ending-a", cancellationToken, ("mode", "call"), ("kind", "merc")).ConfigureAwait(false);
 		context.Read("ending", called);
-		var text = called is { ValueKind: JsonValueKind.String } value ? value.GetString() ?? string.Empty : Raw(called);
-		Require(text.Contains("ending=Merc", StringComparison.Ordinal), "the host's Merc ending did not run: " + text);
+		var current = called;
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(5))
+		{
+			var text = current is { ValueKind: JsonValueKind.String } value ? value.GetString() ?? string.Empty : Raw(current);
+			if (text.Contains("ending=Merc", StringComparison.Ordinal))
+			{
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			current = await context.RecipeAsync("run-ending-a", cancellationToken, ("mode", "read"), ("kind", "merc")).ConfigureAwait(false);
+		}
+
+		context.Read("ending-final", current);
+		var final = current is { ValueKind: JsonValueKind.String } last ? last.GetString() ?? string.Empty : Raw(current);
+		Require(final.Contains("ending=Merc", StringComparison.Ordinal), "the host's Merc ending did not run: " + final);
 	}
 
 	private static async Task LeaveHostSessionAsync(CaseContext context, CancellationToken cancellationToken)

@@ -1086,7 +1086,6 @@ internal static class CaseRegistry
 		new ItemCustomizationCase(),
 		new GiveItemCase(),
 		new OverlaySoundCase(),
-		new WorldsPageCase(),
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run
 		new WorldClockCase(), // the run's clock is the host's: a requested speed reaches the member
@@ -1161,7 +1160,8 @@ internal static class CaseRegistry
 		// the cutscene clears each client's local blockItemUsage, and each client's own
 		// staged attack moves its own native attack state.
 		new LastLayerGateCase(),
-		new SaveContinueCase(),
+		new SaveContinueCase(), // keeps a live archive entry; the worlds page reads that run's save points
+		new WorldsPageCase(),
 		new RemoteRemovalCase(), // the member leaves: the host's displayed body goes and its own log says so
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
 		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)

@@ -85,6 +85,9 @@ public interface IWorldControl : IWorldSocialControl
 	/// </summary>
 	void PublishRunEnded(long runId);
 
+	/// <summary>Drop the kernel run without telling anyone — a new run is starting from the menu.</summary>
+	void ResetRunState();
+
 	/// <summary>Guest: the host's world ended — raised so the member's own leave path can run against a world that still exists.</summary>
 	void FireRunEndedReceived(RunEndedMsg msg);
 

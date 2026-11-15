@@ -13,13 +13,10 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite;
 /// </summary>
 internal sealed class SessionDriver(Options options)
 {
-	private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(60);
-	// A member generating its own copy of a late-layer world took 37 s on the boxed client
-	// (measured 2026-11-15, 1024x1024 layer, 242 item rows): the native scene load and world
-	// generation dominate, and the host's 30 s start gate deliberately lets the host play on
-	// while that finishes. The suite waits for the member's own in-world reading, so its budget
-	// must cover the measured load with margin; a real hang still fails at 60 s.
-	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(60);
+	private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(30);
+	// Normal member generation is 21-24 s on this box. The budget is one measured normal plus
+	// a small margin: a blocked load fails at 30 s instead of hiding for a minute.
+	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(30);
 
 	private readonly Options _options = options;
 
@@ -87,12 +84,13 @@ internal sealed class SessionDriver(Options options)
 			var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 			if (IsTrue(state, "inWorld"))
 			{
-				await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+				await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
 				await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 				// The driver blocks inside the client until the world is gone, so this is one call instead of
 				// a 750 ms poll for twenty seconds (the user's rule: a wait is a measurement, and a fixed
-				// sleep is a dead wait, 2026-11-14).
-				await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
+				// sleep is a dead wait, 2026-11-14). Leave normally takes under two seconds; ten is the
+				// point where a stuck scene unload must be visible, not hidden.
+				await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "10000")).ConfigureAwait(false);
 			}
 
 			var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
@@ -250,7 +248,7 @@ internal sealed class SessionDriver(Options options)
 		await WaitUntilAsync(
 			_options.MemberUrl,
 			probe => !IsTrue(probe, "active") && !string.Equals(StringValue(probe, "role"), "Guest", StringComparison.Ordinal),
-			TimeSpan.FromSeconds(10),
+			TimeSpan.FromSeconds(5),
 			cancellationToken).ConfigureAwait(false);
 	}
 	/// <summary>

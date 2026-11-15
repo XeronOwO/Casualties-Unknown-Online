@@ -586,9 +586,9 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 	public void SendBlockDamaged(int x, int y, float damage, bool metalBonus, float contribution, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.SendBlockDamaged(x, y, damage, metalBonus, contribution, drops, buildingDrops);
 
 	public void BroadcastBlockDamaged(ulong excludeSteamId, int x, int y, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _blockReports.BroadcastBlockDamaged(excludeSteamId, x, y, damage, metalBonus, drops, buildingDrops);
-
 	// The run dies with the world; the next entry starts a new run, not a layer advance.
-	public void PublishRunEnded(long runId) { if (_kernelAuthority.QueryRun() is not null) { _messages.PublishRunEnded(runId != 0 ? runId : (long)_kernelAuthority.CurrentRunEpoch.Value); } _kernelAuthority.ResetSessionState(); WorldParams = null; }
+	public void ResetRunState() { _kernelAuthority.ResetSessionState(); WorldParams = null; }
+	public void PublishRunEnded(long runId) { if (_kernelAuthority.QueryRun() is not null) { _messages.PublishRunEnded(runId != 0 ? runId : (long)_kernelAuthority.CurrentRunEpoch.Value); } ResetRunState(); }
 
 	public void FireRunEndedReceived(RunEndedMsg msg) => _messages.FireRunEndedReceived(msg);
 

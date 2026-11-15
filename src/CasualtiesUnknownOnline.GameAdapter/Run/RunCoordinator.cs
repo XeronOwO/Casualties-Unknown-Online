@@ -241,7 +241,7 @@ internal sealed class RunCoordinator(
 		// inside the previous run, which is the session's own leave path.
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
-			_world.PublishRunEnded(0L);
+			_world.ResetRunState();
 		}
 
 		// Host AND solo: this run gets its own world folder before any content

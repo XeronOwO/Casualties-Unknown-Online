@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 
@@ -96,6 +97,7 @@ internal sealed class RunMenuReturnCoordinator(ILogger log)
 		}
 
 		_log.LogInformation("Leaving the world to the main menu.");
+		var clock = Stopwatch.StartNew();
 		_replayingLeave = true;
 		try
 		{
@@ -106,6 +108,8 @@ internal sealed class RunMenuReturnCoordinator(ILogger log)
 			_replayingLeave = false;
 		}
 
+		clock.Stop();
+		_log.LogInformation("Reached the main menu after {Elapsed} ms.", clock.ElapsedMilliseconds);
 		return true;
 	}
 }

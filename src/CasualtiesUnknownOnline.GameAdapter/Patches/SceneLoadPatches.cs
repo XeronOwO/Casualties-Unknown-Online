@@ -1,4 +1,5 @@
 using HarmonyLib;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -17,5 +18,21 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(SceneManager), nameof(SceneManager.LoadScene), [typeof(string)])]
 internal static class SceneLoadPatches
 {
-	private static void Prefix() => PatchBridge.Impl?.OnSceneLoadBegin();
+	private static void Prefix()
+	{
+		// A scene load destroys the old world. MineScript.OnDestroy deliberately
+		// explodes a damaged, never-exploded mine as a chain reaction; during a
+		// teardown that turns every damaged mine into a synchronous explosion
+		// (CreateExplosion, item spawns, block damage) while the scene is already
+		// being unloaded. That is the host-side teardown stall measured on
+		// 2026-11-15: the timestamped log stopped at "Leaving the world" and did
+		// not resume. The world is being discarded; mark the mines so their native
+		// OnDestroy cannot chain, then let the load run.
+		foreach (var mine in Object.FindObjectsOfType<MineScript>())
+		{
+			AccessTools.FieldRefAccess<MineScript, bool>("exploded")(mine) = true;
+		}
+
+		PatchBridge.Impl?.OnSceneLoadBegin();
+	}
 }

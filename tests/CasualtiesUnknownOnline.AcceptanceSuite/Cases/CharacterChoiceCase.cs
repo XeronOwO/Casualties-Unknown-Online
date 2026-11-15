@@ -49,12 +49,10 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			context.Read("host:pick", hostPick);
 			Require(Int(hostPick, "selected") == hostChoice, "the host's picker did not take index " + hostChoice + ": " + Raw(hostPick));
 
-			context.Note(await context.Session.StartHostRunAsync(cancellationToken).ConfigureAwait(false));
-			await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
-			var hostBody = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
-			context.Read("host:body", hostBody);
-			Require(Int(hostBody, "charType") == hostChoice, "the host spawned character " + Int(hostBody, "charType") + ", not " + hostChoice + ": " + Raw(hostBody));
-
+			// The member may still be in the previous case's world; its picker only exists at the
+			// menu, and a pick after the body has spawned is too late. Clear that session, pick
+			// while the host is still at the menu, then start and join.
+			await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
 			var memberPick = await context.Session.ActionAsync(
 				context.Session.MemberUrl,
 				"pick-character",
@@ -62,6 +60,12 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 				("-Argument", memberChoice.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("member:pick", memberPick);
 			Require(Int(memberPick, "selected") == memberChoice, "the member's picker did not take index " + memberChoice + ": " + Raw(memberPick));
+
+			context.Note(await context.Session.StartHostRunAsync(cancellationToken).ConfigureAwait(false));
+			await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
+			var hostBody = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
+			context.Read("host:body", hostBody);
+			Require(Int(hostBody, "charType") == hostChoice, "the host spawned character " + Int(hostBody, "charType") + ", not " + hostChoice + ": " + Raw(hostBody));
 
 			context.Note(await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false));
 			await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
@@ -191,12 +195,7 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		try
 		{
 			await context.Session.ActionAsync(context.Session.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-			await context.Session.ActionAsync(
-				context.Session.HostUrl,
-				"wait-state",
-				cancellationToken,
-				("-Control", "notInWorld"),
-				("-Text", "20000")).ConfigureAwait(false);
+			await context.Session.WaitWorldExitAsync(context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
 		}
 		catch (Exception exception)
 		{

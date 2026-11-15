@@ -86,11 +86,10 @@ internal sealed class SessionDriver(Options options)
 			{
 				await WaitUntilAsync(_options.HostUrl, candidate => IsTrue(candidate, "inWorld") && !IsTrue(candidate, "gateWaiting"), TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
 				await ActionAsync(_options.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-				// The driver blocks inside the client until the world is gone, so this is one call instead of
-				// a 750 ms poll for twenty seconds (the user's rule: a wait is a measurement, and a fixed
-				// sleep is a dead wait, 2026-11-14). Leave normally takes under two seconds; ten is the
-				// point where a stuck scene unload must be visible, not hidden.
-				await ActionAsync(_options.HostUrl, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "10000")).ConfigureAwait(false);
+				// Never block the client's own thread on a state wait: the in-process wait-state loop sleeps
+				// on the game thread and turns a slow scene transition into a "not responding" window.
+				// Poll from the suite side instead; each state read is a short eval.
+				await WaitWorldExitAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 			}
 
 			var started = await EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
@@ -182,27 +181,16 @@ internal sealed class SessionDriver(Options options)
 		await ActionAsync(_options.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
 		startDispatch.Stop();
 
-		// The wait is a measurement made in the client that owns the fact: the driver blocks on its
-		// own presence and answers how long it took, instead of this caller sleeping and re-asking.
-		var reached = await ActionAsync(
-			_options.HostUrl,
-			"wait-state",
-			cancellationToken,
-			("-Control", "inWorld"),
-			("-Text", "20000")).ConfigureAwait(false);
-		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-		if (IsTrue(state, "inWorld") && string.Equals(StringValue(reached, "reached"), "true", StringComparison.Ordinal))
-		{
-			return "the suite started a fresh run (start-run dispatch " + startDispatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms; the host answered in-world after " + StringValue(reached, "waitedMs") + " ms)";
-		}
+		// Poll from the suite side. The in-client wait-state loop sleeps on the game thread, which is
+		// what made a normal 20 s scene transition look like a frozen host (2026-11-15).
 		var startDeadline = Stopwatch.StartNew();
 		while (startDeadline.Elapsed < StartBudget)
 		{
-			await Task.Delay(TimeSpan.FromMilliseconds(750), cancellationToken).ConfigureAwait(false);
-			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+			var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 			if (IsTrue(state, "inWorld"))
 			{
-				return "the suite started a fresh run (start-run dispatch " + startDispatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms)";
+				return "the suite started a fresh run (start-run dispatch " + startDispatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms; host in-world after " + startDeadline.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s)";
 			}
 		}
 
@@ -219,11 +207,25 @@ internal sealed class SessionDriver(Options options)
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
 	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken) => MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true));
 
-	// The leave waits used to poll the caller side; the client now answers when its own world is gone.
-	private async Task<bool> WaitWorldExitAsync(string url, CancellationToken cancellationToken)
+	/// <summary>
+	/// Poll the client's state from the suite side. The in-process wait-state command sleeps on the
+	/// game thread; using it here froze the host for the whole scene transition (2026-11-15).
+	/// </summary>
+	public async Task<bool> WaitWorldExitAsync(string url, CancellationToken cancellationToken)
 	{
-		var answer = await ActionAsync(url, "wait-state", cancellationToken, ("-Control", "notInWorld"), ("-Text", "20000")).ConfigureAwait(false);
-		return string.Equals(StringValue(answer, "reached"), "true", StringComparison.Ordinal);
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(5))
+		{
+			var state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+			if (!IsTrue(state, "inWorld"))
+			{
+				return true;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
+		}
+
+		return false;
 	}
 
 	/// <summary>
@@ -232,7 +234,7 @@ internal sealed class SessionDriver(Options options)
 	/// host's fresh run does not know the member. The suite starts a fresh pair, so this is its own
 	/// cleanup, not a restart.
 	/// </summary>
-	private async Task ClearMemberSessionAsync(CancellationToken cancellationToken)
+	public async Task ClearMemberSessionAsync(CancellationToken cancellationToken)
 	{
 		var state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		if (!IsTrue(state, "active") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))

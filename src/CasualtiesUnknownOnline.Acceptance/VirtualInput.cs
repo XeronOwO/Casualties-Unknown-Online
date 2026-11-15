@@ -285,6 +285,9 @@ internal static class VirtualInput
 	/// <summary>How many times <c>PlayerCamera.HandleInput</c> was entered.</summary>
 	internal static int HandleInputEntries => InputQueryPatches.HandleInputEntries;
 
+	/// <summary>How many times <c>PlayerCamera.HandleAttacks</c> was entered.</summary>
+	internal static int HandleAttacksEntries => InputQueryPatches.HandleAttacksEntries;
+
 	/// <summary>The number of call sites the last replacement rewrote (0 means the install looked at the wrong method).</summary>
 	internal static int HandleInputReplacements => InputQueryPatches.HandleInputReplacements;
 

@@ -155,6 +155,7 @@ internal static class InputQueryPatches
 			{
 				ResetReplacementCount();
 				harmony.Patch(handleAttacks, transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(TranspileKeyReads)));
+				harmony.Patch(handleAttacks, prefix: new HarmonyMethod(typeof(InputQueryPatches), nameof(PrefixHandleAttacks)));
 				report.Add("PlayerCamera.HandleAttacks: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
 			}
 			catch (Exception exception)
@@ -221,6 +222,9 @@ internal static class InputQueryPatches
 	/// is never reached".
 	/// </summary>
 	internal static int HandleInputEntries { get; private set; }
+
+	/// <summary>How many times <c>PlayerCamera.HandleAttacks</c> was entered: separates "never called" from "called and the branch did nothing".</summary>
+	internal static int HandleAttacksEntries { get; private set; }
 
 	/// <summary>The postfix Harmony calls for the pointer: replaces the getter's answer while a batch has staged one.</summary>
 	private static void PostfixPointer(ref Vector3 __result)
@@ -303,6 +307,8 @@ internal static class InputQueryPatches
 	}
 
 	private static void PrefixHandleInput() => HandleInputEntries++;
+
+	private static void PrefixHandleAttacks() => HandleAttacksEntries++;
 
 	/// <summary>The first method declared on <paramref name="type"/> with this name, whatever its signature (the fallback when the exact one is not found).</summary>
 	private static MethodInfo? FirstDeclaredMethod(Type type, string name)

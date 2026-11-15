@@ -235,6 +235,15 @@ internal sealed class RunCoordinator(
 	/// </summary>
 	internal void OnWorldJoinRequested(bool isTutorial)
 	{
+		// A new run must start from no kernel run. Left over, the previous run's
+		// row makes the first baseline look like a layer advance, which arms a
+		// layer-end cut before the new world exists. This also ends any member still
+		// inside the previous run, which is the session's own leave path.
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_world.PublishRunEnded(0L);
+		}
+
 		// Host AND solo: this run gets its own world folder before any content
 		// exists (the save arm owns that call — see RunSaveCoordinator) — except for
 		// the tutorial, which gets no archive at all.

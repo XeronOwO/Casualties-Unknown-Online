@@ -22,23 +22,19 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);
 		}
 
-		await context.ClearBodyAsync(cancellationToken).ConfigureAwait(false);
-		var hostProvided = await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
+		// Use the run's own starting items: a created item is not in the character record the
+		// save cut writes, so it would test item creation rather than colour persistence.
+		var hostProvided = await ExistingItemAsync(context, false, cancellationToken).ConfigureAwait(false);
 		var hostSlot = StringValue(hostProvided, "slot");
-		Require(hostSlot.Length > 0, "the host could not take a bandage: " + Raw(hostProvided));
+		Require(hostSlot.Length > 0, "the host could not find a starting item: " + Raw(hostProvided));
 		var hostCustomized = await context.RecipeAsync("item-customize-native", cancellationToken, ("slot", hostSlot), ("label", "HostColor"), ("swatch", "3")).ConfigureAwait(false);
-		Require(Boolean(hostCustomized, "ok"), "the host could not colour its bandage: " + Raw(hostCustomized));
+		Require(Boolean(hostCustomized, "ok"), "the host could not colour its starting item: " + Raw(hostCustomized));
 
-		var memberProvided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
-		if (!Boolean(memberProvided, "ok"))
-		{
-			memberProvided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "find")).ConfigureAwait(false);
-		}
-
+		var memberProvided = await ExistingItemAsync(context, true, cancellationToken).ConfigureAwait(false);
 		var memberSlot = StringValue(memberProvided, "slot");
-		Require(memberSlot.Length > 0, "the member could not take a bandage: " + Raw(memberProvided));
+		Require(memberSlot.Length > 0, "the member could not find a starting item: " + Raw(memberProvided));
 		var memberCustomized = await context.MemberRecipeAsync("item-customize-native", cancellationToken, ("slot", memberSlot), ("label", "MemberColor"), ("swatch", "5")).ConfigureAwait(false);
-		Require(Boolean(memberCustomized, "ok"), "the member could not colour its bandage: " + Raw(memberCustomized));
+		Require(Boolean(memberCustomized, "ok"), "the member could not colour its starting item: " + Raw(memberCustomized));
 
 		var hostSeesMemberBefore = await WaitForCloneAsync(
 			() => context.RecipeAsync("clone-customization", cancellationToken),
@@ -89,7 +85,10 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 
 		// The member followed the host out of the world; the continued world needs it back before a
-		// later case reads the pair, and the host's refreshed member id replaces the old one.
+		// later case reads the pair, and the host's refreshed member id replaces the old one. Clear
+		// the menu session first: RunEnded leaves it active but not in the world, and joining from
+		// that stale session keeps the old kernel revision (a range loop) instead of a fresh checkpoint.
+		await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
 		var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 		context.Note("member after continue: " + rejoined);
 		var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
@@ -113,6 +112,22 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(HasLabeledItem(memberSeesHostAfter, "HostColor", 3), "the host's colour did not survive the save/continue: " + Raw(memberSeesHostAfter));
 		context.Read("host sees member colour after continue", hostSeesMemberAfter);
 		context.Read("member sees host colour after continue", memberSeesHostAfter);
+	}
+
+	private static async Task<JsonElement?> ExistingItemAsync(CaseContext context, bool member, CancellationToken cancellationToken)
+	{
+		foreach (var type in new[] { "bandage", "lantern", "trashbag", "dogfood", "waterbottle" })
+		{
+			var reading = member
+				? await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "find")).ConfigureAwait(false)
+				: await context.RecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "find")).ConfigureAwait(false);
+			if (Boolean(reading, "found") && StringValue(reading, "slot").Length > 0)
+			{
+				return reading;
+			}
+		}
+
+		return null;
 	}
 
 	private static async Task<JsonElement?> WaitForCloneAsync(Func<Task<JsonElement?>> read, string label, int swatch, CancellationToken cancellationToken)

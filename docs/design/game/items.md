@@ -24,7 +24,9 @@ matter.
   definition's name only when the item is "recognizable" (`item.Stats.rec.recognizable`), otherwise "Something...".
 - Closing the customizer is the edit's completion event. Its native close (`PlayerCamera.CloseItemCustomizer`,
   `PlayerCamera.cs:101-108`) republishes the owner's character snapshot, so the label, colour and favourite bit are in the
-  record a save or a menu-return cut writes; the 1 Hz report alone can be overtaken by that cut.
+  record a save or a menu-return cut writes; the 1 Hz report alone can be overtaken by that cut. The snapshot the host
+  stores is a deep copy, and that copy carries every item field — a copy that drops `label`/`colorSwatch` silently loses
+  the edit at the next cut.
 
 ## Liquids
 

@@ -56,6 +56,8 @@ internal static class CharacterDataClone
 		ItemId = item.ItemId,
 		Condition = item.Condition,
 		SlotIndex = item.SlotIndex,
+		Label = item.Label,
+		ColorSwatch = item.ColorSwatch,
 		Favourited = item.Favourited,
 		Components = item.Components,
 		Contents = [.. item.Contents.Select(Item)],

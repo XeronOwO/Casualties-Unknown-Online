@@ -117,6 +117,8 @@ public class CharacterDataCloneTests
 				Condition = 0.75f,
 				SlotIndex = 2,
 				Favourited = true,
+				Label = "bag-name",
+				ColorSwatch = 5,
 				Components =
 				[
 					new ComponentStateMsg

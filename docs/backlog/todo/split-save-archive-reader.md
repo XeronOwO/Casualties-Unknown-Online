@@ -3,6 +3,12 @@
 - Status: Todo
 - Priority: Medium
 
+## Design
+
+The reader serves the restore contract in
+`docs/design/cross-cutting/saves-and-recovery.md`; the archive layout is in
+`docs/architecture/save-archive-format.md`.
+
 ## What
 
 `CasualtiesUnknownOnline.Runtime.Persistence.SaveArchiveReader` is 619 lines. It owns three

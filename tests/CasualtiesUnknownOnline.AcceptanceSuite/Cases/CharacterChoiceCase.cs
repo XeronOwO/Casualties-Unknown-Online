@@ -53,6 +53,7 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			// menu, and a pick after the body has spawned is too late. Clear that session, pick
 			// while the host is still at the menu, then start and join.
 			await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+			context.Note(await context.Session.EnsureMemberSessionAsync(cancellationToken).ConfigureAwait(false));
 			var memberPick = await context.Session.ActionAsync(
 				context.Session.MemberUrl,
 				"pick-character",
@@ -61,13 +62,17 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			context.Read("member:pick", memberPick);
 			Require(Int(memberPick, "selected") == memberChoice, "the member's picker did not take index " + memberChoice + ": " + Raw(memberPick));
 
+			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
+			context.Read("run preset", preset);
+			Require(Boolean(preset, "ok") == true, "the host's unchipped preset could not be selected: " + Raw(preset));
+
 			context.Note(await context.Session.StartHostRunAsync(cancellationToken).ConfigureAwait(false));
 			await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 			var hostBody = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
 			context.Read("host:body", hostBody);
 			Require(Int(hostBody, "charType") == hostChoice, "the host spawned character " + Int(hostBody, "charType") + ", not " + hostChoice + ": " + Raw(hostBody));
 
-			context.Note(await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false));
+			await context.Session.WaitForMemberInCurrentRunAsync(cancellationToken).ConfigureAwait(false);
 			await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 			var memberBody = await context.MemberRecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
 			context.Read("member:body", memberBody);
@@ -84,6 +89,42 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			RequireSameUnlocks(hostBefore, hostJoined, "host after the member joined");
 			RequireSameUnlocks(memberBefore, memberJoined, "member after joining");
 
+			// The ending and the outside solo picker run after the shared unchipped world has served
+			// the late-layer, pod and last-layer rows; CharacterSoloLockCase owns them.
+		}
+		finally
+		{
+			// The next run must not inherit unchipped; this world is reused by the late-layer rows.
+			try
+			{
+				await context.RecipeAsync("run-preset", cancellationToken, ("name", "")).ConfigureAwait(false);
+			}
+			catch (Exception exception)
+			{
+				context.Note("could not clear the run preset after the character run: " + exception.Message);
+			}
+
+			// Leave the next new-world case on the default choice, without writing any unlock key.
+			await TryPickAsync(context, 0, cancellationToken).ConfigureAwait(false);
+			await TryPickMemberAsync(context, 0, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	/// <summary>
+	/// The ending and the outside solo picker run after the shared unchipped world has served the
+	/// late-layer, pod and last-layer rows. The ending ends that world, so this is the last row in it.
+	/// </summary>
+	internal static async Task RunSoloLockAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var hostBefore = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
+		var memberBefore = await context.MemberRecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
+		context.Read("host:before-ending", hostBefore);
+		context.Read("member:before-ending", memberBefore);
+		var hostChoice = FirstLocked(hostBefore);
+		Require(hostChoice >= 0, "both of the host's solo unlock keys are already set; the missing-write guard cannot be observed: " + Raw(hostBefore));
+
+		try
+		{
 			await TriggerSessionWinAsync(context, cancellationToken).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			var hostAfterWin = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
@@ -93,8 +134,8 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			RequireSameUnlocks(hostBefore, hostAfterWin, "host after the session's ending");
 			RequireSameUnlocks(memberBefore, memberAfterWin, "member after the session's ending");
 
-			// Row 4: leave the session and read the native solo picker again. The host still has the
-			// third character locked (wonchar1=0), so its unlocked-only state must come back exactly.
+			// Leave the session and read the native solo picker again. The host still has the next
+			// character locked, so its unlocked-only state must come back exactly.
 			await LeaveHostSessionAsync(context, cancellationToken).ConfigureAwait(false);
 			var outside = await WaitForPickerAsync(context, cancellationToken).ConfigureAwait(false);
 			context.Read("picker:outside", outside);
@@ -105,7 +146,6 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		}
 		finally
 		{
-			// Leave the next new-world case on the default choice, without writing any unlock key.
 			await TryPickAsync(context, 0, cancellationToken).ConfigureAwait(false);
 			await TryPickMemberAsync(context, 0, cancellationToken).ConfigureAwait(false);
 		}

@@ -2,6 +2,7 @@
 
 Operating rule: a box is checked only after the item is CONFIRMED in this cycle. Bulk checking is forbidden — a box
 that cannot be confirmed stays empty and the cycle stops.
+
 - [ ] Design comprehension
 - [ ] Native parity
 - [ ] Native parity probe
@@ -14,5 +15,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: `0.1.0+265a3d85` was deployed and verified; the legacy copy Continue and its `/save` to a 24,024-byte `live.cuoz` are recorded.
+- [ ] Release-cycle deployment/acceptance: this commit is test/docs only; the deployed artifact remains `0.1.0+265a3d85` and remains verified.
 - [ ] FORBIDDEN — never check this box

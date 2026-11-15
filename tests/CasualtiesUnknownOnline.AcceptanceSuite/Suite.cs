@@ -1138,6 +1138,14 @@ internal static class CaseRegistry
 		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		new EatSoundCase(), // a host's own eat plays on the member's machine
+		// Save before the block and trap mutations: a trap explosion can damage a generated
+		// building whose entity does not exist in the freshly regenerated layer, which makes the
+		// restore-completeness audit report the stale building-health row. That restore case is
+		// tracked; the one-file save/continue row must run against the untouched generated world.
+		new SaveContinueCase(),
+		// The worlds page lists archive rows; it needs a run that has actually produced a cut, so it
+		// follows save-continue instead of reading an empty fresh save root.
+		new WorldsPageCase(),
 		new BlockSyncCase(), // a break the host applies reaches the member's own block table, and the reverse
 		new WorldFingerprintCase("world-fingerprint-after-mutation"), // both tables still agree after both breaks
 		new BlockIdleDriftCase(), // the two tables agree and stay agreed while neither body moves (the divergence probe)
@@ -1150,10 +1158,13 @@ internal static class CaseRegistry
 		// holds 39 — the block-table divergence on a second surface (review/1.0-block-table-diverges-between-clients.md).
 		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
-		// The host's unchipped preset reaches the member's WorldGeneration.Start, not just its
-		// dictionary. It restarts into an unchipped run and leaves that world to the next new-world
-		// case (it no longer restarts twice): every case after it is also NewWorld.
-		new LateLayerSwitchesCase(),
+		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
+		new RemoteRemovalCase(), // the member leaves last; the host's displayed body goes and its own log says so
+		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)
+		// The session picker unlocks all three portraits; the host starts this shared world with the
+		// game's own unchipped preset and leaves it running for the late-layer rows below.
+		new CharacterChoiceCase(),
+		new LateLayerSwitchesCase(), // both clients derive the host's switches in the shared world
 		// The drill pod is the native two-layer trigger: it waits for every living member to stand at
 		// the pod before the host's descent, and refuses (with the missing names) when one is away.
 		new PodTeamWaitCase(),
@@ -1161,23 +1172,14 @@ internal static class CaseRegistry
 		// the cutscene clears each client's local blockItemUsage, and each client's own
 		// staged attack moves its own native attack state.
 		new LastLayerGateCase(),
-		new SaveContinueCase(),
-		// The worlds page lists archive rows; it needs a run that has actually produced a cut, so it
-		// follows save-continue instead of reading an empty fresh save root.
-		new WorldsPageCase(),
-		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
-		new RemoteRemovalCase(), // the member leaves last; the host's displayed body goes and its own log says so
-		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)
+		// Last row in the shared world: the Merc ending must not write either solo unlock key, and
+		// the host's native solo picker must come back after the session is left.
+		new CharacterSoloLockCase(),
 		// Parked 2026-11-14 09:58: with the pointer held on the band every tick the case opens the lock
 		// (three single runs passed), but inside the full order the game's own progress fills slowly
 		// (0.742 in twenty seconds at an angle 24 degrees off) and the case's poll ends first. The row
 		// needs a longer, angle-corrected hold; the case carries the readings in `LockpickCase.cs`.
 		// new LockpickCase(),
-		// The session picker unlocks all three portraits and the session's ending must not write the
-		// host's or member's solo `wonchar` keys. It ends its own run and then leaves the session, so
-		// the separate ending case would have no world to call; the Merc ending and its tracker read
-		// are already asserted inside this case (`TriggerSessionWinAsync`).
-		new CharacterChoiceCase(),
 		// new EndingCase(),
 	];
 }

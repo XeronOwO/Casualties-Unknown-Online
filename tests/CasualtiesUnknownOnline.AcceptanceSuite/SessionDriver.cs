@@ -210,6 +210,42 @@ internal sealed class SessionDriver(Options options)
 	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken, TimeSpan? budget = null) =>
 		MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true, budget));
 
+	/// <summary>Join the host's IP session while both clients are still at the menu.</summary>
+	public Task<string> EnsureMemberSessionAsync(CancellationToken cancellationToken) =>
+		JoinMemberSessionAsync(cancellationToken);
+
+	/// <summary>
+	/// A host that starts a fresh run while the member is already in the IP session: the member's
+	/// own client follows the host's world join. Do not re-run the join handshake from here; it
+	/// would leave the old world first and can time out exactly as the member is arriving.
+	/// </summary>
+	public async Task WaitForMemberInCurrentRunAsync(CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		var lastHost = default(JsonElement?);
+		var lastMember = default(JsonElement?);
+		while (deadline.Elapsed < TimeSpan.FromSeconds(30))
+		{
+			lastHost = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			lastMember = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (lastHost is { ValueKind: JsonValueKind.Object } host
+				&& lastMember is { ValueKind: JsonValueKind.Object } member
+				&& string.Equals(StringValue(member, "role"), "Guest", StringComparison.Ordinal)
+				&& IsTrue(member, "inWorld")
+				&& ReadInt(host, "runId") != 0
+				&& ReadInt(host, "runId") == ReadInt(member, "runId"))
+			{
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException(
+			"the member did not join the host's current run: host=" + (lastHost?.GetRawText() ?? "null")
+			+ " member=" + (lastMember?.GetRawText() ?? "null"));
+	}
+
 	/// <summary>
 	/// Poll the client's state from the suite side. The in-process wait-state command sleeps on the
 	/// game thread; using it here froze the host for the whole scene transition (2026-11-15).

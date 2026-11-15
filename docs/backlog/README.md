@@ -62,7 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 358.8 s now; reuse the run rows.
+- [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 303.7 s now; the merged world is green.
+- [Save after trap damage drops building health](todo/1.0-save-after-building-damage-loses-entity.md) — **High** — Continue refuses a damaged building's row.
 - [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
 
 

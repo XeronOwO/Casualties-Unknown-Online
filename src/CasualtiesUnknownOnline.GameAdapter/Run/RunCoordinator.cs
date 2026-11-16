@@ -263,7 +263,7 @@ internal sealed class RunCoordinator(
 	}
 
 	/// <summary>The native Continue entry: the save arm restores the selected CUO world (and blocks the original when it cannot).</summary>
-	internal bool OnHostContinueRequested() => _save.OnContinueRequested();
+	internal bool OnHostContinueRequested() => _save.OnContinueRequested() && _startGateJoin.ArmAfterContinue(_session, _world);
 
 	/// <summary>The local body's character snapshot right now — the cut payload's live half (the frame-end seam calls this at the instant of the cut).</summary>
 	internal CharacterDataMsg? CaptureLocalCharacter() => _save.CaptureLocal(_localBody);

@@ -9,9 +9,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// character table by a character position and throws <see cref="IndexOutOfRangeException"/>
 /// when a language table is shorter than the line it is resolving. The native
 /// <c>Talker.Update</c> calls this for every spoken mood line; the failed lookup is a
-/// missing glyph, not gameplay state. Return an empty glyph list for that one failed
-/// lookup so the line is skipped without a per-frame exception; every other failure
-/// still reaches the caller.
+/// missing glyph, not gameplay state. Return a single empty line for that one failed
+/// lookup: <c>Talker.Talk</c> indexes the returned list, so an empty list would replace
+/// the missing glyph with an index error of its own. Every other failure still reaches
+/// the caller.
 /// </summary>
 internal static class LocaleGetCharacterPatch
 {
@@ -25,7 +26,7 @@ internal static class LocaleGetCharacterPatch
 				return __exception;
 			}
 
-			__result = [];
+			__result = [string.Empty];
 			return null;
 		}
 	}

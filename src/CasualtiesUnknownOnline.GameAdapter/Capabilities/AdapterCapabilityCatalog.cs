@@ -48,7 +48,7 @@ internal static class AdapterCapabilityCatalog
 				typeof(MercEndingPatch), typeof(SurfaceBreachCutscenePatch),
 				typeof(EndLabScriptUpdatePatch), typeof(TurretScriptUpdatePatch),
 				typeof(WorldGenerationRandomStepSoundPatch), typeof(CorpseScriptOnWillRenderObjectPatch),
-				typeof(LocaleGetCharacterPatch), typeof(MoodleManagerSpectatorBodyPatch),
+				typeof(LocaleGetCharacterPatch), typeof(TalkerOnDestroyPatch), typeof(MoodleManagerSpectatorBodyPatch),
 				typeof(GlobalDarkDarkenPatch), typeof(LifePodShakePatch),
 			],
 			[],

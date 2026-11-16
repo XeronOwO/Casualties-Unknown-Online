@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: deploy and read the two focused rows plus the full suite.
+- [ ] Release-cycle deployment/acceptance: deploy and read the focused three rows plus the full suite.
 - [ ] FORBIDDEN — never check this box

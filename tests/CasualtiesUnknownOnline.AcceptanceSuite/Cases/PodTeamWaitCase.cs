@@ -25,12 +25,18 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		// The host's own body is the pod the driver's native sink fires from. Put it at the origin,
-		// and put the member far away: this is the "near one pressed it, the far one must not ride"
-		// row. The bodies fall under the game's own physics afterwards; the gate is read at once.
-		await PlaceAsync(context, member: false, "0", "0", cancellationToken).ConfigureAwait(false);
-		await PlaceAsync(context, member: true, "100", "0", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		// The host's own body is the pod the driver's native sink fires from. Put the member
+		// 100 m from the host's current body: this is the "near one pressed it, the far one
+		// must not ride" row. Moving the host to an arbitrary point makes the game snap it
+		// back to the terrain, so the pod is always the host's live body.
+		var hostStart = await context.RecipeAsync("pod-members", cancellationToken).ConfigureAwait(false);
+		context.Read("host:start-members", hostStart);
+		await PlaceAsync(
+			context,
+			member: true,
+			Format(Number(hostStart, "localX") + 100),
+			Format(Number(hostStart, "localY")),
+			cancellationToken).ConfigureAwait(false);
 
 		var hostBefore = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberBefore = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
@@ -79,11 +85,6 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 		// Both living bodies at the pod: the same native sink must now take both clients down two layers.
 		// The gate reads the host's replicated entity table, not the guest's local transform, so wait
 		// until the host has actually received the new position before firing the sink.
-		await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
-		var podMembers = await WaitForPodMemberAsync(context, cancellationToken).ConfigureAwait(false);
-		context.Read("host:pod-members", podMembers);
-		Require(HasMemberAtPod(podMembers),
-			"the host's entity table never placed the member at the pod: " + Raw(podMembers));
 		var hostReady = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberReady = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		context.Read("host:ready", hostReady);
@@ -92,8 +93,9 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"placing the member at the pod changed the layer before the trigger: " + Raw(hostReady));
 
 		// The bodies fall under the game's own physics; the pod gate compares their live
-		// positions, so put both back at the pod and wait for the host's copy before each
-		// retry. Re-firing from a stale placement let the member drift out of the 5 m band.
+		// positions, so put the member at the host's current body and wait for the host's
+		// copy before each retry. Moving the host itself made the game snap it back to the
+		// terrain and left the member 11 m away.
 		var fired = (JsonElement?)null;
 		for (var attempt = 0; attempt < 8; attempt++)
 		{
@@ -105,10 +107,16 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 				break;
 			}
 
-			await PlaceAsync(context, member: false, "0", "0", cancellationToken).ConfigureAwait(false);
-			await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
+			var hostNow = await context.RecipeAsync("pod-members", cancellationToken).ConfigureAwait(false);
+			context.Read("host:pod-members[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", hostNow);
+			await PlaceAsync(
+				context,
+				member: true,
+				Format(Number(hostNow, "localX")),
+				Format(Number(hostNow, "localY")),
+				cancellationToken).ConfigureAwait(false);
 			var retryMembers = await WaitForPodMemberAsync(context, cancellationToken).ConfigureAwait(false);
-			context.Read("host:pod-members[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", retryMembers);
+			context.Read("host:pod-copy[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", retryMembers);
 			if (!HasMemberAtPod(retryMembers))
 			{
 				continue;
@@ -242,6 +250,16 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			&& value.TryGetInt32(out var number)
 				? number
 				: -1;
+
+	private static double Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty(property, out var value)
+			&& value.ValueKind == JsonValueKind.Number
+			&& value.TryGetDouble(out var number)
+				? number
+				: double.NaN;
+
+	private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 

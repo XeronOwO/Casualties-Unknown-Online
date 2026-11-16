@@ -38,7 +38,8 @@ try {
 
 	if ($Test) {
 		& dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj -nodeReuse:false
-		exit $LASTEXITCODE
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		if (-not $Gates) { exit 0 }
 	}
 
 	if ($Gates) {

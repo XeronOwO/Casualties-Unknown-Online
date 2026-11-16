@@ -91,11 +91,11 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 		Require(Int(hostReady, "biomeDepth") == depthBefore,
 			"placing the member at the pod changed the layer before the trigger: " + Raw(hostReady));
 
-		// The host acts on its replicated copy of the member's position. The copy reaches the host
-		// asynchronously, so retry the native sink until the gate accepts it; a refusal returns an
-		// empty coroutine and cannot start a generation. Stop as soon as the world is generating.
+		// The bodies fall under the game's own physics; the pod gate compares their live
+		// positions, so put both back at the pod and wait for the host's copy before each
+		// retry. Re-firing from a stale placement let the member drift out of the 5 m band.
 		var fired = (JsonElement?)null;
-		for (var attempt = 0; attempt < 20; attempt++)
+		for (var attempt = 0; attempt < 8; attempt++)
 		{
 			var hostDuring = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 			if (Int(hostDuring, "biomeDepth") != depthBefore
@@ -105,12 +105,20 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 				break;
 			}
 
+			await PlaceAsync(context, member: false, "0", "0", cancellationToken).ConfigureAwait(false);
+			await PlaceAsync(context, member: true, "0", "0", cancellationToken).ConfigureAwait(false);
+			var retryMembers = await WaitForPodMemberAsync(context, cancellationToken).ConfigureAwait(false);
+			context.Read("host:pod-members[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", retryMembers);
+			if (!HasMemberAtPod(retryMembers))
+			{
+				continue;
+			}
+
 			fired = await context.Session.ActionAsync(
 				context.Session.HostUrl,
 				"pod-descent",
 				cancellationToken).ConfigureAwait(false);
 			context.Read("host:fired[" + attempt.ToString(CultureInfo.InvariantCulture) + "]", fired);
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		var hostAfterFire = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);

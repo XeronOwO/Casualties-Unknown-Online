@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: no product change, no deploy needed; the full suite is the acceptance.
+- [ ] Release-cycle deployment/acceptance: deploy, reproduce save-continue, read no forced start.
 - [ ] FORBIDDEN — never check this box

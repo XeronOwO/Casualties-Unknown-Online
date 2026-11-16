@@ -301,10 +301,24 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				_savedCharacters.Remove(oldPeer);
 				_savedCharacters[steamId] = adopted;
 				data = adopted;
-				_log.LogInformation(
-					"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}.",
-					oldPeer,
-					steamId);
+				// The old transport is the same player's previous connection: it cannot answer
+				// anything on the new link. Leaving it in the presence table makes the start gate
+				// wait for an InWorld report that can never arrive and holds both loaded sides
+				// until the 30 s force. Remove it through the normal kick edge.
+				if (_session.Role == SessionRole.Host && _session.KickMember(oldPeer, "reconnected under a new transport id"))
+				{
+					_log.LogInformation(
+						"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}; removed the stale presence.",
+						oldPeer,
+						steamId);
+				}
+				else
+				{
+					_log.LogInformation(
+						"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}.",
+						oldPeer,
+						steamId);
+				}
 			}
 		}
 

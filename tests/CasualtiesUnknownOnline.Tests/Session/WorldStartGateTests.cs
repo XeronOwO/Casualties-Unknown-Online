@@ -119,6 +119,33 @@ public class WorldStartGateTests
 	}
 
 	[Fact]
+	public void AnArmedGate_DropsAWaiterThatLeavesTheSession()
+	{
+		// A peer that disconnects while the gate waits can never report InWorld. Its presence is
+		// removed; the gate must drop the slot at that edge, or the loaded members are held until
+		// the 30 s force.
+		using var w = ItemSimWorld.Create();
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var guestWorld = w.G2.Services.GetRequiredService<IWorldControl>();
+		var readyOnGuest = 0;
+		guestWorld.WorldReadyReceived += () => readyOnGuest++;
+
+		w.Host.Session.ReportSceneState(SceneStateType.InWorld, Scene);
+		Assert.True(hostWorld.StartStartGate(), "the gate arms — it waits for both guests' InWorld reports");
+		Assert.True(hostWorld.StartGateActive);
+
+		Assert.True(w.Host.Session.KickMember(w.G1.SteamId, "test: the waiter left"));
+		w.Driver.Tick(500);
+		Assert.True(hostWorld.StartGateActive, "g2 is still loading — one departed waiter only drops its own slot");
+
+		w.G2.Session.ReportSceneState(SceneStateType.InWorld, Scene, new NetVector2(7f, 8f));
+		w.Driver.Tick(500);
+
+		Assert.False(hostWorld.StartGateActive, "only the present waiter remains, and it is ready");
+		Assert.Equal(1, readyOnGuest);
+	}
+
+	[Fact]
 	public void AnArmedGate_StillHoldsTheMemberUntilItsOwnRelease()
 	{
 		// The never-armed branch must not turn into "release whenever the host is in

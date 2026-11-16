@@ -46,6 +46,9 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 	/// <summary>Host only: the gate was released (everyone started, or the 30 s fallback fired).</summary>
 	private bool _released;
 
+	/// <summary>Host only: the presence-table removal edge is subscribed once, on the first arm.</summary>
+	private bool _memberRemovedSubscribed;
+
 	internal void SetHostRunPending(bool pending)
 	{
 		HostRunPending = pending;
@@ -76,6 +79,16 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return false;
+		}
+
+		if (!_memberRemovedSubscribed)
+		{
+			// A peer that disconnects while the gate is waiting can never send InWorld. Its
+			// presence is removed first (the reconnect-adoption path also removes the old
+			// transport), and the gate must drop the slot at that edge instead of holding the
+			// world until the 30 s force.
+			_session.MemberRemoved += OnMemberRemoved;
+			_memberRemovedSubscribed = true;
 		}
 
 		_released = false;
@@ -207,9 +220,39 @@ internal sealed class WorldStartGate(ISessionControl session, PacketSender sende
 		? 0
 		: Math.Max(0, TimeoutMs - (int)(_time.NowMs - _armedMs));
 
+	/// <summary>
+	/// Host only: a waiting peer left the session (disconnect, kick, or the old transport of a
+	/// reconnect). Drop its slot; when it was the last one, release the gate so the members that
+	/// did load are not held for a peer that can no longer answer.
+	/// </summary>
+	private void OnMemberRemoved(ulong steamId)
+	{
+		if (_armed is null || !_armed.Remove(steamId))
+		{
+			return;
+		}
+
+		if (_armed.Count == 0)
+		{
+			_armed = null;
+			_log.LogInformation("Start gate released — the last waiting member left the session.");
+			SendWorldReady();
+		}
+		else
+		{
+			_log.LogInformation("Start gate dropped a member that left the session — {Count} still loading.", _armed.Count);
+		}
+	}
+
 	/// <summary>The session ended — the next run arms a fresh gate.</summary>
 	internal void Reset()
 	{
+		if (_memberRemovedSubscribed)
+		{
+			_session.MemberRemoved -= OnMemberRemoved;
+			_memberRemovedSubscribed = false;
+		}
+
 		HostRunPending = false;
 		_armed = null;
 		_descentPending = null;

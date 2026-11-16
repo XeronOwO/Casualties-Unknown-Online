@@ -5,7 +5,7 @@
 		"Ticket": "docs/backlog/in-progress/split-block-break-remote-apply.md"
 	},
 	"CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
-		"Lines": 625,
+		"Lines": 639,
 		"BoolFlags": 0,
 		"Ticket": "docs/backlog/review/1.0-transport-handover-identity.md"
 	},

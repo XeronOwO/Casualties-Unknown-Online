@@ -59,6 +59,8 @@ internal sealed class RunCoordinator(
 	private RunPhase _phase = RunPhase.Idle;
 	private bool _hostStartGateAlertPending; // host: generation boundary → gate release — DoAlert popups in this span are deferred
 
+	private readonly StartGateJoinPump _startGateJoin = new();
+
 	private bool _inWorld;
 	private Body? _localBody; // Unity object — == (scene-reload check)
 
@@ -200,6 +202,7 @@ internal sealed class RunCoordinator(
 		_descentPlumbing.UpdateAbort();
 		_descentPlumbing.UpdateSettle();
 		UpdateSceneState();
+		_startGateJoin.Update(_session, _world);
 		if (_phase == RunPhase.JoinPending)
 		{
 			Join.TryStart();

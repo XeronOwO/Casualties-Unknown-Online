@@ -47,6 +47,7 @@ internal static class AdapterCapabilityCatalog
 				typeof(PlayerCameraCloseItemCustomizerPatch), typeof(PlayerCameraHandleCameraPositionPatch),
 				typeof(MercEndingPatch), typeof(SurfaceBreachCutscenePatch),
 				typeof(EndLabScriptUpdatePatch), typeof(TurretScriptUpdatePatch),
+				typeof(WorldGenerationRandomStepSoundPatch), typeof(CorpseScriptOnWillRenderObjectPatch),
 				typeof(MoodleManagerSpectatorBodyPatch),
 				typeof(GlobalDarkDarkenPatch), typeof(LifePodShakePatch),
 			],

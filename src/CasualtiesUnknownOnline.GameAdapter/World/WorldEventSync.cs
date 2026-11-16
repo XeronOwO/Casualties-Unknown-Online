@@ -447,6 +447,20 @@ internal sealed partial class WorldEventSync(
 
 		if (_baseline is not null)
 		{
+			// A restored cut can be armed while its native geysers are still
+			// being instantiated; the replay holds it and must be retried on the
+			// following frames of this same generation, not dropped with the
+			// baseline. Keypad codes wait for that replay (the order is
+			// load-bearing: restored codes, then broadcast).
+			if (_replay.HasPending)
+			{
+				_replay.ApplyIfPending();
+				if (!_replay.HasPending && IsHostMode)
+				{
+					SendKeypadCodes();
+				}
+			}
+
 			return; // already captured for this generation
 		}
 
@@ -483,7 +497,7 @@ internal sealed partial class WorldEventSync(
 
 		_replay.ApplyIfPending(); // writes the restored cut into the freshly generated world (a no-op when none is pending)
 
-		if (IsHostMode)
+		if (IsHostMode && !_replay.HasPending)
 		{
 			SendKeypadCodes(); // the world-entry broadcast carries the restored codes — the replay above already wrote them
 		}

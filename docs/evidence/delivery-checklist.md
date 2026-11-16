@@ -14,5 +14,5 @@ that cannot be confirmed stays empty and the cycle stops.
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 
-- [ ] Release-cycle deployment/acceptance: deploy and read zero errors on both rows.
+- [ ] Release-cycle deployment/acceptance: deploy and read a passing `save-continue` with 81 geysers applied.
 - [ ] FORBIDDEN — never check this box

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -88,6 +89,20 @@ internal sealed class GameRestoredWorldFactSink(
 	{
 		var applied = KeypadCodeTable.ApplyAbsolute(codes, _log);
 		return new LiveWorldWriteOutcome(applied, codes.Count - applied);
+	}
+
+	/// <inheritdoc />
+	public bool IsReadyForGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
+	{
+		if (geysers.Count == 0)
+		{
+			return true;
+		}
+
+		// The saved set named these live objects. A regenerated layer that has
+		// spawned fewer is still in the middle of instantiation; applying now
+		// would position-match the subset that happens to exist.
+		return Object.FindObjectsOfType<GeyserScript>().Length >= geysers.Count;
 	}
 
 	/// <inheritdoc />

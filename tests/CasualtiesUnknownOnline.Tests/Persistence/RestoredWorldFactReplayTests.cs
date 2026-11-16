@@ -117,6 +117,32 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
+	public void ApplyIfPending_WhenTheGeysersAreNotYetLive_KeepsTheCutPending()
+	{
+		var (replay, facts, native, sink) = Build();
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
+		native.SeedGeyser(7f, 8f, 3);
+		native.ApplyGeysers(native.Geysers);
+		sink.GeysersReady = false;
+
+		replay.ApplyIfPending();
+
+		// The world-entry seam can run a frame before the native geysers exist.
+		// Taking the cut then would position-match zero rows and release the
+		// handover, so the replay must leave every half pending.
+		Assert.True(facts.HasPendingLiveReplay);
+		Assert.True(replay.HasPending);
+		Assert.DoesNotContain("apply-geysers", sink.Calls);
+
+		sink.GeysersReady = true;
+		replay.ApplyIfPending();
+
+		Assert.False(replay.HasPending);
+		Assert.Equal(1, sink.AppliedGeysers);
+		Assert.Contains("apply-geysers", sink.Calls);
+	}
+
+	[Fact]
 	public void ApplyIfPending_WritesTheCutInTheLoadBearingOrder()
 	{
 		var (replay, facts, native, sink) = Build();

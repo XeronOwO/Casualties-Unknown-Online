@@ -39,6 +39,15 @@ internal interface IRestoredWorldFactSink
 	/// <summary>Write the restored keypad codes onto the live Openables. Returns the codes applied and the codes the live world had no Openable for.</summary>
 	LiveWorldWriteOutcome ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
 
+	/// <summary>
+	/// True once the live copy of the restored layer has spawned the native
+	/// geyser objects. The world being generated is not enough: the geysers are
+	/// instantiated during that generation, and a restore that runs before they
+	/// exist would position-match zero rows. The replay must keep the pending
+	/// cut until this is true (or its bounded wait expires).
+	/// </summary>
+	bool IsReadyForGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
+
 	/// <summary>Write the restored geyser liquid types. Returns the entries applied and the entries the live world had no geyser for.</summary>
 	LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
 

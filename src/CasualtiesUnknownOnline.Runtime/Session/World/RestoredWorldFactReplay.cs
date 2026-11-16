@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
@@ -71,6 +72,8 @@ internal sealed class RestoredWorldFactReplay(
 	private readonly WorldRestoreAudit? _audit = audit;
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
 	private readonly IRestoredWorldItemSource? _restoredWorldItems = restoredWorldItems;
+	private long? _deferredGeyserSince;
+	private bool _deferredGeyserLogged;
 
 	/// <summary>
 	/// Host: a restored cut is waiting for the world-entry seam — the Runtime's
@@ -130,11 +133,47 @@ internal sealed class RestoredWorldFactReplay(
 				_audit.LiveWriteFinished(WorldRestoreHalf.WorldFacts, factSequence, complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
 			}
 
+			_deferredGeyserSince = null;
+			_deferredGeyserLogged = false;
 			return;
 		}
 
 		// READ, do not take: only a replay whose every row landed commits.
 		var restore = _nativeFacts?.ReadPendingRestore() ?? NativeWorldFactRestore.Empty;
+
+		// The native geysers are instantiated during this generation, not by it:
+		// at the world-entry seam they can still be absent. Writing now would
+		// position-match zero rows and release the handover; wait for the live
+		// copy to exist, but do not wait forever (a genuinely missing set must be
+		// reported, not parked).
+		if (restore.Geysers.Count > 0 && !_sink.IsReadyForGeysers(restore.Geysers))
+		{
+			var now = Stopwatch.GetTimestamp();
+			_deferredGeyserSince ??= now;
+			if (!_deferredGeyserLogged)
+			{
+				_deferredGeyserLogged = true;
+				_log.LogInformation(
+					"[SaveFacts] the restored geysers are not in the live world yet ({Count} row(s) pending); holding the restore until the generated geysers exist.",
+					restore.Geysers.Count);
+			}
+
+			var elapsedMs = (now - _deferredGeyserSince.Value) * 1000.0 / Stopwatch.Frequency;
+			if (elapsedMs < 5_000)
+			{
+				return;
+			}
+
+			_log.LogWarning(
+				"[SaveFacts] the restored geysers did not appear within 5 s ({Count} row(s) pending); applying the restore now so the refused rows are reported.",
+				restore.Geysers.Count);
+		}
+		else
+		{
+			_deferredGeyserSince = null;
+			_deferredGeyserLogged = false;
+		}
+
 		LiveWorldWriteOutcome blocks;
 		LiveWorldWriteOutcome damages;
 		LiveWorldWriteOutcome keypads;

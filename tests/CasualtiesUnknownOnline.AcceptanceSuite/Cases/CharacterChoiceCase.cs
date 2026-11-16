@@ -34,6 +34,11 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		try
 		{
 			context.Note(await context.Session.EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false));
+			var memberSessionTask = Task.Run(async () =>
+			{
+				await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+				return await context.Session.EnsureMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+			}, cancellationToken);
 			var picker = await WaitForPickerAsync(context, cancellationToken).ConfigureAwait(false);
 			context.Read("picker", picker);
 			var buttons = StringValue(picker, "buttons");
@@ -50,10 +55,10 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			Require(Int(hostPick, "selected") == hostChoice, "the host's picker did not take index " + hostChoice + ": " + Raw(hostPick));
 
 			// The member may still be in the previous case's world; its picker only exists at the
-			// menu, and a pick after the body has spawned is too late. Clear that session, pick
-			// while the host is still at the menu, then start and join.
-			await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
-			context.Note(await context.Session.EnsureMemberSessionAsync(cancellationToken).ConfigureAwait(false));
+			// menu, and a pick after the body has spawned is too late. The member session connects
+			// while the host reads its picker and picks; then the member picks at the menu, and the
+			// host starts the run.
+			context.Note(await memberSessionTask.ConfigureAwait(false));
 			var memberPick = await context.Session.ActionAsync(
 				context.Session.MemberUrl,
 				"pick-character",

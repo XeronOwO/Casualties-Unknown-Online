@@ -182,7 +182,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 				return last;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
 		}
 
 		return last;

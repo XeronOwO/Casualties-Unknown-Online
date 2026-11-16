@@ -44,7 +44,7 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 			"pod-descent",
 			cancellationToken).ConfigureAwait(false);
 		context.Read("host:refused", refused);
-		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		var hostRefused = await context.RecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		var memberRefused = await context.MemberRecipeAsync("layer-state", cancellationToken).ConfigureAwait(false);
 		context.Read("host:after-refused", hostRefused);

@@ -26,7 +26,7 @@ internal sealed class OverlaySoundCase : AcceptanceCase
 				break;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("armed", armed);

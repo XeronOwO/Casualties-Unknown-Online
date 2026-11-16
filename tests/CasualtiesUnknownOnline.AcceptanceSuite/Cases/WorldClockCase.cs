@@ -54,7 +54,7 @@ internal sealed class WorldClockCase : AcceptanceCase
 				return true;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		return false;

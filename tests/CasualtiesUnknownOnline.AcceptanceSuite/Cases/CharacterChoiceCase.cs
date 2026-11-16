@@ -126,7 +126,7 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 		try
 		{
 			await TriggerSessionWinAsync(context, cancellationToken).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			var hostAfterWin = await context.RecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
 			var memberAfterWin = await context.MemberRecipeAsync("character-read", cancellationToken).ConfigureAwait(false);
 			context.Read("host:after-win", hostAfterWin);

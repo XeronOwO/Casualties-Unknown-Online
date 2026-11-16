@@ -50,7 +50,7 @@ internal sealed class RoleClearingCase : AcceptanceCase
 				break;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("member after the host left", memberAfter);
@@ -61,11 +61,21 @@ internal sealed class RoleClearingCase : AcceptanceCase
 		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
 
-		var hostSecond = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		JsonElement? hostSecond = null;
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			hostSecond = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (Text(hostSecond, "role") == "Host" && IsTrue(hostSecond, "inWorld"))
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("host second session", hostSecond);
 		Require(Text(hostSecond, "role") == "Host", "the host did not open a second session: " + Raw(hostSecond));
 		Require(IsTrue(hostSecond, "inWorld"), "the host's second run did not enter the world: " + Raw(hostSecond));
@@ -94,7 +104,7 @@ internal sealed class RoleClearingCase : AcceptanceCase
 				await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("member second session", memberSecond);

@@ -568,7 +568,7 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 				return;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		throw new InvalidOperationException("the member's own body did not spawn");

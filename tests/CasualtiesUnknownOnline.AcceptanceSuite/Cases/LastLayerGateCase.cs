@@ -120,7 +120,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 		// The ending lab places the two local bodies at different x positions. The cutscene's
 		// own first wait is body.x < 17, so put each local body at the lab mouth after the
 		// layer has settled; this is the same place the player's walk reaches.
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		var host = await context.RecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 		var member = await context.MemberRecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 		var movedHost = await context.RecipeAsync("body-place", cancellationToken, ("x", "16"), ("y", Double(host, "bodyY").ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
@@ -144,7 +144,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 				return last;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		return last;
@@ -182,7 +182,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 				return last;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		return last;

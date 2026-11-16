@@ -55,7 +55,7 @@ internal sealed class RunEndCase : AcceptanceCase
 				break;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("host after the leave", hostAfter);
@@ -82,7 +82,7 @@ internal sealed class RunEndCase : AcceptanceCase
 				return state;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
 		return state;

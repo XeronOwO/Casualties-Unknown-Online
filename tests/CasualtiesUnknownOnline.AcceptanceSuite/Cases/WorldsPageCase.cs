@@ -13,7 +13,7 @@ internal sealed class WorldsPageCase : AcceptanceCase
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.worlds")).ConfigureAwait(false);
 
 		// The page is open when the window says so; the dump below is only the page the state names.

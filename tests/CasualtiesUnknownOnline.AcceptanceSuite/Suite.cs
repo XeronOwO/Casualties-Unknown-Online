@@ -1151,6 +1151,10 @@ internal static class CaseRegistry
 		new BlockIdleDriftCase(), // the two tables agree and stay agreed while neither body moves (the divergence probe)
 		new BlockReconcileCase(), // a host write whose live message was lost reaches the member on the 60 s reconcile
 		new MineBlastCase(), // a mine the host fires destroys a building on the member's own copy
+		// The save that follows the blast: the restore must apply every world-entity row a trap
+		// explosion leaves in the kernel (the 2026-11-15 merged run refused two of them). This is the
+		// dedicated case the ordering note above used to stand in for.
+		new SaveAfterDamageCase(),
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
 		new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22

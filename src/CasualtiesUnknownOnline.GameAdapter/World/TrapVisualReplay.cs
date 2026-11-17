@@ -28,17 +28,17 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// Replay one trap fact onto the local world.
 	///
 	/// Returns whether the row reached the live world, which is what the restore's
-	/// live-write account counts (<see cref="TrapActionVerdict"/> is the rule): a row
-	/// that found no entity of its kind is a REFUSED row (the regenerated layer
-	/// diverged from the cut, and the fact is not represented anywhere), a row the
-	/// guard dropped because the local copy already carries that state counts as
+	/// live-write account counts (<see cref="TrapActionVerdict"/> is the rule): a
+	/// STATE row that found no entity of its kind is a REFUSED row (the regenerated
+	/// layer diverged from the cut, and the fact is not represented anywhere), a row
+	/// the guard dropped because the local copy already carries that state counts as
 	/// applied — the state IS in the world — and a row whose entity cannot carry the
 	/// fact at all (the action's NOT APPLICABLE verdict: e.g. a crystal with no mimic
 	/// effect at all) is REFUSED like a missing entity, because the fact exists
-	/// nowhere. The destructive families follow the same rule: their entity is
-	/// normally there and the replay consumes it, and when it is NOT there the
-	/// explosion is still replayed as presentation but the consumption fact is
-	/// missing from the world, so the row is refused.
+	/// nowhere. A one-shot CONSUMPTION row is the exception: a consumed trap that is
+	/// absent is applied, because a trap that is not there cannot be armed — its
+	/// absence IS the consumed state (a runtime-staged or player-placed mine never
+	/// returns in the regenerated layer; 2026-11-17 reading, see the design page).
 	/// </summary>
 	internal bool Replay(EntityEventKind kind, Vector2 position, byte extra, float elapsedSeconds = 0f)
 	{
@@ -279,12 +279,12 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	}
 
 	/// <summary>
-	/// The mine's explosion. Returns whether the mine entity exists: a duplicate
-	/// (already exploded) IS applied — the world already carries the fact — while a
-	/// missing entity is a REFUSED row on the restore path, where the regenerated
-	/// layer is expected to hold the same mine at the same position. The visual still
-	/// plays in that case (it is the presentation of the fact), but the fact itself
-	/// is not in the world.
+	/// The mine's explosion. Returns whether the row reached the live world: a
+	/// duplicate (already exploded) IS applied — the world already carries the fact —
+	/// and an ABSENT mine is applied too, because a mine that is not there cannot be
+	/// armed, so its absence is the consumed state (a runtime-staged mine never
+	/// returns in the regenerated layer). The visual still plays either way: it is the
+	/// presentation of the fact.
 	/// </summary>
 	private bool ReplayMineExplosion(Vector2 position)
 	{
@@ -307,15 +307,19 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		ReplayExplosionVisual(param);
 		ExplosionBodyEffect.ApplyToLocalBodies(param);
 
+		// Absent = consumed. A one-shot trap that the layer does not have cannot be
+		// armed, so the fact is already true in the world (the 2026-11-17 reading: a
+		// runtime-staged mine is not part of the regenerated layer, and refusing its
+		// row failed a world that was correct). The explosion stays presentation-only.
+		if (mine == null) // Unity object — ==
+		{
+			_log.LogInformation("[TrapEvent] mine at {Pos} is gone — the consumed state is satisfied; the explosion is replayed as presentation only.", position);
+			return true;
+		}
+
 		// Consume the entity: exploded = true FIRST (the game's OnDestroy then
 		// skips its chain explosion), killed as a REMOTE death (no drop roll —
 		// the trigger side rolled and reported them).
-		if (mine == null) // Unity object — ==
-		{
-			_log.LogWarning("[TrapEvent] mine at {Pos} is gone — the explosion is replayed as presentation only, and the consumed-mine fact is NOT in the world.", position);
-			return false;
-		}
-
 		Traverse.Create(mine).Field("exploded").SetValue(true);
 		mine.build.health = 0f;
 		mine.gameObject.AddComponent<RemoteEntityDeath>();
@@ -328,8 +332,8 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// the explosion with the turret's own parameters — pure-visual five-piece +
 	/// real-body effect + remote-death consumption. The health &lt; 0.5 check is
 	/// the consumption mark (already dead = a duplicate, dropped). Returns whether
-	/// the turret exists — see <see cref="ReplayMineExplosion"/> for the counting
-	/// rule.</summary>
+	/// the row reached the live world — see <see cref="ReplayMineExplosion"/> for the
+	/// counting rule.</summary>
 	private bool ReplayTurretSelfDestructed(Vector2 position)
 	{
 		var turret = TrapEffectApplier.FindTrap<TurretScript>(position);
@@ -346,8 +350,8 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 
 		if (turret == null) // Unity object — ==
 		{
-			_log.LogWarning("[TrapEvent] turret at {Pos} is gone — the explosion is replayed as presentation only, and the self-destruct fact is NOT in the world.", position);
-			return false;
+			_log.LogInformation("[TrapEvent] turret at {Pos} is gone — the self-destructed state is satisfied; the explosion is replayed as presentation only.", position);
+			return true;
 		}
 
 		build!.health = 0f;
@@ -367,8 +371,8 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// five-piece + real-body effect + remote-death consumption. The health
 	/// &lt; 0.5 check is the consumption mark (already dead = a duplicate, dropped);
 	/// the 5 s pre-explosion ticking is a recorded gap (the trigger side's own
-	/// experience — same as the mine's 0.8 s press visual). Returns whether the
-	/// crystal exists — see <see cref="ReplayMineExplosion"/> for the counting
+	/// experience — same as the mine's 0.8 s press visual). Returns whether the row
+	/// reached the live world — see <see cref="ReplayMineExplosion"/> for the counting
 	/// rule.</summary>
 	private bool ReplayCrystalUnstableExplosion(Vector2 position)
 	{
@@ -386,8 +390,8 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 
 		if (crystal == null) // Unity object — ==
 		{
-			_log.LogWarning("[TrapEvent] unstable crystal at {Pos} is gone — the explosion is replayed as presentation only, and the consumption fact is NOT in the world.", position);
-			return false;
+			_log.LogInformation("[TrapEvent] unstable crystal at {Pos} is gone — the consumed state is satisfied; the explosion is replayed as presentation only.", position);
+			return true;
 		}
 
 		crystal.build.health = 0f;

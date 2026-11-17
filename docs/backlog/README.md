@@ -62,7 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [Save after trap damage drops building health](todo/1.0-save-after-building-damage-loses-entity.md) — **High** — Continue refuses a damaged building's row.
 - [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
 
 
@@ -72,7 +71,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
-- [A continued world can lose a geyser type](in-progress/1.0-continue-loses-a-geyser-row.md) — **High** — 125 of 126 rows matched; the match is one-to-one now.
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
@@ -138,7 +136,9 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [The acceptance suite finishes under five minutes](done/1.0-acceptance-under-five-minutes.md) — **High** — 39/39 in 298.2 s.
+- [The acceptance suite finishes under five minutes](done/1.0-acceptance-under-five-minutes.md) — **High** — 39/39 in 299.8 s, the trap blast included.
+- [A save after trap damage keeps every row](done/1.0-save-after-building-damage-loses-entity.md) — **High** — 2 applied, 0 refused after a blast.
+- [A continued world loses a geyser row](done/1.0-continue-loses-a-geyser-row.md) — **High** — 117/117 applied, one-to-one match.
 - [A continued world loses the geyser types](done/1.0-continue-loses-geyser-types.md) — **High** — 104/104 applied, 0 refused.
 - [A followed continue keeps no character](done/1.0-followed-continue-keeps-no-character.md) — **High** — the character arrives with the invite.
 - [A world's live save is one archive](done/1.0-save-live-snapshot-single-file.md) — **High** — one `live.cuoz`, no loose JSON; legacy Continue, 38/38 green.

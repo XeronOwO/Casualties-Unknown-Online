@@ -28,7 +28,7 @@ public class AdapterCapabilityPortShapeTests
 	private static readonly (Type Port, string[] Members)[] Ports =
 	[
 		(typeof(IGameIntegrationLifecycle), ["OnApplicationQuit"]),
-		(typeof(IAdapterCapabilityQuery), ["CapabilityReport", "RefusedCapabilities"]),
+		(typeof(IAdapterCapabilityQuery), ["CapabilityReport", "RefusedCapabilityIds"]),
 		(typeof(IWorldPresenceQuery), ["IsInWorldOrGenerating"]),
 		(typeof(IStartGateState), ["IsWaitingForReady", "WaitingText", "WaitingTextIsOnTheNativeScreen"]),
 		(typeof(IDragUseCueState), ["Showing", "TargetSteamId"]),

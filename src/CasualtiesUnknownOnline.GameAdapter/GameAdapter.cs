@@ -158,10 +158,10 @@ public sealed class GameAdapter : IGameAdapter, IOnlineUiNativeFactsQuery, IOnli
 
 	/// <summary>
 	/// The REQUIRED capabilities whose hooks did not land in the last install
-	/// attempt, by their player-facing titles — what the mod's own window tells
-	/// the player. Empty when the install succeeded.
+	/// attempt, by capability id in catalogue order — the mod's own window turns
+	/// those ids into the reader's language. Empty when the install succeeded.
 	/// </summary>
-	public IReadOnlyList<string> RefusedCapabilities => _patches.RefusedCapabilities;
+	public IReadOnlyList<string> RefusedCapabilityIds => _patches.RefusedCapabilityIds;
 
 	/// <summary>
 	/// The console <c>/heal</c> cheat verb's body half: the full reset of THIS client's own body,

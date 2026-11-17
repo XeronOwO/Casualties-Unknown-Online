@@ -19,14 +19,17 @@ not one of those six is a different surface, not a new tab.
 
 ## Rules and states
 
-- **When the adapter's install refuses, the window's Home page says what this game update broke.** The refusal publishes
-  the failing REQUIRED capabilities' player-facing titles (`PatchInstallLifecycle.RefusedCapabilities` →
-  `IGameAdapter.RefusedCapabilities` → `IAdapterCapabilityQuery`), and `Plugin/OnlineUiHomeDrawer.cs` renders
-  `home.adapter_refused` in red above the Steam block: "CUO cannot start multiplayer: this game update broke {0}.
-  Everything else in the game still runs." An OPTIONAL capability's failure degrades alone and never shows the line, and a
-  healthy install answers an empty list. A deployed build can be put in this state through `CUO_FAULT_CAPABILITY`
-  (`GameAdapter/Capabilities/InstallFaultInjection.cs`), which reports the named capability as broken and is inert when
-  unset — the seam exists because the wording and placement can only be read from the game's own window (2026-11-18).
+- **When the adapter's install refuses, the window's Home page says what this game update broke, in the reader's
+  language.** The refusal publishes the failing REQUIRED capabilities by id (`PatchInstallLifecycle.RefusedCapabilityIds` →
+  `IGameAdapter.RefusedCapabilityIds` → `IAdapterCapabilityQuery`); the window owns the wording, turning each id into the
+  `capability.<id>.title` key through `Runtime/OnlineUi/OnlineUiCapabilityTitles.cs`, and renders `home.adapter_refused` in
+  red above the Steam block: "CUO cannot start multiplayer: this game update broke {0}. Everything else in the game still
+  runs." A hook no capability claims reads as the unclassified-system line rather than vanishing, an OPTIONAL capability's
+  failure degrades alone and never shows the line, and a healthy install answers an empty list. A deployed build can be put
+  in this state through `CUO_FAULT_CAPABILITY` (`GameAdapter/Capabilities/InstallFaultInjection.cs`), which reports the named
+  capability as broken and is inert when unset — the seam exists because the wording and placement can only be read from
+  the game's own window. Measured 2026-11-18: the first build interpolated the catalog's English titles, so the Chinese line
+  carried "Medical treatment, wounds and the remote medical view" verbatim; the ids-and-keys split is the fix.
 - The window has no page for the console: the command surface is its own overlay, and the window does not duplicate it.
 - A page shows the facts it owns and offers the controls that apply to them; a control whose action does not apply is not
   offered rather than offered and refused.

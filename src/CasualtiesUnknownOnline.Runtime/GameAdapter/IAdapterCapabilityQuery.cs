@@ -18,10 +18,12 @@ public interface IAdapterCapabilityQuery
 
 	/// <summary>
 	/// The REQUIRED capabilities whose hooks did not land in the last install
-	/// attempt, by their player-facing titles (session first, duplicates
-	/// collapsed); empty when the install succeeded or only Optional
-	/// capabilities degraded. The mod's own window renders this so a refusal is
-	/// never silent.
+	/// attempt, by capability id (session first, duplicates collapsed, a hook no
+	/// capability claims as <c>unclaimed</c>); empty when the install succeeded or
+	/// only Optional capabilities degraded. The mod's own window renders this so a
+	/// refusal is never silent, and it owns the wording: the ids resolve through
+	/// <see cref="OnlineUi.OnlineUiCapabilityTitles"/> so the sentence names the
+	/// broken systems in the reader's own language.
 	/// </summary>
-	IReadOnlyList<string> RefusedCapabilities { get; }
+	IReadOnlyList<string> RefusedCapabilityIds { get; }
 }

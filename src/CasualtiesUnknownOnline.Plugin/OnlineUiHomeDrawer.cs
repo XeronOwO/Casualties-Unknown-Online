@@ -1,4 +1,6 @@
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using UnityEngine;
 
@@ -33,9 +35,18 @@ internal static class OnlineUiHomeDrawer
 
 		// The adapter's refusal is the first thing a player must know: the mod's window
 		// says which system this game update broke, instead of the plugin failing silently.
-		if (ctx.CapabilityQuery is { RefusedCapabilities.Count: > 0 } capabilityQuery)
+		// The port carries ids; this window owns the wording, so the names read in the
+		// player's own language (2026-11-18: the line was English inside Chinese).
+		if (ctx.CapabilityQuery is { RefusedCapabilityIds.Count: > 0 } capabilityQuery)
 		{
-			page.Label($"<color=#E6615A>{ctx.F("home.adapter_refused", string.Join(", ", capabilityQuery.RefusedCapabilities))}</color>");
+			var names = string.Join(", ", capabilityQuery.RefusedCapabilityIds.Select(id =>
+			{
+				// The key is produced by the id map and read here, which is the catalogue's own
+				// pass-through shape (the local is named for the accessor's key parameter).
+				var labelKey = OnlineUiCapabilityTitles.KeyFor(id);
+				return ctx.T(labelKey);
+			}));
+			page.Label($"<color=#E6615A>{ctx.F("home.adapter_refused", names)}</color>");
 		}
 
 		page.Section(ctx.T("home.steam_status"));

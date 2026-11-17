@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Capabilities;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Patching;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -24,11 +25,12 @@ internal sealed class PatchInstallLifecycle
 	private Harmony? _harmony;
 
 	/// <summary>
-	/// The REQUIRED capabilities whose hooks did not land in the last attempt,
-	/// by their player-facing titles — what the mod's own window tells the player.
-	/// Empty when the install succeeded (an Optional degradation is not a refusal).
+	/// The REQUIRED capabilities whose hooks did not land in the last attempt, by
+	/// capability id in catalogue order — the mod's own window turns those ids into
+	/// the reader's language. Empty when the install succeeded (an Optional
+	/// degradation is not a refusal).
 	/// </summary>
-	internal IReadOnlyList<string> RefusedCapabilities { get; private set; } = [];
+	internal IReadOnlyList<string> RefusedCapabilityIds { get; private set; } = [];
 
 	internal PatchInstallLifecycle(ILogger log)
 	{
@@ -137,11 +139,7 @@ internal sealed class PatchInstallLifecycle
 			var blocking = missing.Where(failure => AdapterCapabilityCatalog.IsRequiredOwner(failure.PatchClass)).ToList();
 			if (blocking.Count > 0)
 			{
-				RefusedCapabilities = [.. blocking
-					.Select(failure => AdapterCapabilityCatalog.TitleOfPatchClass(failure.PatchClassType))
-					.Where(title => title is not null)
-					.Select(title => title!)
-					.Distinct(StringComparer.Ordinal)];
+				RefusedCapabilityIds = CatalogueOrderedIds(blocking);
 				_log.LogError("Game Adapter patch verification FAILED — {Count} required target(s) not applied: {Missing}",
 					blocking.Count, string.Join(", ", blocking.Select(failure => failure.Detail)));
 				_harmony.UnpatchSelf();
@@ -149,7 +147,7 @@ internal sealed class PatchInstallLifecycle
 				return false;
 			}
 
-			RefusedCapabilities = [];
+			RefusedCapabilityIds = [];
 
 			if (missing.Count > 0)
 			{
@@ -170,6 +168,21 @@ internal sealed class PatchInstallLifecycle
 			_harmony = null;
 			return false;
 		}
+	}
+
+	/// <summary>
+	/// The blocking failures' capability ids, de-duplicated and in catalogue order
+	/// (a hook no capability claims reads as <c>unclaimed</c> and sorts last): the
+	/// window renders these ids, so a refusal's order never depends on which hook
+	/// was verified first.
+	/// </summary>
+	private static IReadOnlyList<string> CatalogueOrderedIds(IReadOnlyList<PatchVerificationFailure> blocking)
+	{
+		var order = AdapterCapabilityCatalog.All.Select(definition => definition.Id).ToList();
+		return [.. blocking
+			.Select(failure => AdapterCapabilityCatalog.OwnerOfPatchClass(failure.PatchClassType) ?? OnlineUiCapabilityTitles.UnclaimedId)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(id => order.IndexOf(id) is var index && index >= 0 ? index : int.MaxValue)];
 	}
 
 	/// <summary>The install attempt's own failure — a throw means no capability report may call the session healthy.</summary>

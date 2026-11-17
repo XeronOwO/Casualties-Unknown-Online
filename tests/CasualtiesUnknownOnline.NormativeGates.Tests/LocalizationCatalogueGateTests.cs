@@ -115,6 +115,7 @@ public sealed class LocalizationCatalogueGateTests
 		("WaitLineKey", "SessionWaitText's wait-kind switch: the loading screen's line is a key the local catalogue renders, handed to the coordinator's renderer by SessionWaitText.Line"),
 		("LineKey", "StartingSupplyGrantReport's per-disposition key switch: the report's line is printed by the console through AddKeyedLine, so a Chinese client reads the account in Chinese (2026-10-25)"),
 		("WaitNobodyKey", "SessionWaitText's word for an empty name list, rendered by the same catalogue so a Chinese sentence never carries an English clause"),
+		("KeyFor", "OnlineUiCapabilityTitles' capability-id switch: the refusal line's system names reach ctx.T through the key this map produces, so the sentence is never English inside Chinese (2026-11-18)"),
 	];
 
 	[Fact]

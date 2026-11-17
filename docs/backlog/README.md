@@ -72,7 +72,7 @@ _No open ticket._
 
 ### In progress
 
-- [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
+- [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — slice 1 landed; `WorldService` 603.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
 
 

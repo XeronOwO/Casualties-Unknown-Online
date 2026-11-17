@@ -65,7 +65,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [A minigame's click-start edge never arms](todo/1.0-minigame-click-edge-never-arms.md) — **High** — held-gesture rows blocked.
 
 ### In progress
-- [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
@@ -123,6 +122,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Split SessionService at its seams](done/split-session-service.md) — **Medium** — 599 → 579; one owner for the peer order.
 - [Acceptance declarations never register](done/1.0-acceptance-declarations-not-registered.md) — **High** — the probe now finds a nested type.
 - [Split the world message services at their seams](done/split-world-service-messages.md) — **Medium** — 613 → 450; both debt entries gone.
 - [Split the block-break apply path out](done/split-block-break-remote-apply.md) — **Medium** — 688 → 403 lines; both directions of the break cross.

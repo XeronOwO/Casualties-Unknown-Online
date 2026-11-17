@@ -185,6 +185,16 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
 			while (DateTime.UtcNow < deadline)
 			{
+				// A held key produces one DOWN edge only: `press-key` again on an already-held key is not a new
+				// click-start frame, so `holdingBandage` (computed only on the started frame) never re-arms.
+				// The player taps, so each poll releases and presses again — one edge per pass.
+				await context.MemberRecipeAsync(
+					"virtual-input",
+					cancellationToken,
+					("mode", "release-key"),
+					("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+					("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+					("button", "0")).ConfigureAwait(false);
 				await context.MemberRecipeAsync(
 					"virtual-input",
 					cancellationToken,

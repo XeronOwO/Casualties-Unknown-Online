@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [A minigame's click-start edge never arms](todo/1.0-minigame-click-edge-never-arms.md) — **High** — held-gesture rows blocked.
+_No open ticket._
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
@@ -122,6 +122,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A minigame's click-start edge never arms](done/1.0-minigame-click-edge-never-arms.md) — **High** — a held key has one edge; taps pass the row.
 - [Split SessionService at its seams](done/split-session-service.md) — **Medium** — 599 → 579; one owner for the peer order.
 - [Acceptance declarations never register](done/1.0-acceptance-declarations-not-registered.md) — **High** — the probe now finds a nested type.
 - [Split the world message services at their seams](done/split-world-service-messages.md) — **Medium** — 613 → 450; both debt entries gone.

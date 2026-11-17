@@ -57,12 +57,6 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var storedBefore = await context.RecipeAsync("saved-color-read", cancellationToken, ("guest", context.MemberId)).ConfigureAwait(false);
 		context.Read("host stored character before save", storedBefore);
 
-		var beforeGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
-		Require(Boolean(beforeGeysers, "ok"), "the host could not read the geyser types before saving: " + Raw(beforeGeysers));
-		var beforeTypes = GeyserTypes(beforeGeysers);
-		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
-		context.Read("geyser types before save", beforeGeysers);
-
 		// The save must come after real world damage. The 2026-11-15 merged run saved after a trap
 		// blast and the restore then refused the cut's building-health rows; the suite hid that by
 		// taking its save before the damage cases. Staging the mine here puts the reading in the row
@@ -93,6 +87,15 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		// The mine's fuse is 0.8 s of game time; the kernel records the explosion's rows when it
 		// lands, and the cut must be taken after them. This is that duration, not a poll budget.
 		await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
+
+		// The type table is read AFTER the blast, because the blast can destroy a geyser: the cut
+		// is taken after the damage, so the pre-damage table is not what the archive will carry
+		// (2026-11-17: 92 rows before the mine, 91 in the cut).
+		var beforeGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(beforeGeysers, "ok"), "the host could not read the geyser types before saving: " + Raw(beforeGeysers));
+		var beforeTypes = GeyserTypes(beforeGeysers);
+		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
+		context.Read("geyser types before save", beforeGeysers);
 
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
@@ -127,10 +130,13 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(inWorld, "the host did not enter the restored world");
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 
-		// The live-world replay can start its 5 s geyser deferral only once the host is back in the
-		// world, so the audit lands about 12 s after the continue in the measured 2026-11-16 run.
+		// The live-world replay holds the native geyser set while the live count is still growing,
+		// so the audit lands after the set stops filling, not at the entry seam. The wait is the
+		// fixture's budget: the measured runs put it inside 20 s.
 		var restoredAudit = await WaitForLogAsync(context, "restored the live world", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
-		Require(restoredAudit.Contains(beforeTypes.Count + " geyser type(s) applied", StringComparison.Ordinal), "the restore did not apply the " + beforeTypes.Count + " geyser types: " + restoredAudit);
+		Require(
+			restoredAudit.Contains(beforeTypes.Count + " geyser type(s) applied (the archive carried " + beforeTypes.Count + ")", StringComparison.Ordinal),
+			"the restore did not apply the " + beforeTypes.Count + " geyser types the live world held before the save: " + restoredAudit);
 		Require(restoredAudit.Contains("0 row(s) not taken", StringComparison.Ordinal), "the restore still refused geyser rows: " + restoredAudit);
 		Require(restoredAudit.Contains("/ 0 refused world-entity row(s)", StringComparison.Ordinal), "the restore refused a world-entity row after the trap blast: " + restoredAudit);
 		Require(!restoredAudit.Contains("not carried world-entity row(s)", StringComparison.Ordinal), "the restore carried none of the cut's world-entity rows: " + restoredAudit);

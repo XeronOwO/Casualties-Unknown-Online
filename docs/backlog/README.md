@@ -79,7 +79,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
-- [Host cannot host after a continue](in-progress/host-cannot-host-after-continue.md) — **High** — the natural Continue-then-host order fails.
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
@@ -136,6 +135,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Host cannot host after a continue](done/host-cannot-host-after-continue.md) — **High** — continue, then host: the member joins the same run.
 - [The acceptance suite finishes under five minutes](done/1.0-acceptance-under-five-minutes.md) — **High** — 39/39 in 299.8 s, the trap blast included.
 - [A save after trap damage keeps every row](done/1.0-save-after-building-damage-loses-entity.md) — **High** — 2 applied, 0 refused after a blast.
 - [A continued world loses a geyser row](done/1.0-continue-loses-a-geyser-row.md) — **High** — 117/117 applied, one-to-one match.

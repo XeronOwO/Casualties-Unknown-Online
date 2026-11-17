@@ -10,12 +10,23 @@ rejoined party to find the same world, the same items and the same progress.
 
 ## Rules and states
 
-- **Closing the room is a safe exit.** A host closing the room ends the session for the party cleanly rather than dropping them into a broken world: the case has its own record (a "close-room safe exit" selfcheck) and belongs to this page's lifecycle rules.- The lobby is a membership: who is present, whose Steam identity, and which host rule set applies. Membership and the
+- **Closing the room is a safe exit.** A host closing the room ends the session for the party cleanly rather than dropping them into a broken world: the case has its own record (a "close-room safe exit" selfcheck) and belongs to this page's lifecycle rules.
+- The lobby is a membership: who is present, whose Steam identity, and which host rule set applies. Membership and the
   world are two different facts — joining the lobby does not place a body in the world, and re-entering a world is done
   from the running client, never by restarting it.
 - **A guest ends its session only when the host is really gone.** A lobby member list is a SAMPLE: Steam fills it a moment after a join and can hand back a stale snapshot between two updates, so one reading that omits the host is not evidence of anything. The guest ends the session after `HostMissingChecks` consecutive readings agree (and an EMPTY list never counts), because ending it is irreversible — `SessionActive` re-arms only on `OnLobbyCreated`, so a false positive leaves the guest retrying handshakes into a session it already dropped while the host still holds the lobby (measured 2026-10-28: the guest logged "Host left the lobby — ending session" during a session whose host was running and whose start gate had already released).
 - The run is the host's world. A member's character is restored by the client that can apply it, on a continue, from the
   stored keys the present peers claim.
+- **A host may open the room over the world it already continued.** The natural order — Continue, then host — is allowed:
+  with no session there is nothing to re-key, and the world's archive was claimed in the same key space the session will
+  use. `IpDirectActions.CanCreateHost` keeps the transport and Steam-session checks and, for a live world, asks
+  `LobbySwitchGuard.CanCreateLobby` (the rule the Steam lobby create already applied to a solo player in a world); a
+  sessioned world still refuses a second create, and a join still refuses while a world runs because a join re-keys the
+  player's identity. The save stays CUO's own: `PreRunScriptLoadRunPatch` blocks the native `LoadRun`, so a live world is
+  always a CUO continue that published a run baseline. Reading 2026-11-17 (case `host-after-continue`): host
+  `role=Host, inWorld=true, runId=2`, member `role=Guest, inWorld=true, runId=2`, host log `IP-direct hosting opened over
+  the solo world that is already running.`; ticket
+  [host-cannot-host-after-continue.md](../../backlog/done/host-cannot-host-after-continue.md).
 - **Every run entry the game has asks the same first question.** `PreRunScript.StartRun` and `PreRunScript.LoadRun`
   (`PreRunScript.cs:273-300`) both refuse while `PlayerPrefs.GetInt("didbasiccourse") == 0`, showing the tutorial warning and
   hiding the run-settings screen instead — so "start a run", "continue a run" and the tutorial are one gate in the game, and a

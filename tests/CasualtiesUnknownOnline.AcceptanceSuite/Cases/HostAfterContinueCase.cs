@@ -37,7 +37,7 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		// already CUO's own.
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
-		var committed = await WaitForHostLogAsync(context, logOffset, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+		var committed = await WaitForLogAsync(context.HostLogPath, logOffset, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
 		Require(committed is not null, "the save cut did not commit, so the continue below would open no world");
 
 		// End the session while both players stand in the world: the host's leave ends the member's
@@ -66,7 +66,7 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		Require(await context.Session.WaitWorldExitAsync(context.Session.HostUrl, cancellationToken).ConfigureAwait(false), "the host did not leave the world before continuing");
 		var continued = await context.Session.ActionAsync(context.Session.HostUrl, "continue-run", cancellationToken).ConfigureAwait(false);
 		context.Read("continue with no session", continued);
-		var restored = await WaitForHostLogAsync(context, logOffset, "Continue restored world", TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
+		var restored = await WaitForLogAsync(context.HostLogPath, logOffset, "Continue restored world", TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
 		Require(restored is not null, "the host's session-less continue did not restore the world");
 		var inWorld = await WaitForStateAsync(
 			context.Session,
@@ -95,10 +95,13 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		Require(Text(hostHosting, "role") == "Host", "ip.create_host did not open a session over the running world: " + Raw(hostHosting));
 		Require(IsTrue(hostHosting, "inWorld"), "opening the session moved the host out of its world: " + Raw(hostHosting));
 		Require(ReadInt(hostHosting, "runId") == runBefore, "opening the session replaced the running world: run " + ReadInt(hostHosting, "runId").ToString(CultureInfo.InvariantCulture) + " instead of " + runBefore.ToString(CultureInfo.InvariantCulture));
-		var createLine = await WaitForHostLogAsync(context, logOffset, "IP-direct hosting opened over the solo world", TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+		var createLine = await WaitForLogAsync(context.HostLogPath, logOffset, "IP-direct hosting opened over the solo world", TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
 		context.Notes.Add("the host logged the adoption: " + (createLine ?? "NO LINE"));
 
-		// The member joins the running world.
+		// The member joins the running world. The host's own log is the readable side here: the
+		// member's log path resolves inside its sandbox, so a suite-side read of that path opens a
+		// different file (2026-11-17: the path answered a sandbox view and the join line was
+		// invisible). The host's send line plus the member's own state are the two sides of the relay.
 		await context.Session.ActionAsync(context.Session.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
 		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
@@ -128,11 +131,28 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		Require(ReadInt(member, "runId") == runBefore, "the member entered run " + ReadInt(member, "runId").ToString(CultureInfo.InvariantCulture) + " instead of the host's running run " + runBefore.ToString(CultureInfo.InvariantCulture));
 		Require(!IsTrue(member, "gateWaiting"), "the member is still held at the start gate: " + Raw(member));
 
-		var joinReceived = await context.Session.WaitForLogAsync(context.Session.MemberUrl, "World join received", 20000, cancellationToken).ConfigureAwait(false);
-		Require(joinReceived is not null, "the member never received a world-join instruction, so its world came from somewhere else");
+		var joinSent = await WaitForLogAsync(context.HostLogPath, logOffset, "World join sent to 1 member(s)", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+		context.Notes.Add("host sent the entry instruction: " + (joinSent ?? "NO LINE"));
+		Require(joinSent is not null, "the host never sent the accepted member a world-join instruction, so the member's world came from somewhere else");
 		var hostRun = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		Require(ReadInt(hostRun, "runId") == runBefore, "the host's run changed while the member joined");
-		var roster = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+
+		// The host's roster lists peers whose world entry completed, so it trails the member's own
+		// in-world flag by the world's load (2026-11-17: the roster was still empty 9 s after the
+		// member's state read inWorld true, then named it). Poll it, do not read it once.
+		var roster = Array.Empty<string>();
+		var rosterDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(25);
+		while (DateTime.UtcNow < rosterDeadline)
+		{
+			roster = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			if (roster.Length > 0)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Notes.Add("roster after the join: " + string.Join(", ", roster));
 		Require(roster.Length > 0, "the host's roster does not name the member it just accepted");
 	}
@@ -186,12 +206,12 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		return state;
 	}
 
-	private static async Task<string?> WaitForHostLogAsync(CaseContext context, long offset, string needle, TimeSpan budget, CancellationToken cancellationToken)
+	private static async Task<string?> WaitForLogAsync(string path, long offset, string needle, TimeSpan budget, CancellationToken cancellationToken)
 	{
 		var deadline = DateTime.UtcNow + budget;
 		while (DateTime.UtcNow < deadline)
 		{
-			var text = ReadLog(context.HostLogPath);
+			var text = ReadLog(path);
 			var index = text.LastIndexOf(needle, StringComparison.Ordinal);
 			if (index >= 0 && index >= offset)
 			{
@@ -246,7 +266,9 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		int.TryParse(Text(reading, property), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
 
 	private static bool IsTrue(JsonElement? reading, string property) =>
-		string.Equals(Text(reading, property), "true", StringComparison.OrdinalIgnoreCase);
+		reading is { ValueKind: JsonValueKind.Object } state
+		&& state.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 

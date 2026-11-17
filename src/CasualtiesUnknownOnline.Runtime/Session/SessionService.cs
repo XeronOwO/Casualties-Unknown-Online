@@ -36,6 +36,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	private readonly ILogger<SessionService> _log;
 	private readonly SessionPeerMaintenance _peerMaintenance;
 	private readonly SessionHeartbeat _heartbeat;
+	private readonly SessionMaintenance _maintenance;
 	private readonly HostKickService _hostKick;
 
 	// Session-owned state — never registered as services (user rule: state
@@ -66,6 +67,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 			new PeerWarmupBackoff(), RemoveMember, EndSession, log);
 		_hostKick = new HostKickService(this, _sender, _log);
 		_heartbeat = new SessionHeartbeat(() => _time.NowMs, RequestPing);
+		_maintenance = new SessionMaintenance(_peerMaintenance, _heartbeat, () => SessionActive);
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
@@ -347,31 +349,9 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 	{
 	}
 
-	void ICuoService.Update()
-	{
-		// Host: keep warming up lobby peers that have not handshaken yet — a
-		// Steam P2P session only establishes with traffic from both directions
-		// (Phase-0 finding), and the periodic ping only covers presence members.
-		// Without this a late joiner never gets host→guest traffic and its
-		// handshake dies (5003 connect timeout).
-		_peerMaintenance.SendPeerWarmup();
-
-		// The heartbeat does not depend on the world: a session holding a
-		// transition still owns its peers (see SessionHeartbeat).
-		_heartbeat.Tick();
-
-		if (!SessionActive)
-		{
-			_peerMaintenance.RetryHandshakeIfNeeded();
-			_peerMaintenance.CheckPeerPresence();
-			return;
-		}
-
-		// The entity-sync decisions and the 20 Hz stream run in
-		// EntitySyncService.Update; the receive dispatch in PacketDispatcher
-		// (both registered after us).
-		_peerMaintenance.CheckPeerPresence();
-	}
+	// One owner for the update order (warmup -> ping schedule -> handshake retry while no run is
+	// active -> presence); see SessionMaintenance for why the order is the behaviour.
+	void ICuoService.Update() => _maintenance.Tick();
 
 	void ICuoService.Stop()
 	{

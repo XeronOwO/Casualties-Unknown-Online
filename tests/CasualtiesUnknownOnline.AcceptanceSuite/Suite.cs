@@ -1092,12 +1092,10 @@ internal static class CaseRegistry
 		// runs by name: it restarts the run, which no other batch row may pay for.
 		new StartingSuppliesCase(),
 		new MedicalChartCase(),
-		// PARKED 2026-11-18 again: the staged DOWN edge now arms the minigame when a batch re-presses it
-		// (`minigame-live` read handStarted true, lastActionAngle 20 → 40, fill 0.084), but the row's own
-		// session still reads no progress after 40 s and the limb keeps bleeding (`.acceptance/bandage-edge2`).
-		// The remaining gap is the row's own state at press time, not the input patch; it reads
-		// docs/backlog/todo/1.0-minigame-click-edge-never-arms.md.
-		// new MedicalBandageCase(),
+		// Re-registered 2026-11-18 for the ticket's next step: the row now records `minigame-live` at the
+		// first press, so its failure names the minigame's own state (holding, handStarted, angle, fill) at
+		// the moment the staged press lands. It runs by name because the item's minigame takes frames.
+		new MedicalBandageCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),

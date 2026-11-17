@@ -161,6 +161,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		Require(Boolean(pressed, "ok"), "the attack key could not be staged: " + Raw(pressed));
 
 		var after = wounded;
+		JsonElement? minigameAtPress = null;
 		try
 		{
 			var circle = await context.MemberRecipeAsync(
@@ -191,6 +192,15 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 					("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 					("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 					("button", "0")).ConfigureAwait(false);
+				if (minigameAtPress is null)
+				{
+					// The ticket's next step: name the minigame's own state at the moment the row's press lands,
+					// so a failure says whether the view was open and whether the click-start edge armed handStarted
+					// (the hand experiment read handStarted true here; the row's own sessions have not).
+					minigameAtPress = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+					context.Read("minigame at the first press", minigameAtPress);
+				}
+
 				after = await ReadLimbAsync(context, limb, cancellationToken).ConfigureAwait(false);
 				if (Number(after, "bleedAmount") <= 0.001)
 				{
@@ -224,7 +234,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		var bleedAfter = Number(after, "bleedAmount");
 		Require(
 			bleedAfter <= 0.001,
-			"the bandage did not stop the limb's bleed: before " + bleedBefore.ToString("F3", CultureInfo.InvariantCulture) + ", after " + bleedAfter.ToString("F3", CultureInfo.InvariantCulture) + " — " + Raw(after));
+			"the bandage did not stop the limb's bleed: before " + bleedBefore.ToString("F3", CultureInfo.InvariantCulture) + ", after " + bleedAfter.ToString("F3", CultureInfo.InvariantCulture) + " — " + Raw(after) + "; minigame at the first press: " + Raw(minigameAtPress));
 	}
 
 	private static Task<JsonElement?> ReadLimbAsync(CaseContext context, string limb, CancellationToken cancellationToken)

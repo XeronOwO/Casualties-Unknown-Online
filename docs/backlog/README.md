@@ -62,8 +62,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [The acceptance suite finishes under five minutes](todo/1.0-acceptance-under-five-minutes.md) — **High** — 306.1 s; one row red on the geyser restore.
-- [A continued world loses the geyser types](todo/1.0-continue-loses-geyser-types.md) — **High** — 46 of 110 geyser rows refused; fix awaits acceptance.
 - [Save after trap damage drops building health](todo/1.0-save-after-building-damage-loses-entity.md) — **High** — Continue refuses a damaged building's row.
 - [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
 
@@ -74,7 +72,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
-- [A followed continue keeps no character](in-progress/1.0-followed-continue-keeps-no-character.md) — **High** — its fresh body replaces the restore.
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
@@ -140,6 +137,9 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The acceptance suite finishes under five minutes](done/1.0-acceptance-under-five-minutes.md) — **High** — 39/39 in 298.2 s.
+- [A continued world loses the geyser types](done/1.0-continue-loses-geyser-types.md) — **High** — 104/104 applied, 0 refused.
+- [A followed continue keeps no character](done/1.0-followed-continue-keeps-no-character.md) — **High** — the character arrives with the invite.
 - [A world's live save is one archive](done/1.0-save-live-snapshot-single-file.md) — **High** — one `live.cuoz`, no loose JSON; legacy Continue, 38/38 green.
 - [The block tables differ](done/1.0-block-table-diverges-between-clients.md) — **High** — entry and post-break totals agree.
 - [A live member's block table can drift](done/1.0-live-block-table-never-resyncs.md) — **High** — 60 s fallback read on the member.

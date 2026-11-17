@@ -405,6 +405,7 @@ commit:  if an old live.cuoz exists, rename it to .previous/live.cuoz
 
 Decision 163: restore minimizes loss, and salvage is **per entry, not per domain**.
 
+- **The OPEN seam is its own object.** `Runtime/Persistence/SaveArchiveManifestGate` reads the entries out of a one-file archive or an unpacked `live/` folder, applies the manifest gate and the checksum policy, and answers "sound snapshot or this damage". It is one gate for both shapes because what a snapshot IS must not depend on where its bytes live; it also validates every archive entry name through `ArchivePathPolicy.ValidateArchiveEntryName` and refuses an archive whose paths repeat, since duplicate ZIP names cannot say which bytes a file is. `SaveArchiveReader` keeps the decisions (which source to try, repair mode, backup fallback) and hands domain entries to `SaveSalvagePass`. The split is what removed its 619-line debt entry.
 - The **manifest is the only hard gate**. If `manifest.json` cannot be read or parsed, the archive
   is *damaged*: it is never silently loaded. The loader falls back to the newest backup archive
   whose manifest reads, and reports the fallback loudly.

@@ -227,7 +227,8 @@ internal sealed class GameAdapterDomains
 		ModStatusStore modStatusStore,
 		ModStatusProjectionReadModel modStatusProjectionReadModel,
 		ITimeSource time,
-		ItemIdAllocator itemIds)
+		ItemIdAllocator itemIds,
+		PlayerDeathCounter playerDeaths)
 	{
 		Session = session;
 		Items = items;
@@ -291,7 +292,7 @@ internal sealed class GameAdapterDomains
 																			   // the starting-supplies decision reads the same instance to answer "does this world
 																			   // have a character for me?" (S4.3).
 		var localRestore = new LocalCharacterRestoreQueue();
-		var restoreApplier = new CharacterRestoreApplier(mapper, wearables, nativeCharacterSystem, loggerFactory.CreateLogger<CharacterRestoreApplier>());
+		var restoreApplier = new CharacterRestoreApplier(mapper, wearables, nativeCharacterSystem, playerDeaths, loggerFactory.CreateLogger<CharacterRestoreApplier>());
 		// The applied reset's authority event retries here because the transport can suppress a send
 		// locally; it is the only carrier of the three values the host owns.
 		var healResetReports = new HealResetReportRetry(characterData, time, loggerFactory.CreateLogger<HealResetReportRetry>());
@@ -308,6 +309,7 @@ internal sealed class GameAdapterDomains
 			localRestore,
 			healResetReports,
 			DescentBody,
+			playerDeaths,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		// The console /heal verb's body half: the full reset applied to this client's own body and
 		// re-reported. It is the adapter's port because only this side has the live Body and the

@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using MapsterMapper;
 
@@ -19,8 +20,11 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// reason <c>PlayerInteractionVisibility</c> stands beside the adapter.
 /// </para>
 /// </summary>
-public sealed class LocalCharacterCapture(IMapper mapper) : ILocalCharacterCapture
+public sealed class LocalCharacterCapture(IMapper mapper, PlayerDeathCounter deaths) : ILocalCharacterCapture
 {
+	/// <summary>This client's own death count — the same counter the 1 Hz report stamps, so an on-demand snapshot and the reported one agree.</summary>
+	private readonly PlayerDeathCounter _deaths = deaths;
+
 	/// <summary>True: this is the adapter's live scene read, so "no body" is a real answer about the body rather than a missing source.</summary>
 	public bool HasLiveCapture => true;
 
@@ -28,8 +32,13 @@ public sealed class LocalCharacterCapture(IMapper mapper) : ILocalCharacterCaptu
 	{
 		var camera = PlayerCamera.main;
 		var body = camera != null ? camera.body : null; // Unity object — ==
-		return body == null
-			? null
-			: CharacterDataCapture.Capture(mapper, body, out _, CharacterNativeFields.LiveSystem.Instance);
+		if (body == null)
+		{
+			return null;
+		}
+
+		var captured = CharacterDataCapture.Capture(mapper, body, out _, CharacterNativeFields.LiveSystem.Instance);
+		captured.Deaths = _deaths.Count;
+		return captured;
 	}
 }

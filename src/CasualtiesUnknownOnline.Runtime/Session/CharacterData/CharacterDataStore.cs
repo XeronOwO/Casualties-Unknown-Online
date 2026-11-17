@@ -369,6 +369,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>Host: the host's own latest character snapshot (cross-player interaction authority for host-owned items).</summary>
 	public CharacterDataMsg? GetHostCharacterData() => _hostData;
 
+	/// <summary>Host: a member's death count from its own latest report (decision 2026-11-14); false = no report yet, which the verb names rather than answering zero.</summary>
+	public bool TryGetDeaths(ulong steamId, out int deaths)
+	{
+		var found = _savedCharacters.TryGetValue(steamId, out var data);
+		deaths = found ? data!.Deaths : 0;
+		return found;
+	}
+
 	/// <summary>Host: record the host's own latest character snapshot (cross-player transfer result).</summary>
 	public void SaveHostCharacterData(CharacterDataMsg msg)
 	{

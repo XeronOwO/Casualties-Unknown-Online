@@ -117,6 +117,18 @@ public sealed class CharacterDataMsg
 	public int Character { get; set; }
 
 	/// <summary>
+	/// How many times this character has DIED in the current run — the owner's own count (the game's
+	/// <c>Body.alive</c> edge, not a damage estimate), carried here because a death count is a durable fact
+	/// of the character like its skills and limbs: the cut persists this snapshot, so a continue resumes
+	/// the count, and the host's store can answer it for any member (decision 2026-11-14).
+	/// 0 = a character that has not died yet, and also an old sender's default — the same reading, because
+	/// the count is a fact rather than a capability, so no <c>+1</c> encoding is needed (unlike
+	/// <see cref="HandSlot"/>, where 0 is a legal raw index).
+	/// </summary>
+	[ProtoMember(14)]
+	public int Deaths { get; set; }
+
+	/// <summary>
 	/// LOCAL-ONLY mutation counter, never serialized (no <c>ProtoMember</c>): the host's stored
 	/// snapshot is mutated in place by the event appliers (a bite, a limb latch, an injury), and a
 	/// host clone's input map must notice that mutation even though the object reference did not

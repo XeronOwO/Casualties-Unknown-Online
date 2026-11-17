@@ -285,6 +285,10 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 	/// </summary>
 	private static readonly string[] ExpectedUiKeys =
 	[
+		"console.answer.deaths.host_only",
+		"console.answer.deaths.no_report",
+		"console.answer.deaths.other",
+		"console.answer.deaths.self",
 		"console.answer.session_facts",
 		"console.chat.not_sent",
 		"console.cmd.ban.desc",
@@ -293,6 +297,8 @@ public sealed class OnlineUiConsolePageRemovalPinTests
 		"console.cmd.clear.usage",
 		"console.cmd.data.desc",
 		"console.cmd.data.usage",
+		"console.cmd.deaths.desc",
+		"console.cmd.deaths.usage",
 		"console.cmd.deop.desc",
 		"console.cmd.deop.usage",
 		"console.cmd.gamemode.desc",

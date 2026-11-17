@@ -3558,7 +3558,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
 
-      "quote": "Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);"
+      "quote": "Reports.Send(CaptureWithDeaths(localBody, out var nativeFailure), throttled: false, nativeFailure);"
 
     },
 
@@ -8346,7 +8346,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs",
 
-      "quote": "Reports.Send(_favouriteMarks.Capture(prevBody, out _), throttled: false);"
+      "quote": "Reports.Send(CaptureWithDeaths(prevBody, out _), throttled: false);"
 
     },
 

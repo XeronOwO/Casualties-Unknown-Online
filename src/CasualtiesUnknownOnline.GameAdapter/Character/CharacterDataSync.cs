@@ -31,6 +31,7 @@ internal sealed class CharacterDataSync(
 	LocalCharacterRestoreQueue restore,
 	HealResetReportRetry healResetReports,
 	DescentBodyPreservation descentBody,
+	PlayerDeathCounter deaths,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -43,6 +44,9 @@ internal sealed class CharacterDataSync(
 
 	/// <summary>The descent follow's one-shot handback fact, shared with the run coordinator that notes the body.</summary>
 	private readonly DescentBodyPreservation _descentBody = descentBody;
+
+	/// <summary>This client's own death count (the user's decision 2026-11-14): ticked per frame from the local body's own <c>alive</c> flag, stamped onto every snapshot this client captures, written back by a restore and reset by a new run.</summary>
+	private readonly PlayerDeathCounter _deaths = deaths;
 
 	/// <summary>The local body the 1 Hz pump last saw — the handback guard compares it to the descent's preserved body.</summary>
 	private int _localBodyId;
@@ -285,6 +289,10 @@ internal sealed class CharacterDataSync(
 		// The applied reset's authority event retries on this cadence while this body exists: it is
 		// the only carrier of the three host-owned values, and the transport may not have accepted it.
 		_healResetReports.Tick();
+		// The death edge is the game's own alive flag (Body.alive = brainHealth > 0, release 1.0.2
+		// Body.cs:207): a body that IS there and stops being alive is one death, and a body that was not
+		// there at all cannot have died, so its missing frame disarms the edge instead of counting.
+		_deaths.Tick(localBody != null ? localBody.alive : null); // Unity object — ==
 		_localBodyId = localBody != null ? localBody.GetInstanceID() : 0; // Unity object — ==
 
 		if (localBody == null) // Unity object — ==
@@ -318,7 +326,7 @@ internal sealed class CharacterDataSync(
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: true, nativeFailure);
+		Reports.Send(CaptureWithDeaths(localBody, out var nativeFailure), throttled: true, nativeFailure);
 	}
 
 
@@ -328,14 +336,26 @@ internal sealed class CharacterDataSync(
 		if (localBody != null && _session.SessionActive && !RestoreRunner.RestorePending) // Unity object — ==
 		{
 			_log.LogInformation("[CloneRender] local body changed — immediate re-report.");
-			Reports.Send(_favouriteMarks.Capture(localBody, out var nativeFailure), throttled: false, nativeFailure);
+			Reports.Send(CaptureWithDeaths(localBody, out var nativeFailure), throttled: false, nativeFailure);
 		}
+	}
+
+	/// <summary>
+	/// Every full snapshot this client sends carries its own death count — the one capture seam the 1 Hz
+	/// report, the immediate re-reports, the cut and the leave-world snapshot share, so none of them can
+	/// send the character without its count (decision 2026-11-14; the same record carries the skills and limbs).
+	/// </summary>
+	private CharacterDataMsg CaptureWithDeaths(Body body, out string? nativeFailure)
+	{
+		var captured = _favouriteMarks.Capture(body, out nativeFailure);
+		captured.Deaths = _deaths.Count;
+		return captured;
 	}
 
 	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
 	internal CharacterDataMsg CaptureLocal(Body body)
 	{
-		var captured = Reports.Stamp(_favouriteMarks.Capture(body, out var nativeFailure));
+		var captured = Reports.Stamp(CaptureWithDeaths(body, out var nativeFailure));
 		if (nativeFailure is not null)
 		{
 			// The cut's own snapshot: this is the one a later continue restores, so its
@@ -351,6 +371,9 @@ internal sealed class CharacterDataSync(
 	{
 		_characterData.ClearSavedCharacters();
 		_favouriteMarks.Reset();
+		// A new run is a new character: its death count starts at zero (the restored count is written
+		// back by the restore applier, and a fresh body's first alive frame does not count as a death).
+		_deaths.Reset();
 	}
 
 	/// <summary>
@@ -424,6 +447,8 @@ internal sealed class CharacterDataSync(
 		RestoreRunner.Clear();
 		_factTable.Clear();
 		_favouriteMarks.Reset();
+		// The session is gone: its characters' death counts belong to it, and the next session starts fresh.
+		_deaths.Reset();
 	}
 
 	/// <summary>Leaving the world (death, menu) — push a final snapshot so the host's save carries the state at the moment of leaving, not the last 1 Hz report (a death → re-enter cycle would otherwise restore the pre-death state).</summary>
@@ -439,7 +464,7 @@ internal sealed class CharacterDataSync(
 		// nothing is waiting, the body's own final state is what the host needs.
 		if (!RestoreRunner.DropHalfRunRestore() && !RestoreRunner.RestorePending)
 		{
-			Reports.Send(_favouriteMarks.Capture(prevBody, out _), throttled: false);
+			Reports.Send(CaptureWithDeaths(prevBody, out _), throttled: false);
 		}
 
 		RestoreRunner.OnBodyLeft();

@@ -150,5 +150,8 @@ public class CharacterDataCloneTests
 		FavouriteMarks = [new CharacterFavouriteMarkMsg { OwnerSteamId = 2002UL, ItemInstanceId = 100UL, ItemId = "bag" }],
 		Generation = new WorldGenerationMsg { RunEpoch = 3UL, LayerIndex = 2 },
 		Respawn = true,
+		// Non-default so the JSON completeness check above fails if the copy drops the count
+		// (decision 2026-11-14: the stored copy is the character record a cut and a continue read).
+		Deaths = 3,
 	};
 }

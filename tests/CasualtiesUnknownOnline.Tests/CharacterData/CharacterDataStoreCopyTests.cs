@@ -44,4 +44,21 @@ public class CharacterDataStoreCopyTests
 		// The documented exception: the vitals leaves are shared by design.
 		Assert.Same(report.Health, stored.Health);
 	}
+
+	[Fact]
+	public void AStoredReportCarriesItsDeathCount_AndTheDeathsQueryReadsIt()
+	{
+		using var world = ItemSimWorld.Create();
+		var store = world.Host.Services.GetRequiredService<CharacterDataStore>();
+		const ulong peer = 2002UL;
+
+		// No report yet: the verb must be able to say "unknown", not "zero deaths".
+		Assert.False(store.TryGetDeaths(peer, out var unknownDeaths));
+		Assert.Equal(0, unknownDeaths);
+
+		Assert.True(store.SaveReportedCharacterData(peer, new CharacterDataMsg { SlotCount = 5, Deaths = 2 }));
+
+		Assert.True(store.TryGetDeaths(peer, out var deaths));
+		Assert.Equal(2, deaths);
+	}
 }

@@ -48,6 +48,10 @@ internal static class CharacterDataClone
 		// preserved body refuses.
 		Generation = source.Generation,
 		Respawn = source.Respawn,
+		// The death count rides along for the same reason as the fields above: the stored copy IS the
+		// character record the next cut, reconnect and continue read, so a dropped count would silently
+		// reset a player's deaths (decision 2026-11-14).
+		Deaths = source.Deaths,
 	};
 
 	internal static CharacterItemMsg Item(CharacterItemMsg item) => new()

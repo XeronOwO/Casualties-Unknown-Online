@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
@@ -261,6 +262,10 @@ public static class GameAdapterComposition
 		// The live local-body capture the target-body verdict seam asks for. Same
 		// standalone-service shape and the same cycle reason as the visibility oracle
 		// above: it must not be reached through GameAdapter.
+		// This client's own death count (decision 2026-11-14): one shared instance, because the 1 Hz report
+		// stamps it and the console's on-demand capture reads it — two counters would let the answer and the
+		// record disagree.
+		services.AddSingleton<PlayerDeathCounter>();
 		services.AddSingleton<LocalCharacterCapture>();
 		services.Replace(ServiceDescriptor.Singleton<ILocalCharacterCapture>(
 			p => p.GetRequiredService<LocalCharacterCapture>()));

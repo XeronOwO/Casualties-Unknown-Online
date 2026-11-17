@@ -82,6 +82,9 @@ internal static class ConsoleComposition
 		services.AddSingleton<IConsoleCommandGroup, WorldSummonCommands>();
 		services.AddSingleton<IConsoleCommandGroup, HealResetCommands>();
 		services.AddSingleton<IConsoleCommandGroup, KillCommands>();
+		// /deaths reads the character record's own count (the user's decision 2026-11-14): the local capture
+		// for one's own body, the host's stored snapshot for a member.
+		services.AddSingleton<IConsoleCommandGroup, PlayerStatsCommands>();
 		services.AddSingleton<IConsoleCommandGroup, AcceptanceCommands>();
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());

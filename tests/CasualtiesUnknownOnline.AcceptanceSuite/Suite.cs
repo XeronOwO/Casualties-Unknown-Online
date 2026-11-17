@@ -1189,6 +1189,10 @@ internal static class CaseRegistry
 		// Last row in the shared world: the Merc ending must not write either solo unlock key, and
 		// the host's native solo picker must come back after the session is left.
 		new CharacterSoloLockCase(),
+		// The per-player death count (the user's decision 2026-11-14): two deaths with a revive between
+		// them, read from both clients, then the same count after a save and a continue. It runs by name
+		// because the save/continue costs tens of seconds and the batch's wall time has a baseline.
+		new PlayerDeathsCase(),
 		// Parked 2026-11-14 09:58: with the pointer held on the band every tick the case opens the lock
 		// (three single runs passed), but inside the full order the game's own progress fills slowly
 		// (0.742 in twenty seconds at an angle 24 degrees off) and the case's poll ends first. The row

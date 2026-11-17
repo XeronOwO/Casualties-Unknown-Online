@@ -30,11 +30,14 @@ internal sealed class CharacterRestoreApplier(
 	IMapper mapper,
 	WearableRestorer wearables,
 	ICharacterNativeSystem nativeSystem,
+	PlayerDeathCounter deaths,
 	ILogger<CharacterRestoreApplier> log)
 {
 	private readonly IMapper _mapper = mapper;
 	private readonly WearableRestorer _wearables = wearables;
 	private readonly ICharacterNativeSystem _nativeSystem = nativeSystem;
+	/// <summary>Restoring a character restores its death count with it (the snapshot is the character's own record), and the restore's spawn is not a death of its own.</summary>
+	private readonly PlayerDeathCounter _deaths = deaths;
 	private readonly ILogger<CharacterRestoreApplier> _log = log;
 
 	/// <summary>
@@ -48,6 +51,9 @@ internal sealed class CharacterRestoreApplier(
 	internal void ApplyStatsAndWipe(Body body, CharacterDataMsg data)
 	{
 		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
+		// A restored character keeps the count it died with (the snapshot is the character's own record);
+		// the count is disarmed by the write so the restore's own spawn cannot count as a death.
+		_deaths.SetCount(data.Deaths);
 
 		// Destroy is end-of-frame; the items are re-added on the next frame
 		// (CharacterDataSync's second pass), so the slots are actually empty when

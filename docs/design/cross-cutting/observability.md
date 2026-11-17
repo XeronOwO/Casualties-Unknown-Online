@@ -22,6 +22,12 @@ enough to reconstruct what happened.
   report window while it lasts, its recovery, and the stall escalation (every attempt refused for 30 s)" — because "a refused
   send can never produce one log line per attempt, which is the defect this policy removes".
 - A player-facing status line and the log line for the same event answer different readers, and both exist.
+- **A per-player run statistic is a fact of the character, and its owner counts it.** The death count is the
+  game's own `Body.alive` edge on the client that owns the body (`Body.alive` is `brainHealth > 0f`,
+  `reversing/release-1.0.2/Assembly-CSharp/Body.cs:207-216`), it rides the character snapshot
+  (`CharacterDataMsg.Deaths`) so the cut, a continue and a reconnect carry it, and `/deaths` reads it back —
+  the member's own count from its capture, the host's view of a member from the stored report. Nothing is
+  inferred from damage, and a spawn, a restore and a world entry are never deaths.
 
 ## Who judges
 

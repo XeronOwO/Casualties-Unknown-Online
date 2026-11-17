@@ -133,4 +133,18 @@ public class RespawnPolicyTests
 		Assert.Equal(0, respawn.Skills.Intelligence);
 		Assert.Equal(0f, respawn.Skills.ExpStrength);
 	}
+
+	[Fact]
+	public void PrepareRespawn_KeepsTheDeathCount()
+	{
+		// A revive is not a new character: the message this returns replaces the stored row, so a
+		// dropped count would zero it on every death → revive cycle (2026-11-18 reading: the
+		// continue's next-level respawn turned a stored 2 into 0 and the hand-over sent zero).
+		var dead = DeadSnapshot();
+		dead.Deaths = 2;
+
+		var respawn = RespawnPolicy.PrepareRespawn(dead, keepInventory: true, keepSkills: true);
+
+		Assert.Equal(2, respawn.Deaths);
+	}
 }

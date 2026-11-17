@@ -221,6 +221,11 @@ internal static class TraderRecruitPolicy
 			// carry none — and a restore of it would silently continue with the
 			// game's defaults (S3.4b).
 			NativeFields = source.NativeFields,
+			// The death count rides along for the same reason: a revive is not a new character, and
+			// this message REPLACES the stored row (RespawnCoordinator writes it back), so dropping
+			// the count here would zero it on every death → revive cycle (2026-11-18 reading: the
+			// continue's next-level respawn turned a stored 2 into 0 and the hand-over sent zero).
+			Deaths = source.Deaths,
 			// The local favourite marks ride along for the same reason: a death →
 			// revive cycle is not a new world, so the items this player starred in
 			// somebody else's backpack have to survive it.

@@ -109,7 +109,8 @@ feature the game has must never be silently dropped from a session.
 - `AdapterCapabilityReport.RefusesSession` — Required failures plus unmapped ones refuse; `Degraded` names the Optional rows; `Render` prints "session available — {n} OPTIONAL capability(ies) installed off: …".
 - Pinned by `tests/CasualtiesUnknownOnline.Tests/Capabilities/AdapterCapabilityReportTests.cs` (`Render_AnOptionalBlockingFailureDegradesWithoutRefusing` and the existing Required/refusal facts).
 - Not yet: the player-visible refusal notice (stage 2's user-acceptance half) and stage 3's per-capability install units.
-- The notice's machine half LANDED (2026-11-10): `IAdapterCapabilityQuery.RefusedCapabilities` carries the failing REQUIRED capabilities' player-facing titles (`PatchInstallLifecycle.RefusedCapabilities` via `AdapterCapabilityCatalog.TitleOfPatchClass`), the Home page renders `home.adapter_refused` in red above the Steam block, and the port shape pins were updated (`AdapterCapabilityPortShapeTests`: the port's members and the composition's 34). A healthy install answers empty, so the line never shows. What stays open: the frame at the menu with a forced broken Required capability — the wording/placement row the ticket names — and stage 3.
+- The notice's machine half LANDED (2026-11-10): `IAdapterCapabilityQuery.RefusedCapabilities` carries the failing REQUIRED capabilities' player-facing titles (`PatchInstallLifecycle.RefusedCapabilities` via `AdapterCapabilityCatalog.TitleOfPatchClass`), the Home page renders `home.adapter_refused` in red above the Steam block, and the port shape pins were updated (`AdapterCapabilityPortShapeTests`: the port's members and the composition's 34). A healthy install answers empty, so the line never shows.
+- The notice's player-visible half LANDED (2026-11-18) with its reading — see "The refusal notice's reading" below. The port was later renamed to `RefusedCapabilityIds` and carries ids, not titles, so the line is in the reader's language. What stays open: stage 3 (per-capability install units).
 
 ## The refusal notice (design, 2026-11-10)
 
@@ -119,3 +120,25 @@ What the player must see when a REQUIRED capability's hook is missing: the CUO w
 - The seam: the bridge the plugin already holds (`IGameAdapter` through `CuoBootstrap.Services`) answers it; the Online UI's Home page renders one line when it is non-empty (`home.adapter_refused` = "CUO cannot start this session: this game update broke {0}. The rest of the game runs without multiplayer." / zh sibling), and the line's detail goes to the log with the same text the report prints.
 - The machine half: a unit test formats the record from synthetic failures (Required refused → named systems; Optional only → empty), pinned beside `AdapterCapabilityReportTests`.
 - The user half: a frame at the menu with a forced broken Required capability — the wording and the placement are the player-visible acceptance row the ticket names.
+
+## The refusal notice's reading (2026-11-18)
+
+**Read at the menu on `0.1.0+eb0289d1096e881e9e0d12c5a9b8c85cafa2778f`, with a Required capability forced broken on purpose.**
+
+- How to put a deployed build in the state: launch with `CUO_FAULT_CAPABILITY=medical`. The log prints
+  `FAULT INJECTION reports Medical treatment, wounds and the remote medical view (medical) as broken on purpose; unset
+  CUO_FAULT_CAPABILITY to restore the real install.` and the install refuses with
+  `Game Adapter patch verification FAILED — 1 required target(s) not applied`; the variable is inert when unset.
+- The frame (`.acceptance/refusal-notice/host-menu-localized.png`, 1298x767, captured from the window handle): the red Home
+  line reads, translated, "CUO cannot start multiplayer right now: this game update broke Medical treatment, wounds and the
+  remote medical interface. The rest of the game still runs." — with the system names rendered from the Chinese catalogue
+  keys (the reader's language), above the Steam block, with the rest of the menu working (Steam initialised, no character,
+  the create-lobby, Steam-network and IP-direct buttons visible) and the build line reading `0.1.0+eb0289d`.
+- The first frame of this row caught a real defect, which is why the row existed: on `0.1.0+90607a2ad` the same sentence
+  embedded the catalogue's English title verbatim (`Medical treatment, wounds and the remote medical view`) inside otherwise
+  Chinese wording, because the port carried titles. The fix moves ids over the port
+  (`IAdapterCapabilityQuery.RefusedCapabilityIds`) and the wording into the window
+  (`OnlineUiCapabilityTitles.KeyFor` → `capability.<id>.title` in both catalogues); an unclaimed hook reads as the
+  unclassified-system line instead of vanishing.
+- A healthy install still answers an empty list and the line never shows, and an Optional-only failure degrades without
+  the line.

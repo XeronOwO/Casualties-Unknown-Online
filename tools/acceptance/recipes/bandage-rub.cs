@@ -12,9 +12,18 @@
 	var steps = (int)({{n:steps}});
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type rub = null;
-	for (var i = 0; i < assemblies.Length; i++) {
+	for (var i = 0; i < assemblies.Length && rub == null; i++) {
 		try { rub = assemblies[i].GetType("AcceptanceBandageRub6", false); } catch { rub = null; }
-		if (rub != null) { break; }
+	}
+	// Roslyn nests a script-declared type inside its numbered submission class, so the exact-name lookup above
+	// cannot see it; the simple-name scan is what finds `Submission#N+AcceptanceBandageRub6` (2026-11-18).
+	for (var i = 0; i < assemblies.Length && rub == null; i++) {
+		System.Type[] types = null;
+		try { types = assemblies[i].GetTypes(); } catch { types = null; }
+		if (types == null) { continue; }
+		for (var j = 0; j < types.Length; j++) {
+			if (types[j].Name == "AcceptanceBandageRub6") { rub = types[j]; break; }
+		}
 	}
 	if (rub == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-rub6 first\"}"; }
 	var method = rub.GetMethod("Start");

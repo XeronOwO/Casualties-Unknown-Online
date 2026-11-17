@@ -14,10 +14,21 @@
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	System.Type rub = null;
-	for (var i = 0; i < assemblies.Length; i++) {
+	for (var i = 0; i < assemblies.Length && rub == null; i++) {
 		System.Type candidate = null;
 		try { candidate = assemblies[i].GetType("AcceptanceBandageRub6", false); } catch { candidate = null; }
-		if (candidate != null && candidate.GetField("Starts", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic) != null) { rub = candidate; break; }
+		if (candidate != null && candidate.GetField("Starts", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic) != null) { rub = candidate; }
+	}
+	// The exact lookup misses a Roslyn submission type (nested as `Submission#N+AcceptanceBandageRub6`); the scan
+	// behind it finds it (2026-11-18, measured on the declaration channel repair).
+	for (var i = 0; i < assemblies.Length && rub == null; i++) {
+		System.Type[] types = null;
+		try { types = assemblies[i].GetTypes(); } catch { types = null; }
+		if (types == null) { continue; }
+		for (var j = 0; j < types.Length; j++) {
+			if (types[j].Name != "AcceptanceBandageRub6") { continue; }
+			if (types[j].GetField("Starts", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic) != null) { rub = types[j]; break; }
+		}
 	}
 	if (rub == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare bandage-rub6 first\"}"; }
 

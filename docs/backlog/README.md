@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [Acceptance declarations never register](todo/1.0-acceptance-declarations-not-registered.md) — **High** — frame-based rows blocked.
+- [A minigame's click-start edge never arms](todo/1.0-minigame-click-edge-never-arms.md) — **High** — held-gesture rows blocked.
 
 ### In progress
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
@@ -123,6 +123,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Acceptance declarations never register](done/1.0-acceptance-declarations-not-registered.md) — **High** — the probe now finds a nested type.
 - [Split the world message services at their seams](done/split-world-service-messages.md) — **Medium** — 613 → 450; both debt entries gone.
 - [Split the block-break apply path out](done/split-block-break-remote-apply.md) — **Medium** — 688 → 403 lines; both directions of the break cross.
 - [A continue refuses a healthy row for a building that is gone](done/1.0-cut-outlives-a-felled-building.md) — **High** — accepted when the area exists.

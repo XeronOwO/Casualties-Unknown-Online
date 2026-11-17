@@ -11,5 +11,5 @@
 - [ ] Plan approved by the user
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: deploy and read a passing pod-team-wait with zero member errors.
+- [ ] Release-cycle deployment/acceptance: not this cycle — no product path changed, so nothing was deployed.
 - [ ] FORBIDDEN — never check this box

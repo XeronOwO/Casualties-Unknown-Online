@@ -1092,12 +1092,14 @@ internal static class CaseRegistry
 		// runs by name: it restarts the run, which no other batch row may pay for.
 		new StartingSuppliesCase(),
 		new MedicalChartCase(),
-		// PARKED 2026-11-18: MedicalBandageCase — the bandage treatment row. Its fixture drives the real
-		// wound, the game's own wound-view entry and the limb readback, but the item's minigame cannot be
-		// completed on this build: the in-client declaration channel no longer registers a type
-		// (docs/backlog/todo/1.0-acceptance-declarations-not-registered.md), so `bandage-rub` and the
-		// per-frame `bandage-step` recipe both leave `lastActionAngle` at 0. Re-register when that ticket
-		// is closed.
+		// PARKED 2026-11-18: the declaration channel works again (the presence probe now finds a type a
+		// Roslyn submission nests, docs/backlog/done/1.0-acceptance-declarations-not-registered.md), so the
+		// committed `bandage-rub6` declaration loads and drives frames — but the game's click-start edge never
+		// arms (`BandageMinigame.holdingBandage` stays false; the counters read keyDownAnswers 0 over 25,045 key
+		// queries and `bandage-rub-state` drove 1,200 frames with actions 0). The row reads
+		// docs/backlog/todo/1.0-minigame-click-edge-never-arms.md; the case itself is correct and stays in the
+		// tree, unregistered, until that defect is fixed.
+		// new MedicalBandageCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),

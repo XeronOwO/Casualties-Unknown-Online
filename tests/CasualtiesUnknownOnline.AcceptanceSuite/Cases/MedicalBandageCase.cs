@@ -10,7 +10,8 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// the bandage: a real wound through the game's own damage entry (<c>Limb.ImpactDamage</c> behind the
 /// <c>wound-seed</c> recipe), the bandage started through the game's own wound-view entry
 /// (<c>PlayerCamera.ApplyWoundItem</c>, the <c>limb-use</c> recipe), the item's own minigame completed
-/// by the committed <c>bandage-rub6</c> declaration, and the limb read back with <c>limb-read</c>.
+/// by the staged pointer and attack key the game reads (<c>virtual-input</c> plus <c>pointer-circle</c>),
+/// and the limb read back with <c>limb-read</c>.
 /// </para>
 /// <para>
 /// It runs by name: the item's minigame advances over frames, so the row takes as long as the game
@@ -53,21 +54,64 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		Require(SessionDriver.StateTrue(memberState, "inWorld"), "the member is not in the world to be bandaged");
 
 		// A real wound: the game's own damage entry writes the limb's bleed fields. The force has to clear
-		// `Limb.ImpactDamage`'s thresholds (`force > jumpSpeed * 2.6` before it writes bleed, native
-		// Limb.cs:442-447), so it is well above a body's jump speed.
-		var seeded = await context.MemberRecipeAsync(
-			"wound-seed",
-			cancellationToken,
-			("limb", "1"),
-			("force", "300"),
-			("infection", "0"))
-			.ConfigureAwait(false);
-		context.Read("wound-seed", seeded);
-		Require(Boolean(seeded, "ok"), "the game's damage entry did not wound the limb: " + Raw(seeded));
+		// The limb layout belongs to the body, and a destroyed or vital limb cannot carry the row: the head is
+		// index 0 on the measured body, a previous run's body put the torso at another index, and a limb already
+		// at 0 skin health cannot bleed. So the row READS the body and wounds the first healthy, non-vital limb;
+		// the search is bounded to eight, which is more limbs than any measured body has.
+		var limb = string.Empty;
+		JsonElement? wounded = null;
+		var bleedBefore = 0d;
+		for (var candidate = 0; candidate < 8 && limb.Length == 0; candidate++)
+		{
+			var index = candidate.ToString(CultureInfo.InvariantCulture);
+			var reading = await ReadLimbAsync(context, index, cancellationToken).ConfigureAwait(false);
+			if (!Boolean(reading, "ok"))
+			{
+				continue;
+			}
 
-		var wounded = await ReadLimbAsync(context, cancellationToken).ConfigureAwait(false);
+			if (Boolean(reading, "isHead") || Boolean(reading, "isVital") || Boolean(reading, "dismembered"))
+			{
+				continue;
+			}
+
+			if (Number(reading, "skinHealth") < 50)
+			{
+				continue;
+			}
+
+			// `Limb.ImpactDamage` writes bleed only above its force threshold (`force > jumpSpeed * 2.6`,
+			// native Limb.cs:442-447) and subtracts `force * 0.33` from the limb's skin; 200 clears the
+			// threshold while leaving skin health, where the measured 300 destroyed the limb (skin -12.2).
+			var seeded = await context.MemberRecipeAsync(
+				"wound-seed",
+				cancellationToken,
+				("limb", index),
+				("force", "200"),
+				("infection", "0"))
+				.ConfigureAwait(false);
+			context.Read("wound-seed on limb " + index, seeded);
+			if (!Boolean(seeded, "ok"))
+			{
+				continue;
+			}
+
+			var afterSeed = await ReadLimbAsync(context, index, cancellationToken).ConfigureAwait(false);
+			var bleed = Number(afterSeed, "bleedAmount");
+			// A destroyed limb (skin 0) cannot be bandaged back: the treatment row needs a wound that still
+			// has a limb. `ImpactDamage`'s bleed roll can also come back at zero, so the next limb is tried.
+			if (!(bleed > 0.001) || Number(afterSeed, "skinHealth") <= 0.5)
+			{
+				continue;
+			}
+
+			limb = index;
+			wounded = afterSeed;
+			bleedBefore = bleed;
+		}
+
 		context.Read("limb before the bandage", wounded);
-		var bleedBefore = Number(wounded, "bleedAmount");
+		Require(limb.Length > 0, "no limb of the member's body took a bleeding wound, so the treatment has nothing to stop");
 		Require(bleedBefore > 0.001, "the seeded wound reads no bleed, so the treatment has nothing to stop: " + Raw(wounded));
 
 		var provided = await context.MemberRecipeAsync(
@@ -79,7 +123,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		context.Read("bandage provided", provided);
 		Require(Boolean(provided, "ok"), "the member could not take a bandage: " + Raw(provided));
 
-		var selected = await context.MemberRecipeAsync("select-limb", cancellationToken, ("limb", "1")).ConfigureAwait(false);
+		var selected = await context.MemberRecipeAsync("select-limb", cancellationToken, ("limb", limb)).ConfigureAwait(false);
 		context.Read("select-limb", selected);
 		Require(Boolean(selected, "ok"), "the wound view did not select the wounded limb: " + Raw(selected));
 
@@ -95,22 +139,75 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			Boolean(started, "actuallyUsable"),
 			"the bandage reports it is not usable on this limb, so the row would measure a refusal: " + Raw(started));
 
-		var rub = await DriveMinigameAsync(context, cancellationToken).ConfigureAwait(false);
-		context.Read("bandage minigame", rub);
-		Require(Boolean(rub, "ran"), "the bandage minigame never appeared after the game accepted the item: " + Raw(rub));
+		// The minigame reads the GAME's own input: the pointer circles the roll while the attack key is held.
+		// The 2026-11-18 reading drove the minigame's fields directly and got 1200 driven frames with zero
+		// game actions, because `BandageMinigame.Update` sets `holdingBandage` only on the frame the game's
+		// own click-start edge arrives; the staged input below is the path the game actually reads.
+		var screen = await context.MemberRecipeAsync("screen-size", cancellationToken).ConfigureAwait(false);
+		context.Read("screen", screen);
+		var centerX = Number(screen, "centerX");
+		var centerY = Number(screen, "centerY");
+		Require(!double.IsNaN(centerX) && !double.IsNaN(centerY), "the client did not report its screen size: " + Raw(screen));
 
-		// The minigame advances while the game runs; read the patient's limb until the bleed stops.
+		var pressed = await context.MemberRecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "press"),
+			("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+			("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+			("button", "0"))
+			.ConfigureAwait(false);
+		context.Read("attack key pressed", pressed);
+		Require(Boolean(pressed, "ok"), "the attack key could not be staged: " + Raw(pressed));
+
 		var after = wounded;
-		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
-		while (DateTime.UtcNow < deadline)
+		try
 		{
-			after = await ReadLimbAsync(context, cancellationToken).ConfigureAwait(false);
-			if (Number(after, "bleedAmount") <= 0.001)
-			{
-				break;
-			}
+			var circle = await context.MemberRecipeAsync(
+				"pointer-circle",
+				cancellationToken,
+				("mode", "start"),
+				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("radius", "320"),
+				("deg", "8"),
+				("frames", "900"))
+				.ConfigureAwait(false);
+			context.Read("pointer circle", circle);
+			Require(Boolean(circle, "ok"), "the pointer circle did not start: " + Raw(circle));
 
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			// The game performs one action per ~20 degrees and the minigame ends on its own; read the limb
+			// until the bleed stops, bounded by the measured treatment time rather than a fixed sleep.
+			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
+			while (DateTime.UtcNow < deadline)
+			{
+				after = await ReadLimbAsync(context, limb, cancellationToken).ConfigureAwait(false);
+				if (Number(after, "bleedAmount") <= 0.001)
+				{
+					break;
+				}
+
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			}
+		}
+		finally
+		{
+			await context.MemberRecipeAsync(
+				"pointer-circle",
+				cancellationToken,
+				("mode", "stop"),
+				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("radius", "320"),
+				("deg", "8"),
+				("frames", "900")).ConfigureAwait(false);
+			await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "release"),
+				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
 		}
 
 		context.Read("limb after the bandage", after);
@@ -120,43 +217,13 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			"the bandage did not stop the limb's bleed: before " + bleedBefore.ToString("F3", CultureInfo.InvariantCulture) + ", after " + bleedAfter.ToString("F3", CultureInfo.InvariantCulture) + " — " + Raw(after));
 	}
 
-	/// <summary>
-	/// Drives the minigame one frame per driver round trip. The in-client declaration channel is broken on
-	/// this build (a sent type never appears in the evaluator, measured 2026-11-18 on <c>bandage-rub6</c>
-	/// and <c>run-ending-a</c>), so the gesture is staged by a recipe that the game itself compiles into
-	/// the batch channel; each call lands one game frame, which is what <c>PhysicsUpdate</c> measures.
-	/// </summary>
-	private static async Task<JsonElement> DriveMinigameAsync(CaseContext context, CancellationToken cancellationToken)
-	{
-		var appeared = false;
-		var actions = 0d;
-		for (var step = 0; step < 160; step++)
-		{
-			var reading = await context.MemberRecipeAsync("bandage-step", cancellationToken, ("degrees", "6")).ConfigureAwait(false);
-			var stage = Text(reading, "stage");
-			if (string.Equals(stage, "driving", StringComparison.Ordinal))
-			{
-				appeared = true;
-				actions = Number(reading, "actions");
-			}
-			else if (appeared)
-			{
-				break;
-			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken).ConfigureAwait(false);
-		}
-
-		return JsonSerializer.SerializeToElement(new { ran = appeared, actions });
-	}
-
-	private static Task<JsonElement?> ReadLimbAsync(CaseContext context, CancellationToken cancellationToken)
+	private static Task<JsonElement?> ReadLimbAsync(CaseContext context, string limb, CancellationToken cancellationToken)
 	{
 		return context.MemberRecipeAsync(
 			"limb-read",
 			cancellationToken,
 			("source", "local"),
-			("limb", "1"),
+			("limb", limb),
 			("target", "0"));
 	}
 
@@ -175,15 +242,6 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			&& field.TryGetDouble(out var number)
 				? number
 				: double.NaN;
-	}
-
-	private static string Text(JsonElement? reading, string property)
-	{
-		return reading is { ValueKind: JsonValueKind.Object } value
-			&& value.TryGetProperty(property, out var field)
-			&& field.ValueKind == JsonValueKind.String
-				? field.GetString() ?? string.Empty
-				: string.Empty;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

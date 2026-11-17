@@ -63,7 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 
-_No open ticket._
+- [A continue refuses a healthy row for a building that is gone](todo/1.0-cut-outlives-a-felled-building.md) — **High** — the fell landed after the cut.
 
 
 

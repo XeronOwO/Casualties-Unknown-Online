@@ -1087,13 +1087,10 @@ internal static class CaseRegistry
 		// Run before any case moves the world: the two entry tables are the generation's own output,
 		// and a later case's exploration tears the comparison down to a time-dependent reading.
 		new WorldFingerprintCase(),
-		// Parked (2026-11-12): the starting kit is granted when a character FIRST enters a world, and
-		// this fixture reuses one long-lived session — the member's kit is long consumed by the time
-		// any case runs (measured: 0 items; 2026-11-15: [emergencylight] only). The row needs a
-		// character that has never entered a world, which means its own session; it stays out of the
-		// all-suite run until the suite owns a per-case launch. The reading is on
-		// docs/backlog/in-progress/1.0-acceptance-suite.md.
-		// new StartingSuppliesCase(), // parked: needs a first-world-entry character
+		// Un-parked 2026-11-18: the case restarts the run itself, so the first world entry grants the kit
+		// (the 2026-11-12 park needed a first-entry character that the shared run could not give it). It
+		// runs by name: it restarts the run, which no other batch row may pay for.
+		new StartingSuppliesCase(),
 		new MedicalChartCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
@@ -1109,39 +1106,21 @@ internal static class CaseRegistry
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
 		// (a row the sweep lists under the unhooked item families).
 		new LayerPanelCase(),
-		// new CraftingCase(), // parked 2026-11-15: the host's starting materials are consumed by an earlier
-		// case, so the isolated read is `craftable 0`, and in the all-suite run the first craftable recipe
-		// had already been made (`madeBefore=true`, count stayed 1). The row needs a fresh character (or a
-		// game-native restock), which is the same per-case-launch gap as starting-supplies. Reading is on
-		// docs/backlog/in-progress/1.0-acceptance-suite.md.
+		// Un-parked 2026-11-18 by name: the 2026-11-15 park was the shared run's materials having been spent
+		// by an earlier case. A by-name run starts on a fresh character, so the row can be read; it must not
+		// join `all` (a batch's materials depend on every case before it).
+		new CraftingCase(),
 		new WorldCensusCase(),
-		// new CraftPanelCase(), // parked 2026-11-13 02:02: Escape first does not help: the throw comes from the recipe's own
-		// direct call to PlayerCamera.OpenCraftScreen (a reflection-wrapped exception), not from the CUO window being up. crafting-panel mode=open throws inside the game's own
-		// PlayerCamera.OpenCraftScreen (runtimeException, no detail) while the CUO window is up — the panel open needs the
-		// window closed first; the reading is on the suite ticket. // the host's own generated world: its building objects, counted by prefab // the crafting entry the game itself calls: a starting-material recipe is made and the product count grows // the end-of-layer panel as objects: inactive mid-layer on the host, no choice shown on the member
-		// (a row the sweep lists under the unhooked item families).
+		// Un-parked 2026-11-18: the 2026-11-13 park was the recipe's own product sprite throwing inside
+		// RefreshRecipeList (the crafting-screen ticket, fixed 2026-11-14 with a placeholder prefab).
+		// It runs by name so the batch's recorded wall time is untouched until the row has a reading.
+		new CraftPanelCase(),
 		new ProstheticCase(),
 		new RunSettingsCase(),
-		// new RadiationLineCase(), // parked: the line activates only when layerTimeSpent exceeds
-		// timelimit * 60 (WorldGeneration.cs:986-988), and the fixture cannot switch it off again;
-		// the reading is on the suite ticket.
 		new TopicalDoseCase(),
-		// new WorldFingerprintCase(), // parked 2026-11-12 with the divergence reading: at world entry
-		// both clients read the same eight chunks (9D1810AC432FBA29 …), and after the suite's run the
-		// host's fresh table reads F9BEE3A2FE68F478 … (total 3530B1BB79FB4441) while the member's still
-		// reads the entry state (total 90D3159D4F782ADA) — the mutation did not reach the member.
-		// the block and eat rows run after the heal: both drive the member's own client and the heal's
-		// seed needs the member's body untouched (the order effect measured 2026-11-13 02:30).
-		// (parked note kept below: the case searches every solid cell within two cells
-		// of the host (twelve found) and the game's own break path changes none of them — every cell
-		// reads `block 14, damage -1`, the life pod's own indestructible shell. The row needs a fixture
-		// that reaches breakable ground (a cell whose `damage` is not -1), not another cell search.
-		// Reading on 1.0-acceptance-suite.md. // parked 2026-11-12: the block-hit recipe now names its stage, and the
-		// damage stage still throws a NullReferenceException at a cell block-read-at calls solid;
-		// the case also read a host at the menu (inWorld:false) — the row needs the in-world
-		// precondition before the damage path is re-read. Reading on 1.0-acceptance-suite.md. // parked: the cell under the player is air, and world.DamageBlock on an
-		// air cell throws a NullReferenceException inside the game (2026-11-12); the row needs the case
-		// to find a solid cell around the host before it hits.
+		// The world-entry fingerprint and the post-mutation one are both registered above; the notes
+		// that used to sit here (2026-11-12) were the parked readings of rows now carried by
+		// block-sync, block-reconcile and the two fingerprint variants.
 		new ConsoleHealCase(), // un-parked 2026-11-13 01:50 with the member's own trace beside the reading; re-parked 2026-11-13 01:30: the full-suite run read skinHealth 0.334, pain 83.36,
 		// dislocated true after the host's /heal @a answered applied:true — the reset lands and the seeded wound's own
 		// tick re-damages before the read. The earlier 17/17 pass was a single race, not a fix. Reading on the suite ticket.
@@ -1193,11 +1172,14 @@ internal static class CaseRegistry
 		// them, read from both clients, then the same count after a save and a continue. It runs by name
 		// because the save/continue costs tens of seconds and the batch's wall time has a baseline.
 		new PlayerDeathsCase(),
-		// Parked 2026-11-14 09:58: with the pointer held on the band every tick the case opens the lock
-		// (three single runs passed), but inside the full order the game's own progress fills slowly
-		// (0.742 in twenty seconds at an angle 24 degrees off) and the case's poll ends first. The row
-		// needs a longer, angle-corrected hold; the case carries the readings in `LockpickCase.cs`.
-		// new LockpickCase(),
+		// Un-parked 2026-11-18 by name: the 2026-11-14 park was the shared order's slow progress; a
+		// by-name run starts on a fresh lockable and pays for its own hold.
+		new LockpickCase(),
+		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
+		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
+		// later — the kind rides the run row, which advances at the layer end that a fresh by-name
+		// session does not reach. The old declaration path also no longer registers a type on the
+		// deployed evaluator, so the fixture has two halves to rebuild before the row can be read.
 		// new EndingCase(),
 	];
 }

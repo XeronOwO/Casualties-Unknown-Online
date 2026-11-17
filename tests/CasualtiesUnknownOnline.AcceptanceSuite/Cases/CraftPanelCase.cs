@@ -12,6 +12,10 @@ internal sealed class CraftPanelCase : AcceptanceCase
 {
 	public override string Name => "craft-panel";
 
+	// By name only: the row was parked for two months and its cost is not part of the batch's recorded
+	// baseline until a reading says it earns the time.
+	public override bool RunsInBatch => false;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
@@ -26,7 +30,10 @@ internal sealed class CraftPanelCase : AcceptanceCase
 		context.Read("panel-open", opened);
 		Require(Boolean(opened, "ok") == true, "the crafting panel could not be opened: " + Raw(opened));
 		Require(Boolean(opened, "panelActive") == true, "the crafting panel did not become active: " + Raw(opened));
-		var selected = Text(opened, "selectedName");
+		// The recipe answers the panel's own name line as `detailName` (the 2026-11-13 case read
+		// `selectedName`, which the fixture never returned — a fixture defect, not a panel defect:
+		// the 2026-11-18 reading had panelActive true and `detailName` = "纤维绳" on index 0).
+		var selected = Text(opened, "detailName");
 		Require(!string.IsNullOrWhiteSpace(selected), "the crafting panel opened with no selected recipe: " + Raw(opened));
 
 		var closed = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "close"), ("index", "0")).ConfigureAwait(false);

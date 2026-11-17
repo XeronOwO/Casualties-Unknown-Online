@@ -17,6 +17,9 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	public override string Name => "lockpick";
 
+	// By name only: the row needs a fresh lockable and a hold long enough to fill the game's progress.
+	public override bool RunsInBatch => false;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The CUO window covers the screen centre; open it first so Escape is deterministic, then

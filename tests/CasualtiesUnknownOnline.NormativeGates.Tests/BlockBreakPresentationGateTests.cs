@@ -55,6 +55,9 @@ public class BlockBreakPresentationGateTests
 
 	private const string BlockBreakFile = AdapterWorldDir + "BlockBreakSync.cs";
 
+	/// <summary>The other half of the break path after the 2026-11-18 split: the relay judged and applied.</summary>
+	private const string BlockBreakRemoteFile = AdapterWorldDir + "BlockBreakRemoteApply.cs";
+
 	/// <summary>The whole wire surface this gate treats as pinned: a member added to the message (or removed) is a red until it is reviewed here.</summary>
 	private static readonly string[] MessageMembers = ["Block", "Generation", "PlayerBreak", "X", "Y"];
 
@@ -98,18 +101,20 @@ public class BlockBreakPresentationGateTests
 		// Per FILE, not a total: the received-write path's host branch and guest
 		// branch must both go through the applier, and so must the accepted break
 		// whose cell still stands — a total would let one branch cover for another.
+		// The accepted break moved to BlockBreakRemoteApply in the 2026-11-18 split
+		// (the 600-line gate), so that file carries its half of the pin.
 		var hostSites = Count(RepositoryPaths.ReadText(WorldEventFile), "RemoteBlockWrite.Apply(");
-		var breakSites = Count(RepositoryPaths.ReadText(BlockBreakFile), "RemoteBlockWrite.Apply(");
+		var breakSites = Count(RepositoryPaths.ReadText(BlockBreakRemoteFile), "RemoteBlockWrite.Apply(");
 
 		Assert.True(hostSites >= 2, $"{WorldEventFile} calls the shared applier {hostSites} time(s) — its host branch and its guest branch must both go through it");
-		Assert.True(breakSites >= 1, $"{BlockBreakFile} calls the shared applier {breakSites} time(s) — the accepted break whose cell still stands must go through it");
+		Assert.True(breakSites >= 1, $"{BlockBreakRemoteFile} calls the shared applier {breakSites} time(s) — the accepted break whose cell still stands must go through it");
 		Assert.True(
 			hostSites + breakSites >= MinimumApplySites,
 			$"the two receive paths call the shared applier {hostSites + breakSites} time(s) — expected at least {MinimumApplySites}");
 
 		// And a receive path may not write the cell itself: that is exactly the
 		// shape which cannot present a relayed break.
-		foreach (var file in new[] { WorldEventFile, BlockBreakFile })
+		foreach (var file in new[] { WorldEventFile, BlockBreakFile, BlockBreakRemoteFile })
 		{
 			Assert.False(
 				RepositoryPaths.ReadText(file).Contains("world.SetBlock(", StringComparison.Ordinal),

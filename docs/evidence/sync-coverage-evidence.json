@@ -9784,7 +9784,7 @@
 
       "row": "W1",
 
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakRemoteApply.cs",
 
       "quote": "sender, cell.x, cell.y, blockIsAir, generation == WorldGenerationRelation.Current, standingBlock, out var destroyedBlock, out var recordedBuildingRows);"
 
@@ -9940,7 +9940,7 @@
 
       "row": "W1",
 
-      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs",
+      "file": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakRemoteApply.cs",
 
       "quote": "_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0, playerBreak: true); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally), and the break claim lets every side downstream present it"
 

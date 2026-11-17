@@ -4,28 +4,36 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops.
 
 - [ ] Design comprehension
-      questions and the 25 m neighbourhood, and the ticket records the reading that chose it; the page link was repointed
-      to the ticket's final home before this commit.
+      mechanism keeps its diagnostics) and the ticket `docs/backlog/in-progress/split-block-break-remote-apply.md`,
+      whose chain names `OnBlockDamaged` → `FlushPendingBlockBreak` → `ApplyRemoteReport` → `TryAccept` → `AcceptBreak` →
+      `OnRemoteDamageBrokeBlock` with file:line.
 - [ ] Native parity
-      `WorldGeneration.cs:5449` damage; nothing is invented about the game's behaviour.
+      as before; no native call changed, and the `BlockBreak` log lines are byte-identical because the new class reuses
+      `ILogger<BlockBreakSync>`.
 - [ ] Native parity probe
-      (`0.1.0+1a6ef5941`), not by a native probe, because the mechanism only exists in a live regenerated layer.
+      focused `block-sync` row on the deployed build, which drives a real break through both clients.
 - [ ] Entry mapping
-      building-health row; the cut-time half is `CutBuildingHealthReconcile` inside `WorldCutWriter`.
+      `src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs` (`OnBlockDamaged`, `OnRemoteBlockDamaged`,
+      `DrainDeferredReports`, `OnBlockAirWrite`), and the judgement/apply sites moved to
+      `src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakRemoteApply.cs` (`Apply`, `AcceptBreak`,
+      `OnRemoteDamageBrokeBlock`); the external callers in `WorldEventSync` and `GameRestoredWorldFactSink` are unchanged.
 - [ ] Mechanism inventory
-      (`AnyWithin`, 25 m) and the diagnostic (`Nearest`); the destroy-fact branch for health below 0.5 is unchanged.
+      broadcast and the air-write callback each have exactly one owner after the move; the presentation gate now pins
+      `BlockBreakRemoteApply.cs` for the accepted-break half.
 - [ ] Whole-family audit
-      geyser growth hold, the keypad table); no family shares this rule's price.
+      touched; the debt entry for `BlockBreakSync` is deleted and `docs/design/audit/sweep.md` counts the new file (72 → 73).
 - [ ] Self-check table
-      this cycle adds only the reading, the index move and the page link.
+      origin pins (the presentation gate's per-file count and two sync-coverage quotes), both repaired to the new file
+      rather than loosened.
 - [ ] Verification design
-      `restore complete` and zero refused world-entity rows as the pass condition; both are quoted on the ticket.
+      break and the same presentation), read from the report and the `BlockBreak` log lines after deployment.
 - [ ] Plan approved by the user
-      is that the technical trade-off is decided from evidence; the measurement chose B with the area gate.
+      without asking; the ticket's acceptance (600-line gate, debt entry gone, `block-sync` green) is the check used.
 - [ ] Structure review done
-      moved to the Done head, the census row and the design-page link repointed.
+      captured primary-constructor parameters (CS9124), and the class summary states which half owns the judgement.
 - [ ] Build + dotnet format + dotnet test normative gates pass
-      the code commit's readings are build 0 errors, unit 6747/6747, gates 836/836, format exit 0.
+      "通过: 6747" and "通过: 836" with exit 0; `dotnet format --no-restore` exit 0; the build carries only the two
+      pre-existing MSB3270 warnings.
 
 - [ ] Release-cycle deployment/acceptance: deploy and read a passing pod-team-wait with zero member errors.
 - [ ] FORBIDDEN — never check this box

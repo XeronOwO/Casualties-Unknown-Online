@@ -31,14 +31,29 @@ internal sealed class EnemyKillCase : AcceptanceCase
 		context.Read("member count before", memberBefore);
 		var before = Number(memberBefore, "count");
 
-		var blast = await context.RecipeAsync("enemy-blast", cancellationToken,
-			("prefab", target!.Value.Id),
-			("damage", "1000"),
-			("range", "0.5"),
-			("iid", target.Value.Iid.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		// The game's own explosion rolls `structuralDamage * Random.Range(0f, 2f)` once per
+		// blast (WorldGeneration.cs:5449 in the 1.0.2 decompile), so a single 1000-damage blast
+		// leaves a healthy animal alive whenever the roll is low. The row repeats the game's
+		// own explosion until the animal dies, bounded so a blast that never connects still
+		// fails; each call re-reads the animal by iid, so it hits wherever the animal now is.
+		JsonElement? blast = null;
+		double? healthAfter = null;
+		var blasts = 0;
+		for (var attempt = 0; attempt < 12 && healthAfter is not <= 0; attempt++)
+		{
+			blast = await context.RecipeAsync("enemy-blast", cancellationToken,
+				("prefab", target!.Value.Id),
+				("damage", "1000"),
+				("range", "0.5"),
+				("iid", target.Value.Iid.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			Require(Boolean(blast, "ok"), "the host's blast could not be placed: " + Raw(blast));
+			healthAfter = Number(blast, "healthAfter");
+			blasts++;
+		}
+
 		context.Read("blast", blast);
-		var healthAfter = Number(blast, "healthAfter");
-		Require(healthAfter is <= 0, "the host's blast did not kill the animal: " + Raw(blast));
+		context.Note("blasts until the kill: " + blasts + " (health after the last: " + healthAfter + ")");
+		Require(healthAfter is <= 0, "the host's blast did not kill the animal after " + blasts + " blast(s): " + Raw(blast));
 
 		double? after = null;
 		for (var attempt = 0; attempt < 10; attempt++)
@@ -108,6 +123,12 @@ internal sealed class EnemyKillCase : AcceptanceCase
 		&& element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number
 			? value.GetDouble()
 			: null;
+
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind is JsonValueKind.True or JsonValueKind.False
+		&& value.GetBoolean();
 
 	private static void Require(bool condition, string message)
 	{

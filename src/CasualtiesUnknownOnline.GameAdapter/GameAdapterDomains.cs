@@ -444,7 +444,7 @@ internal sealed class GameAdapterDomains
 		// The run-follow's recovery half: the member's bounded ask for the entry instruction it may
 		// have missed, and the host's answer with the same instruction every other entry uses. Built
 		// after the run because the window reads the run's own phase and world facts.
-		Reentry = new ReentryCoordinator(session, world, reentry, Run, time, loggerFactory.CreateLogger<ReentryCoordinator>());
+		Reentry = new ReentryCoordinator(session, world, reentry, Run, CharacterDataSync, time, loggerFactory.CreateLogger<ReentryCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
 		// cut trigger is taken (the armed /save request and the deliberate menu
 		// return of a host or a solo player), after every domain has finished this

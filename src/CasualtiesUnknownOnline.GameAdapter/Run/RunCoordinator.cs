@@ -372,11 +372,13 @@ internal sealed class RunCoordinator(
 			// The run is now actually in the world — the world-entry condition
 			// (LocalSceneState == InWorld) takes over for later handshakes.
 			_world.SetHostRunPending(false);
-			// Members that joined mid-generation never received the entry
-			// WorldJoin (it fires at the click moment, before they handshook) —
-			// invite them now that the world is up (only members not yet in the
-			// world are targeted; a re-send to an already-starting member is
-			// ignored by its run-start gate).
+			// Members that joined mid-generation never received the entry WorldJoin
+			// (it fires at the click moment, before they handshook), so invite them
+			// now that the world is up (only members not yet in the world are
+			// targeted; a re-send to an already-starting member is ignored). Each
+			// one takes the character this world restored BEFORE the instruction,
+			// so a continue's fresh body cannot overwrite it with the supplies.
+			_characterData.SendSavedCharactersToEnteringMembers();
 			_world.SendWorldJoin(_world.WorldParams?.IsTutorial ?? false);
 			if (_world.StartStartGate())
 			{

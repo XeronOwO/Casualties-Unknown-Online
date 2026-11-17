@@ -354,6 +354,44 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>
+	/// Host side: hand a member that is about to be told to ENTER the world its own saved
+	/// character BEFORE the announcement — the receiver queues a peer hand-over and keeps
+	/// it across the follow (LocalCharacterRestoreQueue). Without it a member that follows
+	/// a continue or a re-entry builds a body from the starting supplies, and that fresh
+	/// body's report replaces the character the world restore just bound; the colour, the
+	/// items and the health then travel no further than the reconnect adoption that reads
+	/// the store afterwards.
+	/// </summary>
+	internal void SendSavedCharacterToEnteringMember(ulong steamId)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		if (!_session.TryGetMember(steamId, out var member) || !member.Handshaken || member.InWorld)
+		{
+			return;
+		}
+
+		_characterData.SendSavedCharacter(steamId);
+	}
+
+	/// <summary>Host side: every member still outside the world is about to be invited — it takes its restored character first (see <see cref="SendSavedCharacterToEnteringMember"/>).</summary>
+	internal void SendSavedCharactersToEnteringMembers()
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		{
+			return;
+		}
+
+		foreach (var member in _session.Members)
+		{
+			SendSavedCharacterToEnteringMember(member.SteamId);
+		}
+	}
+
+	/// <summary>
 	/// Session ended: a pending restore belongs to the dead session and must
 	/// never apply to the next lobby's body; the clone fact table is likewise
 	/// session-scoped. The position gate resets when the current body leaves

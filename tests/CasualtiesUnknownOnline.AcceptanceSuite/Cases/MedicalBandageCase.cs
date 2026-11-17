@@ -152,7 +152,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		var pressed = await context.MemberRecipeAsync(
 			"virtual-input",
 			cancellationToken,
-			("mode", "press"),
+			("mode", "press-key"),
 			("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 			("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 			("button", "0"))
@@ -178,9 +178,19 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 
 			// The game performs one action per ~20 degrees and the minigame ends on its own; read the limb
 			// until the bleed stops, bounded by the measured treatment time rather than a fixed sleep.
+			// The press is REPEATED inside the loop: the game's started edge is a single-frame read, so one
+			// staged press can land after the minigame's own Update and never arm it (measured 2026-11-18:
+			// one press left `angle 0` for 40 s, a press every 400 ms advanced `lastActionAngle` 20 → 40).
 			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
 			while (DateTime.UtcNow < deadline)
 			{
+				await context.MemberRecipeAsync(
+					"virtual-input",
+					cancellationToken,
+					("mode", "press-key"),
+					("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+					("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+					("button", "0")).ConfigureAwait(false);
 				after = await ReadLimbAsync(context, limb, cancellationToken).ConfigureAwait(false);
 				if (Number(after, "bleedAmount") <= 0.001)
 				{
@@ -204,7 +214,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			await context.MemberRecipeAsync(
 				"virtual-input",
 				cancellationToken,
-				("mode", "release"),
+				("mode", "release-key"),
 				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);

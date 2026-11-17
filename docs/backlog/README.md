@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-_No open ticket._
+- [Acceptance declarations never register](todo/1.0-acceptance-declarations-not-registered.md) — **High** — frame-based rows blocked.
 
 ### In progress
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.

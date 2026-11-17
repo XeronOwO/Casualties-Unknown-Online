@@ -1092,6 +1092,12 @@ internal static class CaseRegistry
 		// runs by name: it restarts the run, which no other batch row may pay for.
 		new StartingSuppliesCase(),
 		new MedicalChartCase(),
+		// PARKED 2026-11-18: MedicalBandageCase — the bandage treatment row. Its fixture drives the real
+		// wound, the game's own wound-view entry and the limb readback, but the item's minigame cannot be
+		// completed on this build: the in-client declaration channel no longer registers a type
+		// (docs/backlog/todo/1.0-acceptance-declarations-not-registered.md), so `bandage-rub` and the
+		// per-frame `bandage-step` recipe both leave `lastActionAngle` at 0. Re-register when that ticket
+		// is closed.
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),

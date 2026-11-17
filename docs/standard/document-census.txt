@@ -215,6 +215,7 @@ docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/bac
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/in-progress/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/in-progress/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md
+docs/backlog/todo/1.0-acceptance-declarations-not-registered.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/1.0-acceptance-suite.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-followed-continue-keeps-no-character.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-save-live-snapshot-single-file.md | keep | claim | docs/backlog/README.md

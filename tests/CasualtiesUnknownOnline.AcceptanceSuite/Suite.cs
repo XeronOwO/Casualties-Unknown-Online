@@ -1092,14 +1092,10 @@ internal static class CaseRegistry
 		// runs by name: it restarts the run, which no other batch row may pay for.
 		new StartingSuppliesCase(),
 		new MedicalChartCase(),
-		// PARKED 2026-11-18: the declaration channel works again (the presence probe now finds a type a
-		// Roslyn submission nests, docs/backlog/done/1.0-acceptance-declarations-not-registered.md), so the
-		// committed `bandage-rub6` declaration loads and drives frames — but the game's click-start edge never
-		// arms (`BandageMinigame.holdingBandage` stays false; the counters read keyDownAnswers 0 over 25,045 key
-		// queries and `bandage-rub-state` drove 1,200 frames with actions 0). The row reads
-		// docs/backlog/todo/1.0-minigame-click-edge-never-arms.md; the case itself is correct and stays in the
-		// tree, unregistered, until that defect is fixed.
-		// new MedicalBandageCase(),
+		// Re-registered 2026-11-18 after the staged DOWN edge was made to answer every reader in its frame
+		// (docs/backlog/todo/1.0-minigame-click-edge-never-arms.md): the block below is kept as the reading
+		// that parked it, and this row is the one that proves the fix.
+		new MedicalBandageCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),

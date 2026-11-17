@@ -123,7 +123,7 @@ public sealed class RestoredWorldFactReplayTests
 		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 		native.SeedGeyser(7f, 8f, 3);
 		native.ApplyGeysers(native.Geysers);
-		sink.GeysersReady = false;
+		sink.LiveGeysers = 0;
 
 		replay.ApplyIfPending();
 
@@ -134,7 +134,7 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.True(replay.HasPending);
 		Assert.DoesNotContain("apply-geysers", sink.Calls);
 
-		sink.GeysersReady = true;
+		sink.LiveGeysers = 1;
 		replay.ApplyIfPending();
 
 		Assert.False(replay.HasPending);

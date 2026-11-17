@@ -61,8 +61,8 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	/// <summary>How many keypad codes the live world has no Openable for.</summary>
 	internal int RefuseKeypads { get; set; }
 
-	/// <summary>Whether the live generated world has spawned the native geysers the restore names.</summary>
-	internal bool GeysersReady { get; set; } = true;
+	/// <summary>How many native geysers the live world currently holds; <see cref="int.MaxValue"/> means "the whole set".</summary>
+	internal int LiveGeysers { get; set; } = int.MaxValue;
 
 	/// <summary>How many geyser entries the live world has no geyser for.</summary>
 	internal int RefuseGeysers { get; set; }
@@ -100,7 +100,7 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 
 	public bool IsWorldReady => WorldReady;
 
-	public bool IsReadyForGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers) => geysers.Count == 0 || GeysersReady;
+	public int LiveGeyserCount => LiveGeysers;
 
 	public LiveWorldWriteOutcome WriteBlockStates(IReadOnlyList<BlockStateEntryMsg> states)
 	{

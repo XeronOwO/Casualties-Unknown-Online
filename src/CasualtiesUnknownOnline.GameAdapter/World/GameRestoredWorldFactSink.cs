@@ -39,11 +39,6 @@ internal sealed class GameRestoredWorldFactSink(
 	private readonly EntityEventSync _entityEvents = entityEvents;
 	private readonly ILogger<GameRestoredWorldFactSink> _log = log;
 
-	/// <summary>The last live geyser count this restore saw, so the wait's own growth is one
-	/// log line per change instead of one per frame (the readiness number the 5 s window is
-	/// judged by is a measurement, not a guess).</summary>
-	private int _lastGeyserCount = -1;
-
 	/// <inheritdoc />
 	public bool IsWorldReady
 	{
@@ -97,38 +92,16 @@ internal sealed class GameRestoredWorldFactSink(
 	}
 
 	/// <inheritdoc />
-	public bool IsReadyForGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
-	{
-		if (geysers.Count == 0)
-		{
-			return true;
-		}
-
-		// The saved set is every geyser whose own Start has run, active or not:
-		// a geyser that has not started has no decided type to save, while a
-		// geyser that started and was deactivated still has one. The live query
-		// includes the inactive too: the game deactivates far chunks, and a
-		// layer that has not finished instantiating still has fewer objects.
-		// Applying while the live set is short would position-match only the
-		// subset that happens to exist.
-		var live = Object.FindObjectsOfType<GeyserScript>(true).Length;
-		if (live != _lastGeyserCount)
-		{
-			_lastGeyserCount = live;
-			_log.LogInformation(
-				"[SaveFacts] the live geyser set is {Live} object(s) against the cut's {Saved} row(s).",
-				live,
-				geysers.Count);
-		}
-
-		return live >= geysers.Count;
-	}
+	public int LiveGeyserCount =>
+		// The live query includes the inactive: the game deactivates far chunks, and a
+		// layer that has not finished instantiating still has fewer objects. Applying
+		// while the set is short would position-match only the subset that exists.
+		Object.FindObjectsOfType<GeyserScript>(true).Length;
 
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
 		var applied = GeyserStateTable.Apply(geysers, _log);
-		_lastGeyserCount = -1;
 		return new LiveWorldWriteOutcome(applied, geysers.Count - applied);
 	}
 

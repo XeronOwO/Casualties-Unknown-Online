@@ -40,13 +40,13 @@ internal interface IRestoredWorldFactSink
 	LiveWorldWriteOutcome ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
 
 	/// <summary>
-	/// True once the live copy of the restored layer has spawned the native
-	/// geyser objects. The world being generated is not enough: the geysers are
-	/// instantiated during that generation, and a restore that runs before they
-	/// exist would position-match zero rows. The replay must keep the pending
-	/// cut until this is true (or its bounded wait expires).
+	/// How many native geysers the live world holds right now, active or not. The
+	/// world being generated is not enough: the geysers are instantiated while the
+	/// layer fills in, and the restore must not position-match a set that is still
+	/// growing. The replay reads this every frame and decides with
+	/// <see cref="GeyserFillWait"/> when the set has stopped growing.
 	/// </summary>
-	bool IsReadyForGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
+	int LiveGeyserCount { get; }
 
 	/// <summary>Write the restored geyser liquid types. Returns the entries applied and the entries the live world had no geyser for.</summary>
 	LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);

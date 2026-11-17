@@ -73,6 +73,8 @@ internal sealed class RestoredWorldFactReplay(
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
 	private readonly IRestoredWorldItemSource? _restoredWorldItems = restoredWorldItems;
 	private long? _deferredGeyserSince;
+	private long? _deferredGeyserLastGrowth;
+	private int _deferredGeyserLive = -1;
 	private bool _deferredGeyserLogged;
 
 	/// <summary>
@@ -141,37 +143,63 @@ internal sealed class RestoredWorldFactReplay(
 		// READ, do not take: only a replay whose every row landed commits.
 		var restore = _nativeFacts?.ReadPendingRestore() ?? NativeWorldFactRestore.Empty;
 
-		// The native geysers are instantiated during this generation, not by it:
-		// at the world-entry seam they can still be absent. Writing now would
-		// position-match zero rows and release the handover; wait for the live
-		// copy to exist, but do not wait forever (a genuinely missing set must be
-		// reported, not parked).
-		if (restore.Geysers.Count > 0 && !_sink.IsReadyForGeysers(restore.Geysers))
+		// The native geysers are instantiated while the layer fills in, so at the
+		// world-entry seam the live set can still be growing. Writing now would
+		// position-match the subset that happens to exist and release the handover as
+		// refused rows. Hold while the count GROWS (GeyserFillWait), release once it has
+		// stood still, and never hold past the ceiling: a set that flatlines is a real
+		// loss and is reported as one.
+		if (restore.Geysers.Count > 0)
 		{
-			var now = Stopwatch.GetTimestamp();
-			_deferredGeyserSince ??= now;
-			if (!_deferredGeyserLogged)
+			var live = _sink.LiveGeyserCount;
+			var grew = _deferredGeyserLive >= 0 && live > _deferredGeyserLive;
+			if (live != _deferredGeyserLive)
 			{
-				_deferredGeyserLogged = true;
+				_deferredGeyserLive = live;
 				_log.LogInformation(
-					"[SaveFacts] the restored geysers are not in the live world yet ({Count} row(s) pending); holding the restore until the generated geysers exist.",
+					"[SaveFacts] the live geyser set is {Live} object(s) against the cut's {Saved} row(s).",
+					live,
 					restore.Geysers.Count);
 			}
 
-			var elapsedMs = (now - _deferredGeyserSince.Value) * 1000.0 / Stopwatch.Frequency;
-			if (elapsedMs < 5_000)
+			if (live < restore.Geysers.Count)
 			{
-				return;
-			}
+				var now = Stopwatch.GetTimestamp();
+				_deferredGeyserSince ??= now;
+				if (_deferredGeyserLastGrowth is null || grew)
+				{
+					_deferredGeyserLastGrowth = now;
+				}
 
-			_log.LogWarning(
-				"[SaveFacts] the restored geysers did not appear within 5 s ({Count} row(s) pending); applying the restore now so the refused rows are reported.",
-				restore.Geysers.Count);
-		}
-		else
-		{
-			_deferredGeyserSince = null;
-			_deferredGeyserLogged = false;
+				if (!_deferredGeyserLogged)
+				{
+					_deferredGeyserLogged = true;
+					_log.LogInformation(
+						"[SaveFacts] the restored geysers are not all in the live world yet ({Live} of {Count} live); holding the restore while the set grows.",
+						live,
+						restore.Geysers.Count);
+				}
+
+				var stable = (now - _deferredGeyserLastGrowth!.Value) / (double)Stopwatch.Frequency;
+				var elapsed = (now - _deferredGeyserSince.Value) / (double)Stopwatch.Frequency;
+				if (GeyserFillWait.Holds(live, restore.Geysers.Count, stable, elapsed))
+				{
+					return;
+				}
+
+				_log.LogWarning(
+					"[SaveFacts] the live geyser set stopped at {Live} of {Count} row(s) after {Elapsed:F1} s; applying the restore so the refused rows are reported.",
+					live,
+					restore.Geysers.Count,
+					elapsed);
+			}
+			else
+			{
+				_deferredGeyserSince = null;
+				_deferredGeyserLastGrowth = null;
+				_deferredGeyserLive = -1;
+				_deferredGeyserLogged = false;
+			}
 		}
 
 		LiveWorldWriteOutcome blocks;

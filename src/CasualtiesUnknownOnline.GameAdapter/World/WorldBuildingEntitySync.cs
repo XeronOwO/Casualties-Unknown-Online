@@ -258,7 +258,9 @@ internal sealed class WorldBuildingEntitySync(
 					return true;
 				}
 
-				_log.LogWarning("Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone).", x, y);
+				_log.LogWarning(
+					"Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone). {Nearest}.",
+					x, y, BuildingEntityLookup.Nearest(x, y));
 				return false;
 			}
 

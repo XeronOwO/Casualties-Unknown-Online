@@ -93,7 +93,7 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		// (2026-11-17: 92 rows before the mine, 91 in the cut).
 		var beforeGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(beforeGeysers, "ok"), "the host could not read the geyser types before saving: " + Raw(beforeGeysers));
-		var beforeTypes = GeyserTypes(beforeGeysers);
+		var beforeTypes = GeyserRows(beforeGeysers);
 		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
 		context.Read("geyser types before save", beforeGeysers);
 
@@ -145,7 +145,7 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var afterGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(afterGeysers, "ok"), "the host could not read the geyser types after continuing: " + Raw(afterGeysers));
 		context.Read("geyser types after continue", afterGeysers);
-		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
+		Require(SameGeyserTypes(beforeTypes, GeyserRows(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
 
 		var forced = await context.RecipeAsync("geyser-start", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(forced, "ok"), "the acceptance could not force the geysers' Start: " + Raw(forced));
@@ -155,7 +155,7 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			: "no geyser was left unstarted after the continue; the Start re-apply path was not exercised in this world");
 		var afterStart = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(afterStart, "ok"), "the host could not read the geyser types after Start: " + Raw(afterStart));
-		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterStart)), "a geyser's own Start overwrote the restored type: " + Raw(afterStart));
+		Require(SameGeyserTypes(beforeTypes, GeyserRows(afterStart)), "a geyser's own Start overwrote the restored type: " + Raw(afterStart));
 		Require(Double(afterStart, "started") >= beforeTypes.Count, "not every geyser kept its started mark after Start: " + Raw(afterStart));
 		context.Read("geyser types after Start", afterStart);
 
@@ -284,47 +284,76 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			? value.GetDouble()
 			: null;
 
-	private static Dictionary<string, int> GeyserTypes(JsonElement? reading)
+	/// <summary>A geyser row as the probe reports it: position plus the type the restore had to keep.</summary>
+	private readonly record struct GeyserRow(double X, double Y, int Type);
+
+	/// <summary>
+	/// The probe's rows as positions and types. Positions are compared with a tolerance, never by exact key:
+	/// a regenerated layer can place the same geyser a hair off (measured 2026-11-18: 263.601 against 263.6),
+	/// and the row's claim is that each geyser kept its type, not that the float survived the round trip.
+	/// </summary>
+	private static List<GeyserRow> GeyserRows(JsonElement? reading)
 	{
-		var types = new Dictionary<string, int>(StringComparer.Ordinal);
+		var rows = new List<GeyserRow>();
 		if (reading is not { ValueKind: JsonValueKind.Object } element
-			|| !element.TryGetProperty("rows", out var rows)
-			|| rows.ValueKind != JsonValueKind.Array)
+			|| !element.TryGetProperty("rows", out var array)
+			|| array.ValueKind != JsonValueKind.Array)
 		{
-			return types;
+			return rows;
 		}
 
-		foreach (var row in rows.EnumerateArray())
+		foreach (var row in array.EnumerateArray())
 		{
 			if (row.ValueKind != JsonValueKind.Object)
 			{
 				continue;
 			}
 
-			types[GeyserKey(row)] = row.GetProperty("type").GetInt32();
+			rows.Add(new GeyserRow(row.GetProperty("x").GetDouble(), row.GetProperty("y").GetDouble(), row.GetProperty("type").GetInt32()));
 		}
 
-		return types;
+		return rows;
 	}
 
-	private static string GeyserKey(JsonElement row) =>
-		row.GetProperty("x").GetDouble().ToString("0.###", CultureInfo.InvariantCulture)
-		+ ","
-		+ row.GetProperty("y").GetDouble().ToString("0.###", CultureInfo.InvariantCulture);
-
-	private static bool SameGeyserTypes(Dictionary<string, int> left, Dictionary<string, int> right)
+	/// <summary>
+	/// One-to-one within the restore's own six metres: every row the cut carried is matched by an unused live
+	/// geyser of the same type nearby. A swap between two geysers, a lost row and a changed type all fail.
+	/// </summary>
+	private static bool SameGeyserTypes(List<GeyserRow> left, List<GeyserRow> right)
 	{
 		if (left.Count != right.Count)
 		{
 			return false;
 		}
 
-		foreach (var pair in left)
+		var used = new bool[right.Count];
+		foreach (var row in left)
 		{
-			if (!right.TryGetValue(pair.Key, out var type) || type != pair.Value)
+			var best = 6.0 * 6.0;
+			var match = -1;
+			for (var index = 0; index < right.Count; index++)
+			{
+				if (used[index] || right[index].Type != row.Type)
+				{
+					continue;
+				}
+
+				var dx = right[index].X - row.X;
+				var dy = right[index].Y - row.Y;
+				var distance = (dx * dx) + (dy * dy);
+				if (distance < best)
+				{
+					best = distance;
+					match = index;
+				}
+			}
+
+			if (match < 0)
 			{
 				return false;
 			}
+
+			used[match] = true;
 		}
 
 		return true;

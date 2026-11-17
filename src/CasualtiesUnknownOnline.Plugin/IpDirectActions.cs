@@ -46,7 +46,7 @@ internal sealed class IpDirectActions
 
 	internal bool CreateHost()
 	{
-		if (!CanStart())
+		if (!CanCreateHost())
 		{
 			return false;
 		}
@@ -72,7 +72,7 @@ internal sealed class IpDirectActions
 
 	internal bool Join(string address, int port)
 	{
-		if (!CanStart())
+		if (!CanJoinHost())
 		{
 			return false;
 		}
@@ -116,6 +116,54 @@ internal sealed class IpDirectActions
 		return true;
 	}
 
+	/// <summary>
+	/// Host policy: the menu is always allowed; a live world only for the true solo player, through
+	/// the same <see cref="LobbySwitchGuard.CanCreateLobby"/> rule the Steam lobby create uses — the
+	/// world is that player's own and the late-joiner path depends on it. Continue is CUO's own
+	/// restore (`PreRunScriptLoadRunPatch` blocks the native load), so every live world a player can
+	/// stand in came from a CUO run and carries the baseline a joiner generates from.
+	/// </summary>
+	private bool CanCreateHost()
+	{
+		if (!CanStart())
+		{
+			return false;
+		}
+
+		if (_worldPresence is not { IsInWorldOrGenerating: true })
+		{
+			return true;
+		}
+
+		if (LobbySwitchGuard.CanCreateLobby(_session.Role, _session.SessionActive, worldFlowActive: true))
+		{
+			_logger.LogInformation("IP-direct hosting opened over the solo world that is already running.");
+			return true;
+		}
+
+		LastError = _localization.T("lobby.join_blocked_in_world");
+		_logger.LogWarning("IP-direct start refused: a sessioned world is running or generating.");
+		return false;
+	}
+
+	/// <summary>Join policy: a lobby join always changes identity, so any active world blocks it.</summary>
+	private bool CanJoinHost()
+	{
+		if (!CanStart())
+		{
+			return false;
+		}
+
+		if (_worldPresence is { IsInWorldOrGenerating: true })
+		{
+			LastError = _localization.T("lobby.join_blocked_in_world");
+			_logger.LogWarning("IP-direct join refused: a world is running or generating.");
+			return false;
+		}
+
+		return true;
+	}
+
 	private bool CanStart()
 	{
 		if (_ipSteam.IsActive)
@@ -128,13 +176,6 @@ internal sealed class IpDirectActions
 		{
 			LastError = _localization.T("ip.blocked_steam_session");
 			_logger.LogWarning("IP-direct start refused: a Steam session is active.");
-			return false;
-		}
-
-		if (_worldPresence is { IsInWorldOrGenerating: true })
-		{
-			LastError = _localization.T("lobby.join_blocked_in_world");
-			_logger.LogWarning("IP-direct start refused: a world is running or generating.");
 			return false;
 		}
 

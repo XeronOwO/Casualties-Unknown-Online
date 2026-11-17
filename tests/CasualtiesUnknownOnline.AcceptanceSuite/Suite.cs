@@ -33,14 +33,14 @@ internal static partial class Program
 		{
 			foreach (var acceptanceCase in CaseRegistry.All)
 			{
-				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}\t{acceptanceCase.Cost}");
+				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}\t{acceptanceCase.Cost}\t{(acceptanceCase.RunsInBatch ? "batch" : "by-name")}");
 			}
 
 			return 0;
 		}
 
-		var selected = options.Suite == "all"
-			? CaseRegistry.All
+		IReadOnlyList<AcceptanceCase> selected = options.Suite == "all"
+			? [.. CaseRegistry.All.Where(candidate => candidate.RunsInBatch)]
 			: [.. CaseRegistry.All.Where(candidate => options.Suite.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(candidate.Name, StringComparer.Ordinal))];
 		if (options.Cost is { Length: > 0 } costFilter)
 		{
@@ -765,6 +765,14 @@ internal abstract class AcceptanceCase
 	public virtual CaseCost Cost => CaseCost.InRun;
 
 	/// <summary>
+	/// Whether <c>--suite all</c> runs this case. The full batch has a recorded wall-time baseline
+	/// (<c>docs/acceptance/AGENTS.md</c> rule 14), so a row that must give up the session and restore a
+	/// world — tens of seconds — is selected by name and stays out of the batch until it can pay for
+	/// itself there. A by-name run is still the automated suite: same pair, same report, same log counts.
+	/// </summary>
+	public virtual bool RunsInBatch => true;
+
+	/// <summary>
 	/// The error lines this case is allowed to cause. Zero is the default: an error is a finding,
 	/// and the case must fail even when its behavioural readings happened to pass.
 	/// </summary>
@@ -843,6 +851,10 @@ internal static class SuiteReport
 		builder.AppendLine($"- Pair ready (UTC): `{Timestamp(pairReadyUtc)}`");
 		builder.AppendLine($"- Finish (UTC): `{Timestamp(finishedUtc)}`");
 		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
+		var byNameOnly = CaseRegistry.All.Where(candidate => !candidate.RunsInBatch).Select(candidate => candidate.Name).ToList();
+		builder.AppendLine(byNameOnly.Count == 0
+			? "- Cases: every registered case runs in this batch."
+			: $"- Cases run by name only (not in this batch): {string.Join(", ", byNameOnly)}.");
 		builder.AppendLine();
 		builder.Append(timeline.Render());
 		builder.AppendLine($"- Logs outside cases: host {Counts(suiteLogs.HostOutside)}, member {Counts(suiteLogs.MemberOutside)} — {(suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null ? "PASS" : "FAIL")}");
@@ -1158,6 +1170,9 @@ internal static class CaseRegistry
 		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
+		// Continue first, then host: the session must open over the running world (run by name; it gives up
+		// the session and restores a world, which is more than the batch's recorded wall time can pay).
+		new HostAfterContinueCase(),
 		new RemoteRemovalCase(), // the member leaves last; the host's displayed body goes and its own log says so
 		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)
 		// The session picker unlocks all three portraits; the host starts this shared world with the

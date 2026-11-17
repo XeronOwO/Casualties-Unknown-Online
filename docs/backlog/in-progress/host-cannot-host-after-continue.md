@@ -39,6 +39,16 @@ archive's in agreement, and needs no stream re-init.
 - Failing order: continue first, then `ip.create_host` → `IP-direct start refused: a world is running or generating`;
   the restore had already run in the Steam key space, so `none … was claimed`.
 
+## Red probe (2026-11-17)
+
+- Instrument: the deployed build the install matches (`tools/verify-deploy.ps1`), the in-process driver, and the host's
+  `BepInEx/logs/latest.log`.
+- Order: the host at the menu → `continue-run` (no session; `state` reads `inWorld=true, role=None, active=false`) →
+  click `ip.create_host`.
+- Result: `[2026-11-17 22:20:30.748] [WRN] [CasualtiesUnknownOnline.IpDirectActions] IP-direct start refused: a world is
+  running or generating.` The state after the click still reads `role=None, active=false, lobby=0`: no session opened,
+  so the natural order dies at its first step and the invite never happens. This is the defect the fix has to remove.
+
 ## Design
 
 The order rule comes from docs/design/cross-cutting/saves-and-recovery.md (an unclaimed character joins as a new one;

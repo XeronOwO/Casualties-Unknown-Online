@@ -71,7 +71,7 @@ internal sealed class WorldCutWriter(
 		// synchronously, so a checkpoint cannot straddle a batch).
 		var totalClock = Stopwatch.StartNew();
 		var checkpointClock = Stopwatch.StartNew();
-		var checkpoint = _kernel.CreateCheckpoint();
+		var checkpoint = CutBuildingHealthReconcile.Apply(_kernel.CreateCheckpoint(), _nativeWorldFacts, request.Reason, _log);
 		checkpointClock.Stop();
 		if (checkpoint.Run is null)
 		{

@@ -61,6 +61,31 @@ public interface INativeWorldFacts
 	/// </summary>
 	IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages();
 
+	/// <summary>
+	/// Whether a live world is present to answer <see cref="LiveBuildingHealthAt"/>.
+	/// This is a separate question from the answer itself: a cut taken where no world
+	/// exists cannot say whether a building still stands, and "unknown" must keep the
+	/// kernel's facts rather than record every named building as destroyed.
+	/// </summary>
+	bool CanReadLiveBuildings { get; }
+
+	/// <summary>
+	/// The health the live world's own building at this world point carries, or null
+	/// when no building entity stands there. The lookup is the same point query the
+	/// restore uses to apply a health row, so a cut and its restore address one fact
+	/// the same way.
+	///
+	/// The game destroys a building whose support the blast removed WITHOUT reporting
+	/// it, so the kernel's last positive health for that building names an entity the
+	/// world no longer has; a cut that stored it would be refused by its own restore
+	/// (measured 2026-11-17: a cut named health 1437.9 at cell (5,492) whose building
+	/// the blast had already felled, and the continue reported the row as refused).
+	/// Reading the live world at the cut instant records that building as destroyed
+	/// instead, which is what the world shows.
+	/// </summary>
+	float? LiveBuildingHealthAt(float x, float y);
+
+
 
 	/// <summary>
 	/// The live recipe table's UNLOCKED indices — every recipe that currently

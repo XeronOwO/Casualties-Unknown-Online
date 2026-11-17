@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -118,6 +119,17 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 
 		return GameBlockDamageTable.Capture(world);
 	}
+
+	/// <inheritdoc />
+	public bool CanReadLiveBuildings => WorldGeneration.world != null; // Unity object — ==
+
+	/// <inheritdoc />
+	public float? LiveBuildingHealthAt(float x, float y) =>
+		WorldGeneration.world == null // Unity object — ==
+			? null
+			: Physics2D.OverlapPoint(new Vector2(x, y)) is { } hit && hit.GetComponent<BuildingEntity>() is { } entity
+				? entity.health
+				: null;
 
 	/// <inheritdoc />
 	public NativeRunFields CaptureRunFields()

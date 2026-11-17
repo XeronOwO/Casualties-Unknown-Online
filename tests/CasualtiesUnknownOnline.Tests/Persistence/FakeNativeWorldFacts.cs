@@ -51,6 +51,25 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	/// <summary>Drop the game's own rows WITHOUT arming the restore handover — what the game's own 128-entry eviction or a break does.</summary>
 	internal void ClearBlockDamages() => _damages.Clear();
 
+	private readonly Dictionary<(float X, float Y), float> _buildings = [];
+
+	/// <summary>Whether a "live world" is present to answer the cut's building queries (the reconciliation's gate).</summary>
+	internal bool LiveBuildingsPresent { get; set; } = true;
+
+	/// <summary>The building the live world has at a world point, with the health it carries now.</summary>
+	internal void SeedBuilding(float x, float y, float health) => _buildings[(x, y)] = health;
+
+	/// <summary>The game's own support loss: the entity is gone, and nothing reported it.</summary>
+	internal void FellBuilding(float x, float y) => _buildings.Remove((x, y));
+
+	public bool CanReadLiveBuildings => LiveBuildingsPresent;
+
+	public float? LiveBuildingHealthAt(float x, float y)
+	{
+		Calls.Add("live-building-health");
+		return LiveBuildingsPresent && _buildings.TryGetValue((x, y), out var health) ? health : null;
+	}
+
 	/// <summary>
 	/// The game's own accumulation, as the adapter's relay applies it
 	/// (<c>WorldGeneration.DamageBlock</c>: <c>blockDamage.damage += dmg</c>) — the

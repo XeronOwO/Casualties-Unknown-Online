@@ -39,6 +39,11 @@ internal sealed class GameRestoredWorldFactSink(
 	private readonly EntityEventSync _entityEvents = entityEvents;
 	private readonly ILogger<GameRestoredWorldFactSink> _log = log;
 
+	/// <summary>The last live geyser count this restore saw, so the wait's own growth is one
+	/// log line per change instead of one per frame (the readiness number the 5 s window is
+	/// judged by is a measurement, not a guess).</summary>
+	private int _lastGeyserCount = -1;
+
 	/// <inheritdoc />
 	public bool IsWorldReady
 	{
@@ -106,13 +111,24 @@ internal sealed class GameRestoredWorldFactSink(
 		// layer that has not finished instantiating still has fewer objects.
 		// Applying while the live set is short would position-match only the
 		// subset that happens to exist.
-		return Object.FindObjectsOfType<GeyserScript>(true).Length >= geysers.Count;
+		var live = Object.FindObjectsOfType<GeyserScript>(true).Length;
+		if (live != _lastGeyserCount)
+		{
+			_lastGeyserCount = live;
+			_log.LogInformation(
+				"[SaveFacts] the live geyser set is {Live} object(s) against the cut's {Saved} row(s).",
+				live,
+				geysers.Count);
+		}
+
+		return live >= geysers.Count;
 	}
 
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
 		var applied = GeyserStateTable.Apply(geysers, _log);
+		_lastGeyserCount = -1;
 		return new LiveWorldWriteOutcome(applied, geysers.Count - applied);
 	}
 

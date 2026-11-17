@@ -19,8 +19,14 @@ internal sealed class SaveAfterDamageCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
+	/// <summary>The host log's length when this case started. The waits read only what this run
+	/// appended: an earlier case's "restored the live world" line is that case's reading, and a
+	/// later one must never be reported as this case's.</summary>
+	private long _logOffset;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		_logOffset = LogLength(context.HostLogPath);
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		await context.WaitForCustodyAsync(cancellationToken).ConfigureAwait(false);
 
@@ -169,7 +175,7 @@ internal sealed class SaveAfterDamageCase : AcceptanceCase
 	/// compact entry per distinct reading, so the ticket can say whether the entity ever existed and when
 	/// it went. Runs until the restore audit lands or the budget ends.
 	/// </summary>
-	private static async Task<string> SampleAsync(CaseContext context, float x, float y, CancellationToken cancellationToken)
+	private async Task<string> SampleAsync(CaseContext context, float x, float y, CancellationToken cancellationToken)
 	{
 		var samples = new StringBuilder();
 		var previous = string.Empty;
@@ -272,7 +278,7 @@ internal sealed class SaveAfterDamageCase : AcceptanceCase
 		return last;
 	}
 
-	private static async Task<string> WaitForHostLogAsync(CaseContext context, string needle, TimeSpan budget, CancellationToken cancellationToken)
+	private async Task<string> WaitForHostLogAsync(CaseContext context, string needle, TimeSpan budget, CancellationToken cancellationToken)
 	{
 		var deadline = DateTime.UtcNow + budget;
 		while (DateTime.UtcNow < deadline)
@@ -289,12 +295,14 @@ internal sealed class SaveAfterDamageCase : AcceptanceCase
 		return string.Empty;
 	}
 
-	/// <summary>The whole line carrying <paramref name="needle"/>, or null while the host log does not carry it.</summary>
-	private static string? TryFindHostLogLine(CaseContext context, string needle)
+	/// <summary>The whole line carrying <paramref name="needle"/> in what this case appended, or null
+	/// while the host log does not carry it.</summary>
+	private string? TryFindHostLogLine(CaseContext context, string needle)
 	{
 		var text = ReadLog(context.HostLogPath);
+		var start = (int)Math.Min(_logOffset, text.Length);
 		var index = text.LastIndexOf(needle, StringComparison.Ordinal);
-		if (index < 0)
+		if (index < start)
 		{
 			return null;
 		}
@@ -302,6 +310,19 @@ internal sealed class SaveAfterDamageCase : AcceptanceCase
 		var lineStart = text.LastIndexOf('\n', index) + 1;
 		var lineEnd = text.IndexOf('\n', index);
 		return text[lineStart..(lineEnd >= 0 ? lineEnd : text.Length)].Trim();
+	}
+
+	/// <summary>The host log's current length (0 while the file does not exist yet).</summary>
+	private static long LogLength(string path)
+	{
+		try
+		{
+			return new FileInfo(path).Length;
+		}
+		catch (Exception)
+		{
+			return 0;
+		}
 	}
 
 	private static string ReadLog(string path)

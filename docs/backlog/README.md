@@ -62,7 +62,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
+
+_No open ticket._
 
 
 
@@ -134,6 +135,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Split the save archive reader at its seams](done/split-save-archive-reader.md) — **Medium** — 619 → 421 lines; the restore re-read on the real game.
 - [Nobody counts a player's deaths](done/1.0-player-death-stats-missing.md) — **Low** — `/deaths` reads 2 on both clients after a continue.
 - [Host cannot host after a continue](done/host-cannot-host-after-continue.md) — **High** — continue, then host: the member joins the same run.
 - [The acceptance suite finishes under five minutes](done/1.0-acceptance-under-five-minutes.md) — **High** — 39/39 in 299.8 s, the trap blast included.

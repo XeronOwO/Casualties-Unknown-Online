@@ -9,10 +9,8 @@ gitignored [AGENTS.local.md](AGENTS.local.md): read it first, never copy machine
 - [workflow.md](workflow.md) — the end-to-end run and the capability table.
 - [dependencies.md](dependencies.md) — every dependency, its detection, and the degradation ladder.
 - [lessons.md](lessons.md) — what the runs keep teaching.
-- [`tools/acceptance/preflight.ps1`](../../tools/acceptance/preflight.ps1) — the executable half of the dependency table.
-- [`tools/acceptance/drive-in-process.ps1`](../../tools/acceptance/drive-in-process.ps1) — the in-process driver of a running
-  client (`-ListActions` names its vocabulary) with its recipes under [`tools/acceptance/recipes/`](../../tools/acceptance/recipes/).
-- [`tools/acceptance/session-environment.ps1`](../../tools/acceptance/session-environment.ps1) — the BepInEx-tree gate.
+- [`tools/acceptance/`](../../tools/acceptance/) — the preflight, the in-process driver (`-ListActions` names its actions and
+  its recipes), and the BepInEx-tree gate; [workflow.md](workflow.md) says how each is used.
 
 ## Binding rules
 
@@ -35,26 +33,22 @@ gitignored [AGENTS.local.md](AGENTS.local.md): read it first, never copy machine
 9. `[RULE]` **Every run leaves this area better**: fold a reusable lesson into [lessons.md](lessons.md), a machine value into
    `AGENTS.local.md`, a wrong or missing rule into this file — and into `docs/AGENTS.md` or the root `AGENTS.md` when it binds the
    repository. Closing an acceptance conversation runs this harvest unprompted.
-10. `[CRITICAL]` **Wall time is a measured fact.** Report connect / setup / case per case and classify it `InRun`, `NewWorld` or
-    `ClientRestart`. Target **seconds per case and tens of seconds per group**; an overrun is a finding to optimize (reuse a healthy
-    pair, cut dead waits, restore through the game path), not a normal cost. `--cost` and `--reuse` select groups; the report says
-    when a pair was reused.
-11. `[CRITICAL]` **Every case counts the logs it caused.** Mark both clients' log offsets before it starts; count every `Warning` and
-    `Error` written since. The report carries both counts; the case asserts its declared error budget (zero by default) and warning
-    budget. An unexplained error fails even when behaviour passed; known warnings are named and bounded, never filtered out.
-12. `[CRITICAL]` **Assertions prove the design, not the happy path.** Name the design claim and read the player-visible state on each
-    affected client — host and member, watcher and watched — plus the unchanged side or a control where a false pass is possible.
-    "Non-empty", "ok" and "connected" are preconditions, never verdicts; a coarse case is rewritten, and a green case that would
-    still pass with the feature removed is not evidence.
-13. `[CRITICAL]` **The automated suite is the last acceptance gate.** A `review/` row closes only when an automated case covers it, ran
-    against the deployed artifact in this batch, and its report (including log counts and per-client readings) is cited. Manual play
-    may explain a failure but never substitutes for a missing case; a row without a case stays open.
-14. `[CRITICAL]` **The suite's wall time has a recorded baseline: 39 rows in 299.8 s.** The reading is
-    `.acceptance/full-after-merge/report/report.md` (2026-11-17): report wall 299.8 s, suite wall 300.6 s, shared pair setup
-    25.2 s, 39 of 39 rows green. Five minutes is the ceiling and this reading is the baseline every later full run reports
-    against: a change that adds a row, or more than about a second to the total, first finds that time back — or records on its
-    ticket why the new row cannot be cheaper. The baseline moves only with a green run whose reading replaces this one; a target
-    written in a ticket is not the baseline.
+10. `[CRITICAL]` **Wall time is a measured fact.** Report connect / setup / case per case and classify the case `InRun`,
+    `NewWorld` or `ClientRestart`; seconds per case and tens of seconds per group are the target, and an overrun is a finding
+    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups.
+11. `[CRITICAL]` **Every case counts the logs it caused.** Mark both clients' log offsets before it starts; count every `Warning`
+    and `Error` written since, and assert the case's declared budget (zero errors by default). An unexplained error fails even
+    when behaviour passed; known warnings are named and bounded, never filtered out.
+12. `[CRITICAL]` **Assertions prove the design, not the happy path.** Name the design claim and read the player-visible state on
+    every affected client — host and member, watcher and watched — plus the unchanged side or a control where a false pass is
+    possible. "Non-empty", "ok" and "connected" are preconditions, never verdicts.
+13. `[CRITICAL]` **The automated suite is the last acceptance gate.** A `review/` row closes only when an automated case covers
+    it, ran against the deployed artifact, and its report (log counts and per-client readings included) is cited. Manual play
+    may explain a failure, never substitute for a missing case; a row without a case stays open.
+14. `[CRITICAL]` **The full batch's wall time is a recorded baseline: 39 rows in 299.8 s** (`.acceptance/full-after-merge/report/report.md`,
+    2026-11-17, 39 of 39 green); five minutes is the ceiling. A change that adds a row or about a second first finds the time
+    back or records on its ticket why it cannot; the baseline moves only with a green run whose reading replaces it. How the
+    baseline is measured and reported: [workflow.md](workflow.md).
 
 ## Related
 

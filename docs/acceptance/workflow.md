@@ -50,10 +50,6 @@ this gate"), and it records that judgement in its own scope page (§7). What the
 checklist is a verdict on every row it claims, which is the same evidence the checklist's own step 9
 names.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## 2. Dependency preflight — a gate, not a formality
 
 ```powershell
@@ -80,10 +76,6 @@ capability is missing and `1` on its own error.
 - **A game or Steam instance is already running** → do not kill it. Report it and ask. Only processes
   this run started may be stopped by this run.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## 3. Acceptance plan
 
 For every ticket in the batch, classify each row before running, and write the classification into
@@ -100,10 +92,6 @@ The plan then groups the batch into shared setups: which client is host, which s
 in the same world, which tickets reuse one another's setup, and what has to be true in the world before
 a row can be observed (a world entered, an item held, a peer in range). A ticket whose setup cannot
 share the session already running gets its own run, and that decision is recorded.
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## 4. Build, deploy, artifact identity
 
@@ -127,10 +115,6 @@ copy that is older than the physical one runs old code, and the shadow files are
   different game data and the join fails. Before the pair starts, print both clients' executables and
   require the same install, and require the deployed plug-in to be this tree's `+<sha>`. A pair that
   fails either check produces no reading.
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## 5. The two-client session
 
@@ -259,10 +243,6 @@ collected while its scenario is up.
   are clickable for the capture recipe.
 - The run closes cleanly: quit both clients through the game, then stop what the run started.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## 6. Verdicts
 
 Every row ends in exactly one of: `pass`, `fail`, `unproven`, `blocked`, `residual`.
@@ -294,9 +274,15 @@ never a residual, and never a pass.
   that demands an applied line for the parent fails a clean run — batch `20261025-c`'s driver did, and the
   window's evidence was re-judged against the child's fact.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
+## The wall-time baseline
 
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
+The full batch reports against the recorded baseline: **39 rows in 299.8 s** (2026-11-17,
+`.acceptance/full-after-merge/report/report.md`). The record copies the report's `Wall time` line, the
+suite wall, the shared pair setup and the per-case table exactly as the run wrote them, and names the
+baseline it is compared against. A case that adds a row to `all` — or more than about a second — either
+finds the time back first or records on its ticket why it cannot; a case that runs only by name
+(`RunsInBatch => false`) costs the batch nothing and the report header names it. The baseline moves only
+when a green full run's reading replaces it, never because a target was written down.
 
 ## 7. The record
 
@@ -319,24 +305,12 @@ shared build and the session they came from.
 |---|---|---|---|---|
 | 1 | … | visual | pass | <artifact-id> |
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## Residuals for the user
 <the rows a person must judge, each with its artifact id, in plain language>
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## Limits
 <what this run could not prove, and why>
 ```
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## 8. Ticket transition
 
@@ -350,19 +324,11 @@ The listener instruments (`audio-watch3` and its siblings) record two different 
 - `BacklogIntegrityGateTests` refuses a ticket that is not listed exactly once in its own section, so
   the moves and the index are one edit.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## 9. Residuals to the user
 
 Residuals are batched: one message per run, plain language, each item saying what to look at and
 which artifact shows it. The user's answer is recorded back into the records — a rejected residual
 returns that ticket to `todo/` with the same rejection marking as a failed row.
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## 10. Lessons and the closing harvest
 
@@ -380,10 +346,6 @@ general enough to reuse moves into `tools/acceptance/` (or the local artifact ar
 report when it is machine-specific) so the next run starts from it instead of rediscovering it; a script
 that stays only in a transcript is lost. The closing report names what was harvested and where it landed.
 
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
-
 ## Capability status
 
 Which steps of this page are executable today, and which are still being built:
@@ -394,10 +356,6 @@ Which steps of this page are executable today, and which are still being built:
 | 1, 3, 6, 7, 8 — plan, verdicts, record, transition | **executable** as a procedure; the run is driven by the agent, not yet by a script |
 | 4 — build, deploy, identity, shadow rule | **executable**: existing `tools/*.ps1` plus the local shadow rule |
 | 5 — session, probes, capture | **partly executable**: a running client is driven through the committed in-process helper (`tools/acceptance/drive-in-process.ps1`), which acts through the Online UI's own registered controls and runs the committed scenario recipes (`tools/acceptance/recipes/`) for gameplay states the UI cannot reach, one eval per invocation, loading the eval declaration a recipe names (`-Action declare`, once per client) before the first step that needs it; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## Limits
 
@@ -411,10 +369,6 @@ The listener instruments (`audio-watch3` and its siblings) record two different 
   driver has no value-carrying selection), and no console verb writes them; a row that needs a non-default
   rule is `unproven` with the gap recorded, never approximated by editing the config under a live session
   (batch `20261023-f`'s row 7).
-
-## A repeat-count question is answered by `plays`, never by a `names` diff
-
-The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.
 
 ## The drag batch (the input sequence, written down before it runs)
 

@@ -7,7 +7,10 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// <summary>
 /// The save-and-continue row, read on the real game: the host asks for a save cut, the cut commits,
 /// the host leaves the world and continues from the menu, and the world comes back. The host's own
-/// log carries the cut and the continue, so the case judges the lines the product writes.
+/// log carries the cut and the continue, so the case judges the lines the product writes. The cut is
+/// taken after a real trap blast, because the 2026-11-15 merged run showed that a world damaged
+/// before the save is where the restore's world-entity rows go missing; the audit must name every
+/// one of them applied.
 /// </summary>
 internal sealed class SaveContinueCase : AcceptanceCase
 {
@@ -60,6 +63,37 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
 		context.Read("geyser types before save", beforeGeysers);
 
+		// The save must come after real world damage. The 2026-11-15 merged run saved after a trap
+		// blast and the restore then refused the cut's building-health rows; the suite hid that by
+		// taking its save before the damage cases. Staging the mine here puts the reading in the row
+		// that already saves and continues, instead of a second save/continue cycle (the separate
+		// save-after-damage row cost 36.8 s of the suite's budget).
+		var blastBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		var blastX = NumberIn(blastBody, "localBody", "positionX");
+		var blastY = NumberIn(blastBody, "localBody", "positionY");
+		Require(blastX is not null && blastY is not null, "the host's own position is unknown: " + Raw(blastBody));
+		var breakable = await context.FindBreakableCellAsync((int)Math.Round(blastX!.Value), (int)Math.Round(blastY!.Value), cancellationToken).ConfigureAwait(false);
+		Require(breakable is not null, "no breakable terrain cell was found near the host, so a mine there could not be staged: (" + blastX + ", " + blastY + ")");
+		var stagedMine = await context.RecipeAsync("trap-stage", cancellationToken,
+			("x", breakable!.Value.X.ToString(CultureInfo.InvariantCulture)),
+			("y", breakable.Value.Y.ToString(CultureInfo.InvariantCulture)),
+			("dx", "2"),
+			("crate", "containercrate")).ConfigureAwait(false);
+		context.Read("staged blast", stagedMine);
+		Require(Boolean(stagedMine, "ok"), "the mine was not staged: " + Raw(stagedMine));
+		var mineX = Number(stagedMine, "mineX");
+		var mineY = Number(stagedMine, "mineY");
+		Require(mineX is not null && mineY is not null, "the staged mine names no position: " + Raw(stagedMine));
+		var fired = await context.RecipeAsync("trap-trigger", cancellationToken,
+			("x", mineX!.Value.ToString("0.##", CultureInfo.InvariantCulture)),
+			("y", mineY!.Value.ToString("0.##", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		context.Read("blast", fired);
+		Require(Boolean(fired, "ok"), "the mine did not fire: " + Raw(fired));
+
+		// The mine's fuse is 0.8 s of game time; the kernel records the explosion's rows when it
+		// lands, and the cut must be taken after them. This is that duration, not a poll budget.
+		await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
+
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
 
@@ -98,6 +132,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var restoredAudit = await WaitForLogAsync(context, "restored the live world", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
 		Require(restoredAudit.Contains(beforeTypes.Count + " geyser type(s) applied", StringComparison.Ordinal), "the restore did not apply the " + beforeTypes.Count + " geyser types: " + restoredAudit);
 		Require(restoredAudit.Contains("0 row(s) not taken", StringComparison.Ordinal), "the restore still refused geyser rows: " + restoredAudit);
+		Require(restoredAudit.Contains("/ 0 refused world-entity row(s)", StringComparison.Ordinal), "the restore refused a world-entity row after the trap blast: " + restoredAudit);
+		Require(!restoredAudit.Contains("not carried world-entity row(s)", StringComparison.Ordinal), "the restore carried none of the cut's world-entity rows: " + restoredAudit);
 		context.Read("geyser restore audit", JsonDocument.Parse("\"" + Escape(restoredAudit) + "\"").RootElement.Clone());
 
 		var afterGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
@@ -225,6 +261,22 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		&& value.ValueKind == JsonValueKind.Number
 			? value.GetDouble()
 			: 0;
+
+	private static double? Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: null;
+
+	private static double? NumberIn(JsonElement? reading, string outer, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(outer, out var inner)
+		&& inner.ValueKind == JsonValueKind.Object
+		&& inner.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: null;
 
 	private static Dictionary<string, int> GeyserTypes(JsonElement? reading)
 	{

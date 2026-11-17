@@ -1138,10 +1138,9 @@ internal static class CaseRegistry
 		// the member's own limb after the host's `/heal @a`.
 		// own limb stays partial in an aged session; the reading is on the suite ticket.
 		new EatSoundCase(), // a host's own eat plays on the member's machine
-		// Save before the block and trap mutations: a trap explosion can damage a generated
-		// building whose entity does not exist in the freshly regenerated layer, which makes the
-		// restore-completeness audit report the stale building-health row. That restore case is
-		// tracked; the one-file save/continue row must run against the untouched generated world.
+		// The save/continue row takes its cut after a real trap blast (the blast is staged inside the
+		// case): the 2026-11-15 merged run showed that a world damaged before the save is where the
+		// restore's world-entity rows go missing, so the reading belongs to the row that saves.
 		new SaveContinueCase(),
 		// The worlds page lists archive rows; it needs a run that has actually produced a cut, so it
 		// follows save-continue instead of reading an empty fresh save root.
@@ -1151,10 +1150,6 @@ internal static class CaseRegistry
 		new BlockIdleDriftCase(), // the two tables agree and stay agreed while neither body moves (the divergence probe)
 		new BlockReconcileCase(), // a host write whose live message was lost reaches the member on the 60 s reconcile
 		new MineBlastCase(), // a mine the host fires destroys a building on the member's own copy
-		// The save that follows the blast: the restore must apply every world-entity row a trap
-		// explosion leaves in the kernel (the 2026-11-15 merged run refused two of them). This is the
-		// dedicated case the ordering note above used to stand in for.
-		new SaveAfterDamageCase(),
 		// save-continue leaves the world and restores it: it goes after every case that only needs
 		// the world the suite already owns.
 		new EnemyPairingCase(), // parked 2026-11-12: the member adopted the host's 47 rows with 22

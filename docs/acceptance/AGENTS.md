@@ -49,6 +49,12 @@ gitignored [AGENTS.local.md](AGENTS.local.md): read it first, never copy machine
 13. `[CRITICAL]` **The automated suite is the last acceptance gate.** A `review/` row closes only when an automated case covers it, ran
     against the deployed artifact in this batch, and its report (including log counts and per-client readings) is cited. Manual play
     may explain a failure but never substitutes for a missing case; a row without a case stays open.
+14. `[CRITICAL]` **The suite's wall time has a recorded baseline: 39 rows in 299.8 s.** The reading is
+    `.acceptance/full-after-merge/report/report.md` (2026-11-17): report wall 299.8 s, suite wall 300.6 s, shared pair setup
+    25.2 s, 39 of 39 rows green. Five minutes is the ceiling and this reading is the baseline every later full run reports
+    against: a change that adds a row, or more than about a second to the total, first finds that time back — or records on its
+    ticket why the new row cannot be cheaper. The baseline moves only with a green run whose reading replaces this one; a target
+    written in a ticket is not the baseline.
 
 ## Related
 

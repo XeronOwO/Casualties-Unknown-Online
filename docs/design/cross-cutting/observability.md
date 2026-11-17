@@ -28,6 +28,12 @@ enough to reconstruct what happened.
   (`CharacterDataMsg.Deaths`) so the cut, a continue and a reconnect carry it, and `/deaths` reads it back —
   the member's own count from its capture, the host's view of a member from the stored report. Nothing is
   inferred from damage, and a spawn, a restore and a world entry are never deaths.
+- **A diagnostic instrument may shape the link, and the profile never leaves the client.** `Runtime/Networking/NetConditionsProfile`,
+  `INetConditionsControl` and `NetConditionsShim` sit in the IP-direct transport's send path: every outbound payload
+  waits `LatencyMs` (± `JitterMs`), and `LossPercent` of the UNRELIABLE payloads are dropped. Reliable payloads are never
+  dropped and per-peer order is kept; the profile is off by default, is never on the wire and is never persisted, so the
+  reader of a row has to be told what it ran under — "the item landed at 150 ms and 20% loss" is a different claim from
+  "the item landed".
 
 ## Who judges
 

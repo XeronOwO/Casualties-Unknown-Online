@@ -142,6 +142,12 @@ relations, or advance a key gameplay state machine. They may only update converg
 fields on existing objects. Terminal states that affect later logic must become
 domain events.
 
+A diagnostics-only shim may shape the IP-direct link for an acceptance run
+(`Runtime/Networking/NetConditionsShim`): it delays an outbound payload and drops a
+share of the UNRELIABLE payloads, and it never changes a frame's bytes, never drops a
+reliable payload, never negotiates anything and is never persisted. The wire contract
+above is therefore unchanged; what changes is only what a run has proven.
+
 ## Versioning
 
 The current protocol uses:

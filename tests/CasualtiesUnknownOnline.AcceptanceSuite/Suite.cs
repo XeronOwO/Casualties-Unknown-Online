@@ -1095,6 +1095,7 @@ internal static class CaseRegistry
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),
+		new NetConditionsCase(),
 		new OverlaySoundCase(),
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run

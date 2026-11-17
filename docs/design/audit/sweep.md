@@ -68,7 +68,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/GameAdapter` | 57 | read |
 | `CasualtiesUnknownOnline.Runtime/Localization` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Logging` | 3 | read |
-| `CasualtiesUnknownOnline.Runtime/Networking` | 15 | read |
+| `CasualtiesUnknownOnline.Runtime/Networking` | 19 | read |
 | `CasualtiesUnknownOnline.Runtime/OnlineUi` | 55 | read |
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 60 | read |

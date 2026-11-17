@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Threading;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// Reliable/unreliable are not distinguished by TCP — all frames are reliable;
 /// this is a safe degradation for the first IP-direct slice.
 /// </summary>
-public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetworkTransport, ICuoService, IDisposable
+public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetworkTransport, ICuoService, INetConditionsControl, IDisposable
 {
 	public const ulong HostPeerId = 1;
 
@@ -38,6 +37,27 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 	private bool _isHost;
 	private ulong _localPeerId;
 	private int _boundPort;
+
+	// Diagnostics-only network shaping (NetConditionsProfile). Nothing here runs unless a harness or the
+	// [Diagnostics] config sets a profile; the shim only schedules, this class owns the sockets.
+	private readonly object _netConditionsSync = new();
+	private NetConditionsShim? _netConditions;
+
+	private NetConditionsShim NetConditions
+	{
+		get
+		{
+			if (_netConditions is not null)
+			{
+				return _netConditions;
+			}
+
+			lock (_netConditionsSync)
+			{
+				return _netConditions ??= new NetConditionsShim(this);
+			}
+		}
+	}
 
 	/// <summary>Raised on the Unity main thread via <see cref="Poll"/>.</summary>
 	public event Action<ulong, byte[]>? MessageReceived;
@@ -142,12 +162,12 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 			return false;
 		}
 
-		var localPeerId = GenerateGuestPeerId();
+		var localPeerId = IpDirectFrames.GenerateGuestPeerId();
 		try
 		{
 			var stream = client.GetStream();
 			var hello = new byte[8];
-			WriteUInt64(hello, 0, localPeerId);
+			IpDirectFrames.WriteUInt64(hello, 0, localPeerId);
 			stream.Write(hello, 0, hello.Length);
 			stream.Flush();
 			var connection = new IpConnection(IpDirectTransport.HostPeerId, client, stream);
@@ -180,6 +200,43 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 			return false;
 		}
 
+		lock (_sync)
+		{
+			if (!_connections.ContainsKey(peerId))
+			{
+				return false;
+			}
+		}
+
+		try
+		{
+			var frame = new byte[4 + data.Length];
+			IpDirectFrames.WriteInt32(frame, 0, data.Length);
+			Buffer.BlockCopy(data, 0, frame, 4, data.Length);
+
+			// Diagnostics-only shaping: see NetConditionsShim. It reports true when the payload was
+			// dropped or queued for later, so the caller's reliable/unreliable contract is unchanged.
+			if (NetConditions.Handle(peerId, frame, reliable))
+			{
+				return true;
+			}
+
+			return WriteFrame(peerId, frame);
+		}
+		catch (Exception ex)
+		{
+			log.LogWarning(ex, "IP direct send to {Peer} failed — closing the peer connection.", peerId);
+			DisconnectPeer(peerId);
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Writes one already-framed payload. Called by the caller's thread when nothing is delayed and by
+	/// the delay thread otherwise; the per-connection write lock keeps a frame whole either way.
+	/// </summary>
+	private bool WriteFrame(ulong peerId, byte[] frame)
+	{
 		IpConnection connection;
 		lock (_sync)
 		{
@@ -191,9 +248,6 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 
 		try
 		{
-			var frame = new byte[4 + data.Length];
-			WriteInt32(frame, 0, data.Length);
-			Buffer.BlockCopy(data, 0, frame, 4, data.Length);
 			lock (connection.WriteLock)
 			{
 				connection.Stream.Write(frame, 0, frame.Length);
@@ -209,6 +263,26 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 			return false;
 		}
 	}
+
+	/// <inheritdoc />
+	public NetConditionsProfile Current => NetConditions.Profile;
+
+	/// <inheritdoc />
+	public void Set(NetConditionsProfile profile)
+	{
+		NetConditions.Set(profile);
+		log.LogInformation("IP direct network conditions: {Profile}.", NetConditions.Profile);
+	}
+
+	/// <inheritdoc />
+	public void Clear() => Set(NetConditionsProfile.Off);
+
+	/// <summary>Writes a payload the shim held back once its due time arrives.</summary>
+	internal void WriteDelayedFrame(ulong peerId, byte[] frame) => WriteFrame(peerId, frame);
+
+	/// <summary>Logs a payload the shim dropped on purpose (diagnostics only).</summary>
+	internal void LogDroppedPayload(ulong peerId, int bytes) =>
+		log.LogDebug("IP direct diagnostics dropped an unreliable payload to {Peer} ({Bytes} bytes).", peerId, bytes);
 
 	/// <summary>Drains incoming frames and disconnect notifications on the Unity main thread.</summary>
 	public void Poll()
@@ -226,6 +300,7 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 
 	public void Disconnect()
 	{
+		_netConditions?.Stop();
 		TcpListener? listener;
 		List<IpConnection> connections;
 		lock (_sync)
@@ -288,14 +363,14 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 			try
 			{
 				var stream = client.GetStream();
-				var hello = ReadExactly(stream, 8, HelloTimeoutMs);
+				var hello = IpDirectFrames.ReadExactly(stream, 8, HelloTimeoutMs);
 				if (hello is null)
 				{
 					client.Close();
 					continue;
 				}
 
-				var peerId = ReadUInt64(hello, 0);
+				var peerId = IpDirectFrames.ReadUInt64(hello, 0);
 				if (peerId == 0 || peerId == HostPeerId)
 				{
 					log.LogWarning("IP direct guest sent invalid peer id {Peer} — rejected.", peerId);
@@ -352,20 +427,20 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 		{
 			while (_running)
 			{
-				var lengthBytes = ReadExactly(stream, 4, 0);
+				var lengthBytes = IpDirectFrames.ReadExactly(stream, 4, 0);
 				if (lengthBytes is null)
 				{
 					break;
 				}
 
-				var length = ReadInt32(lengthBytes, 0);
+				var length = IpDirectFrames.ReadInt32(lengthBytes, 0);
 				if (length <= 0 || length > MaxFrameSize)
 				{
 					log.LogWarning("IP direct peer {Peer} sent an invalid frame length {Length} — closing.", peerId, length);
 					break;
 				}
 
-				var payload = ReadExactly(stream, length, 0);
+				var payload = IpDirectFrames.ReadExactly(stream, length, 0);
 				if (payload is null)
 				{
 					break;
@@ -419,85 +494,6 @@ public sealed class IpDirectTransport(ILogger<IpDirectTransport> log) : INetwork
 
 		victim.Close();
 		_disconnected.Enqueue(peerId);
-	}
-
-	private static byte[]? ReadExactly(NetworkStream stream, int count, int timeoutMs)
-	{
-		var buffer = new byte[count];
-		var read = 0;
-		while (read < count)
-		{
-			if (timeoutMs > 0 && !stream.DataAvailable)
-			{
-				var deadline = Environment.TickCount + timeoutMs;
-				while (!stream.DataAvailable && Environment.TickCount < deadline)
-				{
-					Thread.Sleep(10);
-				}
-
-				if (!stream.DataAvailable)
-				{
-					return null;
-				}
-			}
-
-			var n = stream.Read(buffer, read, count - read);
-			if (n == 0)
-			{
-				return null;
-			}
-
-			read += n;
-		}
-
-		return buffer;
-	}
-
-	private static ulong GenerateGuestPeerId()
-	{
-		var bytes = new byte[8];
-		using (var rng = RandomNumberGenerator.Create())
-		{
-			rng.GetBytes(bytes);
-		}
-
-		var id = BitConverter.ToUInt64(bytes, 0);
-		if (id == 0 || id == HostPeerId)
-		{
-			id ^= 0x9E3779B97F4A7C15UL;
-		}
-
-		return id;
-	}
-
-	private static void WriteInt32(byte[] buffer, int offset, int value)
-	{
-		buffer[offset] = (byte)(value >> 24);
-		buffer[offset + 1] = (byte)(value >> 16);
-		buffer[offset + 2] = (byte)(value >> 8);
-		buffer[offset + 3] = (byte)value;
-	}
-
-	private static int ReadInt32(byte[] buffer, int offset) =>
-		(buffer[offset] << 24) | (buffer[offset + 1] << 16) | (buffer[offset + 2] << 8) | buffer[offset + 3];
-
-	private static void WriteUInt64(byte[] buffer, int offset, ulong value)
-	{
-		for (var i = 0; i < 8; i++)
-		{
-			buffer[offset + i] = (byte)(value >> (56 - (i * 8)));
-		}
-	}
-
-	private static ulong ReadUInt64(byte[] buffer, int offset)
-	{
-		ulong value = 0;
-		for (var i = 0; i < 8; i++)
-		{
-			value = (value << 8) | buffer[offset + i];
-		}
-
-		return value;
 	}
 
 	private sealed class IpConnection : IDisposable

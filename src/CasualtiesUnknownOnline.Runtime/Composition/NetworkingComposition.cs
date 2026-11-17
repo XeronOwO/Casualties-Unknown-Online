@@ -45,6 +45,9 @@ internal static class NetworkingComposition
 		// ISteamService contracts; the plugin switches it when an IP session starts.
 		services.AddSingleton<IpDirectTransport>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<IpDirectTransport>());
+		// Diagnostics only: the acceptance harness (and a [Diagnostics] config) makes the IP-direct
+		// transport behave like a bad network; the same singleton is the control.
+		services.AddSingleton<INetConditionsControl>(p => p.GetRequiredService<IpDirectTransport>());
 		services.AddSingleton<IpDirectSteamService>();
 		services.AddSingleton<CuoNetworkRouter>();
 		services.AddSingleton<INetworkTransport>(p => p.GetRequiredService<CuoNetworkRouter>());

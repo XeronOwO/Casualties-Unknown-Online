@@ -131,6 +131,23 @@ internal sealed class PluginHost : MonoBehaviour
 				"The game's own run-settings preset this client applies when the HOST starts a run: normal, relaxed, paradise, desolate or unchipped (the names the game's pre-run screen carries). Empty keeps whatever the player picked on that screen. Scripted acceptance runs use paradise so a world has supplies and containers from the first frame; a player's own world is unaffected unless they set it.");
 			RunPresetDecision.Preset = string.IsNullOrWhiteSpace(_runPreset.Value) ? null : _runPreset.Value.Trim();
 
+			// Diagnostics only: make the IP-direct transport behave like a bad network. The acceptance
+			// harness sets the same profile through a recipe; this binding exists so a human can
+			// reproduce a slow/lossy link without the suite. Off by default and never sent to peers.
+			var netConditionsEnabled = _config.Bind("Diagnostics", "NetConditionsEnabled", false,
+				"Diagnostics only: delay and drop the IP-direct transport's traffic so a bad network can be tested. Off by default; normal play never enables it.");
+			var netConditionsLatency = _config.Bind("Diagnostics", "NetConditionsLatencyMs", 150,
+				new ConfigDescription("Diagnostics only: one-way delay added to every outbound payload.", new AcceptableValueRange<int>(0, NetConditionsProfile.MaxLatencyMs)));
+			var netConditionsJitter = _config.Bind("Diagnostics", "NetConditionsJitterMs", 0,
+				new ConfigDescription("Diagnostics only: the delay varies by +/- this many milliseconds.", new AcceptableValueRange<int>(0, NetConditionsProfile.MaxJitterMs)));
+			var netConditionsLoss = _config.Bind("Diagnostics", "NetConditionsLossPercent", 0,
+				new ConfigDescription("Diagnostics only: percentage of UNRELIABLE payloads dropped. Reliable payloads are never dropped.", new AcceptableValueRange<int>(0, 100)));
+			if (netConditionsEnabled.Value)
+			{
+				_services.GetRequiredService<INetConditionsControl>().Set(
+					new NetConditionsProfile(true, netConditionsLatency.Value, netConditionsJitter.Value, netConditionsLoss.Value));
+			}
+
 			_lobby = new LobbySwitchActions(
 				_steam,
 				_services.GetRequiredService<CuoNetworkRouter>(),

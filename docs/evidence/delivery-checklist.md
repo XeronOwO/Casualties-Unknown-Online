@@ -11,5 +11,5 @@
 - [ ] Plan approved by the user
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: not this cycle — no product path changed, so nothing was deployed.
+- [ ] Release-cycle deployment/acceptance: the deploy follows this commit for the acceptance channel only.
 - [ ] FORBIDDEN — never check this box

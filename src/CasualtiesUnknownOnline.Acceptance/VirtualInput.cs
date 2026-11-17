@@ -247,14 +247,26 @@ internal static class VirtualInput
 			return false;
 		}
 
-		// A DOWN edge survives until a reader consumes it: a minigame's hand update runs in a
-		// physics tick that a one-frame stamp never covers (measured 2026-11-11: the lockpick's
-		// hand held the ring and `handStartedClicking` stayed false while keyDownAnswers grew by
-		// one per press).
-		if (query == ButtonQuery.Down && state.DownPending)
+		// A DOWN edge answers EVERY reader in its frame, the way Unity's own GetKeyDown does. Two consumers
+		// read the same press on this build — the camera's own attack path and the minigame's hand update —
+		// and a first-reader-wins stamp left the second one with nothing (measured 2026-11-18: a staged
+		// press flipped `handClicking` while `handStartedClicking` stayed false for 25,045 key queries, so
+		// the bandage minigame performed zero actions). The edge therefore stays pending through its frame
+		// and is cleared once the frame has passed.
+		if (query == ButtonQuery.Down)
 		{
-			state.DownPending = false;
-			value = true;
+			if (state.DownPending || state.DownFrame == UnityTime.frameCount)
+			{
+				value = true;
+				return true;
+			}
+
+			if (UnityTime.frameCount > state.DownFrame)
+			{
+				state.DownPending = false;
+			}
+
+			value = false;
 			return true;
 		}
 

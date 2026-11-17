@@ -73,11 +73,14 @@ come back where they were when the cut was taken.
 - **A member pulled back into a restored world receives its character BEFORE the entry instruction.** The continue binds the
   archive's characters to the present peers (`WorldRestoreApplier.cs:342-343`), and the entry instruction is what starts a
   following member's regeneration; that member's fresh body reports the starting supplies within a second, and the report
-  replaces the bound row (`SaveReportedCharacterData` -> `SaveCharacterData`). The receiver keeps a peer hand-over across the
-  follow and drops it only when this client starts its own run (`LocalCharacterRestoreQueue`), so the host sends the character
-  first, on the same reliable ordered channel, at the world-entry broadcast and at both targeted re-entry invites. The
-  2026-11-17 reading: the following member's fresh body carried the four starting supplies and the later reconnect adoption
-  handed them back; [the ticket](../../backlog/in-progress/1.0-followed-continue-keeps-no-character.md) owns the fix.
+  replaces the bound row (`SaveReportedCharacterData` -> `SaveCharacterData`). The invitation carries both: the start-gate
+  pump hands each still-outside member its stored character once per run entry and sends that tick's `WorldJoin` right after
+  it, and a mid-generation handshake's entry group does the same. The receiver keeps a peer hand-over across the follow and
+  drops it only when this client starts its own run (`LocalCharacterRestoreQueue`), so a follower's
+  `RunSaveCoordinator.BeginRun` cancels its own-run restore only. The 2026-11-17 readings: the following member's fresh body
+  carried the four starting supplies and the later reconnect adoption handed them back, and the first hand-over attempt sent
+  nothing because the host was not yet in its own world when the invitation went out; [the
+  ticket](../../backlog/in-progress/1.0-followed-continue-keeps-no-character.md) owns the fix.
 - **A refused restore child falls to the ground, not into nothing.** The accepted record is that the refused child is dropped into the world and reported, read across all three rows — the identity is kept because the item exists in the world rather than being destroyed.
 - **An in-flight restore account releases its arms.** A restore that finishes its account must release the entity and native arms it held rather than leaking them: the family's record ran its four named classes 66/66 with every row re-read as passed.
 - **A restored native set waits for every object it names, and the restored type survives the object's own start.** The saved set is the decided set: every geyser whose own `Start` has run, active or not; a geyser that has not started has no decided type to save. The generated geysers are instantiated during generation, after the world-entry seam can already see a non-generating world. The 2026-11-16 save-continue reading: the archive carried 110 rows, the live query saw 64 at the seam, and the 5 s wait expired with the remaining 46 reported refused. The live query includes inactive geysers; whether the 46 were inactive, not yet instantiated, or both is not settled by that reading, and the post-fix focused run is the evidence. The replay holds the pending cut until the live geyser set reaches the saved row count (bounded by 5 s); applying to an empty live set would position-match zero rows and release the handover as a false refusal. The adapter remembers each restored type and re-applies it when the geyser's own `Start` rolls the public random type (`reversing/release-1.0.2/Assembly-CSharp/GeyserScript.cs:8-20`: the roll `Random.value > 0.75f ? 2 : 1`, and the `isLava` override to 6), so a geyser that starts after the restore keeps the saved type.

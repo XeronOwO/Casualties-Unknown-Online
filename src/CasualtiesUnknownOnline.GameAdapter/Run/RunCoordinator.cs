@@ -202,7 +202,7 @@ internal sealed class RunCoordinator(
 		_descentPlumbing.UpdateAbort();
 		_descentPlumbing.UpdateSettle();
 		UpdateSceneState();
-		_startGateJoin.Update(_session, _world);
+		_startGateJoin.Update(_session, _world, _characterData);
 		if (_phase == RunPhase.JoinPending)
 		{
 			Join.TryStart();
@@ -263,7 +263,7 @@ internal sealed class RunCoordinator(
 	}
 
 	/// <summary>The native Continue entry: the save arm restores the selected CUO world (and blocks the original when it cannot).</summary>
-	internal bool OnHostContinueRequested() => _save.OnContinueRequested() && _startGateJoin.ArmAfterContinue(_session, _world);
+	internal bool OnHostContinueRequested() => _save.OnContinueRequested() && _startGateJoin.ArmAfterContinue(_session, _world, _characterData);
 
 	/// <summary>The local body's character snapshot right now — the cut payload's live half (the frame-end seam calls this at the instant of the cut).</summary>
 	internal CharacterDataMsg? CaptureLocalCharacter() => _save.CaptureLocal(_localBody);
@@ -378,7 +378,7 @@ internal sealed class RunCoordinator(
 			// targeted; a re-send to an already-starting member is ignored). Each
 			// one takes the character this world restored BEFORE the instruction,
 			// so a continue's fresh body cannot overwrite it with the supplies.
-			_characterData.SendSavedCharactersToEnteringMembers();
+			_characterData.HandOverEnteringMembers();
 			_world.SendWorldJoin(_world.WorldParams?.IsTutorial ?? false);
 			if (_world.StartStartGate())
 			{

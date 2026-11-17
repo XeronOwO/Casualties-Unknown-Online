@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -9,6 +10,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// The entry instruction is one-shot; a peer that handshakes while the host's params are not
 /// yet published misses it, and both sides then wait for the 30 s force. The send targets only
 /// handshaken members still out of the world, so a member already loading is not disturbed.
+/// Each invitation is preceded by the member's character hand-over: the instruction is the
+/// edge at which the member builds its body, and a body built first replaces the restored
+/// character with the starting supplies (see <see cref="CharacterDataSync.HandOverEnteringMembers"/>).
 /// </summary>
 internal sealed class StartGateJoinPump
 {
@@ -23,20 +27,23 @@ internal sealed class StartGateJoinPump
 	/// the menu, so the one-shot in-world join is skipped; keep inviting for a short
 	/// window until the member reports out of the world and receives the new epoch.
 	/// </summary>
-	internal bool ArmAfterContinue(ISessionControl session, IWorldControl world)
+	internal bool ArmAfterContinue(ISessionControl session, IWorldControl world, CharacterDataSync characterData)
 	{
 		if (session.Role != SessionRole.Host || !session.SessionActive)
 		{
 			return true;
 		}
 
+		// A continue announces a run entry: every member still outside takes its restored
+		// character before the invitation below, however many times this pump repeats it.
+		characterData.BeginRunEntry();
 		_continueDeadline = Environment.TickCount + ContinueResendWindowMs;
 		_lastTick = 0;
 		world.SetHostRunPending(true);
 		return true;
 	}
 
-	internal void Update(ISessionControl session, IWorldControl world)
+	internal void Update(ISessionControl session, IWorldControl world, CharacterDataSync characterData)
 	{
 		if (session.Role != SessionRole.Host || !session.SessionActive)
 		{
@@ -63,6 +70,7 @@ internal sealed class StartGateJoinPump
 		}
 
 		_lastTick = now;
+		characterData.HandOverEnteringMembers();
 		world.SendWorldJoin(world.WorldParams?.IsTutorial ?? false);
 	}
 }

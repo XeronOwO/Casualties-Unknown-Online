@@ -3570,7 +3570,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs",
 
-      "quote": "ctx.CharacterData.SendSavedCharacter(sender);"
+      "quote": "ctx.CharacterData.SendSavedCharacter(sender, runEntry: ctx.World.HostRunPending);"
 
     },
 
@@ -8418,7 +8418,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
 
-      "quote": "internal void SendSavedCharacter(ulong steamId)"
+      "quote": "internal void SendSavedCharacter(ulong steamId, bool runEntry = false)"
 
     },
 

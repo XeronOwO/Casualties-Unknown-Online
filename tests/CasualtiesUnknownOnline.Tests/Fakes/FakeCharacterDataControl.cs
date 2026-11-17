@@ -59,7 +59,11 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	public CharacterDataMsg? GetHostCharacterData() => HostData;
 
-	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => throw new NotSupportedException("the save tests never send to a peer");
+	void ICharacterDataControl.SendSavedCharacter(ulong steamId, bool runEntry) => throw new NotSupportedException("the save tests never send to a peer");
+
+	void ICharacterDataControl.BeginRunEntry()
+	{
+	}
 
 	void ICharacterDataControl.BroadcastHostCharacterData(CharacterDataMsg msg) => throw new NotSupportedException("the save tests never broadcast");
 

@@ -45,7 +45,17 @@ public interface ICharacterDataControl
 	/// <summary>Host only: whether the member's simulated body advanced within <paramref name="maxAgeMs"/>.</summary>
 	bool IsHostModelAdvancing(ulong steamId, long nowMs, long maxAgeMs);
 
-	void SendSavedCharacter(ulong steamId);
+	/// <summary>
+	/// Host: hand a member its stored character. <paramref name="runEntry"/> marks a send that
+	/// belongs to the current run's entry announcement (the host may still be generating and the
+	/// member is still outside the world): it is allowed outside a live world and is one shot per
+	/// entry (see <see cref="BeginRunEntry"/>), because re-staging a hand-over restarts the
+	/// receiver's two-pass apply.
+	/// </summary>
+	void SendSavedCharacter(ulong steamId, bool runEntry = false);
+
+	/// <summary>Host: a run entry is being announced — every entering member's hand-over is due again.</summary>
+	void BeginRunEntry();
 
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	CharacterDataMsg? GetSavedCharacter(ulong steamId);

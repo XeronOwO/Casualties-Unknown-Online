@@ -55,6 +55,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>The host clone's last successful advance per member (host-local, never on the wire).</summary>
 	private readonly Dictionary<ulong, long> _modelAdvancingMs = [];
 
+	/// <summary>The entry hand-over ledger: one character hand-over per member per run entry (see <see cref="CharacterEntryHandover"/>).</summary>
+	private readonly CharacterEntryHandover _entryHandovers = new();
+
 	/// <summary>The same freshness window the row pump uses; the reconciliation is skipped while the model is stalled.</summary>
 	private const long HostModelFreshnessMs = 250;
 
@@ -226,17 +229,22 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// </summary>
 	public void ClearSavedCharacters()
 	{
-		_savedCharacters.Clear();
-		_savedNames.Clear();
-		_hostData = null;
-		_refusedReports.Clear();
-		_refusalFields.Clear();
-		_modelAdvancingMs.Clear();
+		ClearSavedTable();
 		SavedCharactersCleared?.Invoke();
 	}
 
+	/// <summary>
+	/// Host: a run entry is being announced (the start click, the continue). The entry's
+	/// invitation pump hands each still-outside member its stored character once; this is
+	/// the edge that makes a previous hand-over a new one.
+	/// </summary>
+	internal void BeginRunEntry() => _entryHandovers.BeginEntry();
+
 	/// <summary>Session ended: the in-memory saves die with the session; the world archive is what a later start restores from.</summary>
-	public void ResetSessionState()
+	public void ResetSessionState() => ClearSavedTable();
+
+	/// <summary>The table every run-scoped fact in this store lives in; a new run and a new session both start empty.</summary>
+	private void ClearSavedTable()
 	{
 		_savedCharacters.Clear();
 		_savedNames.Clear();
@@ -244,81 +252,51 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_refusedReports.Clear();
 		_refusalFields.Clear();
 		_modelAdvancingMs.Clear();
+		_entryHandovers.Clear();
 	}
 
 
 	public void Dispose() => _session.SessionEnded -= ResetSessionState;
 
 	/// <summary>
-	/// Host side: hand the saved character data back to a reconnecting player,
-	/// with the item arbitration's transfer table merged over it. Only while
-	/// the host has a LIVE world: a menu handshake must never stage a previous
-	/// run's restore for the next run (a fresh run clears the save only when
-	/// the host clicks start, after that menu handshake already happened).
+	/// Host side: hand a reconnecting player its saved character, with the item
+	/// arbitration's transfer table merged over it. Outside a LIVE world only a
+	/// <paramref name="runEntry"/> send is allowed: a menu handshake must never stage
+	/// a previous run's restore for the next run (the fresh run clears the save only
+	/// when the host clicks start, which is after that handshake), so the entry
+	/// itself — the invitation pump, a mid-generation entry — is the one caller that
+	/// may hand over while the host still generates.
 	/// </summary>
-	internal void SendSavedCharacter(ulong steamId)
+	/// <param name="runEntry">True when this send announces the current run's entry: the send is one shot per entry (see <see cref="BeginRunEntry"/>).</param>
+	internal void SendSavedCharacter(ulong steamId, bool runEntry = false)
 	{
-		if (!_session.LocalInWorld)
+		if (runEntry ? !_entryHandovers.IsDue(steamId) : !_session.LocalInWorld)
 		{
-			_log.LogDebug("Not sending saved character data to {Peer}: the host is not in a world.", steamId);
+			if (!runEntry)
+			{
+				_log.LogDebug("Not sending saved character data to {Peer}: the host is not in a world.", steamId);
+			}
+
 			return;
 		}
 
 		if (!_savedCharacters.TryGetValue(steamId, out var data))
 		{
 			// IP-direct reconnects get a new transport id, while the saved table is
-			// keyed by the old one. The archive is keyed by the display name; adopt
-			// the one old presence with the same name only while it is out of the
-			// world. Two same-name players or an old owner still playing refuse.
+			// keyed by the old one: the adoption rule finds the one old presence with
+			// the same name that is no longer in the world (or its saved row). Two
+			// same-name players, or an old owner still playing, refuse.
 			var member = _session.Members.FirstOrDefault(m => m.SteamId == steamId);
 			ReconnectCandidate[] candidates = [.. _session.Members.Select(m => new ReconnectCandidate(m.SteamId, m.DisplayName, m.Handshaken, m.InWorld))];
 			var source = member is null
 				? null
-				: CharacterReconnectAdoption.FindSource(steamId, member.DisplayName, candidates, _savedCharacters.Keys);
-			if (source is null && member is not null && !string.IsNullOrWhiteSpace(member.DisplayName))
-			{
-				// The old presence may already be gone (the guest left the session
-				// before reconnecting). The store remembers the name each report
-				// arrived under, so the same one-match rule still applies.
-				var name = member.DisplayName.Trim();
-				var matches = _savedCharacters.Keys
-					.Where(id => _savedNames.TryGetValue(id, out var savedName)
-						&& string.Equals(savedName?.Trim(), name, StringComparison.OrdinalIgnoreCase))
-					.ToList();
-				if (matches.Count == 1)
-				{
-					var candidatePeer = matches[0];
-					var oldPresence = _session.Members.FirstOrDefault(m => m.SteamId == candidatePeer);
-					if (oldPresence is null || !oldPresence.InWorld)
-					{
-						source = candidatePeer;
-					}
-				}
-			}
-
+				: CharacterReconnectAdoption.FindSource(steamId, member.DisplayName, candidates, _savedCharacters.Keys, _savedNames);
 			if (source is { } oldPeer && _savedCharacters.TryGetValue(oldPeer, out var adopted))
 			{
 				_savedCharacters.Remove(oldPeer);
 				_savedCharacters[steamId] = adopted;
 				data = adopted;
-				// The old transport is the same player's previous connection: it cannot answer
-				// anything on the new link. Leaving it in the presence table makes the start gate
-				// wait for an InWorld report that can never arrive and holds both loaded sides
-				// until the 30 s force. Remove it through the normal kick edge.
-				if (_session.Role == SessionRole.Host && _session.KickMember(oldPeer, "reconnected under a new transport id"))
-				{
-					_log.LogInformation(
-						"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}; removed the stale presence.",
-						oldPeer,
-						steamId);
-				}
-				else
-				{
-					_log.LogInformation(
-						"[Character] adopted the saved character from the previous transport id {OldPeer} for {Peer}.",
-						oldPeer,
-						steamId);
-				}
+				CharacterReconnectAdoption.RemoveStalePresence(_session, _log, oldPeer, steamId);
 			}
 		}
 
@@ -334,6 +312,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			// so this projection confirms the revive instead of overwriting it.
 			_playerKernelRestore.Apply(steamId, data);
 			_sender.Send(steamId, NetMsg.CharacterData, data);
+			if (runEntry)
+			{
+				_entryHandovers.MarkHanded(steamId);
+			}
+
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
 		}
 	}
@@ -558,7 +541,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
 
 	bool ICharacterDataControl.SaveReportedCharacterData(ulong steamId, CharacterDataMsg msg) => SaveReportedCharacterData(steamId, msg);
-	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
+	void ICharacterDataControl.SendSavedCharacter(ulong steamId, bool runEntry) => SendSavedCharacter(steamId, runEntry);
+
+	void ICharacterDataControl.BeginRunEntry() => BeginRunEntry();
 
 	CharacterDataMsg? ICharacterDataControl.GetSavedCharacter(ulong steamId) => GetSavedCharacter(steamId);
 

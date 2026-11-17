@@ -56,21 +56,36 @@ internal sealed class RunSaveCoordinator(
 	/// (<see cref="IWorldSaveControl.TryBeginRun"/>), which also releases the
 	/// previous run's identity on a tutorial entry. What stays here is the run's
 	/// own restore arm: a new run owns the next generation, so a restore armed for
-	/// a refused or abandoned Continue attempt must never replay into it.
+	/// a refused or abandoned Continue attempt must never replay into it. A guest
+	/// reaches this method only by following the host's WorldJoin — there the peer
+	/// hand-over the entry sent is the restore the follow is FOR, so only this
+	/// client's own queued restore goes.
 	/// </summary>
 	internal void BeginRun(bool isTutorial)
 	{
 		// A new run owns the next generation: a restore armed for a refused/aborted
 		// Continue attempt must never replay into it — the world baseline, the native
-		// values (the adapter cancels its own handover with the same call) and the
-		// local body's queued character alike. The item domain's restore arm belongs to
-		// that set too: left armed, the new run's generation would reconcile its fresh
-		// objects against the old world's ids.
+		// values and the local body's queued character alike. The item domain's restore
+		// arm belongs to that set too: left armed, the new run's generation would
+		// reconcile its fresh objects against the old world's ids.
 		//
 		// This half runs for EVERY entry, the tutorial included: abandoning a stale
 		// restore is not a save-repository action.
 		_parameters.CancelRestorePending();
-		_characterData.CancelAllLocalRestores();
+		if (_session.Role == SessionRole.Guest)
+		{
+			// A guest reaches this method by FOLLOWING the host's WorldJoin: the peer hand-over
+			// that entry sent is exactly the restore this follow is for, so only the restore its
+			// OWN run queued is void (LocalCharacterRestore.CancelOwnRunRestore). Cancelling
+			// everything here dropped the continued character and let the fresh body's starting
+			// supplies replace it — the 2026-11-17 follow reading.
+			_characterData.CancelOwnRunRestore();
+		}
+		else
+		{
+			_characterData.CancelAllLocalRestores();
+		}
+
 		_items.CancelRestoredWorldItems("a new run superseded the restore");
 		// The starting-supplies rule is per BODY, and every body of the run being left is
 		// about to be replaced: the next world's bodies are new-player entries by

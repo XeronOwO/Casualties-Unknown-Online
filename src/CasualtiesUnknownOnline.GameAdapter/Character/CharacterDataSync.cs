@@ -354,13 +354,20 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>
+	/// Host side: a run entry is being announced (the start click, the continue) — every
+	/// entering member's character hand-over is due again (see the store's BeginRunEntry).
+	/// </summary>
+	internal void BeginRunEntry() => _characterData.BeginRunEntry();
+
+	/// <summary>
 	/// Host side: hand a member that is about to be told to ENTER the world its own saved
 	/// character BEFORE the announcement — the receiver queues a peer hand-over and keeps
 	/// it across the follow (LocalCharacterRestoreQueue). Without it a member that follows
 	/// a continue or a re-entry builds a body from the starting supplies, and that fresh
 	/// body's report replaces the character the world restore just bound; the colour, the
 	/// items and the health then travel no further than the reconnect adoption that reads
-	/// the store afterwards.
+	/// the store afterwards. Only members still outside the world are handed to: an
+	/// in-world body's own reports own the row.
 	/// </summary>
 	internal void SendSavedCharacterToEnteringMember(ulong steamId)
 	{
@@ -377,17 +384,29 @@ internal sealed class CharacterDataSync(
 		_characterData.SendSavedCharacter(steamId);
 	}
 
-	/// <summary>Host side: every member still outside the world is about to be invited — it takes its restored character first (see <see cref="SendSavedCharacterToEnteringMember"/>).</summary>
-	internal void SendSavedCharactersToEnteringMembers()
+	/// <summary>
+	/// Host side: every member still outside the world is about to be invited to enter (the
+	/// start-gate invitation pump, the host's own world-entry fan-out) — it takes its stored
+	/// character first. Unlike <see cref="SendSavedCharacterToEnteringMember"/> this is part of
+	/// the entry itself: it is allowed while this host is still generating its own world (the
+	/// continue's invitation goes out before the host's entry), and the store hands each member
+	/// its character once per run entry (<see cref="BeginRunEntry"/>).
+	/// </summary>
+	internal void HandOverEnteringMembers()
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
 		}
 
 		foreach (var member in _session.Members)
 		{
-			SendSavedCharacterToEnteringMember(member.SteamId);
+			if (!member.Handshaken || member.InWorld)
+			{
+				continue;
+			}
+
+			_characterData.SendSavedCharacter(member.SteamId, runEntry: true);
 		}
 	}
 

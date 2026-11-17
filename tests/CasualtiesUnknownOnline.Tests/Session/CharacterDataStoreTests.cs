@@ -85,6 +85,56 @@ public class CharacterDataStoreTests
 	}
 
 	[Fact]
+	public void SendSavedCharacter_WithoutLiveWorld_RefusesAPlainHandshake()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var control = host.Services.GetRequiredService<ICharacterDataControl>();
+			control.SaveCharacterData(GuestId, Snapshot(GuestId));
+			control.SendSavedCharacter(GuestId); // no run entry, no world: a menu handshake must not stage a previous run's save
+
+			Assert.Empty(received);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_RunEntry_HandsTheCharacterOncePerEntryWhileGenerating()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var control = host.Services.GetRequiredService<ICharacterDataControl>();
+			control.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Items = [new CharacterItemMsg { ItemId = "lantern", Label = "MemberColor", ColorSwatch = 5 }],
+			});
+
+			// The continue's invitation goes out before the host has entered its own world.
+			control.BeginRunEntry();
+			control.SendSavedCharacter(GuestId, runEntry: true);
+			control.SendSavedCharacter(GuestId, runEntry: true); // the invitation pump ticks again in the same entry
+
+			Assert.True(received.Count == 1, $"one hand-over per run entry, got {received.Count}");
+			Assert.Equal("MemberColor", received[0].Items[0].Label);
+
+			control.BeginRunEntry();
+			control.SendSavedCharacter(GuestId, runEntry: true);
+
+			Assert.True(received.Count == 2, $"the next entry hands the character again, got {received.Count}");
+		}
+	}
+
+	[Fact]
 	public void SendSavedCharacter_AfterReconnect_AdoptsTheOldMembersRecord()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

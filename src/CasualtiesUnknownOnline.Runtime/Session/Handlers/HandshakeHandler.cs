@@ -108,7 +108,10 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// 178 — this table is in-memory, the archive is what persists) is
 			// handed back once the host has a live world (SendSavedCharacter gates
 			// on LocalInWorld); a NEW run clears the table at the start click.
-			ctx.CharacterData.SendSavedCharacter(sender);
+			// Mid-generation (HostRunPending) counts as the entry: this member is
+			// about to be told to enter below, and its character must be in hand
+			// before that instruction or its fresh body replaces the restore.
+			ctx.CharacterData.SendSavedCharacter(sender, runEntry: ctx.World.HostRunPending);
 		}
 		else
 		{
@@ -134,7 +137,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			member.InWorld = peerState == SceneStateType.InWorld;
 			member.DisplayName = displayName;
 			member.SelectedColor = selectedColor;
-			ctx.CharacterData.SendSavedCharacter(sender);
+			ctx.CharacterData.SendSavedCharacter(sender, runEntry: ctx.World.HostRunPending);
 		}
 
 		// A member (re)entering while already InWorld never fires the

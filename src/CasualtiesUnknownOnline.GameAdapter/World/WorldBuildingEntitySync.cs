@@ -250,17 +250,30 @@ internal sealed class WorldBuildingEntitySync(
 				// not refused: the damage the player did was that the building is gone (batch
 				// 20261108-s2: a blast destroyed buildings, the cut carried their health-0 rows, and
 				// each was counted as a refused row — the restore then reported INCOMPLETE at error
-				// level for a world state that was exactly right). A LIVE-health fact with no entity
-				// is a real loss and stays refused.
+				// level for a world state that was exactly right).
 				if (health < 0.5f)
 				{
 					_log.LogInformation("Building-entity health at ({X}, {Y}) is {Health} and no entity stands there; the destroyed fact is satisfied.", x, y, health);
 					return true;
 				}
 
+				if (BuildingEntityLookup.AnyWithin(x, y, BuildingEntityLookup.NeighbourhoodRadius))
+				{
+					// The layer HAS this area (a building of it stands nearby) yet the row's own building
+					// is missing: the support-loss fell landed after the cut, and the regenerated world
+					// derives the building from the same block state, so it cannot stand there. Recording
+					// it destroyed is what the live world shows; refusing it marked the whole restore
+					// incomplete for a fact the archive cannot restore (2026-11-18: one refusal in five
+					// fresh focused runs, the nearest other building 9.3 m away).
+					_log.LogInformation(
+						"Building-entity health snapshot at ({X}, {Y}) names a building the regenerated layer does not have while its neighbourhood does; the row is recorded destroyed. {Nearest}.",
+						x, y, BuildingEntityLookup.Nearest(x, y));
+					return true;
+				}
+
 				_log.LogWarning(
-					"Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone). {Nearest}.",
-					x, y, BuildingEntityLookup.Nearest(x, y));
+					"Building-entity health snapshot at ({X}, {Y}) — no entity there and no building within {Radius} m; the layer has not produced that area. {Nearest}.",
+					x, y, BuildingEntityLookup.NeighbourhoodRadius, BuildingEntityLookup.Nearest(x, y));
 				return false;
 			}
 

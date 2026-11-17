@@ -62,8 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-
-- [A continue refuses a healthy row for a building that is gone](todo/1.0-cut-outlives-a-felled-building.md) — **High** — the fell landed after the cut.
+_No open ticket._
 
 
 
@@ -72,6 +71,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 
 ### In progress
+
 - [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
@@ -81,6 +81,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
+- [A continue refuses a healthy row for a building that is gone](in-progress/1.0-cut-outlives-a-felled-building.md) — **High** — one in five; accepted.
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.

@@ -16,6 +16,15 @@ internal static class BuildingEntityLookup
 	/// <summary>How far a building may sit from the recorded point and still be that building: the kernel records a cell centre, the entity stands on its own transform, and a regenerated layer can place the same building a cell off (2026-11-18: a row at (18.5, 490.5) named a building the layer put 2 m away).</summary>
 	private const float Tolerance = 3f;
 
+	/// <summary>
+	/// How wide the neighbourhood is when a row's own building is absent: the question is whether the layer
+	/// produced that AREA (a building of its stands nearby) or has not instantiated it at all. The measurement
+	/// that set it: on 2026-11-18 one refusal in five fresh runs named a building the layer did not have, with
+	/// another building 9.3 m away — the area existed, the building did not (ticket
+	/// <c>docs/backlog/todo/1.0-cut-outlives-a-felled-building.md</c>).
+	/// </summary>
+	internal const float NeighbourhoodRadius = 25f;
+
 	internal static BuildingEntity? At(float x, float y)
 	{
 		var point = new Vector2(x, y);
@@ -38,6 +47,22 @@ internal static class BuildingEntityLookup
 		}
 
 		return nearest;
+	}
+
+	internal static bool AnyWithin(float x, float y, float radius)
+	{
+		var point = new Vector2(x, y);
+		var limit = radius * radius;
+		foreach (var candidate in Object.FindObjectsOfType<BuildingEntity>(true))
+		{
+			var offset = (Vector2)candidate.transform.position - point;
+			if (offset.sqrMagnitude <= limit)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>

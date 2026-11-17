@@ -4,35 +4,34 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops.
 
 - [ ] Design comprehension
-      `docs/design/cross-cutting/saves-and-recovery.md` and `docs/architecture/save-archive-format.md`, with the chain
-      by execution: `WorldCutWriter` → `RestoredWorldFactReplay` → `WorldBuildingEntitySync.ApplyRemoteBuildingEntityHealth`
-      (`:242`) → `BuildingEntityLookup.At` (`:18`).
+      cut-time bullet it refines, and the ticket `docs/backlog/in-progress/1.0-cut-outlives-a-felled-building.md` carries
+      the chain with file:line (`WorldCutWriter` → `RestoredWorldFactReplay` → `ApplyRemoteBuildingEntityHealth:242` →
+      `BuildingEntityLookup.At:18`).
 - [ ] Native parity
-      (`buildingEntity.health -= param.structuralDamage * Random.Range(0f, 2f);`) reports the blast, and a building whose
-      support the blast removed is then felled by the game's support-loss path, which reports nothing.
+      `WorldGeneration.cs:5449` damage (`buildingEntity.health -= param.structuralDamage * Random.Range(0f, 2f);`), which
+      reports nothing; the restore now records what that pass leaves behind.
 - [ ] Native parity probe
-      world after a continue, not a native call.
+      on fresh worlds rather than a native call.
 - [ ] Entry mapping
-      `BuildingEntityLookup.Nearest(x, y)`, which scans `Object.FindObjectsOfType<BuildingEntity>(true)` so a building in
-      a deactivated chunk is still found.
+      `src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs` `ApplyRemoteBuildingEntityHealth`, the
+      only site that applies a restored building-health row.
 - [ ] Mechanism inventory
-      nearest fallback second; `ApplyRemoteBuildingEntityHealth` keeps its destroyed-fact rule (health below 0.5 with no
-      entity returns true); `Nearest` is diagnostic only and returns text, never a decision.
+      (`AnyWithin`, `NeighbourhoodRadius`) and the diagnostic sentence (`Nearest`); the destroyed-fact rule for health
+      below 0.5 is unchanged.
 - [ ] Whole-family audit
-      one-to-one within 6 m, `GeyserFillWait`, the keypad table), and this ticket owns only the building-health rows; the
-      log now names the nearest building for every refusal in this family.
+      one-to-one, `GeyserFillWait` growth hold, keypad table), and this rule touches only building-health rows; an area
+      the layer has not produced still refuses.
 - [ ] Self-check table
-      fixed on the way: the localization census rejects `string.Format(` as an unresolved accessor, and the FQN gate
-      rejects qualified `UnityEngine.Object` where a using exists), `dotnet format --no-restore` exit 0.
+      `dotnet format --no-restore` exit 0; the five-run measurement shows one refusal in five before the change.
 - [ ] Verification design
-      nearest building's distance, deciding A (settle before the cut) for "no building within 25 m", B (restore rule) for
-      "a building 3–10 m away", and the measurement-only path for no refusal in five runs.
+      the pass condition is zero refused world-entity rows and `restore complete` in the audit.
 - [ ] Plan approved by the user
-      standing instruction is that technical trade-offs are decided from evidence, so this cycle takes C (measure first).
+      instruction is that technical trade-offs are decided from evidence, and C's reading chose B with the neighbourhood
+      gate.
 - [ ] Structure review done
-      unchanged apart from the appended sentence.
+      and the design page names the two questions (is the building there, is the area there).
 - [ ] Build + dotnet format + dotnet test normative gates pass
-      (2 pre-existing MSB3270 warnings), unit 6747/6747, gates 836/836, `dotnet format --no-restore` exit 0 on this tree.
+      warnings), unit 6747/6747, gates 836/836, format exit 0 on this tree.
 
 - [ ] Release-cycle deployment/acceptance: deploy and read a passing pod-team-wait with zero member errors.
 - [ ] FORBIDDEN — never check this box

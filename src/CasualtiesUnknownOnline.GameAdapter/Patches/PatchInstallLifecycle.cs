@@ -116,6 +116,17 @@ internal sealed class PatchInstallLifecycle
 			var missing = PatchInventory.VerifyMissing(_harmony)
 				.Where(failure => !disabledNames.Contains(failure.PatchClass))
 				.ToList();
+
+			// The one sanctioned way to exercise the refusal on a deployed build:
+			// CUO_FAULT_CAPABILITY names capabilities whose hooks are reported as
+			// missing. It adds failures, never removes a real one, and the seam is
+			// inert unless the variable is set (the notice's player-visible row).
+			var injected = InstallFaultInjection.FromEnvironment(_log);
+			if (injected.Count > 0)
+			{
+				missing.AddRange(injected);
+			}
+
 			_capabilities.Record(missing);
 
 			// Stage 2: an OPTIONAL capability's missing hook installs as off — the

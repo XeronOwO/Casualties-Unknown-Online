@@ -19,6 +19,14 @@ not one of those six is a different surface, not a new tab.
 
 ## Rules and states
 
+- **When the adapter's install refuses, the window's Home page says what this game update broke.** The refusal publishes
+  the failing REQUIRED capabilities' player-facing titles (`PatchInstallLifecycle.RefusedCapabilities` →
+  `IGameAdapter.RefusedCapabilities` → `IAdapterCapabilityQuery`), and `Plugin/OnlineUiHomeDrawer.cs` renders
+  `home.adapter_refused` in red above the Steam block: "CUO cannot start multiplayer: this game update broke {0}.
+  Everything else in the game still runs." An OPTIONAL capability's failure degrades alone and never shows the line, and a
+  healthy install answers an empty list. A deployed build can be put in this state through `CUO_FAULT_CAPABILITY`
+  (`GameAdapter/Capabilities/InstallFaultInjection.cs`), which reports the named capability as broken and is inert when
+  unset — the seam exists because the wording and placement can only be read from the game's own window (2026-11-18).
 - The window has no page for the console: the command surface is its own overlay, and the window does not duplicate it.
 - A page shows the facts it owns and offers the controls that apply to them; a control whose action does not apply is not
   offered rather than offered and refused.
@@ -54,6 +62,7 @@ not one of those six is a different surface, not a new tab.
 
 | Condition | The player reads |
 |---|---|
+| a REQUIRED capability's patch did not install (a game update broke a vanilla system) | the Home page's red line: "CUO cannot start multiplayer: this game update broke {0}. Everything else in the game still runs.", naming the systems |
 | an action needs the host and this player is not the host | the control is absent or the answer names the missing permission |
 | the session ended while the window was open | the window reports the session's state |
 

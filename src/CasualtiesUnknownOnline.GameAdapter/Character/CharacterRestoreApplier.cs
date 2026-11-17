@@ -50,7 +50,7 @@ internal sealed class CharacterRestoreApplier(
 	/// </summary>
 	internal void ApplyStatsAndWipe(Body body, CharacterDataMsg data)
 	{
-		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
+		_log.LogInformation("Applying character restore ({Items} items, {Deaths} death(s)).", data.Items.Count, data.Deaths);
 		// A restored character keeps the count it died with (the snapshot is the character's own record);
 		// the count is disarmed by the write so the restore's own spawn cannot count as a death.
 		_deaths.SetCount(data.Deaths);

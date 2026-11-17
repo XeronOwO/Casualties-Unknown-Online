@@ -317,7 +317,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				_entryHandovers.MarkHanded(steamId);
 			}
 
-			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
+			_log.LogInformation("Sent saved character data to {Peer} ({Items} items, {Deaths} death(s)).", steamId, data.Items.Count, data.Deaths);
 		}
 	}
 

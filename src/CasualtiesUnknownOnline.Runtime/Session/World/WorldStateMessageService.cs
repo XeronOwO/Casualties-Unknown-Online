@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -38,14 +37,16 @@ internal sealed class WorldStateMessageService(
 	internal KernelWorldGenerationSource Generations => _generations;
 
 	/// <summary>
-	/// Host-side block-difference table: block-space position → current block id,
-	/// for every block whose state deviates from the generated baseline. Mined,
-	/// destroyed, built and reverted blocks all land here.
+	/// The host's block difference table and its message family (see
+	/// <see cref="BlockStateChannel"/>): the table, its cap and its three sends move
+	/// together, so the channel owns them and this surface only delegates.
 	/// </summary>
-	private readonly Dictionary<(int, int), DamagedBlock> _damagedBlocks = [];
+	private BlockStateChannel? _blocks;
+
+	private BlockStateChannel Blocks => _blocks ??= new BlockStateChannel(_session, _sender, _log);
 
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound. Internal so the pending-report table's own cap can be asserted against it.</summary>
-	internal const int MaxDamagedBlocks = 65536;
+	internal const int MaxDamagedBlocks = BlockStateChannel.MaxDamagedBlocks;
 
 	public WorldStartParams? WorldParams { get; set; }
 
@@ -196,7 +197,11 @@ internal sealed class WorldStateMessageService(
 		});
 	}
 
-	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
+	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived
+	{
+		add => Blocks.BlockStateReceived += value;
+		remove => Blocks.BlockStateReceived -= value;
+	}
 
 	public event Action<float, float>? EarthquakeStartReceived;
 
@@ -242,7 +247,7 @@ internal sealed class WorldStateMessageService(
 		}
 	}
 
-	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
+	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => Blocks.FireBlockStateReceived(blocks);
 
 	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
@@ -351,75 +356,14 @@ internal sealed class WorldStateMessageService(
 			RadiationLineState.Active, RadiationLineState.TimeGone, targetSteamId);
 	}
 
-	public void ReportBlockState(int x, int y, ushort block)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
+	public void ReportBlockState(int x, int y, ushort block) => Blocks.ReportBlockState(x, y, block);
 
-		if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((x, y)))
-		{
-			return;
-		}
+	public void RemoveBlockState(int x, int y) => Blocks.RemoveBlockState(x, y);
 
-		// A live write: whatever support loss this air transition causes is settled
-		// HERE (on the side that owns the world), so a receiver re-runs it.
-		_damagedBlocks[(x, y)] = new DamagedBlock(x, y, block, SupportLossSettled: false);
-	}
+	public void SendBlockStateSnapshot(ulong targetSteamId) => Blocks.SendBlockStateSnapshot(targetSteamId);
 
-	public void RemoveBlockState(int x, int y)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_damagedBlocks.Remove((x, y));
-	}
-
-	public void SendBlockStateSnapshot(ulong targetSteamId)
-	{
-		if (_session.Role != SessionRole.Host || _damagedBlocks.Count == 0)
-		{
-			return;
-		}
-
-		var msg = new BlockStateMsg
-		{
-			Blocks = [.. _damagedBlocks.Values.Select(cell => new BlockStateEntryMsg
-			{
-				X = cell.X,
-				Y = cell.Y,
-				Block = cell.Block,
-				SupportLossSettled = cell.SupportLossSettled,
-			})],
-		};
-		_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);
-		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
-	}
-
-	/// <summary>The rows each member has been told about, so a reconcile sends differences only.</summary>
-	private readonly BlockTableReconciler _blockReconciler = new();
-
-	/// <summary>
-	/// Host: the drift backstop. The entry snapshot is the only time a member hears the table; a
-	/// write no live event carried stayed wrong for the run. Every step this sends each in-world
-	/// member only the rows that changed (an idle run sends nothing; the cap bounds the payload).
-	/// </summary>
-	public void ReconcileBlockTable(long nowMs)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_blockReconciler.TryBegin(nowMs))
-		{
-			return;
-		}
-
-		foreach (var (member, rows) in _blockReconciler.Diff(_session.InWorldRemoteSteamIds(), _damagedBlocks.Values))
-		{
-			_sender.Send(member, NetMsg.WorldBlockState, new BlockStateMsg { Blocks = [.. rows] });
-			_log.LogInformation("Reconciled {Count} block row(s) to {Peer}.", rows.Count, member);
-		}
-	}
+	/// <summary>The drift backstop: the channel sends each in-world member only the rows that changed.</summary>
+	public void ReconcileBlockTable(long nowMs) => Blocks.ReconcileBlockTable(nowMs);
 
 
 	/// <summary>
@@ -527,7 +471,7 @@ internal sealed class WorldStateMessageService(
 		// ended must never hand the next run's members a dead run's clock.
 		RunFacts = null;
 		RadiationLineState = null;
-		_damagedBlocks.Clear();
+		Blocks.Clear();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
@@ -544,14 +488,7 @@ internal sealed class WorldStateMessageService(
 	internal SessionRole Role => _session.Role;
 
 	/// <summary>The host's block difference table in the wire shape the late-joiner snapshot already sends.</summary>
-	internal IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() =>
-	[.. _damagedBlocks.Values.Select(cell => new BlockStateEntryMsg
-	{
-		X = cell.X,
-		Y = cell.Y,
-		Block = cell.Block,
-		SupportLossSettled = cell.SupportLossSettled,
-	})];
+	internal IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() => Blocks.CaptureBlockStates();
 
 	/// <summary>
 	/// Host: upsert one restored block state. The cell is the identity, so a
@@ -559,17 +496,7 @@ internal sealed class WorldStateMessageService(
 	/// Returns false when the table's cap refused a cell it does not already
 	/// hold — the restore report counts it instead of reporting a clean restore.
 	/// </summary>
-	internal bool ApplyBlockState(BlockStateEntryMsg entry)
-	{
-		if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((entry.X, entry.Y)))
-		{
-			_log.LogWarning("[SaveFacts] block-state ({X},{Y}) skipped: the {Cap}-cell table is full.", entry.X, entry.Y, MaxDamagedBlocks);
-			return false;
-		}
-
-		_damagedBlocks[(entry.X, entry.Y)] = new DamagedBlock(entry.X, entry.Y, entry.Block, entry.SupportLossSettled);
-		return true;
-	}
+	internal bool ApplyBlockState(BlockStateEntryMsg entry) => Blocks.ApplyBlockState(entry);
 
 	/// <summary>
 	/// A new world/layer is generating: every per-layer RUNTIME world-fact table
@@ -596,7 +523,7 @@ internal sealed class WorldStateMessageService(
 
 	private void ClearWorldFacts(bool includeRadiationLine, bool includeKernelWorldEntities)
 	{
-		_damagedBlocks.Clear();
+		Blocks.Clear();
 		if (includeRadiationLine)
 		{
 			RadiationLineState = null;

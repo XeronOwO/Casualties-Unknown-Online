@@ -7072,7 +7072,7 @@
 
       "row": "W1",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockStateChannel.cs",
 
       "quote": "_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);"
 
@@ -7108,7 +7108,7 @@
 
       "row": "W1",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockStateChannel.cs",
 
       "quote": "if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((x, y)))"
 

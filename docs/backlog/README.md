@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-_No open ticket._
+- [A restored character's item is not judged](todo/1.0-restored-character-item-is-not-judged.md) — **High** — host's copy loses the items.
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.

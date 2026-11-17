@@ -81,7 +81,6 @@ _No open ticket._
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
-- [A continue refuses a healthy row for a building that is gone](in-progress/1.0-cut-outlives-a-felled-building.md) — **High** — one in five; accepted.
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
@@ -134,6 +133,7 @@ _No open ticket._
 
 ### Done
 
+- [A continue refuses a healthy row for a building that is gone](done/1.0-cut-outlives-a-felled-building.md) — **High** — accepted when the area exists.
 - [Split the save archive reader at its seams](done/split-save-archive-reader.md) — **Medium** — 619 → 421 lines; the restore re-read on the real game.
 - [Nobody counts a player's deaths](done/1.0-player-death-stats-missing.md) — **Low** — `/deaths` reads 2 on both clients after a continue.
 - [Host cannot host after a continue](done/host-cannot-host-after-continue.md) — **High** — continue, then host: the member joins the same run.

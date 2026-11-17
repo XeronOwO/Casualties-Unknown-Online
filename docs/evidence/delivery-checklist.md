@@ -4,34 +4,28 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops.
 
 - [ ] Design comprehension
-      cut-time bullet it refines, and the ticket `docs/backlog/in-progress/1.0-cut-outlives-a-felled-building.md` carries
-      the chain with file:line (`WorldCutWriter` → `RestoredWorldFactReplay` → `ApplyRemoteBuildingEntityHealth:242` →
-      `BuildingEntityLookup.At:18`).
+      questions and the 25 m neighbourhood, and the ticket records the reading that chose it; the page link was repointed
+      to the ticket's final home before this commit.
 - [ ] Native parity
-      `WorldGeneration.cs:5449` damage (`buildingEntity.health -= param.structuralDamage * Random.Range(0f, 2f);`), which
-      reports nothing; the restore now records what that pass leaves behind.
+      `WorldGeneration.cs:5449` damage; nothing is invented about the game's behaviour.
 - [ ] Native parity probe
-      on fresh worlds rather than a native call.
+      (`0.1.0+1a6ef5941`), not by a native probe, because the mechanism only exists in a live regenerated layer.
 - [ ] Entry mapping
-      `src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs` `ApplyRemoteBuildingEntityHealth`, the
-      only site that applies a restored building-health row.
+      building-health row; the cut-time half is `CutBuildingHealthReconcile` inside `WorldCutWriter`.
 - [ ] Mechanism inventory
-      (`AnyWithin`, `NeighbourhoodRadius`) and the diagnostic sentence (`Nearest`); the destroyed-fact rule for health
-      below 0.5 is unchanged.
+      (`AnyWithin`, 25 m) and the diagnostic (`Nearest`); the destroy-fact branch for health below 0.5 is unchanged.
 - [ ] Whole-family audit
-      one-to-one, `GeyserFillWait` growth hold, keypad table), and this rule touches only building-health rows; an area
-      the layer has not produced still refuses.
+      geyser growth hold, the keypad table); no family shares this rule's price.
 - [ ] Self-check table
-      `dotnet format --no-restore` exit 0; the five-run measurement shows one refusal in five before the change.
+      this cycle adds only the reading, the index move and the page link.
 - [ ] Verification design
-      the pass condition is zero refused world-entity rows and `restore complete` in the audit.
+      `restore complete` and zero refused world-entity rows as the pass condition; both are quoted on the ticket.
 - [ ] Plan approved by the user
-      instruction is that technical trade-offs are decided from evidence, and C's reading chose B with the neighbourhood
-      gate.
+      is that the technical trade-off is decided from evidence; the measurement chose B with the area gate.
 - [ ] Structure review done
-      and the design page names the two questions (is the building there, is the area there).
+      moved to the Done head, the census row and the design-page link repointed.
 - [ ] Build + dotnet format + dotnet test normative gates pass
-      warnings), unit 6747/6747, gates 836/836, format exit 0 on this tree.
+      the code commit's readings are build 0 errors, unit 6747/6747, gates 836/836, format exit 0.
 
 - [ ] Release-cycle deployment/acceptance: deploy and read a passing pod-team-wait with zero member errors.
 - [ ] FORBIDDEN — never check this box

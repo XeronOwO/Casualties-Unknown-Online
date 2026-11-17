@@ -62,6 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
+- [A continued world can lose a geyser type](todo/1.0-continue-loses-a-geyser-row.md) — **High** — 125 of 126 rows matched; the match is one-to-one now.
 - [Save after trap damage drops building health](todo/1.0-save-after-building-damage-loses-entity.md) — **High** — Continue refuses a damaged building's row.
 - [Split the save archive reader at its seams](todo/split-save-archive-reader.md) — **Medium** — 619 lines; the archive seams owe the split.
 

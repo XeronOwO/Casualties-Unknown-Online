@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Object = UnityEngine.Object;
@@ -24,8 +25,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// </summary>
 internal static class GeyserStateTable
 {
-	/// <summary>Position-key radius — the rumble/presentation jitter of a regenerated geyser.</summary>
-	private const float PositionTolerance = 3f;
+	/// <summary>
+	/// Position-key radius — a regenerated geyser can stand a few metres from the row the
+	/// previous world recorded. Measured 2026-11-17: one row at (97.8,167.2) answered a live
+	/// geyser at (97.8,163.6), 3.62 m away, while the next live geyser stood 12.3 m away, so
+	/// the one-to-one assignment below still pairs them with no rival.
+	/// </summary>
+	private const float PositionTolerance = 6f;
 
 	/// <summary>
 	/// The last decided type per geyser, kept after the write so the geyser's own
@@ -62,59 +68,90 @@ internal static class GeyserStateTable
 	internal static void MarkStarted(GeyserScript geyser) => RestoredTypes.GetValue(geyser, _ => new RestoredType()).Started = true;
 
 	/// <summary>
-	/// Write a decided set onto the live geysers, position-keyed. Absolute and
-	/// idempotent: writing the same type again is a no-op, and a type the set does
-	/// not name is left as the local roll produced it (the caller reports the
-	/// count it matched). A geyser created after the set was captured is simply
-	/// not matched — the periodic resend and the creation message carry it.
+	/// Write a decided set onto the live geysers, one saved row to one live geyser.
+	/// Absolute and idempotent: writing the same type again is a no-op, and a type the set
+	/// does not name is left as the local roll produced it (the caller reports the count it
+	/// matched).
 	///
-	/// Each geyser in the world (active or not — the game deactivates far chunks) is
-	/// attempted on its own (<see cref="ContainedRowLoop.RunLiveWorld"/>), so a type
-	/// field this copy cannot serve costs ITSELF — named at error level with its
-	/// position — instead of every geyser behind it. The count is per SAVED ROW,
-	/// not per live object: two live geysers inside one row's 3 m radius mean one
-	/// applied row, and a row no live geyser matches is refused. A matched row
-	/// counts as applied only once its write completed, so a throwing object lands
-	/// in the caller's refusal count (rows - applied).
+	/// The match is ONE-TO-ONE inside <see cref="PositionTolerance"/>: every (row, live
+	/// geyser) pair inside the radius is a candidate, the candidates are taken
+	/// shortest-first, and a taken row or geyser cannot be claimed twice. Two geysers 1.35 m
+	/// apart (measured 2026-11-17) would otherwise let one live object take the row its
+	/// neighbour owns and leave that row refused. A row no live geyser reaches is refused
+	/// and named at warning level with its position, so the restore's refused count — rows
+	/// minus applied — has its evidence.
+	///
+	/// Each write runs through <c>ContainedRowLoop.Run</c>: a throwing write costs ITSELF,
+	/// is not counted as applied, and the remembered type is kept only after the write
+	/// completed (the Start postfix replays a type that was written).
 	/// </summary>
 	internal static int Apply(IReadOnlyList<GeyserStateEntryMsg> geysers, ILogger log)
 	{
-		var appliedRows = new HashSet<int>();
-		ContainedRowLoop.RunLiveWorld(
-			Object.FindObjectsOfType<GeyserScript>(true),
-			geyser =>
+		var live = Object.FindObjectsOfType<GeyserScript>(true);
+		var candidates = new List<(float Distance, int Row, int Live)>();
+		for (var row = 0; row < geysers.Count; row++)
+		{
+			var saved = geysers[row];
+			var position = new Vector2(saved.Position.X, saved.Position.Y);
+			for (var index = 0; index < live.Length; index++)
 			{
-				var pos = geyser.transform.position;
-				var position = new Vector2(pos.x, pos.y);
-				var matched = -1;
-				var nearest = PositionTolerance;
-				for (var i = 0; i < geysers.Count; i++)
+				var geyser = live[index];
+				if (geyser == null)
 				{
-					var saved = geysers[i];
-					var distance = Vector2.Distance(new Vector2(saved.Position.X, saved.Position.Y), position);
-					if (distance < nearest)
-					{
-						nearest = distance;
-						matched = i;
-					}
+					continue;
 				}
 
-				if (matched < 0)
+				var point = geyser.transform.position;
+				var distance = Vector2.Distance(position, new Vector2(point.x, point.y));
+				if (distance <= PositionTolerance)
 				{
-					return;
+					candidates.Add((distance, row, index));
 				}
+			}
+		}
 
-				// The write lands first: a throwing write must not leave a remembered
-				// type the audit called refused, and the postfix only replays a type
-				// that was actually written.
-				WriteLiquidType(geyser, geysers[matched].LiquidType);
-				var restored = RestoredTypes.GetValue(geyser, _ => new RestoredType());
-				restored.LiquidType = geysers[matched].LiquidType;
+		candidates.Sort((left, right) => left.Distance.CompareTo(right.Distance));
+		var claimedRows = new bool[geysers.Count];
+		var claimedLive = new bool[live.Length];
+		var assignments = new List<KeyValuePair<GeyserScript, int>>();
+		foreach (var candidate in candidates)
+		{
+			if (claimedRows[candidate.Row] || claimedLive[candidate.Live])
+			{
+				continue;
+			}
+
+			claimedRows[candidate.Row] = true;
+			claimedLive[candidate.Live] = true;
+			assignments.Add(new KeyValuePair<GeyserScript, int>(live[candidate.Live], candidate.Row));
+		}
+
+		for (var row = 0; row < geysers.Count; row++)
+		{
+			if (!claimedRows[row])
+			{
+				log.LogWarning(
+					"Restored geyser type row at ({X:F1},{Y:F1}) found no live geyser within {Tolerance} m; the row is refused.",
+					geysers[row].Position.X,
+					geysers[row].Position.Y,
+					PositionTolerance);
+			}
+		}
+
+		var appliedRows = new List<int>();
+		ContainedRowLoop.Run(
+			assignments,
+			assignment =>
+			{
+				var liquidType = geysers[assignment.Value].LiquidType;
+				WriteLiquidType(assignment.Key, liquidType);
+				var restored = RestoredTypes.GetValue(assignment.Key, _ => new RestoredType());
+				restored.LiquidType = liquidType;
 				restored.Restored = true;
-
-				appliedRows.Add(matched);
+				appliedRows.Add(assignment.Value);
+				return true;
 			},
-			geyser => $"({geyser.transform.position.x:F1},{geyser.transform.position.y:F1})",
+			assignment => $"({assignment.Key.transform.position.x:F1},{assignment.Key.transform.position.y:F1})",
 			log,
 			"restored geyser type");
 

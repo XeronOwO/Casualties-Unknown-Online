@@ -276,8 +276,8 @@ never a residual, and never a pass.
 
 ## The wall-time baseline
 
-The full batch reports against the recorded baseline: **39 rows in 299.8 s** (2026-11-17,
-`.acceptance/full-after-merge/report/report.md`). The record copies the report's `Wall time` line, the
+The full batch reports against the recorded baseline: **39 rows in 293.3 s** (2026-11-18,
+`.acceptance/full-after-lookup/report/report.md`; the previous reading was 299.8 s on 2026-11-17). The record copies the report's `Wall time` line, the
 suite wall, the shared pair setup and the per-case table exactly as the run wrote them, and names the
 baseline it is compared against. A case that adds a row to `all` — or more than about a second — either
 finds the time back first or records on its ticket why it cannot; a case that runs only by name

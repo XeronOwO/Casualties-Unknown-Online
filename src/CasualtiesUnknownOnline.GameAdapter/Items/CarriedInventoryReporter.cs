@@ -55,6 +55,9 @@ internal sealed class CarriedInventoryReporter(
 	/// <summary>The last frame's host-session state — its rising edge is the host's second arming point: a world entered before the session existed (a solo world turned lobby) never sees a generation edge under that session.</summary>
 	private bool _hostSessionActive;
 
+	/// <summary>The last frame's restore state — its falling edge is the moment a restored carried set became the body's own.</summary>
+	private bool _restorePending;
+
 	/// <summary>Pump: detect the generation-finished falling edge and open the
 	/// registration opportunity — the report itself goes out on the next frame, when
 	/// the runtime's cadence asks for it (that extra frame keeps the enumeration
@@ -86,6 +89,20 @@ internal sealed class CarriedInventoryReporter(
 		}
 
 		_hostSessionActive = hostSessionActive;
+
+		// A local character restore writes the host's snapshot straight onto the body with
+		// the ids the archive carries: this guest never stated those items, so the host's
+		// kernel holds no creation claim for them and the first operation on one is refused
+		// as creation-before-operation (measured 2026-11-18: save/continue, the member's
+		// bandage destroy). The carried-set statement IS that claim (ItemIdCoordinator's
+		// HasJudgedCarriedSet), so the restore finishing re-opens the window it closed.
+		var restorePending = _restore.HasPending || _restore.WipePending;
+		if (_restorePending && !restorePending && _session.Role == SessionRole.Guest && _session.SessionActive)
+		{
+			_items.ArmCarriedInventoryRegistration("the local character restore finished");
+		}
+
+		_restorePending = restorePending;
 
 		if (_items.IsCarriedInventoryRegistrationDue())
 		{

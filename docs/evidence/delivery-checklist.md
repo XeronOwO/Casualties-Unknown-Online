@@ -4,36 +4,30 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops.
 
 - [ ] Design comprehension
-      mechanism keeps its diagnostics) and the ticket `docs/backlog/in-progress/split-block-break-remote-apply.md`,
-      whose chain names `OnBlockDamaged` → `FlushPendingBlockBreak` → `ApplyRemoteReport` → `TryAccept` → `AcceptBreak` →
-      `OnRemoteDamageBrokeBlock` with file:line.
+      reading, the run sheet and the residual, and the design page it cites (`docs/design/cross-cutting/observability.md`)
+      is unchanged because the split moves no diagnostic.
 - [ ] Native parity
-      as before; no native call changed, and the `BlockBreak` log lines are byte-identical because the new class reuses
-      `ILogger<BlockBreakSync>`.
+      roll inside `RemoteBlockWrite`) still holds and the gates re-read it.
 - [ ] Native parity probe
-      focused `block-sync` row on the deployed build, which drives a real break through both clients.
+      `block-sync` row recorded on the ticket (`0.1.0+94f886c43`, case 1.0 s, both directions).
 - [ ] Entry mapping
-      `src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs` (`OnBlockDamaged`, `OnRemoteBlockDamaged`,
-      `DrainDeferredReports`, `OnBlockAirWrite`), and the judgement/apply sites moved to
-      `src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakRemoteApply.cs` (`Apply`, `AcceptBreak`,
-      `OnRemoteDamageBrokeBlock`); the external callers in `WorldEventSync` and `GameRestoredWorldFactSink` are unchanged.
+      README row moved from In progress to Done; no other page linked the ticket.
 - [ ] Mechanism inventory
-      broadcast and the air-write callback each have exactly one owner after the move; the presentation gate now pins
-      `BlockBreakRemoteApply.cs` for the accepted-break half.
+      counts `BlockBreakRemoteApply.cs`, so no other class is pinned to this ticket.
 - [ ] Whole-family audit
-      touched; the debt entry for `BlockBreakSync` is deleted and `docs/design/audit/sweep.md` counts the new file (72 → 73).
+      (`cycle-20261113-0336.md`, `cycle-20261118-0506.md`) were repaired to the done path, so the backlog-reference gate
+      reads 836/836 again.
 - [ ] Self-check table
-      origin pins (the presentation gate's per-file count and two sync-coverage quotes), both repaired to the new file
-      rather than loosened.
+      format exit 0 cover the tree this docs change sits on.
 - [ ] Verification design
-      break and the same presentation), read from the report and the `BlockBreak` log lines after deployment.
+      host 0/0 and member 0/0), with the break crossing in both directions; the residual says the log-line comparison was
+      not emitted and is not claimed.
 - [ ] Plan approved by the user
-      without asking; the ticket's acceptance (600-line gate, debt entry gone, `block-sync` green) is the check used.
+      this cycle only records the reading and moves the ticket.
 - [ ] Structure review done
-      captured primary-constructor parameters (CS9124), and the class summary states which half owns the judgement.
+      is written on the ticket rather than left in a message.
 - [ ] Build + dotnet format + dotnet test normative gates pass
-      "通过: 6747" and "通过: 836" with exit 0; `dotnet format --no-restore` exit 0; the build carries only the two
-      pre-existing MSB3270 warnings.
+      reads "通过: 836" with exit 0; no source file changed in this cycle.
 
 - [ ] Release-cycle deployment/acceptance: deploy and read a passing pod-team-wait with zero member errors.
 - [ ] FORBIDDEN — never check this box

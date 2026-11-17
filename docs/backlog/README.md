@@ -72,7 +72,6 @@ _No open ticket._
 
 ### In progress
 
-- [Split the block-break apply path out](in-progress/split-block-break-remote-apply.md) — **Medium** — 688 lines; the debt owes the split.
 - [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — 603/613 lines; owed.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
 
@@ -133,6 +132,7 @@ _No open ticket._
 
 ### Done
 
+- [Split the block-break apply path out](done/split-block-break-remote-apply.md) — **Medium** — 688 → 403 lines; both directions of the break cross.
 - [A continue refuses a healthy row for a building that is gone](done/1.0-cut-outlives-a-felled-building.md) — **High** — accepted when the area exists.
 - [Split the save archive reader at its seams](done/split-save-archive-reader.md) — **Medium** — 619 → 421 lines; the restore re-read on the real game.
 - [Nobody counts a player's deaths](done/1.0-player-death-stats-missing.md) — **Low** — `/deaths` reads 2 on both clients after a continue.

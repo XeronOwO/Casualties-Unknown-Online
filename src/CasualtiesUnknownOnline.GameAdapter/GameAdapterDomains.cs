@@ -327,6 +327,7 @@ internal sealed class GameAdapterDomains
 			localRestore,
 			startingSupplies,
 			new GameStartingSupplyTarget(),
+			playerDeaths,
 			time,
 			loggerFactory.CreateLogger<StartingSupplyCoordinator>());
 		HostVitals = new HostVitalsBodies(session, entities, characterData, restoreApplier, time, loggerFactory.CreateLogger<HostVitalsBodies>());

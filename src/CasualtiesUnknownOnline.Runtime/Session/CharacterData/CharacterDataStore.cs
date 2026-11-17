@@ -180,6 +180,12 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			_log.LogInformation("[Character] {Peer}'s report is finite again; the host stores it.", steamId);
 		}
 
+		// A report is the only path that can lower the death count; name the write that does it.
+		if (_savedCharacters.TryGetValue(steamId, out var storedDeaths) && storedDeaths.Deaths != msg.Deaths)
+		{
+			_log.LogInformation("[Character] {Peer}'s report changes the stored death count {Stored} → {Reported} (items {StoredItems} → {ReportedItems}).", steamId, storedDeaths.Deaths, msg.Deaths, storedDeaths.Items.Count, msg.Items.Count);
+		}
+
 		if (_savedCharacters.TryGetValue(steamId, out var previous))
 		{
 			// The comparison is BEFORE Preserve: the report's values are the client's claim, the

@@ -287,6 +287,23 @@ public class StartingSupplyCoordinatorTests
 	}
 
 	[Fact]
+	public void Update_A_GrantedNewCharacter_StartsItsDeathCountAtZero()
+	{
+		// The count is a fact of the character. A body handed starting supplies has no stored
+		// character to restore, so it is a NEW one and its deaths start at zero — an old count
+		// must not survive into it (2026-11-17: the continue's restored row was replaced by a
+		// body still reporting the previous character's zero).
+		using var fixture = new Fixture();
+		fixture.Deaths.SetCount(2);
+		fixture.BeginFreshRun(Supplies(1), totalTraveled: 4200);
+
+		fixture.Coordinator().Update();
+
+		Assert.Equal(StartingSupplyGrantReport.Disposition.Granted, Assert.Single(fixture.Reports).Outcome);
+		Assert.Equal(0, fixture.Deaths.Count);
+	}
+
+	[Fact]
 	public void Update_ARunWithNoSupplies_ReportsDisabledAndGrantsNothing()
 	{
 		using var fixture = new Fixture();
@@ -480,6 +497,9 @@ public class StartingSupplyCoordinatorTests
 
 		internal IStartingSupplyBehaviour Behaviour { get; }
 
+		/// <summary>The counter the coordinator resets when it grants a NEW character its supplies — the edge a test seeds to prove the reset happened.</summary>
+		internal PlayerDeathCounter Deaths { get; } = new();
+
 		/// <summary>What the fake body was asked to hold.</summary>
 		internal List<(string ItemId, int Slot)> Placed { get; } = [];
 
@@ -584,6 +604,7 @@ public class StartingSupplyCoordinatorTests
 			_ when dependency == typeof(LocalCharacterRestoreQueue) => Restore,
 			_ when dependency == typeof(IStartingSupplyPublisher) => Publisher,
 			_ when dependency == typeof(IStartingSupplyBehaviour) => Behaviour,
+			_ when dependency == typeof(PlayerDeathCounter) => Deaths,
 			_ when dependency == typeof(ITimeSource) => Clock,
 			_ when dependency.IsGenericType && dependency.GetGenericTypeDefinition() == typeof(ILogger<>) => ReflectionLogger(),
 			_ => throw new InvalidOperationException(

@@ -59,6 +59,7 @@ internal sealed class StartingSupplyCoordinator(
 	LocalCharacterRestoreQueue restore,
 	IStartingSupplyPublisher audit,
 	IStartingSupplyBehaviour behaviour,
+	PlayerDeathCounter deaths,
 	ITimeSource time,
 	ILogger<StartingSupplyCoordinator> log)
 {
@@ -67,6 +68,7 @@ internal sealed class StartingSupplyCoordinator(
 	private readonly LocalCharacterRestoreQueue _restore = restore;
 	private readonly IStartingSupplyPublisher _audit = audit;
 	private readonly IStartingSupplyBehaviour _behaviour = behaviour;
+	private readonly PlayerDeathCounter _deaths = deaths;
 	private readonly ITimeSource _time = time;
 	private readonly ILogger<StartingSupplyCoordinator> _log = log;
 
@@ -281,6 +283,12 @@ internal sealed class StartingSupplyCoordinator(
 	private void Grant(object body, StartingSupplyPolicy.Decision decision)
 	{
 		_tracker.MarkSupplied(body);
+
+		// A granted body is a NEW character (there was no character restore to follow), and a
+		// character's death count starts at zero: the session-scoped counter must not carry the
+		// previous character's deaths into this one (2026-11-17: a member's continue handed the
+		// restored row to a body that had already reported the old count as zero).
+		_deaths.Reset();
 
 		var placed = new List<string>(decision.Plan.Count);
 		var unplaced = new List<string>(decision.Plan.Count);

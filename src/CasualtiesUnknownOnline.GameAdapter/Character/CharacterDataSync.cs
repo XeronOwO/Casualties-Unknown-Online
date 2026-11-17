@@ -447,8 +447,9 @@ internal sealed class CharacterDataSync(
 		RestoreRunner.Clear();
 		_factTable.Clear();
 		_favouriteMarks.Reset();
-		// The session is gone: its characters' death counts belong to it, and the next session starts fresh.
-		_deaths.Reset();
+		// The death count is NOT cleared here: it is a fact of the character, and the character
+		// outlives the session (the archive carries it back). A new character is the only thing
+		// that starts at zero, and that edge is the starting-supply grant (StartingSupplyCoordinator).
 	}
 
 	/// <summary>Leaving the world (death, menu) — push a final snapshot so the host's save carries the state at the moment of leaving, not the last 1 Hz report (a death → re-enter cycle would otherwise restore the pre-death state).</summary>

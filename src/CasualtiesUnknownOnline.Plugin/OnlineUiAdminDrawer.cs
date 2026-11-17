@@ -50,6 +50,8 @@ internal static class OnlineUiAdminDrawer
 			BuildEditableRule(ctx, page, "admin.rule_permadeath", rules.Permadeath, editor.SetPermadeath);
 			BuildEditableRule(ctx, page, "admin.rule_radiation_line_floor", rules.RadiationLineStopsAboveTheFloor, editor.SetRadiationLineStopsAboveTheFloor);
 			BuildEditableNumberRule(ctx, page, "admin.rule_layer_complete_share", HostRuleCensus.Of(HostRuleId.LayerCompleteLivingShare), rules.LayerCompleteLivingShare, value => editor.SetLayerCompleteLivingShare(value));
+			BuildEditableRule(ctx, page, "admin.rule_allow_push", rules.AllowPush, editor.SetAllowPush);
+			BuildEditableRule(ctx, page, "admin.rule_allow_always_carry", rules.AllowAlwaysCarry, editor.SetAllowAlwaysCarry);
 		}
 		else
 		{

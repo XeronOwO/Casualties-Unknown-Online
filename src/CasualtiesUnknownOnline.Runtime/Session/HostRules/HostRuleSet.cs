@@ -38,7 +38,9 @@ public readonly record struct HostRuleSet(
 	bool ReviveOnNextLevel,
 	bool Permadeath,
 	bool RadiationLineStopsAboveTheFloor,
-	float LayerCompleteLivingShare)
+	float LayerCompleteLivingShare,
+	bool AllowPush = true,
+	bool AllowAlwaysCarry = false)
 {
 	/// <summary>Reads one process's own rule surface as a set (the host's own values, and a member's before anything is announced).</summary>
 	public static HostRuleSet From(IHostRules rules) => new(
@@ -55,7 +57,9 @@ public readonly record struct HostRuleSet(
 		rules.ReviveOnNextLevel,
 		rules.Permadeath,
 		rules.RadiationLineStopsAboveTheFloor,
-		rules.LayerCompleteLivingShare);
+		rules.LayerCompleteLivingShare,
+		rules.AllowPush,
+		rules.AllowAlwaysCarry);
 
 	/// <summary>The set the two config sections compose into — the mapping <see cref="IHostRules"/> itself declares (the respawn rules come from <see cref="RespawnOptions"/>, under the names the rule surface uses).</summary>
 	public static HostRuleSet FromOptions(HostRulesOptions hostRules, RespawnOptions respawn) => new(
@@ -72,7 +76,9 @@ public readonly record struct HostRuleSet(
 		respawn.ReviveOnNextLevel,
 		respawn.Permadeath,
 		hostRules.RadiationLineStopsAboveTheFloor,
-		hostRules.LayerCompleteLivingShare);
+		hostRules.LayerCompleteLivingShare,
+		hostRules.AllowPush,
+		hostRules.AllowAlwaysCarry);
 
 	/// <summary>
 	/// The value of one flag rule, by id. Throws for a rule that is not a flag: a
@@ -91,6 +97,8 @@ public readonly record struct HostRuleSet(
 		HostRuleId.ReviveOnNextLevel => ReviveOnNextLevel,
 		HostRuleId.Permadeath => Permadeath,
 		HostRuleId.RadiationLineStopsAboveTheFloor => RadiationLineStopsAboveTheFloor,
+		HostRuleId.AllowPush => AllowPush,
+		HostRuleId.AllowAlwaysCarry => AllowAlwaysCarry,
 		_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule is not a flag"),
 	};
 

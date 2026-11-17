@@ -3,7 +3,7 @@
 // serves: host-rules-replication
 // returns: ok, role, sessionActive, announced, remoteBackpackAccess, allowMemberCheatVerbs,
 //          piggybackWeightMultiplier, nativeBindingParity, permadeath, reviveFromTrader,
-//          forbidsMemberCheatVerbs, error
+//          forbidsMemberCheatVerbs, allowPush, allowAlwaysCarry, error
 //
 // Reads the host-rule surface THIS client is acting on, so an acceptance record can cite what the client
 // itself believed rather than what its log said: whether an announcement has arrived at all, the values in
@@ -32,6 +32,8 @@
 		.Append(",\"permadeath\":").Append(inForce.Permadeath ? "true" : "false")
 		.Append(",\"reviveFromTrader\":").Append(inForce.ReviveFromTrader ? "true" : "false")
 		.Append(",\"forbidsMemberCheatVerbs\":").Append(announced.Forbids(CasualtiesUnknownOnline.Runtime.Session.HostRules.HostRuleId.AllowMemberCheatVerbs) ? "true" : "false")
+		.Append(",\"allowPush\":").Append(inForce.AllowPush ? "true" : "false")
+		.Append(",\"allowAlwaysCarry\":").Append(inForce.AllowAlwaysCarry ? "true" : "false")
 		.Append('}');
 	return builder.ToString();
 }))()

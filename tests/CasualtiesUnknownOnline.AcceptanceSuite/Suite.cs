@@ -1173,6 +1173,10 @@ internal static class CaseRegistry
 		// them, read from both clients, then the same count after a save and a continue. It runs by name
 		// because the save/continue costs tens of seconds and the batch's wall time has a baseline.
 		new PlayerDeathsCase(),
+		// The body-action switches (the user's 2026-11-14 decision): a refused push named on the pusher's
+		// own client with the target unmoved, and a carry the game's rule refuses let through by the host's
+		// allow_always_carry. It writes host rules, so it runs by name and restores them before it ends.
+		new HostRuleTogglesCase(),
 		// Un-parked 2026-11-18 by name: the 2026-11-14 park was the shared order's slow progress; a
 		// by-name run starts on a fresh lockable and pays for its own hold.
 		new LockpickCase(),

@@ -93,6 +93,14 @@ point under the POINTER (`Camera.main.ScreenToWorldPoint(Input.mousePosition)`),
 - **Joining a RUNNING world is the only join the host may refuse.** `HostRulesPolicy.cs` gates "whether a brand-new member may
   handshake while the host is already in a world", and "reconnects and pre-world/menu/generating joins are always allowed; this
   only gates the 'join a running co-op world' case".
+- **The body-action families are host rules too.** `AllowPush` refuses the push/shove gesture on the operator's own client
+  with a named line (`refusal.push_disabled_by_rule`) and refuses the same request again on the host when one arrives against
+  a stale announcement — a member's client is never the gate (decision 263's shape). `AllowAlwaysCarry` lifts the game's
+  carried-side state rule (a conscious-alive body may be carried), while the CARRIER's own alive/conscious state stays pinned
+  by the kernel invariant (`GameState/Domains/Players/PlayerDomainModule.cs` `AssertCarryFields` refuses a relation whose
+  carrier is not alive/conscious): an unrunnable relation is not a permission the interaction layer may grant, so the switch
+  stops at that boundary. Both are announced with the rest of the set. A piggyback stack limit is not landed: the carry table
+  is one carrier to one carried body, so there is no N+1st body for a limit to refuse (the ticket records the options).
 - The rule set is the code's own declaration: `src/CasualtiesUnknownOnline.Runtime/Configuration/HostRulesOptions.cs` lists
   `PvpEnabled`, `AutoContinue`, `AllowLateJoin`, `RemoteBackpackAccess`, `WidenRunSettings`, `PiggybackWeightMultiplier`,
   `AllowMemberCheatVerbs` and `NativeBindingParity`, and each is read through its typed value rather than a string.

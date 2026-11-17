@@ -1,10 +1,14 @@
 using System;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.PlayerInteractionTestSession;
 
@@ -107,17 +111,42 @@ public class PushTests
 	}
 
 	[Fact]
-	public void Push_CarryRelation_IsRefused()
+	public void Push_RuleOff_RefusesOnThePushersClient_AndNamesTheReason()
 	{
-		var (host, guest, received) = CreateSession();
+		// The user's 2026-11-14 rule family: push is a host switch. The gesture is refused where it was
+		// made — a named line on the pusher's own screen — and no request leaves the client.
+		var (host, guest, received) = CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowPush = false }))));
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false));
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
 		SeedHostEntities(host, GuestId, guestX: 10f);
 
-		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
-		guestInteraction.SendCarryStartRequest(HostId);
-		guestInteraction.SendPushRequest(HostId);
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
+		var notices = guest.Services.GetRequiredService<ISessionNotices>();
+		Assert.True(notices.TryTake(out var notice), "the refused gesture must read as a line on the pusher's own screen");
+		Assert.Contains("Pushing", notice.Text);
+	}
+
+	[Fact]
+	public void Push_RuleOff_RefusesTheRequestAtTheHostToo()
+	{
+		// A member's client is never the gate (decision 263's shape): a request formed against a stale
+		// announcement is refused again on the host, so the two sides cannot disagree about the rule.
+		var (host, guest, received) = CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowPush = false }))));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.HandlePushRequest(GuestId, new PlayerPushRequestMsg { TargetSteamId = HostId });
 
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
 	}

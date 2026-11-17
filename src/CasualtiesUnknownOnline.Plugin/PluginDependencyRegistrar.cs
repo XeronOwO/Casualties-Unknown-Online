@@ -120,6 +120,10 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription(
 				"Host-only: the share of LIVING players that must have finished the current layer before the host's end-of-layer panel shows its two choices. 1 = every living player; the host's own body's state does not matter, so a dead host still gets the panel once the share is met.",
 				new AcceptableValueRange<double>(0.0, 1.0)));
+		var allowPush = config.Bind("HostRules", "AllowPush", true,
+			new ConfigDescription("Host-only: the cross-player push/shove is open. Off refuses the gesture on the pusher's own client with a named reason and refuses it again on the host; the target never moves. On by default, which is the co-op behaviour the mod has always had."));
+		var allowAlwaysCarry = config.Bind("HostRules", "AllowAlwaysCarry", false,
+			new ConfigDescription("Host-only: carrying ignores the game's own state preconditions — an unconscious or dead carrier may carry, and a conscious-alive body may be carried in the classic carry (piggyback keeps its own rider rule). Off by default, so the game's own rules apply."));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -135,6 +139,8 @@ internal static class PluginDependencyRegistrar
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 					NativeBindingParity = ParseNativeBindingParity(nativeBindingParity.Value, nativeBindingRow),
+					AllowPush = allowPush.Value,
+					AllowAlwaysCarry = allowAlwaysCarry.Value,
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
 				remoteBackpackAccess.Definition,
@@ -142,6 +148,8 @@ internal static class PluginDependencyRegistrar
 				widenRunSettings.Definition, piggybackWeight.Definition,
 				radiationLineStopsAboveTheFloor.Definition,
 				layerCompleteLivingShare.Definition,
+				allowPush.Definition,
+				allowAlwaysCarry.Definition,
 				nativeBindingParity.Definition)));
 
 		// World archive policy (S4.4, decision 25): the interval autosave and the backup
@@ -218,7 +226,9 @@ internal static class PluginDependencyRegistrar
 			reviveOnNextLevel,
 			keepInventory,
 			radiationLineStopsAboveTheFloor,
-			layerCompleteLivingShare));
+			layerCompleteLivingShare,
+			allowPush,
+			allowAlwaysCarry));
 		// The console's /gamerule verb writes through this editor; the Runtime default is a disabled
 		// no-op so the Runtime-only composition still resolves the same interface.
 		services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(

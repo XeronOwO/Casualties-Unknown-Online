@@ -99,6 +99,8 @@ public static class HostRuleCensus
 		new(HostRuleId.Permadeath, Audience.Members, HostRuleKind.Boolean, "permadeath", "admin.rule_permadeath"),
 		new(HostRuleId.RadiationLineStopsAboveTheFloor, Audience.Members, HostRuleKind.Boolean, "radiation_line_stops_above_the_floor", "admin.rule_radiation_line_floor"),
 		new(HostRuleId.LayerCompleteLivingShare, Audience.Members, HostRuleKind.Number, "layer_complete_living_share", "admin.rule_layer_complete_share", new ValueRange(0f, 1f)),
+		new(HostRuleId.AllowPush, Audience.Members, HostRuleKind.Boolean, "allow_push", "admin.rule_allow_push"),
+		new(HostRuleId.AllowAlwaysCarry, Audience.Members, HostRuleKind.Boolean, "allow_always_carry", "admin.rule_allow_always_carry"),
 	];
 
 	/// <summary>The rows a MEMBER's client renders and acts on — the set the announcement carries.</summary>

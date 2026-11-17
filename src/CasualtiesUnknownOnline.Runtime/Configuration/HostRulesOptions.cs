@@ -109,4 +109,19 @@ public sealed class HostRulesOptions
 
 	/// <summary>The share of living players that must finish the layer before the host's panel shows its choices (0..1).</summary>
 	public float LayerCompleteLivingShare { get; set; } = 1f;
+
+	/// <summary>
+	/// Host-only: the cross-player push/shove is open. ON by default, which is the co-op behaviour the mod has
+	/// always had. Off refuses the gesture on the operator's own client with a named reason, refuses it again on
+	/// the host, and the target never moves.
+	/// </summary>
+	public bool AllowPush { get; set; } = true;
+
+	/// <summary>
+	/// Host-only: carrying ignores the game's own state preconditions — an unconscious or dead carrier may carry,
+	/// and a conscious-alive body may be carried in the classic carry. OFF by default, so the game's own rules
+	/// apply unless the host says otherwise. Enforced on the host (the relation's authority) and announced, so a
+	/// member's client reads the same value.
+	/// </summary>
+	public bool AllowAlwaysCarry { get; set; }
 }

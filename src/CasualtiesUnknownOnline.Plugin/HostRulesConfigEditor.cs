@@ -30,6 +30,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	private readonly ConfigEntry<bool> _keepInventory;
 	private readonly ConfigEntry<bool> _radiationLineStopsAboveTheFloor;
 	private readonly ConfigEntry<double> _layerCompleteLivingShare;
+	private readonly ConfigEntry<bool> _allowPush;
+	private readonly ConfigEntry<bool> _allowAlwaysCarry;
 
 	internal HostRulesConfigEditor(
 		ConfigFile config,
@@ -46,7 +48,9 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		ConfigEntry<bool> reviveOnNextLevel,
 		ConfigEntry<bool> keepInventory,
 		ConfigEntry<bool> radiationLineStopsAboveTheFloor,
-		ConfigEntry<double> layerCompleteLivingShare)
+		ConfigEntry<double> layerCompleteLivingShare,
+		ConfigEntry<bool> allowPush,
+		ConfigEntry<bool> allowAlwaysCarry)
 	{
 		_config = config;
 		_pvp = pvp;
@@ -63,6 +67,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 		_keepInventory = keepInventory;
 		_radiationLineStopsAboveTheFloor = radiationLineStopsAboveTheFloor;
 		_layerCompleteLivingShare = layerCompleteLivingShare;
+		_allowPush = allowPush;
+		_allowAlwaysCarry = allowAlwaysCarry;
 	}
 
 	internal void SetPvpEnabled(bool value) => Set(_pvp, value);
@@ -92,6 +98,10 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 	internal void SetRadiationLineStopsAboveTheFloor(bool value) => Set(_radiationLineStopsAboveTheFloor, value);
 
 	internal void SetLayerCompleteLivingShare(double value) => Set(_layerCompleteLivingShare, value);
+
+	internal void SetAllowPush(bool value) => Set(_allowPush, value);
+
+	internal void SetAllowAlwaysCarry(bool value) => Set(_allowAlwaysCarry, value);
 
 	/// <summary>
 	/// The console's write seam, keyed by the rule the census classifies. The value is re-read with the
@@ -130,6 +140,8 @@ internal sealed class HostRulesConfigEditor : IHostRulesEditor
 			HostRuleId.Permadeath => () => Set(_permadeath, bool.Parse(value)),
 			HostRuleId.RadiationLineStopsAboveTheFloor => () => Set(_radiationLineStopsAboveTheFloor, bool.Parse(value)),
 			HostRuleId.LayerCompleteLivingShare => () => Set(_layerCompleteLivingShare, double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture)),
+			HostRuleId.AllowPush => () => Set(_allowPush, bool.Parse(value)),
+			HostRuleId.AllowAlwaysCarry => () => Set(_allowAlwaysCarry, bool.Parse(value)),
 			_ => throw new ArgumentOutOfRangeException(nameof(rule), rule, "host rule has no config entry"),
 		};
 

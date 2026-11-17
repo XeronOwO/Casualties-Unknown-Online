@@ -37,4 +37,18 @@ public enum HostRuleId
 	/// `/gamerule`, so the value is announced like every other rule.
 	/// </summary>
 	LayerCompleteLivingShare,
+
+	/// <summary>
+	/// The cross-player push/shove is open. Off means no push is formed or accepted at all; the operator's own
+	/// client refuses first (so a refused gesture never reads as one that silently did nothing) and the host
+	/// judges the rule again on the request, because a member's client is never the gate (decision 263's shape).
+	/// </summary>
+	AllowPush,
+
+	/// <summary>
+	/// Carrying ignores the game's own state preconditions: an unconscious/dead carrier may carry, and a
+	/// conscious-alive body may be carried in the classic carry (the piggyback mode keeps its own rider rule).
+	/// Off by default, because the game's rules are the co-op default.
+	/// </summary>
+	AllowAlwaysCarry,
 }

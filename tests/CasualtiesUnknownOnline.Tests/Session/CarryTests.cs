@@ -1,9 +1,12 @@
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 using static CasualtiesUnknownOnline.Tests.Session.PlayerInteractionTestSession;
 
@@ -122,6 +125,46 @@ public class CarryTests
 
 		Assert.Empty(CarryStates(received));
 		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
+	}
+
+	[Fact]
+	public void Carry_ConsciousTarget_IsAllowedByTheHostRule()
+	{
+		// The user's 2026-11-14 rule family, second switch: with allow_always_carry on, the game's own
+		// "only unconscious/dead bodies are carried" rule is lifted, and the relation is announced exactly
+		// as the refused one would have been.
+		var (host, guest, received) = CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowAlwaysCarry = true }))));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendCarryStartRequest(HostId);
+
+		var state = Assert.Single(CarryStates(received));
+		Assert.Equal(GuestId, state.CarrierSteamId);
+		Assert.Equal(HostId, state.CarriedSteamId);
+	}
+
+	[Fact]
+	public void Carry_UnableCarrier_IsStillRefused_WithTheRuleOn()
+	{
+		// The switch lifts the game's CARRIED-side rule (a conscious body may be carried). It does not lift
+		// the carrier's own state: the kernel's invariant refuses a relation whose carrier is not
+		// alive/conscious (PlayerDomainModule.AssertCarryFields), so the interaction layer cannot grant it.
+		var (host, guest, received) = CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowAlwaysCarry = true }))));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: false));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendCarryStartRequest(HostId);
+
+		Assert.Empty(CarryStates(received));
 	}
 
 	[Fact]

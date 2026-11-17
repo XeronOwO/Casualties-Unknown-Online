@@ -67,4 +67,18 @@ public interface IHostRules
 	/// appears even when the host's body is dead (the user's 2026-10-24 ruling).
 	/// </summary>
 	float LayerCompleteLivingShare { get; }
+
+	/// <summary>
+	/// The cross-player push/shove is open (the user's 2026-11-14 rule family). Off refuses the gesture on the
+	/// operator's own client with a named reason and the host again on the request, so a member's client can never
+	/// be the gate; the target never moves either way.
+	/// </summary>
+	bool AllowPush { get; }
+
+	/// <summary>
+	/// Host-only: carrying ignores the game's own state preconditions — an unconscious or dead carrier may carry,
+	/// and a conscious-alive body may be carried in the classic carry (piggyback keeps its own rider rule). Off by
+	/// default, which is the game's own rule.
+	/// </summary>
+	bool AllowAlwaysCarry { get; }
 }

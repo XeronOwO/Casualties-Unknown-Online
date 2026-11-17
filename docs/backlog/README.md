@@ -80,12 +80,10 @@ _No open ticket._
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
+- [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
-
-
-- [Push and carry have no host switch](review/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — the mechanics exist; the rules do not.
 
 
 

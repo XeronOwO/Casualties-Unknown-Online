@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -41,6 +43,9 @@ internal sealed class PlayerPushService : IDisposable, ISessionReset
 	private readonly PlayerCarryService _carry;
 	private readonly ITimeSource _time;
 	private readonly IPlayerInteractionVisibility _visibility;
+	private readonly IHostRules _hostRules;
+	private readonly ISessionNotices _notices;
+	private readonly ILocalizationService _localization;
 	private readonly ILogger _log;
 
 	private readonly Dictionary<ulong, long> _lastPushMs = [];
@@ -56,6 +61,9 @@ internal sealed class PlayerPushService : IDisposable, ISessionReset
 		PlayerCarryService carry,
 		ITimeSource time,
 		IPlayerInteractionVisibility visibility,
+		IHostRules hostRules,
+		ISessionNotices notices,
+		ILocalizationService localization,
 		ILogger log)
 	{
 		_session = session;
@@ -65,6 +73,9 @@ internal sealed class PlayerPushService : IDisposable, ISessionReset
 		_carry = carry;
 		_time = time;
 		_visibility = visibility;
+		_hostRules = hostRules;
+		_notices = notices;
+		_localization = localization;
 		_log = log;
 
 		_session.SessionEnded += ResetSessionState;
@@ -75,6 +86,17 @@ internal sealed class PlayerPushService : IDisposable, ISessionReset
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
+			return;
+		}
+
+		if (!_hostRules.AllowPush)
+		{
+			// The gesture is refused where it was made: the pusher reads a named line instead of
+			// watching nothing happen, and the host refuses the same request again if one arrives.
+			_log.LogInformation(
+				"[Push] refused locally: {Pusher} → {Target} — the host's allow_push rule is off (refusal.push_disabled_by_rule).",
+				_session.LocalSteamId, targetSteamId);
+			_notices.Publish(_localization.Format("refusal.push_disabled_by_rule"));
 			return;
 		}
 
@@ -113,6 +135,17 @@ internal sealed class PlayerPushService : IDisposable, ISessionReset
 		var target = msg.TargetSteamId;
 		if (pusher == target || pusher == 0 || target == 0)
 		{
+			return;
+		}
+
+		if (!_hostRules.AllowPush)
+		{
+			// The host judges the rule again: a member's own client is never the gate
+			// (decision 263's shape), so a request formed against a stale announcement
+			// still dies here with its reason named.
+			_log.LogInformation(
+				"[Push] refused: {Pusher} → {Target} was not applied because the host's allow_push rule is off (refusal.push_disabled_by_rule).",
+				pusher, target);
 			return;
 		}
 

@@ -147,6 +147,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 			access,
 			visibility,
 			kernelAuthority,
+			hostRules,
 			log);
 		_carryKernelProjection = new PlayerKernelCarryProjection(
 			kernelAuthority,
@@ -156,7 +157,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, ISessi
 			log);
 		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
 		_resultProjection = new PlayerInteractionKernelProjection(kernelAuthority, this, session, log);
-		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);
+		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, hostRules, notices, localization, log);
 	}
 
 	public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId) =>

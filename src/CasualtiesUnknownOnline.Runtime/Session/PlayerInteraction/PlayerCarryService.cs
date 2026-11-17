@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +27,7 @@ internal sealed class PlayerCarryService : IDisposable, ISessionReset
 	private readonly PlayerCharacterAccess _characters;
 	private readonly IPlayerInteractionVisibility _visibility;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly IHostRules _hostRules;
 	private readonly ILogger _log;
 
 	/// <summary>Host-owned carry table: carried SteamId → carrier SteamId.</summary>
@@ -43,6 +45,7 @@ internal sealed class PlayerCarryService : IDisposable, ISessionReset
 		PlayerCharacterAccess characters,
 		IPlayerInteractionVisibility visibility,
 		ItemKernelAuthority kernelAuthority,
+		IHostRules hostRules,
 		ILogger log)
 	{
 		_session = session;
@@ -50,6 +53,7 @@ internal sealed class PlayerCarryService : IDisposable, ISessionReset
 		_characters = characters;
 		_visibility = visibility;
 		_kernelAuthority = kernelAuthority;
+		_hostRules = hostRules;
 		_log = log;
 
 		_session.SessionEnded += ResetSessionState;
@@ -168,14 +172,26 @@ internal sealed class PlayerCarryService : IDisposable, ISessionReset
 		else if (carriedHealth.Conscious && carriedHealth.Alive)
 		{
 			// Cooperative default: the classic carry remains for unconscious/dead
-			// bodies; conscious-alive targets use the piggyback mode instead.
-			_log.LogInformation("[Carry] refused: {Carried} is conscious/alive and not carryable.", carried);
-			return;
+			// bodies; conscious-alive targets use the piggyback mode instead. The
+			// host's allow_always_carry rule lifts exactly this game rule (the user's
+			// 2026-11-14 rule family), and the log names which way it went.
+			if (!_hostRules.AllowAlwaysCarry)
+			{
+				_log.LogInformation("[Carry] refused: {Carried} is conscious/alive and not carryable.", carried);
+				return;
+			}
+
+			_log.LogInformation(
+				"[Carry] {Carried} is conscious/alive; the host's allow_always_carry rule allows the classic carry.",
+				carried);
 		}
 
 		var carrierData = _characters.GetCharacterData(carrier);
 		if (carrierData?.Health is not { } carrierHealth || !carrierHealth.Conscious || !carrierHealth.Alive)
 		{
+			// The kernel's own invariant pins this (PlayerDomainModule.AssertCarryFields throws when a
+			// carrier is not alive/conscious), so the host rule does NOT lift it: an unrunnable relation
+			// is not a permission the interaction layer may grant.
 			_log.LogInformation("[Carry] refused: {Carrier} is not conscious/alive and cannot carry.", carrier);
 			return;
 		}

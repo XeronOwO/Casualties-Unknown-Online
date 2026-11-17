@@ -77,6 +77,17 @@ public sealed class HostRulesMsg
 	[ProtoMember(14)]
 	public float LayerCompleteLivingShare { get; set; }
 
+	/// <summary>
+	/// The cross-player push/shove switch. Announced like every other rule because a member's own client refuses
+	/// the gesture first; the host judges it again on the request.
+	/// </summary>
+	[ProtoMember(15)]
+	public bool AllowPush { get; set; }
+
+	/// <summary>The carrying switch: on, the game's own carrier/carried state preconditions are waived.</summary>
+	[ProtoMember(16)]
+	public bool AllowAlwaysCarry { get; set; }
+
 	/// <summary>The wire form of one rule set (the sender's mapping).</summary>
 	public static HostRulesMsg From(HostRuleSet set) => new()
 	{
@@ -94,6 +105,8 @@ public sealed class HostRulesMsg
 		Permadeath = set.Permadeath,
 		RadiationLineStopsAboveTheFloor = set.RadiationLineStopsAboveTheFloor,
 		LayerCompleteLivingShare = set.LayerCompleteLivingShare,
+		AllowPush = set.AllowPush,
+		AllowAlwaysCarry = set.AllowAlwaysCarry,
 	};
 
 	/// <summary>The rule set this message carries (the receiver's mapping).</summary>
@@ -111,7 +124,9 @@ public sealed class HostRulesMsg
 		ReviveOnNextLevel,
 		Permadeath,
 		RadiationLineStopsAboveTheFloor,
-		LayerCompleteLivingShare);
+		LayerCompleteLivingShare,
+		AllowPush,
+		AllowAlwaysCarry);
 
 	/// <summary>
 	/// Why this announcement cannot be applied, or null when it is well formed. The

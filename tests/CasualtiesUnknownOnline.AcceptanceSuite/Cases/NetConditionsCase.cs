@@ -77,8 +77,8 @@ internal sealed class NetConditionsCase : AcceptanceCase
 	private static async Task ClearAsync(CaseContext context, bool host)
 	{
 		var answer = host
-			? await context.RecipeAsync("net-conditions", CancellationToken.None, ("mode", "clear")).ConfigureAwait(false)
-			: await context.MemberRecipeAsync("net-conditions", CancellationToken.None, ("mode", "clear")).ConfigureAwait(false);
+			? await context.RecipeAsync("net-conditions", CancellationToken.None, ("mode", "clear"), ("latencyMs", "0"), ("jitterMs", "0"), ("lossPercent", "0")).ConfigureAwait(false)
+			: await context.MemberRecipeAsync("net-conditions", CancellationToken.None, ("mode", "clear"), ("latencyMs", "0"), ("jitterMs", "0"), ("lossPercent", "0")).ConfigureAwait(false);
 		context.Read(host ? "cleared on the host" : "cleared on the member", answer);
 		Require(IsTrue(answer, "ok") && !IsTrue(answer, "enabled"),
 			"the network profile was not cleared: " + Raw(answer));

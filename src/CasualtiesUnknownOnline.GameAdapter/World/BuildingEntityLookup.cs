@@ -12,8 +12,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// </summary>
 internal static class BuildingEntityLookup
 {
-	/// <summary>How far a building may sit from the recorded point and still be that building: the kernel records a cell centre, the entity stands on its own transform.</summary>
-	private const float Tolerance = 1.5f;
+	/// <summary>How far a building may sit from the recorded point and still be that building: the kernel records a cell centre, the entity stands on its own transform, and a regenerated layer can place the same building a cell off (2026-11-18: a row at (18.5, 490.5) named a building the layer put 2 m away).</summary>
+	private const float Tolerance = 3f;
 
 	internal static BuildingEntity? At(float x, float y)
 	{

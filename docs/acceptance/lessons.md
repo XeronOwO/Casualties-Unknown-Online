@@ -518,13 +518,11 @@ One `skiplayer` is ONE advance (`RegenerateWorld(false)`, `WorldGeneration.cs:10
 
 `tools/acceptance/recipes/scene-read.cs` answers the native scene/world/generating/loading state a frame cannot separate from the menu — `docs/evidence/acceptance/layer-change-menu-round-trip-20261021-i.md`.
 
-## 2026-11-15 — The suite's own wall time is an acceptance input
-
-Classify every case as `InRun`/`NewWorld`/`ClientRestart`, report connect/setup/case time, and optimize the largest bucket before adding another case (rule 10) — `.acceptance/late-layer3/report-all/report.md`.
-
 ## 2026-11-15 — Count both Sound.Play overloads
 
 A watched eat replays through the `AudioClip` overload, so a spectator sound count installed only on the `string` overload reads zero while the host log says `replay consume eatFlesh`. Gate and count both overloads, and let the string call's nested AudioClip skip the second count.
 
+## 2026-11-17 — The pair runs one install and one build
 
+`-GameDir` must be the install the sandbox roots mirror and the deployed plug-in this tree's build; a mixed pair's reading is a fixture defect. Measured: the host from the demo install, the boxed member from the full install, no join. Rule: [workflow.md](workflow.md) §4.
 

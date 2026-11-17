@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -53,6 +54,12 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var storedBefore = await context.RecipeAsync("saved-color-read", cancellationToken, ("guest", context.MemberId)).ConfigureAwait(false);
 		context.Read("host stored character before save", storedBefore);
 
+		var beforeGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(beforeGeysers, "ok"), "the host could not read the geyser types before saving: " + Raw(beforeGeysers));
+		var beforeTypes = GeyserTypes(beforeGeysers);
+		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
+		context.Read("geyser types before save", beforeGeysers);
+
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
 
@@ -85,6 +92,30 @@ internal sealed class SaveContinueCase : AcceptanceCase
 
 		Require(inWorld, "the host did not enter the restored world");
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
+
+		// The live-world replay can start its 5 s geyser deferral only once the host is back in the
+		// world, so the audit lands about 12 s after the continue in the measured 2026-11-16 run.
+		var restoredAudit = await WaitForLogAsync(context, "restored the live world", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+		Require(restoredAudit.Contains(beforeTypes.Count + " geyser type(s) applied", StringComparison.Ordinal), "the restore did not apply the " + beforeTypes.Count + " geyser types: " + restoredAudit);
+		Require(restoredAudit.Contains("0 row(s) not taken", StringComparison.Ordinal), "the restore still refused geyser rows: " + restoredAudit);
+		context.Read("geyser restore audit", JsonDocument.Parse("\"" + Escape(restoredAudit) + "\"").RootElement.Clone());
+
+		var afterGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(afterGeysers, "ok"), "the host could not read the geyser types after continuing: " + Raw(afterGeysers));
+		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
+		context.Read("geyser types after continue", afterGeysers);
+
+		var forced = await context.RecipeAsync("geyser-start", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(forced, "ok"), "the acceptance could not force the geysers' Start: " + Raw(forced));
+		var forcedCount = Double(forced, "started");
+		context.Note(forcedCount >= 1
+			? "forced the Start of " + forcedCount + " geyser(s) after the continue"
+			: "no geyser was left unstarted after the continue; the Start re-apply path was not exercised in this world");
+		var afterStart = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(afterStart, "ok"), "the host could not read the geyser types after Start: " + Raw(afterStart));
+		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterStart)), "a geyser's own Start overwrote the restored type: " + Raw(afterStart));
+		Require(Double(afterStart, "started") >= beforeTypes.Count, "not every geyser kept its started mark after Start: " + Raw(afterStart));
+		context.Read("geyser types after Start", afterStart);
 
 		// The member followed the host out of the world; the continued world needs it back before a
 		// later case reads the pair, and the host's refreshed member id replaces the old one. Clear
@@ -188,6 +219,59 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
 
+	private static double Double(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: 0;
+
+	private static Dictionary<string, int> GeyserTypes(JsonElement? reading)
+	{
+		var types = new Dictionary<string, int>(StringComparer.Ordinal);
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("rows", out var rows)
+			|| rows.ValueKind != JsonValueKind.Array)
+		{
+			return types;
+		}
+
+		foreach (var row in rows.EnumerateArray())
+		{
+			if (row.ValueKind != JsonValueKind.Object)
+			{
+				continue;
+			}
+
+			types[GeyserKey(row)] = row.GetProperty("type").GetInt32();
+		}
+
+		return types;
+	}
+
+	private static string GeyserKey(JsonElement row) =>
+		row.GetProperty("x").GetDouble().ToString("0.###", CultureInfo.InvariantCulture)
+		+ ","
+		+ row.GetProperty("y").GetDouble().ToString("0.###", CultureInfo.InvariantCulture);
+
+	private static bool SameGeyserTypes(Dictionary<string, int> left, Dictionary<string, int> right)
+	{
+		if (left.Count != right.Count)
+		{
+			return false;
+		}
+
+		foreach (var pair in left)
+		{
+			if (!right.TryGetValue(pair.Key, out var type) || type != pair.Value)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private static string StringValue(JsonElement? reading, string property)
 	{
 		if (reading is not { ValueKind: JsonValueKind.Object } element
@@ -239,13 +323,16 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var deadline = DateTime.UtcNow + budget;
 		while (DateTime.UtcNow < deadline)
 		{
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			var text = ReadLog(context.HostLogPath);
-			if (text.Contains(needle, StringComparison.Ordinal))
+			var index = text.LastIndexOf(needle, StringComparison.Ordinal);
+			if (index >= 0)
 			{
-				var index = text.LastIndexOf(needle, StringComparison.Ordinal);
-				return text[index..Math.Min(text.Length, index + 240)].Split('\n')[0].Trim();
+				var lineStart = text.LastIndexOf('\n', index) + 1;
+				var lineEnd = text.IndexOf('\n', index);
+				return text[lineStart..(lineEnd >= 0 ? lineEnd : text.Length)].Trim();
 			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		}
 
 		return string.Empty;

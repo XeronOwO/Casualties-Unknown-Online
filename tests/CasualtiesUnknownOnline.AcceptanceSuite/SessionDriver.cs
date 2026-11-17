@@ -138,6 +138,10 @@ internal sealed class SessionDriver(Options options)
 		await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
 		try
 		{
+			// The guest's join sets its port from the host's own value below; pin the host to the
+			// suite's port so a config left at another port cannot
+			// make every join miss the listener and toggle the transport until the budget expires.
+			await TryActionAsync(_options.HostUrl, "set-text", cancellationToken, ("-Control", "ip.listen_port"), ("-Text", "7777")).ConfigureAwait(false);
 			// A host whose earlier IP session is still alive refuses a second create; the run
 			// then simply starts on the existing session.
 			await ActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
@@ -1156,12 +1160,21 @@ internal sealed class SessionDriver(Options options)
 
 				stream.Seek(start, SeekOrigin.Begin);
 				using var reader = new StreamReader(stream);
-				string? line;
-				while ((line = reader.ReadLine()) is not null)
+				var content = reader.ReadToEnd();
+				if (content.Length == 0)
+				{
+					return;
+				}
+
+				// The writer flushes a line in pieces; the unterminated tail is a prefix, and a match on
+				// it returns half a line. Only newline-terminated lines count.
+				var complete = content.EndsWith('\n') ? content.Length : content.LastIndexOf('\n') + 1;
+				var lines = content.Substring(0, complete).Split('\n');
+				foreach (var line in lines)
 				{
 					if (line.IndexOf(match, StringComparison.Ordinal) >= 0)
 					{
-						found = line;
+						found = line.TrimEnd('\r');
 					}
 				}
 

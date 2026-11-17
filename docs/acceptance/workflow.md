@@ -121,6 +121,13 @@ acceptance. Before a sandboxed client starts, apply the shadow rule in `AGENTS.l
 copy that is older than the physical one runs old code, and the shadow files are removed file by file
 (never recursively).
 
+- **One install, one build, both clients.** `-GameDir` names the install the boxed clients mirror
+  (`AGENTS.local.md`); each boxed client loads the desktop tree's plug-in copied into its own copy of
+  THAT install, so naming a second install (the demo, another copy) makes the host and the member play
+  different game data and the join fails. Before the pair starts, print both clients' executables and
+  require the same install, and require the deployed plug-in to be this tree's `+<sha>`. A pair that
+  fails either check produces no reading.
+
 ## A repeat-count question is answered by `plays`, never by a `names` diff
 
 The listener instruments (`audio-watch3` and its siblings) record two different things: `names`, which holds each clip ONCE, and `plays`, which counts one per distinct `AudioSource` that played a matching clip — one per playback. A `names` diff therefore answers "has this clip ever been seen", and it is blind to every repeat: on 2026-11-01 a whole defect report was filed on such a diff ("the peer never plays the lockpick pain") while the same client's `plays` counter read 361 for that clip. Read `plays` for any "once", "again" or "how many" question, and treat a `names` diff as evidence of FIRST sighting only.

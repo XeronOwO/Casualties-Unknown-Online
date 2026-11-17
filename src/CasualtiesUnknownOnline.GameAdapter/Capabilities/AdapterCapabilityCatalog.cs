@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using HarmonyLib;
@@ -82,6 +83,9 @@ internal static class AdapterCapabilityCatalog
 				// The layer-modifier determinism patch lives in the WorldGen namespace, not
 				// in Patches (it is a world-generation boundary, not a gameplay hook).
 				typeof(LayerModifierApplyPatch),
+				// The geyser's liquid type is a world-entity initial condition: its Start
+				// re-apply patch is nested in this owner.
+				typeof(GeyserStateSync),
 			],
 			[],
 			[],

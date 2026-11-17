@@ -378,6 +378,18 @@ internal static class CutCharacterPlacement
 	private static CharacterItemMsg FromKernel(ItemState row, State state)
 	{
 		var node = ItemKernelCodec.ToCharacterItem(row);
+
+		// The kernel row carries the placement and the durability, not the character file's
+		// player-set presentation: the label and colour swatch live only in the file's node
+		// (ItemStateCodec.CaptureItem reads them from the item), so the reconciled row takes
+		// them from there. Without this the continue restores the items with an empty label
+		// and swatch 0 — the member's custom name/colour silently disappears.
+		if (state.FileNodes.TryGetValue(node.InstanceId, out var fileNode))
+		{
+			node.Label = fileNode.Label;
+			node.ColorSwatch = fileNode.ColorSwatch;
+		}
+
 		state.Placed[node.InstanceId] = node;
 		if (!state.ChildrenByParent.TryGetValue(row.Identity.InstanceId, out var kernelChildren))
 		{

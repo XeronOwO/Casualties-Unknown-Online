@@ -5862,7 +5862,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs",
 
-      "quote": "typeField.SetValue(match.LiquidType);"
+      "quote": "typeField.SetValue(liquidType);"
 
     },
 
@@ -6378,7 +6378,7 @@
 
       "file": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs",
 
-      "quote": "foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())"
+      "quote": "foreach (var geyser in Object.FindObjectsOfType<GeyserScript>(true))"
 
     },
 

@@ -66,8 +66,17 @@ internal static class HarmonyTraverse
 			return false;
 		}
 
-		var generating = Traverse.Create(WorldGeneration.world).Field("generatingWorld");
-		return generating.FieldExists() && generating.GetValue<bool>();
+		// The native generation state is generatingWorld || instantiatingWorld
+		// (WorldGeneration.cs:937; InstantiateWorld sets both, :3795-3860).
+		// generatingWorld alone is false during the instantiate phase, so a caller
+		// that must not query the half-built scene had a window there.
+		return FieldTrue("generatingWorld") || FieldTrue("instantiatingWorld");
+	}
+
+	private static bool FieldTrue(string name)
+	{
+		var field = Traverse.Create(WorldGeneration.world).Field(name);
+		return field.FieldExists() && field.GetValue<bool>();
 	}
 
 	/// <summary>

@@ -149,8 +149,10 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// the reset reached before it judges the limb. The wait is ARMED BEFORE the command: it only
 		// looks at lines the client writes from now on, so arming it after the command would read
 		// the reset it was meant to see as a line that never came (measured 2026-11-14: null while
-		// the member's log carried the reset).
-		var resetWait = context.Session.WaitForLogAsync(context.Session.MemberUrl, "local body reset", 15_000, cancellationToken);
+		// the member's log carried the reset). The trace is a diagnostic, never the verdict: the
+		// member's limb read below is the judge, and the current path does not always write the line
+		// (2026-11-16: null after 15 s while the limb already read 100/0/0), so the budget is 2 s.
+		var resetWait = context.Session.WaitForLogAsync(context.Session.MemberUrl, "local body reset", 2_000, cancellationToken);
 
 		// The host runs the console verb; its answer is the reading that the command was accepted.
 		var answer = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);

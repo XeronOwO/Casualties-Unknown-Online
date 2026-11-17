@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -139,5 +140,21 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 
 		var applied = GeyserStateTable.Apply(geysers, _log);
 		_log.LogInformation("[GeyserSnapshot] applied {Applied} host liquid type(s).", applied);
+	}
+
+	/// <summary>
+	/// The geyser's own <c>Start</c> rolls its liquid type from the PUBLIC random
+	/// stream after a restore may already have written the saved type (an inactive
+	/// geyser often runs Start only on activation). The adapter's write is the
+	/// authority; re-apply the remembered type as soon as the roll lands.
+	/// </summary>
+	[HarmonyPatch(typeof(GeyserScript), "Start")]
+	private static class GeyserStartPatch
+	{
+		private static void Postfix(GeyserScript __instance)
+		{
+			GeyserStateTable.MarkStarted(__instance);
+			GeyserStateTable.ReapplyRestoredType(__instance);
+		}
 	}
 }

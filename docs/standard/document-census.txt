@@ -220,6 +220,7 @@ docs/backlog/done/1.0-save-live-snapshot-single-file.md | keep | claim | docs/ba
 docs/backlog/todo/split-save-archive-reader.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-save-after-building-damage-loses-entity.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-acceptance-under-five-minutes.md | keep | claim | docs/backlog/README.md
+docs/backlog/todo/1.0-continue-loses-geyser-types.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-console-heal-does-not-restore-a-member.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-block-table-diverges-between-clients.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-live-block-table-never-resyncs.md | keep | claim | docs/backlog/README.md
@@ -449,7 +450,7 @@ docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
 docs/contracts/design-comprehension-baseline.txt | keep | loaded | tests/CasualtiesUnknownOnline.NormativeGates.Tests/DesignComprehensionGateTests.cs
 docs/design/INDEX.md | keep | spec | docs/design/AGENTS.md
 docs/design/audit/README.md | keep | spec | docs/design/INDEX.md
-docs/design/audit/code.md | keep | spec | docs/design/INDEX.md
+docs/design/audit/code.md | rework | none | docs/backlog/done/document-corpus-audit.md
 docs/design/audit/sweep.md | keep | spec | docs/design/INDEX.md
 docs/design/audit/native.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/README.md | keep | spec | docs/design/INDEX.md

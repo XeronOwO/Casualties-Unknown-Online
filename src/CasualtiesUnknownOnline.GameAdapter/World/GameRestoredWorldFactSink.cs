@@ -99,10 +99,14 @@ internal sealed class GameRestoredWorldFactSink(
 			return true;
 		}
 
-		// The saved set named these live objects. A regenerated layer that has
-		// spawned fewer is still in the middle of instantiation; applying now
-		// would position-match the subset that happens to exist.
-		return Object.FindObjectsOfType<GeyserScript>().Length >= geysers.Count;
+		// The saved set is every geyser whose own Start has run, active or not:
+		// a geyser that has not started has no decided type to save, while a
+		// geyser that started and was deactivated still has one. The live query
+		// includes the inactive too: the game deactivates far chunks, and a
+		// layer that has not finished instantiating still has fewer objects.
+		// Applying while the live set is short would position-match only the
+		// subset that happens to exist.
+		return Object.FindObjectsOfType<GeyserScript>(true).Length >= geysers.Count;
 	}
 
 	/// <inheritdoc />

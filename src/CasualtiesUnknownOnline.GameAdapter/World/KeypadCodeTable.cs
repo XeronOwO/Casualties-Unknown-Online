@@ -27,11 +27,11 @@ internal static class KeypadCodeTable
 	/// <summary>Position-key radius — a regenerated keypad is at the same place on both sides, within placement jitter.</summary>
 	private const float PositionTolerance = 3f;
 
-	/// <summary>Every keypad's code, generating it host-side when unset (the caller decides whether to broadcast).</summary>
+	/// <summary>Every keypad's code in the world (active or not — the game deactivates far chunks), generating it host-side when unset (the caller decides whether to broadcast).</summary>
 	internal static List<KeypadEntryMsg> Capture()
 	{
 		var codes = new List<KeypadEntryMsg>();
-		foreach (var openable in Object.FindObjectsOfType<Openable>())
+		foreach (var openable in Object.FindObjectsOfType<Openable>(true))
 		{
 			if (!openable.isKeypad)
 			{
@@ -85,7 +85,8 @@ internal static class KeypadCodeTable
 		Apply(codes, overwrite: true, log);
 
 	/// <summary>
-	/// The one write path, per LIVE <c>Openable</c>: each object is attempted on its own
+	/// The one write path, per <c>Openable</c> in the world (active or not — the game
+	/// deactivates far chunks): each object is attempted on its own
 	/// (<see cref="ContainedRowLoop.RunLiveWorld"/>), so an object whose code field this copy
 	/// cannot serve costs ITSELF — named at error level with its position — instead of every
 	/// keypad behind it. A matched row counts as applied only once its write path COMPLETED, so
@@ -96,7 +97,7 @@ internal static class KeypadCodeTable
 	{
 		var applied = 0;
 		ContainedRowLoop.RunLiveWorld(
-			Object.FindObjectsOfType<Openable>(),
+			Object.FindObjectsOfType<Openable>(true),
 			openable =>
 			{
 				if (!openable.isKeypad)

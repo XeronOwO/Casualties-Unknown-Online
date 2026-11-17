@@ -64,22 +64,13 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Todo
 _No open ticket._
 
-
-
-
-
-
-
 ### In progress
-
-- [Split the world message services at their seams](in-progress/split-world-service-messages.md) — **Medium** — slice 1 landed; `WorldService` 603.
 - [Split SessionService at its seams](in-progress/split-session-service.md) — **Medium** — 616 lines; the heartbeat is the first seam.
-
-
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
 - [1.0 regression: the verified rows on the release build](in-progress/1.0-regression-sweep.md) — **High** — re-read the demo's rows, domain by domain.
 - [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
+
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
@@ -132,6 +123,7 @@ _No open ticket._
 
 ### Done
 
+- [Split the world message services at their seams](done/split-world-service-messages.md) — **Medium** — 613 → 450; both debt entries gone.
 - [Split the block-break apply path out](done/split-block-break-remote-apply.md) — **Medium** — 688 → 403 lines; both directions of the break cross.
 - [A continue refuses a healthy row for a building that is gone](done/1.0-cut-outlives-a-felled-building.md) — **High** — accepted when the area exists.
 - [Split the save archive reader at its seams](done/split-save-archive-reader.md) — **Medium** — 619 → 421 lines; the restore re-read on the real game.

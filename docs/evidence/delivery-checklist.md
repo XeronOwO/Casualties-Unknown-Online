@@ -4,7 +4,7 @@ Operating rule: a box is checked only after the item is CONFIRMED in this cycle.
 that cannot be confirmed stays empty and the cycle stops.
 
 - [ ] Design comprehension
-      the ticket `docs/backlog/in-progress/split-world-service-messages.md` names the seam; the design pages it cites
+      the ticket `docs/backlog/done/split-world-service-messages.md` names the seam; the design pages it cites
       (`docs/design/mechanics/world-interaction.md`, `docs/design/game/worldgen-and-layers.md`) are unchanged because no
       behaviour moves.
 - [ ] Native parity

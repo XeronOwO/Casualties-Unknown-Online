@@ -3,10 +3,5 @@
 		"Lines": 639,
 		"BoolFlags": 0,
 		"Ticket": "docs/backlog/review/1.0-transport-handover-identity.md"
-	},
-	"CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
-		"Lines": 603,
-		"BoolFlags": 0,
-		"Ticket": "docs/backlog/in-progress/split-world-service-messages.md"
 	}
 }

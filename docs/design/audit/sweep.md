@@ -35,7 +35,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameAdapter/Patches` | 171 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Run` | 37 | read |
 | `CasualtiesUnknownOnline.GameAdapter/Tutorial` | 3 | read |
-| `CasualtiesUnknownOnline.GameAdapter/World` | 71 | read |
+| `CasualtiesUnknownOnline.GameAdapter/World` | 72 | read |
 | `CasualtiesUnknownOnline.GameAdapter/WorldGen` | 18 | read |
 | `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Entities` | 19 | read |

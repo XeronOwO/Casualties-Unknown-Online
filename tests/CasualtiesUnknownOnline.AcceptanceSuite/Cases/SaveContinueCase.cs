@@ -144,8 +144,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 
 		var afterGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(afterGeysers, "ok"), "the host could not read the geyser types after continuing: " + Raw(afterGeysers));
-		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
 		context.Read("geyser types after continue", afterGeysers);
+		Require(SameGeyserTypes(beforeTypes, GeyserTypes(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
 
 		var forced = await context.RecipeAsync("geyser-start", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(forced, "ok"), "the acceptance could not force the geysers' Start: " + Raw(forced));

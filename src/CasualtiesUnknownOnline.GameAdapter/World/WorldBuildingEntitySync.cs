@@ -243,8 +243,7 @@ internal sealed class WorldBuildingEntitySync(
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			var hit = Physics2D.OverlapPoint(new Vector2(x, y));
-			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
+			var entity = BuildingEntityLookup.At(x, y);
 			if (entity == null)
 			{
 				// A DESTROYED fact whose building the regenerated layer does not have is satisfied,

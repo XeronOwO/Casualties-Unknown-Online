@@ -25,7 +25,7 @@ internal static partial class Program
 		if (options.Problem is { } problem)
 		{
 			Console.Error.WriteLine(problem);
-			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse|--fresh] [--parallel-setup|--serial-setup] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>]");
+			Console.Error.WriteLine("usage: CasualtiesUnknownOnline.AcceptanceSuite [--list | --suite <name|all>] [--cost <InRun|NewWorld|ClientRestart>] [--reuse|--fresh] [--parallel-setup|--serial-setup] [--out <dir>] [--host <ws-url>] [--game-dir <dir>] [--member <id>] [--alt <ws-url>]");
 			return 64;
 		}
 
@@ -1020,6 +1020,12 @@ internal sealed record Options
 
 	public string MemberUrl { get; init; } = "ws://127.0.0.1:18591";
 
+	/// <summary>
+	/// The third client (the second member). Only up when the launch asked for it (`run-suite -All`);
+	/// rows that need two members are by name and name this endpoint in their report.
+	/// </summary>
+	public string AltUrl { get; init; } = "ws://127.0.0.1:18592";
+
 	public string? OutputDirectory { get; init; }
 
 	public string? GameDir { get; init; }
@@ -1070,6 +1076,9 @@ internal sealed record Options
 					break;
 				case "--member" when index + 1 < args.Length:
 					options = options with { MemberId = args[++index] };
+					break;
+				case "--alt" when index + 1 < args.Length:
+					options = options with { AltUrl = args[++index] };
 					break;
 				default:
 					return new Options { Problem = $"unknown argument '{args[index]}'" };
@@ -1220,6 +1229,15 @@ internal static class CaseRegistry
 			// silent natively, so this row stages the container case only; its ticket is
 			// `1.0-give-container-sound-unread`.
 			new GiveContainerSoundCase(),
+			// The crafting outcome: a real craft through the game's own `TryMake` entry consumes the material
+			// and lands the product in the crafter's bag, and the host's view of that player renders it. The
+			// panel row only opens the panel; this is the row that reads the outcome.
+			new CraftingOutcomeCase(),
+			// The two-member save/continue came back red on 2026-11-19 and is parked in
+			// `docs/backlog/todo/1.0-two-member-continue-mixes-characters.md`: the cut carried one
+			// character, the second member's items merged onto the first, and the second member came
+			// back as a new character. Un-park it with the fix and read it again.
+			// new TwoMemberContinueCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

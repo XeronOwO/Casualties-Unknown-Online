@@ -214,6 +214,100 @@ internal sealed class SessionDriver(Options options)
 	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken, TimeSpan? budget = null) =>
 		MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true, budget));
 
+	/// <summary>
+	/// The third client's endpoint. It is only up when the launch asked for it (<c>run-suite -All</c>);
+	/// a row that needs two members states that in its report and fails on the alt's own state when it is
+	/// not running, rather than silently testing one member twice.
+	/// </summary>
+	public string AltUrl => _options.AltUrl;
+
+	/// <summary>
+	/// Joins the second member (the alt client) to the host's current run. The join loop is the member's
+	/// own: the home page offers the transport switch, a notice, or the join controls depending on how far
+	/// the client has loaded, so the loop acts on what the state offers instead of clicking a control that
+	/// may not be built.
+	/// </summary>
+	public async Task<string> EnsureSecondMemberAsync(CancellationToken cancellationToken)
+	{
+		var url = _options.AltUrl;
+		var state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(state, "inWorld") && await IsInHostRunAsync(url, cancellationToken).ConfigureAwait(false))
+		{
+			return "the second member was already in the host's run";
+		}
+
+		if (IsTrue(state, "inWorld"))
+		{
+			await TryActionAsync(url, "leave-world", cancellationToken).ConfigureAwait(false);
+			await WaitWorldExitAsync(url, cancellationToken).ConfigureAwait(false);
+		}
+
+		await ActionAsync(url, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(url, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+
+		var deadline = Stopwatch.StartNew();
+		var lastJoinClick = DateTimeOffset.MinValue;
+		while (deadline.Elapsed < TimeSpan.FromSeconds(50))
+		{
+			state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+			if (IsTrue(state, "inWorld") && await IsInHostRunAsync(url, cancellationToken).ConfigureAwait(false))
+			{
+				return $"the second member joined the host's run after {deadline.Elapsed.TotalSeconds:F1}s";
+			}
+
+			var controls = Controls(state);
+			if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			{
+				await TryActionAsync(url, "click", cancellationToken, ("-Control", "home.leave")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.notice_confirm"))
+			{
+				await TryActionAsync(url, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("ip.join"))
+			{
+				if (lastJoinClick == DateTimeOffset.MinValue || (DateTimeOffset.UtcNow - lastJoinClick).TotalSeconds >= 2)
+				{
+					await TryActionAsync(url, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+					await TryActionAsync(url, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+					await TryActionAsync(url, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+					lastJoinClick = DateTimeOffset.UtcNow;
+				}
+			}
+			else if (controls.Contains("home.transport.ip"))
+			{
+				await TryActionAsync(url, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the second member did not join the host's run; last state: " + state.GetRawText());
+	}
+
+	/// <summary>Both sides name the same kernel run, and the host's roster names this client.</summary>
+	private async Task<bool> IsInHostRunAsync(string url, CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+		var localId = StringValue(state, "steamId");
+		if (localId.Length == 0 || !IsTrue(state, "inWorld"))
+		{
+			return false;
+		}
+
+		var host = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		var hostRun = StateUInt64(host, "runId");
+		if (hostRun == 0 || StateUInt64(state, "runId") != hostRun)
+		{
+			return false;
+		}
+
+		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		return members.Contains(localId, StringComparer.Ordinal);
+	}
+
 	/// <summary>Join the host's IP session while both clients are still at the menu.</summary>
 	public Task<string> EnsureMemberSessionAsync(CancellationToken cancellationToken) =>
 		JoinMemberSessionAsync(cancellationToken);
@@ -1254,6 +1348,22 @@ internal sealed class SessionDriver(Options options)
 
 			return await SendActionAsync(_drivers[url], url, action, argument, text, cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	/// <summary>
+	/// Runs a recipe on any client endpoint (the second member has no CaseContext helper of its own).
+	/// The driver is cached per URL by <see cref="ActionAsync"/>, so state reads and recipes share one socket.
+	/// </summary>
+	public async Task<JsonElement?> RecipeAtAsync(string url, string name, IReadOnlyDictionary<string, string>? args, CancellationToken cancellationToken)
+	{
+		if (!_drivers.TryGetValue(url, out var driver))
+		{
+			driver = new DriverClient(url);
+			await driver.ConnectAsync(cancellationToken).ConfigureAwait(false);
+			_drivers[url] = driver;
+		}
+
+		return await driver.RecipeAsync(name, args, cancellationToken).ConfigureAwait(false);
 	}
 
 	private async Task<JsonElement> SendActionAsync(DriverClient driver, string url, string action, string argument, string text, CancellationToken cancellationToken)

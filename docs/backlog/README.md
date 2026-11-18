@@ -63,6 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 - [Every valuable acceptance row is a C# case](todo/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — six rows plus the orphan cleanup, at the baseline.
+- [Two members lose the second character](todo/1.0-two-member-continue-mixes-characters.md) — **High** — its items merge into the first.
 
 ### In progress
 - _No open ticket._

@@ -1211,6 +1211,10 @@ internal static class CaseRegistry
 			// member's recorder must carry the scrapmetal clip. The audible half of the 2026-09-06 report had
 			// no device until 2026-11-19, so this is the row that reads it.
 			new BlockPlaceSoundCase(),
+			// The block-break sound: the host rolls the game's own damage until a block is gone and the
+			// member's recorder must carry that block kind's own hit clip. The audible half of the 2026-09-21
+			// report had no device until 2026-11-19.
+			new BlockBreakSoundCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

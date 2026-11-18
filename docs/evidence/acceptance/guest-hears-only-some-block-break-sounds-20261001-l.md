@@ -46,3 +46,17 @@ block id and damage row, with the returned cell coordinates checked against the 
 - The rock used for rows 1 and 5 has more health than 55, so the "break" of row 2 was driven on a placed
   block (id 3) with a lethal hit; the break path is the same one.
 - A single session proves the events observed; it does not disprove a rare loss between reports.
+
+## Re-read (2026-11-19) — the audible half now has a device
+
+- The audible half that stayed a residual is now a by-name acceptance row: `block-break-sound` in
+  `tests/CasualtiesUnknownOnline.AcceptanceSuite/Cases/BlockBreakSoundCase.cs`. The host asks the game's own damage
+  roll which block cell it addresses, the member arms its one-shot recorder for that block kind's hit clip, the host
+  stages a light rock in the cell and rolls damage until it is gone.
+- Reading (`.acceptance/break-sound7`, PASS, case 0.9 s): the probe named cell (512,1004), the staged rock at
+  (512,1005) was confirmed in the cell by a second zero-damage probe, the lethal hit read `blockBefore:1, blockAfter:0`,
+  and the member's recorder read `raw=755|rock@18.8;rock@18.8` — the broken block's own clip on the member's client.
+- Fixture note: block coordinates are not the body's world position (a body at world y 487.6 rolls at block cell y 999),
+  so the row asks the roll for the cell instead of deriving it; and a zero-damage probe plays the hit sound, so the
+  recorder sees the hit twice for one break.
+

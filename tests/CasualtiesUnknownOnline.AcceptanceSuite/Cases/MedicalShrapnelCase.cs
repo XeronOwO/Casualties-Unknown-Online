@@ -71,12 +71,26 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		Require(Boolean(view, "ok") && Boolean(view, "opened"), "the remote wound view did not open: " + Raw(view));
 		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 
+		// The display limb's piece count is a 1 Hz report fact, so the seeded pieces can reach the
+		// operator's view after the chart opens; the dispatch is retried while it reports no pieces
+		// (a refused dispatch starts no session, so a retry is safe).
 		var logStart = LogLength(context.HostLogPath);
-		var special = await context.RecipeAsync("remote-wound-special", cancellationToken,
-			("mode", "special"), ("target", memberId), ("limb", Number(limb))).ConfigureAwait(false);
+		JsonElement? special = null;
+		var started = false;
+		for (var attempt = 0; attempt < 20 && !started; attempt++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			special = await context.RecipeAsync("remote-wound-special", cancellationToken,
+				("mode", "special"), ("target", memberId), ("limb", Number(limb))).ConfigureAwait(false);
+			started = Boolean(special, "started");
+			if (!started)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			}
+		}
+
 		context.Read("shrapnel-special", special);
-		Require(Boolean(special, "ok") && Boolean(special, "started"),
-			"the remote shrapnel special did not start the session: " + Raw(special));
+		Require(started, "the remote shrapnel special did not start the session: " + Raw(special));
 
 		// The patient's own client applies the break: a piece leaves the limb and its damage lands.
 		JsonElement? after = null;

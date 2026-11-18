@@ -1237,7 +1237,7 @@ internal static class CaseRegistry
 			// `docs/backlog/todo/1.0-two-member-continue-mixes-characters.md`: the cut carried one
 			// character, the second member's items merged onto the first, and the second member came
 			// back as a new character. Un-park it with the fix and read it again.
-			// new TwoMemberContinueCase(),
+			new TwoMemberContinueCase(),
 			// The real drag: a bandage picked up by the game's own drag gesture and released onto the wound
 			// view's limb rect starts the game's bandage minigame — the hand path, not the direct use call.
 			new RealDragCase(),

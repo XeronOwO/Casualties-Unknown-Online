@@ -204,6 +204,29 @@ function Get-AppIdMapping {
 	return [pscustomobject]@{ State = 'unknown'; Detail = "app id $appId cannot be cross-checked against the install: no steam_appid.txt under game-dir and no appmanifest_$appId.acf with an installdir beside it; a manifest is only read when the install sits under a steamapps\common folder; do not launch on an unproven id" }
 }
 
+function Get-IpDirectDisplayName([string]$installRoot) {
+	# The IP-direct key space is the display name (PlayerKey.ForDisplayName), so a duplicate name is a
+	# machine defect: a continue cannot tell the two players apart and refuses the shared key
+	# (decision 177), which reads as a lost character. Measured 2026-11-19: the host and the alternate
+	# client both carried DisplayName = Host, and the two-member continue came back as a new character.
+	if ([string]::IsNullOrWhiteSpace($installRoot)) { return $null }
+	$path = Join-Path $installRoot 'BepInEx\config\CasualtiesUnknownOnline.cfg'
+	if (-not (Test-Path -LiteralPath $path)) { return $null }
+	$inSection = $false
+	foreach ($line in (Get-Content -LiteralPath $path -Encoding UTF8)) {
+		if ($line -match '^\s*\[(.+)\]\s*$') {
+			$inSection = ($Matches[1].Trim() -eq 'IpDirect')
+			continue
+		}
+
+		if ($inSection -and $line -match '^\s*DisplayName\s*=\s*(.*)$') {
+			return $Matches[1].Trim()
+		}
+	}
+
+	return $null
+}
+
 function Test-Capture {
 	try {
 		Add-Type -AssemblyName System.Drawing -ErrorAction Stop
@@ -393,6 +416,36 @@ function Invoke-Preflight {
 			$altState = if ($altUp) { 'up' } else { 'idle (no client running)' }
 			[void]$results.Add((New-Result 'sandbox-alt' 'present' "alternate sandbox root and box resolve; its own HotRepl config carries port $altPort, distinct from the host and guest; the endpoint is $altState"))
 		}
+	}
+
+	# ip-names: the IP-direct display name is the player key, so two clients sharing one name cannot be
+	# told apart by a continue's character files (decision 177 refuses the shared key) — the run would
+	# read a lost character that is really a naming collision. Advisory only for the two-client pair;
+	# a third client is where this defect was measured, so the row is reported whenever any two are known.
+	$ipNames = [ordered]@{
+		host = Get-IpDirectDisplayName $gameDir
+		guest = Get-IpDirectDisplayName $sandboxRoot
+		alt = Get-IpDirectDisplayName $altRoot
+	}
+	$named = @($ipNames.Keys | Where-Object { -not [string]::IsNullOrWhiteSpace($ipNames[$_]) })
+	$collisions = @()
+	foreach ($left in $named) {
+		foreach ($right in $named) {
+			if ($left -lt $right -and [string]::Equals($ipNames[$left], $ipNames[$right], [System.StringComparison]::OrdinalIgnoreCase)) {
+				$collisions += "the $left and $right clients both present '$($ipNames[$left])'"
+			}
+		}
+	}
+
+	if ($collisions.Count -gt 0) {
+		[void]$results.Add((New-Result 'ip-names' 'missing' (($collisions -join '; ') + ' — the IP-direct player key is the display name, so a continue cannot tell them apart and refuses the shared character key (decision 177); rename one in [IpDirect] DisplayName')))
+	}
+	elseif ($named.Count -eq 0) {
+		[void]$results.Add((New-Result 'ip-names' 'missing' 'no client config carries an [IpDirect] DisplayName, so the names cannot be compared'))
+	}
+	else {
+		$detail = ($named | ForEach-Object { "$_=$($ipNames[$_])" }) -join ', '
+		[void]$results.Add((New-Result 'ip-names' 'present' "distinct IP-direct display names ($detail)"))
 	}
 
 	# hotrepl (advisory: probes are optional; log evidence still runs)

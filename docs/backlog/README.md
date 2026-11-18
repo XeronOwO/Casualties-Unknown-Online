@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [A restored character's item is not judged](todo/1.0-restored-character-item-is-not-judged.md) — **High** — host's copy loses the items.
+_No open ticket._
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses, an Optional one installs as off.
@@ -122,6 +122,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [A restored character's item is not judged](done/1.0-restored-character-item-is-not-judged.md) — **High** — the set is stated after the restore.
 - [A minigame's click-start edge never arms](done/1.0-minigame-click-edge-never-arms.md) — **High** — a held key has one edge; taps pass the row.
 - [Split SessionService at its seams](done/split-session-service.md) — **Medium** — 599 → 579; one owner for the peer order.
 - [Acceptance declarations never register](done/1.0-acceptance-declarations-not-registered.md) — **High** — the probe now finds a nested type.

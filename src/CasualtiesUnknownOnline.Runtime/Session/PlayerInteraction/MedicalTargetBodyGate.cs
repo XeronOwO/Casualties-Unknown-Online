@@ -77,6 +77,7 @@ internal sealed class MedicalTargetBodyGate(
 
 		var requestId = ++_nextRequestId;
 		_pending[requestId] = new PendingCheck(operatorId, target, _time.NowMs, onVerified);
+		_log.LogInformation("[MedicalTargetCheck] DIAGNOSTIC begin limb {Limb} (request {RequestId}).", limbIndex, requestId);
 		_log.LogDebug(
 			"[MedicalTargetCheck] asking {Target} whether its body allows {Kind} on limb {Limb} (request {RequestId}, operator {Operator}).",
 			target, kind, limbIndex, requestId, operatorId);

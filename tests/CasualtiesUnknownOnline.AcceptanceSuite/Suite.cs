@@ -1202,6 +1202,9 @@ internal static class CaseRegistry
 			// operation, and the patient's own restart and oxygen. By name because a run of presses
 			// costs a few seconds of real time.
 			new MedicalCprCase(),
+			// The shrapnel session read last: the remote special starts the host-authoritative
+			// operation and the patient's own limb takes the break damage.
+			new MedicalShrapnelCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

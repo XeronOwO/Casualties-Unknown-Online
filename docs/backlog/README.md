@@ -66,7 +66,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.
-- [An acceptance suite: one command, cases, a report](in-progress/1.0-acceptance-suite.md) — **High** — the harness launches, drives, asserts and reports.
 - [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
 
 ### Review
@@ -122,6 +121,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [1.0 regression: the verified rows on the release build](done/1.0-regression-sweep.md) — **High** — every batch carried or named.
+- [An acceptance suite: one command, cases, a report](done/1.0-acceptance-suite.md) — **High** — 39 rows, 18 by name; 39/39 at 288.7 s.
 - [The give's container backpack clip](done/1.0-give-container-sound-unread.md) — **Low** — the receiver now hears the load.
 - [A restored character's item is not judged](done/1.0-restored-character-item-is-not-judged.md) — **High** — the set is stated after the restore.
 - [A minigame's click-start edge never arms](done/1.0-minigame-click-edge-never-arms.md) — **High** — a held key has one edge; taps pass the row.

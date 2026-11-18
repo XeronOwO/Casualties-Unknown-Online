@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- _No open ticket._
+- [Every valuable acceptance row is a C# case](todo/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — six rows plus the orphan cleanup, at the baseline.
 
 ### In progress
 - _No open ticket._

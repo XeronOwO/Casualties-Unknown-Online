@@ -65,7 +65,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - _No open ticket._
 
 ### In progress
-- [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.
 - [Push and carry have no host switch](in-progress/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit is parked.
 
 ### Review
@@ -120,6 +119,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Adapter capability catalog](done/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.
 - [1.0 regression: the verified rows on the release build](done/1.0-regression-sweep.md) — **High** — every batch carried or named.
 - [An acceptance suite: one command, cases, a report](done/1.0-acceptance-suite.md) — **High** — 39 rows, 18 by name; 39/39 at 288.7 s.
 - [The give's container backpack clip](done/1.0-give-container-sound-unread.md) — **Low** — the receiver now hears the load.

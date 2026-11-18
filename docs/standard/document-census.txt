@@ -213,7 +213,7 @@ docs/backlog/resolved/remote-backpack-native-interaction-parity.md | keep | inde
 docs/backlog/resolved/runtime-di-feature-registration-lifecycle.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
-docs/backlog/in-progress/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
+docs/backlog/done/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-restored-character-item-is-not-judged.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-acceptance-declarations-not-registered.md | keep | claim | docs/backlog/README.md
@@ -234,7 +234,7 @@ docs/backlog/done/1.0-late-layer-mechanism-switches-need-sync.md | keep | claim 
 docs/backlog/done/1.0-multiplayer-character-choice-ignores-solo-unlocks.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-trigger-events-wait-for-the-whole-team.md | keep | claim | docs/backlog/README.md
 docs/evidence/acceptance/1.0-regression-1-medical-panel.md | keep | claim | docs/backlog/done/1.0-regression-sweep.md
-docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
+docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md | keep | claim | docs/backlog/done/adapter-capability-catalog.md
 docs/backlog/resolved/bilingual-human-docs.md | keep | index | docs/backlog/README.md
 docs/backlog/done/cheat-permission-and-op-commands.md | keep | index | docs/backlog/README.md
 docs/backlog/done/command-console-esc-not-intercepted.md | keep | index | docs/backlog/README.md
@@ -1118,7 +1118,7 @@ docs/evidence/selfchecks/session/run-settings-range-selfcheck.md | keep | claim 
 docs/evidence/selfchecks/session/warmup-backoff-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/acceptance-key-hold-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/acceptance-recipe-layer-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
-docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md | keep | claim | docs/backlog/in-progress/adapter-capability-catalog.md
+docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md | keep | claim | docs/backlog/done/adapter-capability-catalog.md
 docs/evidence/selfchecks/tooling/adapter-control-surfaces-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md
 docs/evidence/selfchecks/tooling/catalogue-and-manifest-census-selfcheck.md | keep | claim | docs/decisions/active.md
 docs/evidence/selfchecks/tooling/check-architecture-performance-selfcheck.md | keep | claim | docs/evidence/selfchecks/MANIFEST.md

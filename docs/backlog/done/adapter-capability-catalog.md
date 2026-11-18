@@ -1,6 +1,6 @@
 # Adapter capability catalog and probe aggregation
 
-- Status: In progress — stage 1's acceptance row passed 2026-10-24 on the deployed artifact (the startup probe prints all 13 capabilities with their class and contract count, its report text is the one `ProbeGame_KeepsItsVerdictAndReportText` pins, both suites are green; record `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`). Stage 2's RULE landed on the 1.0 build (2026-11-10): a blocking hook failure refuses the session only when its owning capability is Required (a class no capability claims keeps the as-a-whole rule — a catalog gap is a bug), an Optional capability's failure installs as off and the report names it (`AdapterCapabilityCatalog.IsRequiredOwner`, `PatchInstallLifecycle.Install`, `AdapterCapabilityReport.RefusesSession`/`Degraded`; pinned by `AdapterCapabilityReportTests`, gates 834/0, suite 6640/0). Still open: stage 3's retry half (see *Stage 3* below). The player-visible refusal notice landed 2026-11-18: the Home page names the broken systems in the reader's language (reading: `.acceptance/refusal-notice/host-menu-localized.png`, `CUO 暂时无法联机：这次游戏更新破坏了医疗、伤口与远端医疗界面。游戏其它部分照常。`), and stage 3's configuration half landed the same week (a configured-off Optional unit is removed as a whole and the report says so).
+- Status: Done (2026-11-19) — stage 1's probe, stage 2's Required/Optional rule, the player-visible refusal notice and stage 3's configuration half all landed with their readings. The retry half is settled the way the code supports: the install runs once, at boot (`GameAdapter.Install()` is called from `ICuoService.Initialize` and nowhere else), so a capability comes back by relaunching with the unit enabled — the configuration is already the switch — and the ticket records that instead of promising an in-session retry.
 - Priority: High
 - Category: Architecture / game-update adaptation
 - Source: Loomi architecture review (2026-09-20), item 1; degradation ruling by the user, 2026-09-20
@@ -166,3 +166,27 @@ What the player must see when a REQUIRED capability's hook is missing: the CUO w
   and re-run the install from a re-entry point that re-verifies without a restart; (B) treat relaunch-with-the-unit-off
   as the retry, since the configuration is already the switch; (C) drop retry and narrow stage 3 to removal.
   Recommendation: C now with B's wording on this ticket; A only if an update-while-running scenario appears.
+
+## Stage 3 (2026-11-19) — the retry half is settled, not built
+
+**Read from the code, not from the options list.** The install has exactly one entry: `GameAdapter.Install()` is a
+private method called from `ICuoService.Initialize()` (`src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:190,200`)
+and nowhere else; `Uninstall()` runs from `ICuoService.Stop()`. There is no runtime re-entry point, no per-unit install
+handle, and no patch-set surgery after boot, and no page promises one: `grep -ni retry docs/design docs/architecture`
+returns the save-archive and session-lifecycle uses only.
+
+**Decision (C with B's wording):** stage 3 stays "the install unit can be removed as a whole and the removal is
+reported". A capability that failed or was configured off comes back by relaunching with it enabled — the configuration
+file is the switch, the boot probe is the retry's verification, and the report names any unit that is still off. No
+in-session retry promise is made anywhere.
+
+**Why not A:** A needs an update-detected-while-running scenario to justify it; none has been measured, and the
+machinery (unpatch and repatch a unit mid-session, with every live subscriber's references intact) is a new capability
+whose failure mode would be worse than a restart. A is recorded as the condition under which this decision reopens.
+
+**Why not B alone:** B without C reads as a promise the code cannot keep ("retry" implies an action the player can
+trigger). The wording above is B's fact with C's scope on it.
+
+**Evidence kept:** `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md` (stage 1's own acceptance row)
+and `docs/evidence/selfchecks/tooling/adapter-capability-catalog-selfcheck.md` (the catalog's self-check).
+

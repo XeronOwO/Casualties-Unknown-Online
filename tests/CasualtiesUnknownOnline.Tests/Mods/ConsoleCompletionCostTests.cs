@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// asks for: a realistic line completes many times over inside a frame's budget, and the list stays inside the cap the overlay draws.
 /// </summary>
 [Trait("Category", "Performance")]
+[Collection(PerformanceCollection.Name)]
 public class ConsoleCompletionCostTests
 {
 	private const ulong HostId = 76561198000000001;

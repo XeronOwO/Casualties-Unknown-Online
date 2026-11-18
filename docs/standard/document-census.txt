@@ -1311,6 +1311,7 @@ docs/evidence/acceptance/snapshot-overtakes-item-reports-20261025-c.md | keep | 
 docs/evidence/acceptance/split-the-body-verb-service-20261105-a.md | keep | claim | docs/backlog/done/split-the-body-verb-service.md
 docs/evidence/acceptance/the-pre-run-lobby-can-deadlock-20261106-a.md | keep | claim | docs/backlog/done/the-pre-run-lobby-can-deadlock.md
 docs/backlog/done/item-custody-single-authority.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/1.0-give-into-backpack-sound-still-silent.md | keep | index | docs/backlog/README.md
 docs/backlog/done/give-from-the-ground-swallows-the-item.md | keep | index | docs/backlog/README.md
 tools/acceptance/recipes/ui-raycast-at.cs | keep | spec | docs/backlog/done/context-menu-does-not-block-the-pointer.md
 docs/backlog/done/a-world-item-is-rendered-by-a-display-object.md | keep | index | docs/backlog/README.md

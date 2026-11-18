@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-_No open ticket._
+- [Giving into another player's backpack is still silent](todo/1.0-give-into-backpack-sound-still-silent.md) — **High** — the clip is heard on neither client.
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.

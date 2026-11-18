@@ -15,8 +15,8 @@
 	var control = services.GetService(typeof(CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.IMedicalOperationControl))
 		as CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction.IMedicalOperationControl;
 	if (control == null) { return "{\"ok\":false,\"error\":\"no-medical-operations\"}"; }
-	var op = {{n:op}};
-	var ml = {{n:ml}};
+	var op = (ulong){{n:op}};
+	var ml = (float){{n:ml}};
 	var count = {{n:count}};
 	if (op <= 0) { return "{\"ok\":false,\"error\":\"bad-operation\",\"detail\":\"the operation id is not known\"}"; }
 	if (ml <= 0f) { return "{\"ok\":false,\"error\":\"bad-ml\",\"detail\":\"ml must be positive\"}"; }

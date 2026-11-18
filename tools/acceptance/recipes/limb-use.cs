@@ -20,6 +20,16 @@
 	var limb = camera.selectedLimb;
 	if (limb == null) { return "{\"ok\":false,\"error\":\"no-selected-limb\"}"; }
 
+	// The special action is the wound view's own removal button: it reads the limb's component and
+	// needs no carried item (the splint's TakeOff instantiates the item and hands it back). So it
+	// runs before the held-item search, which is what a use needs and a removal must not require.
+	if (mode == "special") {
+		var specialIndex = System.Array.IndexOf(body.limbs.ToArray(), limb);
+		camera.WoundSpecialAction();
+		return "{\"ok\":true,\"type\":\"" + type + "\",\"mode\":\"special\",\"limb\":"
+			+ specialIndex.ToString(inv) + ",\"limbName\":\"" + limb.fullName + "\"}";
+	}
+
 	var item = (Item)null;
 	var slot = -1;
 
@@ -44,8 +54,7 @@
 	var usableOnLimb = item.Stats != null && item.Stats.usableOnLimb;
 	var actuallyUsable = item.Stats != null && item.Stats.ActuallyUsableOnLimb(item);
 	var limbIndex = System.Array.IndexOf(body.limbs.ToArray(), limb);
-	if (mode == "special") { camera.WoundSpecialAction(); } else { camera.ApplyWoundItem(item); }
-
+	camera.ApplyWoundItem(item);
 	return "{\"ok\":true,\"type\":\"" + type + "\""
 		+ ",\"slot\":" + slot.ToString(inv)
 		+ ",\"condition\":" + item.condition.ToString("0.###", inv)

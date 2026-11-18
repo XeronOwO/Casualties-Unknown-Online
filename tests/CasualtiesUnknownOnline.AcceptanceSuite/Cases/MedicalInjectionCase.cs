@@ -68,12 +68,16 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 
 		JsonElement? after = null;
 		var afterOpiate = beforeOpiate;
-		for (var attempt = 0; attempt < 40; attempt++)
+		var committed = string.Empty;
+		for (var attempt = 0; attempt < 60; attempt++)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			after = await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
 			afterOpiate = Number(after, "opiate");
-			if (afterOpiate - beforeOpiate >= expectedRise * 0.8)
+			// The host's console log is written through a buffered channel: the commit line can land
+			// a moment after the value does (measured 2026-11-18), so both are polled together.
+			committed = FindLine(context.HostLogPath, "operation " + Text(operation) + " committed");
+			if (afterOpiate - beforeOpiate >= expectedRise * 0.8 && committed.Length > 0)
 			{
 				break;
 			}
@@ -82,7 +86,6 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		}
 
 		context.Read("member-effects-after", after);
-		var committed = FindLine(context.HostLogPath, "operation " + Text(operation) + " committed");
 		context.Note("host commit line: " + committed);
 
 		Require(committed.Length > 0, "the host never committed the operation: " + Text(operation));

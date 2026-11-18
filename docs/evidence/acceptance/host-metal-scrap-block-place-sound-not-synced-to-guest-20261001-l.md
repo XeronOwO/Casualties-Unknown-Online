@@ -38,3 +38,16 @@
   point), so the gated placement driven is the moving-body one; both attempts are in the batch directory.
 - The run observed two clients' placements plus the third listener; a rare loss between reports is not
   disproved by one session.
+
+## Re-read (2026-11-19) — the audible half now has a device
+
+- The audible half that stayed a residual is now a by-name acceptance row: `block-place-sound` in
+  `tests/CasualtiesUnknownOnline.AcceptanceSuite/Cases/BlockPlaceSoundCase.cs`. The host is given metal scrap and places
+  it through the game's own use path; the member arms its one-shot recorder for the `scrapmetal` clip.
+- Reading (`.acceptance/place-sound1`, deployed `0.1.0+a406afa29`, PASS, case 3.2 s): `provided` answered
+  `{"ok":true,"type":"scrapmetal","slot":0,"onBody":true}`, `host placed` answered
+  `{"ok":true,"type":"scrapmetal","usable":true,"aimed":true}`, and the member's recorder read
+  `raw=871|scrapmetal@22.2` — the placement's own clip on the member's client, once.
+- The same batch `.acceptance/full-r24` ran 39 of 39 green in 297.9 s with the row out of the shared batch, so the
+  device costs the recorded baseline nothing.
+

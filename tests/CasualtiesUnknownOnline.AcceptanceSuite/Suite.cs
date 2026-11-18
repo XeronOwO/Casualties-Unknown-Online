@@ -1207,6 +1207,10 @@ internal static class CaseRegistry
 			// (seed-shrapnel count 0) until 2026-11-18, so its "remaining" was its own erase; it now reads
 			// through limb-read and the piece count is a fact.
 			new MedicalShrapnelCase(),
+			// The block-placement sound: the host places metal scrap through the game's own use path and the
+			// member's recorder must carry the scrapmetal clip. The audible half of the 2026-09-06 report had
+			// no device until 2026-11-19, so this is the row that reads it.
+			new BlockPlaceSoundCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

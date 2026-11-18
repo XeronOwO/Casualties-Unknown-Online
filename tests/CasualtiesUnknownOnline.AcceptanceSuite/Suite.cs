@@ -1194,6 +1194,10 @@ internal static class CaseRegistry
 		// Batch 1's splint row: a splint on a fractured limb sets the game's own splinted flag and is
 		// consumed, and the wound view's special action takes it off and hands the item back.
 		new MedicalSplintCase(),
+		// Batch 1's injection row: the doctor's own release starts a medical operation, the syringe's
+		// increments commit, and the member's own client runs the game's native Inject (fentanyl's
+		// Painkillers effect is the readable value).
+		new MedicalInjectionCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

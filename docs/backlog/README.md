@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [The give's container half: is the clip played?](todo/1.0-give-container-sound-unread.md) — **Low** — a body-slot give is silent natively.
+- _No open ticket._
 
 ### In progress
 - [Adapter capability catalog](in-progress/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.
@@ -122,6 +122,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The give's container backpack clip](done/1.0-give-container-sound-unread.md) — **Low** — the receiver now hears the load.
 - [A restored character's item is not judged](done/1.0-restored-character-item-is-not-judged.md) — **High** — the set is stated after the restore.
 - [A minigame's click-start edge never arms](done/1.0-minigame-click-edge-never-arms.md) — **High** — a held key has one edge; taps pass the row.
 - [Split SessionService at its seams](done/split-session-service.md) — **Medium** — 599 → 579; one owner for the peer order.

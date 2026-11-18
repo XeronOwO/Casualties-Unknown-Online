@@ -73,7 +73,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Patching` | 3 | read |
 | `CasualtiesUnknownOnline.Runtime/Persistence` | 61 | read |
 | `CasualtiesUnknownOnline.Runtime/Protocol` | 11 | read |
-| `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 159 | read |
+| `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 160 | read |
 | `CasualtiesUnknownOnline.Runtime/Session` | 52 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 40 | read |

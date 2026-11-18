@@ -22,8 +22,17 @@ public sealed class MedicalOperationTargetCheckRequestMsg
 	[ProtoMember(2)]
 	public ulong OperatorSteamId { get; set; }
 
+	/// <summary>The limb the target's body is asked about; -1 when the operation carries none.
+	/// Stored through <see cref="MedicalLimbWire"/> so limb 0 is not omitted by protobuf's
+	/// default-zero rule.</summary>
+	public int LimbIndex
+	{
+		get => MedicalLimbWire.Decode(_limbIndexWire);
+		set => _limbIndexWire = MedicalLimbWire.Encode(value);
+	}
+
 	[ProtoMember(3)]
-	public int LimbIndex { get; set; } = -1;
+	private int _limbIndexWire;
 
 	/// <summary>The operation category; the builder always names it (the default is <see cref="MedicalOperationKind.None"/>).</summary>
 	[ProtoMember(4)]

@@ -23,8 +23,16 @@ public sealed class MedicalOperationStateMsg
 	[ProtoMember(4)]
 	public ulong ItemInstanceId { get; set; }
 
+	/// <summary>The limb the session runs on; -1 when the operation carries none. Stored through
+	/// <see cref="MedicalLimbWire"/> so limb 0 is not omitted by protobuf's default-zero rule.</summary>
+	public int LimbIndex
+	{
+		get => MedicalLimbWire.Decode(_limbIndexWire);
+		set => _limbIndexWire = MedicalLimbWire.Encode(value);
+	}
+
 	[ProtoMember(5)]
-	public int LimbIndex { get; set; } = -1;
+	private int _limbIndexWire;
 
 	[ProtoMember(6)]
 	public float CommittedMl { get; set; }

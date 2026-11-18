@@ -128,6 +128,17 @@ BaseGlobalRevision
 PayloadType
 ```
 
+## Fields whose zero is legal
+
+Protobuf writes no field whose value equals the type's default, so a message that stores a real
+zero directly loses it and the receiver keeps its own initializer. Every limb operand on the wire
+therefore stores `index + 1` and reads zero back as "no limb" (-1): `PlayerHealRequestMsg`,
+`PlayerItemUseResultMsg`, `RemoteInventoryIntentMsg`, and the five medical-operation messages
+through `MedicalLimbWire` (`MedicalOperationStartRequestMsg`, `MedicalOperationTargetCheckRequestMsg`,
+`MedicalOperationStartAckMsg`, `MedicalOperationStateMsg`, `MedicalOperationEndCommittedMsg`).
+Measured 2026-11-18: a shrapnel start on limb 0 reached the target's body check as limb -1 and was
+refused with "Target limb not found".
+
 ## State frequency layers
 
 | Layer | Examples | Replication | Journal |

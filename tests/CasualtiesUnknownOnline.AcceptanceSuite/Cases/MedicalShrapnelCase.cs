@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -120,7 +121,7 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 			}
 
 			using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-			using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+			using var reader = new StreamReader(stream, Encoding.UTF8);
 			var text = reader.ReadToEnd();
 			var index = text.LastIndexOf(needle, StringComparison.Ordinal);
 			return index >= 0 && index >= start ? text[index..Math.Min(text.Length, index + 240)].Trim() : string.Empty;

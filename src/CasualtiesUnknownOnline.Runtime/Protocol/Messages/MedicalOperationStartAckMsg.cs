@@ -28,8 +28,16 @@ public sealed class MedicalOperationStartAckMsg
 	[ProtoMember(6)]
 	public ulong ItemInstanceId { get; set; }
 
+	/// <summary>The limb the session runs on; -1 when the operation carries none. Stored through
+	/// <see cref="MedicalLimbWire"/> so limb 0 is not omitted by protobuf's default-zero rule.</summary>
+	public int LimbIndex
+	{
+		get => MedicalLimbWire.Decode(_limbIndexWire);
+		set => _limbIndexWire = MedicalLimbWire.Encode(value);
+	}
+
 	[ProtoMember(7)]
-	public int LimbIndex { get; set; } = -1;
+	private int _limbIndexWire;
 
 	/// <summary>The operation category; the builder always names it (the default is <see cref="MedicalOperationKind.None"/>).</summary>
 	[ProtoMember(8)]

@@ -95,8 +95,8 @@ internal sealed class GiveContainerSoundCase : AcceptanceCase
 		var hostLine = Text(await context.RecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "backpack")).ConfigureAwait(false), "line");
 		var memberLine = Text(await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "backpack")).ConfigureAwait(false), "line");
 		var deadline = Stopwatch.StartNew();
-		while (!hostLine.Contains("backpack@", StringComparison.Ordinal)
-			&& !memberLine.Contains("backpack@", StringComparison.Ordinal)
+		while (!HeardBackpackClip(hostLine)
+			&& !HeardBackpackClip(memberLine)
 			&& deadline.Elapsed < TimeSpan.FromSeconds(8))
 		{
 			await Task.Delay(100, cancellationToken).ConfigureAwait(false);
@@ -107,10 +107,17 @@ internal sealed class GiveContainerSoundCase : AcceptanceCase
 		context.Note("host heard the container give: " + hostLine);
 		context.Note("member heard the container give: " + memberLine);
 		Require(
-			hostLine.Contains("backpack@", StringComparison.Ordinal) || memberLine.Contains("backpack@", StringComparison.Ordinal),
+			HeardBackpackClip(hostLine) || HeardBackpackClip(memberLine),
 			"no client played the backpack clip for a give into a container: host '" + hostLine + "', member '" + memberLine
 			+ "'; the member's bag reads " + Raw(memberBag));
 	}
+
+	/// <summary>
+	/// The game picks one of two clips (<c>backpack1</c>/<c>backpack2</c>, <c>PlayerCamera.PlayBackpackSound</c>'s
+	/// <c>Random.Range(1, 3)</c>), so the recorder's line names one of them followed by the play time.
+	/// </summary>
+	private static bool HeardBackpackClip(string line) =>
+		line.Contains("backpack1@", StringComparison.Ordinal) || line.Contains("backpack2@", StringComparison.Ordinal);
 
 	private static double Number(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

@@ -170,17 +170,10 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 	/// <summary>
 	/// The game's own container feedback: a move into a container plays `backpack1`/`backpack2`
 	/// (<c>PlayerCamera.PlayBackpackSound</c> is called from its container branches). CUO performs these moves itself,
-	/// so the call is reproduced at the moment the container accepted the item. Measured 2026-11-19: a give into the
-	/// member's trash bag landed on the receiver's client with no clip on either side, while the native move plays it.
+	/// so the call is reproduced at the moment the container accepted the item — see
+	/// <see cref="ContainerMoveFeedback"/> for the reading behind it.
 	/// </summary>
-	private static void PlayContainerMoveSound()
-	{
-		var camera = PlayerCamera.main;
-		if (camera != null) // Unity object — ==
-		{
-			camera.PlayBackpackSound();
-		}
-	}
+	private static void PlayContainerMoveSound() => ContainerMoveFeedback.Play();
 
 	/// <summary>A transferred item enters a body slot: the one the transfer named when it is free, else the first free one.</summary>
 	internal LocalPlacement AddCarriedItemToLocalBody(Body body, CharacterItemMsg item, bool suppressUnplacedEnd = false)

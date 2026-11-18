@@ -74,7 +74,12 @@ The container's identity, its contents (their identities and states), and the ho
 ## What the player sees and hears
 
 Opening a container shows what is inside with the game's own layout; an item placed or taken plays the game's own
-handling sound and the container refreshes.
+handling sound and the container refreshes. A move another client performs plays it on the client that performs it:
+`Body.PickUpItem` calls `PlayerCamera.PlayBackpackSound` when an item leaves a container
+(`reversing/release-1.0.2/Assembly-CSharp/Body.cs:1467-1483`), and the camera's own container branches play it when a
+drag lands inside one (`PlayerCamera.cs:1748`, `:1828`, `:1855`). A give into another player's container runs CUO's
+container intent instead of the drag, so the same call is made there — once per gesture, on the receiver's client,
+because a body-slot arrival is silent by that same native rule (2026-11-19 reading).
 
 ## Records
 

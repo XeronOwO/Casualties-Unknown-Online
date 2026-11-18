@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -49,6 +50,7 @@ internal sealed class ContainerIntentApplier(ILogger log)
 		}
 
 		log.LogInformation("[RemoteIntent] item {Item} entered container {Container} through the native guard.", item.id, containerInstanceId);
+		ContainerMoveFeedback.Play();
 	}
 
 	/// <summary>
@@ -104,6 +106,10 @@ internal sealed class ContainerIntentApplier(ILogger log)
 
 		log.LogInformation("[RemoteIntent] container expansion of item {Item} into container {Container}: {Moved} of {Total} direct child item(s) entered the container; {Refused} did not (the native guard, or a native load refusal).",
 			item.id, containerInstanceId, moved, children.Count, refused);
+		if (moved > 0)
+		{
+			ContainerMoveFeedback.Play();
+		}
 	}
 
 	/// <summary>

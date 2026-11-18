@@ -40,13 +40,15 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		for (var candidate = 0; candidate < 8 && limb < 0; candidate++)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			var probe = await context.MemberRecipeAsync("seed-shrapnel", cancellationToken, ("limb", Number(candidate)), ("count", "0")).ConfigureAwait(false);
+			// A READ, not a seed: seed-shrapnel with count 0 is the game's clearing call and returns the
+			// cleared limb, so using it as a probe both loses a count and reports one that never existed.
+			var probe = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", Number(candidate)), ("target", string.Empty)).ConfigureAwait(false);
 			if (!Boolean(probe, "ok"))
 			{
 				continue;
 			}
 
-			if (!Boolean(probe, "hasShrapnel") && !Boolean(probe, "dismembered") && NumberValue(probe, "skinHealth") >= 60f)
+			if (!Boolean(probe, "hasShrapnel") && !Boolean(probe, "dismembered") && !Boolean(probe, "isHead") && !Boolean(probe, "isVital") && NumberValue(probe, "skinHealth") >= 60f)
 			{
 				limb = candidate;
 			}
@@ -92,14 +94,27 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		context.Read("shrapnel-special", special);
 		Require(started, "the remote shrapnel special did not start the session: " + Raw(special));
 
+		// The operator's hand is the game's own removal: the wound view starts ShrapnelMinigame, and a piece
+		// leaves only when the hand grabs it, breaks it and lifts it above the game's line. The committed
+		// declaration is that hand (tools/acceptance/driver/eval-declarations/shrapnel-break6.cs) — the same
+		// path the stage-2 ticket measured, replayed here instead of asserted from a flag.
+		var declarationPath = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "shrapnel-break6.cs");
+		var source = await File.ReadAllTextAsync(declarationPath, cancellationToken).ConfigureAwait(false);
+		var declared = await context.Session.ActionAsync(context.Session.HostUrl, "declare", cancellationToken, ("-Declare", "shrapnel-break6"), ("-Text", source)).ConfigureAwait(false);
+		context.Note("declaration: " + Raw(declared));
+
+		var driven = await context.RecipeAsync("shrapnel-break6", cancellationToken, ("count", Number(pieces))).ConfigureAwait(false);
+		context.Read("shrapnel-break", driven);
+		Require(Boolean(driven, "ok"), "the operator's shrapnel hand did not start: " + Raw(driven));
+
 		// The patient's own client applies the break: a piece leaves the limb and its damage lands.
 		JsonElement? after = null;
 		var remaining = pieces;
 		var pain = 0f;
-		for (var attempt = 0; attempt < 40; attempt++)
+		for (var attempt = 0; attempt < 60; attempt++)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			after = await context.MemberRecipeAsync("seed-shrapnel", cancellationToken, ("limb", Number(limb)), ("count", "0")).ConfigureAwait(false);
+			after = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", Number(limb)), ("target", string.Empty)).ConfigureAwait(false);
 			remaining = (int)NumberValue(after, "shrapnel");
 			pain = NumberValue(after, "pain");
 			if (remaining < pieces || pain > 0f)

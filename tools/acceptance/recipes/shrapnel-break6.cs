@@ -15,6 +15,17 @@
 	for (var i = 0; i < assemblies.Length; i++) {
 		if (declaration == null) { try { declaration = assemblies[i].GetType("AcceptanceShrapnelBreak6", false); } catch { declaration = null; } }
 	}
+	// The declaration is compiled into a Roslyn submission, which NESTS the type (Submission#N+AcceptanceShrapnelBreak6);
+	// the exact-name lookup above can never see it (measured 2026-11-18). Match the simple name in every assembly.
+	if (declaration == null) {
+		for (var i = 0; i < assemblies.Length && declaration == null; i++) {
+			System.Type[] types;
+			try { types = assemblies[i].GetTypes(); } catch { continue; }
+			for (var t = 0; t < types.Length; t++) {
+				if (types[t].Name == "AcceptanceShrapnelBreak6") { declaration = types[t]; break; }
+			}
+		}
+	}
 	if (declaration == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare shrapnel-break6 first\"}"; }
 	var start = declaration.GetMethod("Start");
 	if (start == null) { return "{\"ok\":false,\"error\":\"no-start\"}"; }

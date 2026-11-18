@@ -1202,11 +1202,11 @@ internal static class CaseRegistry
 			// operation, and the patient's own restart and oxygen. By name because a run of presses
 			// costs a few seconds of real time.
 			new MedicalCprCase(),
-			// PARKED (2026-11-18): the wire now carries limb 0 (MedicalLimbWire), but the patient's
-			// own limb reads 0 pieces at the verify step while the operator's display reads 3 — the
-			// staging and the gate's read disagree on the limb. The reading, the fixed half and the
-			// next step live on docs/backlog/in-progress/1.0-regression-sweep.md.
-			// new MedicalShrapnelCase(),
+			// The shrapnel session: the operator's special starts the host-authoritative operation and
+			// the patient's own limb loses the piece. The row read its limb with the game's CLEARING call
+			// (seed-shrapnel count 0) until 2026-11-18, so its "remaining" was its own erase; it now reads
+			// through limb-read and the piece count is a fact.
+			new MedicalShrapnelCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

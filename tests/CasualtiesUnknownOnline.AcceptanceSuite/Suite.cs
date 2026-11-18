@@ -1198,6 +1198,10 @@ internal static class CaseRegistry
 		// increments commit, and the member's own client runs the game's native Inject (fentanyl's
 		// Painkillers effect is the readable value).
 		new MedicalInjectionCase(),
+			// The CPR controls read at the end: the operator's panel, both channels over a real
+			// operation, and the patient's own restart and oxygen. By name because a run of presses
+			// costs a few seconds of real time.
+			new MedicalCprCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

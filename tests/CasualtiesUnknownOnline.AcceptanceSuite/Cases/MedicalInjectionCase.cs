@@ -52,11 +52,7 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		Require(Boolean(opened, "opened"), "the member's medical view did not open: " + Raw(opened));
 
 		var logStart = LogLength(context.HostLogPath);
-		var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "fentanyl"), ("limb", Text(limb))).ConfigureAwait(false);
-		context.Read("release", released);
-		Require(Boolean(released, "ok"), "the release of the syringe answered not-ok: " + Raw(released));
-
-		var operation = await WaitForStartedOperationAsync(context, logStart, cancellationToken).ConfigureAwait(false);
+		var operation = await ReleaseUntilStartedAsync(context, limb, logStart, cancellationToken).ConfigureAwait(false);
 		Require(operation > 0, "the release did not start a medical operation on the host");
 
 		// The game's syringe is a 100 ml container holding 90 ml water and 10 ml fentanyl
@@ -115,10 +111,37 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		return -1;
 	}
 
-	/// <summary>Waits for the host's own "[MedicalOps] started operation {id}" line written after the release.</summary>
-	private static async Task<ulong> WaitForStartedOperationAsync(CaseContext context, long logStart, CancellationToken cancellationToken)
+	/// <summary>
+	/// Releases the syringe and waits for the host's own "[MedicalOps] started operation {id}" line.
+	/// A created item reaches the host's item table with the carried-inventory report, so the first
+	/// release can be refused with "Item not found" before that report lands (measured 2026-11-18:
+	/// the refusal named the instance and the next attempt started the operation). The row retries
+	/// the same player gesture instead of staging the start itself.
+	/// </summary>
+	private static async Task<ulong> ReleaseUntilStartedAsync(CaseContext context, int limb, long logStart, CancellationToken cancellationToken)
 	{
-		for (var attempt = 0; attempt < 40; attempt++)
+		for (var attempt = 0; attempt < 5; attempt++)
+		{
+			var released = await context.RecipeAsync("remote-medical-release", cancellationToken, ("item", "fentanyl"), ("limb", Text(limb))).ConfigureAwait(false);
+			context.Read("release-" + Text(attempt), released);
+			Require(Boolean(released, "ok"), "the release of the syringe answered not-ok: " + Raw(released));
+
+			var operation = await WaitForStartedOperationAsync(context, logStart, cancellationToken, 32).ConfigureAwait(false);
+			if (operation > 0)
+			{
+				return operation;
+			}
+
+			await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+		}
+
+		return 0;
+	}
+
+	/// <summary>Waits for the host's own "[MedicalOps] started operation {id}" line written after the release.</summary>
+	private static async Task<ulong> WaitForStartedOperationAsync(CaseContext context, long logStart, CancellationToken cancellationToken, int attempts)
+	{
+		for (var attempt = 0; attempt < attempts; attempt++)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			var text = ReadLog(context.HostLogPath);

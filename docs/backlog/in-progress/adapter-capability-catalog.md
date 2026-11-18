@@ -1,6 +1,6 @@
 # Adapter capability catalog and probe aggregation
 
-- Status: In progress — stage 1's acceptance row passed 2026-10-24 on the deployed artifact (the startup probe prints all 13 capabilities with their class and contract count, its report text is the one `ProbeGame_KeepsItsVerdictAndReportText` pins, both suites are green; record `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`). Stage 2's RULE landed on the 1.0 build (2026-11-10): a blocking hook failure refuses the session only when its owning capability is Required (a class no capability claims keeps the as-a-whole rule — a catalog gap is a bug), an Optional capability's failure installs as off and the report names it (`AdapterCapabilityCatalog.IsRequiredOwner`, `PatchInstallLifecycle.Install`, `AdapterCapabilityReport.RefusesSession`/`Degraded`; pinned by `AdapterCapabilityReportTests`, gates 834/0, suite 6640/0). Still open: the player-visible refusal notice (the refusal's reason rendered in the game's own window at the menu — the one user-acceptance item stage 2 names) and stage 3's install units.
+- Status: In progress — stage 1's acceptance row passed 2026-10-24 on the deployed artifact (the startup probe prints all 13 capabilities with their class and contract count, its report text is the one `ProbeGame_KeepsItsVerdictAndReportText` pins, both suites are green; record `docs/evidence/acceptance/adapter-capability-catalog-20261024-a.md`). Stage 2's RULE landed on the 1.0 build (2026-11-10): a blocking hook failure refuses the session only when its owning capability is Required (a class no capability claims keeps the as-a-whole rule — a catalog gap is a bug), an Optional capability's failure installs as off and the report names it (`AdapterCapabilityCatalog.IsRequiredOwner`, `PatchInstallLifecycle.Install`, `AdapterCapabilityReport.RefusesSession`/`Degraded`; pinned by `AdapterCapabilityReportTests`, gates 834/0, suite 6640/0). Still open: stage 3's retry half (see *Stage 3* below). The player-visible refusal notice landed 2026-11-18: the Home page names the broken systems in the reader's language (reading: `.acceptance/refusal-notice/host-menu-localized.png`, `CUO 暂时无法联机：这次游戏更新破坏了医疗、伤口与远端医疗界面。游戏其它部分照常。`), and stage 3's configuration half landed the same week (a configured-off Optional unit is removed as a whole and the report says so).
 - Priority: High
 - Category: Architecture / game-update adaptation
 - Source: Loomi architecture review (2026-09-20), item 1; degradation ruling by the user, 2026-09-20
@@ -142,3 +142,22 @@ What the player must see when a REQUIRED capability's hook is missing: the CUO w
   unclassified-system line instead of vanishing.
 - A healthy install still answers an empty list and the line never shows, and an Optional-only failure degrades without
   the line.
+
+## Stage 3 (2026-11-18) — the install unit, first half
+
+**Read at boot on `0.1.0+fb1d1d733ba9c721c14ad3bb544901aff1518942`, with `[Adapter] DisabledCapabilities = diagnostics`.**
+
+- The install names the unit and what it removed: `Game Adapter installed with 1 capability unit(s) off by
+  configuration: diagnostics`, `Game Adapter removed 3 patch method(s) of 3 class(es) from the registry:
+  ItemUpdateDiagnosticPatch, PickUpItemPatch, TryPerformWorldActionsPatch`, then `Game Adapter patches installed and
+  verified (294 targets).`
+- The report row now reads `[Optional] diagnostics — 3 contract(s) — OFF (configuration)` and the verdict reads
+  `session available — 1 OPTIONAL capability(ies) off by configuration: diagnostics`. Before the change the row read
+  `OK`, which says the unit is installed while its hooks are not — the reading that started this slice.
+- A Required or unknown id is still refused by the existing warning and the install proceeds normally; the unit set is
+  read once at boot from the configuration.
+- Residual — **retry**: a refused install still ends the process (the adapter unpatches and multiplayer is unavailable),
+  so "retry a failed optional capability on its own" has no runtime path yet. Options: (A) detect an update at runtime
+  and re-run the install from a re-entry point that re-verifies without a restart; (B) treat relaunch-with-the-unit-off
+  as the retry, since the configuration is already the switch; (C) drop retry and narrow stage 3 to removal.
+  Recommendation: C now with B's wording on this ticket; A only if an update-while-running scenario appears.

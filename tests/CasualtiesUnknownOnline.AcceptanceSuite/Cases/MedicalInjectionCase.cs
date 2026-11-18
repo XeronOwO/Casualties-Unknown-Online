@@ -59,11 +59,14 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		var operation = await WaitForStartedOperationAsync(context, logStart, cancellationToken).ConfigureAwait(false);
 		Require(operation > 0, "the release did not start a medical operation on the host");
 
-		// Six millilitres in three increments: fentanyl's effect is 42 opiate per ml, so the member's
-		// own value must rise by about 252. The increments are the minigame's own protocol call.
-		const int millilitres = 6;
+		// The game's syringe is a 100 ml container holding 90 ml water and 10 ml fentanyl
+		// (Item.cs:1269-1284), and the minigame injects `mult * 100f` ml of the mixture. Twenty
+		// millilitres therefore carry two millilitres of fentanyl, and the native effect is 42 opiate
+		// per millilitre (Liquids.cs:392-400): about 84. The dose is driven as two ten-millilitre
+		// increments, which is the protocol call the minigame makes.
+		const double expectedRise = 84;
 		var injected = await context.RecipeAsync("medical-inject", cancellationToken,
-			("op", Text(operation)), ("ml", "2"), ("count", "3")).ConfigureAwait(false);
+			("op", Text(operation)), ("ml", "10"), ("count", "2")).ConfigureAwait(false);
 		context.Read("medical-inject", injected);
 		Require(Boolean(injected, "ok"), "the operation could not be driven: " + Raw(injected));
 
@@ -74,12 +77,12 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 			cancellationToken.ThrowIfCancellationRequested();
 			after = await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
 			afterOpiate = Number(after, "opiate");
-			if (afterOpiate - beforeOpiate >= millilitres * 42 * 0.8)
+			if (afterOpiate - beforeOpiate >= expectedRise * 0.8)
 			{
 				break;
 			}
 
-			await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
 		}
 
 		context.Read("member-effects-after", after);
@@ -87,8 +90,10 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		context.Note("host commit line: " + committed);
 
 		Require(committed.Length > 0, "the host never committed the operation: " + Text(operation));
-		Require(afterOpiate - beforeOpiate >= millilitres * 42 * 0.8,
+		Require(afterOpiate - beforeOpiate >= expectedRise * 0.6,
 			"the member's body did not take the injection: opiate " + NumberText(beforeOpiate) + " -> " + NumberText(afterOpiate));
+		Require(afterOpiate - beforeOpiate <= expectedRise * 1.4,
+			"the member's body took more than the delivered dose: opiate " + NumberText(beforeOpiate) + " -> " + NumberText(afterOpiate));
 		context.Note("the member received the injection: opiate " + NumberText(beforeOpiate) + " -> " + NumberText(afterOpiate));
 	}
 

@@ -14,6 +14,18 @@
 		try { watch = assemblies[i].GetType("AcceptanceAudioWatch3", false); } catch { watch = null; }
 		if (watch != null) { break; }
 	}
+	// Roslyn nests a script-declared type under its numbered submission class, so the exact-name lookup
+	// above cannot see it; fall back to the simple name across every assembly (measured 2026-11-18).
+	if (watch == null) {
+		for (var i = 0; i < assemblies.Length; i++) {
+			System.Type[] types;
+			try { types = assemblies[i].GetTypes(); } catch { continue; }
+			for (var j = 0; j < types.Length; j++) {
+				if (types[j] != null && types[j].Name == "AcceptanceAudioWatch3") { watch = types[j]; break; }
+			}
+			if (watch != null) { break; }
+		}
+	}
 	if (watch == null) { return "{\"ok\":false,\"error\":\"not-declared\",\"detail\":\"declare audio-watch first\"}"; }
 	var method = watch.GetMethod("Start");
 	if (method == null) { return "{\"ok\":false,\"error\":\"no-start\"}"; }

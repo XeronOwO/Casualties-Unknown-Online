@@ -1215,6 +1215,11 @@ internal static class CaseRegistry
 			// member's recorder must carry that block kind's own hit clip. The audible half of the 2026-09-21
 			// report had no device until 2026-11-19.
 			new BlockBreakSoundCase(),
+			// The give's container half: an item given into the member's own trash bag must play the
+			// game's backpack clip on the client whose container the item enters. A body-slot give is
+			// silent natively, so this row stages the container case only; its ticket is
+			// `1.0-give-container-sound-unread`.
+			new GiveContainerSoundCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

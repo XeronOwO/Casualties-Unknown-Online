@@ -94,6 +94,7 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 
 		_domains.Log.LogInformation("[PlayerInteraction] re-homed existing {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
 			item.ItemId, item.InstanceId, parent.id, parentItemId);
+		PlayContainerMoveSound();
 		return true;
 	}
 
@@ -137,6 +138,7 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 		{
 			_domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
 				item.ItemId, item.InstanceId, parent!.id, parentItemId);
+			PlayContainerMoveSound();
 			return LocalPlacement.InContainer(parentItemId);
 		}
 
@@ -163,6 +165,21 @@ internal sealed class PlayerInventoryPlacement(GameAdapterDomains domains)
 
 		DiscardUnplaceableItem(item, materialized, suppressUnplacedEnd);
 		return LocalPlacement.NotPlaced("nothing on this client's body accepted the item");
+	}
+
+	/// <summary>
+	/// The game's own container feedback: a move into a container plays `backpack1`/`backpack2`
+	/// (<c>PlayerCamera.PlayBackpackSound</c> is called from its container branches). CUO performs these moves itself,
+	/// so the call is reproduced at the moment the container accepted the item. Measured 2026-11-19: a give into the
+	/// member's trash bag landed on the receiver's client with no clip on either side, while the native move plays it.
+	/// </summary>
+	private static void PlayContainerMoveSound()
+	{
+		var camera = PlayerCamera.main;
+		if (camera != null) // Unity object — ==
+		{
+			camera.PlayBackpackSound();
+		}
 	}
 
 	/// <summary>A transferred item enters a body slot: the one the transfer named when it is free, else the first free one.</summary>

@@ -15,6 +15,7 @@ internal sealed class AdapterCapabilityReporter
 {
 	private readonly ILogger _log;
 	private readonly List<PatchVerificationFailure> _failures = [];
+	private IReadOnlyCollection<string> _offByConfiguration = [];
 
 	internal AdapterCapabilityReporter(ILogger log)
 	{
@@ -22,7 +23,14 @@ internal sealed class AdapterCapabilityReporter
 	}
 
 	/// <summary>Begin a new install attempt — the previous attempt's facts must not be reported twice (a retry re-installs).</summary>
-	internal void BeginInstall() => _failures.Clear();
+	internal void BeginInstall()
+	{
+		_failures.Clear();
+		_offByConfiguration = [];
+	}
+
+	/// <summary>The Optional units the configuration left out this attempt: their patch methods were removed on purpose, so the report says OFF, never OK.</summary>
+	internal void RecordDisabled(IReadOnlyCollection<string> ids) => _offByConfiguration = [.. ids];
 
 	/// <summary>Record the attempt's failures: the blocking contract rows and the probe-only dynamic targets alike (the row says which it is).</summary>
 	internal void Record(IEnumerable<PatchVerificationFailure> failures) => _failures.AddRange(failures);
@@ -36,7 +44,7 @@ internal sealed class AdapterCapabilityReporter
 	/// </summary>
 	internal void Publish(string gameProbeLine)
 	{
-		var report = AdapterCapabilityProbe.Build(_failures, gameProbeLine);
+		var report = AdapterCapabilityProbe.Build(_failures, gameProbeLine, _offByConfiguration);
 		// The text is composed rather than inlined as a one-line template on purpose: a literal
 		// colon-backslash-n escape inside a log template is read as a drive-letter path by
 		// RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths. Composing it this way keeps the

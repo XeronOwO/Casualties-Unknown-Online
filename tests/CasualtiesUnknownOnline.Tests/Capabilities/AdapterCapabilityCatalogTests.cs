@@ -337,7 +337,7 @@ public class AdapterCapabilityCatalogTests
 	{
 		var probe = Adapter.GetType(ProbeTypeName) ?? throw new InvalidOperationException($"{ProbeTypeName} not found in the adapter assembly.");
 		var build = probe.GetMethod("Build", AnyStatic) ?? throw new InvalidOperationException("AdapterCapabilityProbe.Build not found.");
-		return (AdapterCapabilityReport)build.Invoke(null, [failures, gameProbe])!;
+		return (AdapterCapabilityReport)build.Invoke(null, [failures, gameProbe, (IReadOnlyCollection<string>?)null])!;
 	}
 
 	private static List<PatchContract> BuildContracts()

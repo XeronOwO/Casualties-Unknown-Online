@@ -66,6 +66,10 @@ internal sealed class AdapterCapabilityReport
 		[.. Statuses.Where(status => status.Kind == AdapterCapabilityKind.Optional
 			&& status.Failures.Any(failure => failure.BlocksInstall))];
 
+	/// <summary>The Optional units the configuration left out at install (stage 3), in catalog order.</summary>
+	internal IReadOnlyList<AdapterCapabilityStatus> OffByConfiguration =>
+		[.. Statuses.Where(status => status.OffByConfiguration)];
+
 	/// <summary>
 	/// The install gate's decision in one place: called with the contract
 	/// failures the resolver found, it answers exactly what
@@ -87,7 +91,9 @@ internal sealed class AdapterCapabilityReport
 			? "verdict: session REFUSED — a REQUIRED capability's hook failed (stage 2: an OPTIONAL failure degrades alone)"
 			: Degraded.Count > 0
 				? $"verdict: session available — {Degraded.Count} OPTIONAL capability(ies) installed off: {string.Join(", ", Degraded.Select(status => status.Id))}"
-				: "verdict: session available — no blocking hook failure");
+				: OffByConfiguration.Count > 0
+					? $"verdict: session available — {OffByConfiguration.Count} OPTIONAL capability(ies) off by configuration: {string.Join(", ", OffByConfiguration.Select(status => status.Id))}"
+					: "verdict: session available — no blocking hook failure");
 		if (UnmappedFailures.Count > 0)
 		{
 			lines.Add($"failures no capability claims ({UnmappedFailures.Count}) — a catalog gap, or a failure that belongs to no single capability:");

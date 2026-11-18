@@ -17,7 +17,8 @@ internal sealed class AdapterCapabilityStatus
 		AdapterCapabilityKind kind,
 		int contractCount,
 		IReadOnlyList<PatchVerificationFailure> failures,
-		IReadOnlyList<string> probeFailures)
+		IReadOnlyList<string> probeFailures,
+		bool offByConfiguration = false)
 	{
 		Id = id;
 		Title = title;
@@ -25,6 +26,7 @@ internal sealed class AdapterCapabilityStatus
 		ContractCount = contractCount;
 		Failures = failures;
 		ProbeFailures = probeFailures;
+		OffByConfiguration = offByConfiguration;
 	}
 
 	/// <summary>The stable catalog id (kebab-case, never renumbered).</summary>
@@ -50,6 +52,13 @@ internal sealed class AdapterCapabilityStatus
 	internal bool BlocksInstall => Failures.Any(failure => failure.BlocksInstall);
 
 	/// <summary>
+	/// A unit the configuration left out at install (stage 3). Its patch methods were
+	/// removed from the registry on purpose, so the row must not read OK — "OK" would say
+	/// the capability is installed while its hooks are not.
+	/// </summary>
+	internal bool OffByConfiguration { get; }
+
+	/// <summary>
 	/// The report line: the class tag, the id, the contract count and the
 	/// verdict, then one indented line per reason — enough for "which gameplay
 	/// system broke, and why" to be answered from the log alone.
@@ -57,7 +66,8 @@ internal sealed class AdapterCapabilityStatus
 	internal string Describe()
 	{
 		var tag = Kind == AdapterCapabilityKind.Required ? "Required" : "Optional";
-		var line = $"[{tag}] {Id} — {ContractCount} contract(s) — {(Failed ? "FAILED" : "OK")}";
+		var verdict = OffByConfiguration ? "OFF (configuration)" : Failed ? "FAILED" : "OK";
+		var line = $"[{tag}] {Id} — {ContractCount} contract(s) — {verdict}";
 		if (!Failed)
 		{
 			return line;

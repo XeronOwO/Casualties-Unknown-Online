@@ -151,6 +151,24 @@ public class AdapterCapabilityReportTests
 		Assert.False(report.RefusesSession);
 	}
 
+	[Fact]
+	public void Render_NamesAConfiguredOffUnitInsteadOfOk()
+	{
+		var report = new AdapterCapabilityReport(
+			ProbeLine,
+			3,
+			0,
+			[OffStatus("diagnostics", AdapterCapabilityKind.Optional, 3)],
+			[]);
+
+		var text = report.Render();
+
+		Assert.Contains("[Optional] diagnostics — 3 contract(s) — OFF (configuration)", text, StringComparison.Ordinal);
+		Assert.Contains("verdict: session available — 1 OPTIONAL capability(ies) off by configuration: diagnostics", text, StringComparison.Ordinal);
+		Assert.False(report.RefusesSession);
+		Assert.Single(report.OffByConfiguration);
+	}
+
 	private static PatchVerificationFailure Blocking() =>
 		new("TrapTurretPatch", "CasualtiesUnknownOnline.GameAdapter.Patches.TrapTurretPatch+GuestTurretUpdatePatch", "TurretScript.Update not applied", blocksInstall: true);
 
@@ -159,4 +177,7 @@ public class AdapterCapabilityReportTests
 
 	private static AdapterCapabilityStatus Status(string id, AdapterCapabilityKind kind, int contracts, params PatchVerificationFailure[] failures) =>
 		new(id, $"{id} capability", kind, contracts, failures, []);
+
+	private static AdapterCapabilityStatus OffStatus(string id, AdapterCapabilityKind kind, int contracts) =>
+		new(id, $"{id} capability", kind, contracts, [], [], offByConfiguration: true);
 }

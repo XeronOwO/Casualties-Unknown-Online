@@ -70,6 +70,7 @@ internal sealed class PatchInstallLifecycle
 			// Stage 3: an OPTIONAL capability can be left out as a whole unit; a
 			// Required one (or an unknown id) is refused loudly and installs.
 			var selection = AdapterCapabilitySelection.Resolve(disabledCapabilities);
+			_capabilities.RecordDisabled(selection.Disabled);
 			if (selection.Refused.Count > 0)
 			{
 				_log.LogWarning("Game Adapter ignores disabled capability request(s) that are unknown or Required: {Ids}",

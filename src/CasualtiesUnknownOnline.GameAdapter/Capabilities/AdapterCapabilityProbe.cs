@@ -27,7 +27,8 @@ internal static class AdapterCapabilityProbe
 	/// </summary>
 	internal static AdapterCapabilityReport Build(
 		IReadOnlyList<PatchVerificationFailure> failures,
-		string gameProbe)
+		string gameProbe,
+		IReadOnlyCollection<string>? offByConfiguration = null)
 	{
 		var unmapped = new List<PatchVerificationFailure>();
 		var rowsPerCapability = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -88,7 +89,8 @@ internal static class AdapterCapabilityProbe
 				definition.Kind,
 				rowsPerCapability.TryGetValue(definition.Id, out var rows) ? rows : 0,
 				failuresPerCapability.TryGetValue(definition.Id, out var capabilityFailures) ? capabilityFailures : [],
-				[.. definition.GameMembers.Where(member => !member.Resolves()).Select(member => $"member {member.Describe()} not found")]))
+				[.. definition.GameMembers.Where(member => !member.Resolves()).Select(member => $"member {member.Describe()} not found")],
+				offByConfiguration is not null && offByConfiguration.Contains(definition.Id, StringComparer.Ordinal)))
 			.ToList();
 
 		return new AdapterCapabilityReport(gameProbe, patchRows, dynamicRows, statuses, unmapped);

@@ -1184,6 +1184,10 @@ internal static class CaseRegistry
 		// Un-parked 2026-11-18 by name: the 2026-11-14 park was the shared order's slow progress; a
 		// by-name run starts on a fresh lockable and pays for its own hold.
 		new LockpickCase(),
+		// The adapter's own account of the game it is attached to: every capability once, the count
+		// line, the install-and-verify line and an available session. It reads the boot log, so it
+		// costs the batch nothing and it is the row that catches an update breaking a contract.
+		new CapabilityReportCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

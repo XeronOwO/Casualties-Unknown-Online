@@ -147,6 +147,11 @@ What the player must see when a REQUIRED capability's hook is missing: the CUO w
 
 **Read at boot on `0.1.0+fb1d1d733ba9c721c14ad3bb544901aff1518942`, with `[Adapter] DisabledCapabilities = diagnostics`.**
 
+- The suite now reads this report on every run by name: `capability-report` (PASS 0.2 s on `.acceptance/capability-report3`,
+  2026-11-18) requires one row per catalogue id, the report's own count line, the install-and-verify line before it, and an
+  available verdict with no FAILED row — so a report that claims a unit is installed while its hooks are not can no longer
+  pass unnoticed.
+
 - The install names the unit and what it removed: `Game Adapter installed with 1 capability unit(s) off by
   configuration: diagnostics`, `Game Adapter removed 3 patch method(s) of 3 class(es) from the registry:
   ItemUpdateDiagnosticPatch, PickUpItemPatch, TryPerformWorldActionsPatch`, then `Game Adapter patches installed and

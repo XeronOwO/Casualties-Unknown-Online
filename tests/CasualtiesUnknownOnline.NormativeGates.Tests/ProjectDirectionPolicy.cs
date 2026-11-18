@@ -92,6 +92,9 @@ internal static class ProjectDirectionPolicy
 		"CasualtiesUnknownOnline.Acceptance",
 		// The acceptance suite drives the real game from outside; it owns no production types and decides no layer.
 		"CasualtiesUnknownOnline.AcceptanceSuite",
+		// The acceptance host is process machinery around a run (capture, staged input, launch, preflight): it
+		// hosts no production type either and only references the suite it drives.
+		"CasualtiesUnknownOnline.AcceptanceHost",
 	];
 
 	/// <summary>

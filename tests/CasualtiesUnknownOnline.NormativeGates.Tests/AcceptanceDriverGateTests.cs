@@ -92,7 +92,7 @@ public class AcceptanceDriverGateTests
 	/// tooling could not perform a gesture. The exception is pinned to this path and to these names — a second file
 	/// naming any of them still fails the scan, and the evidence read is always the clients' own logs and probes.
 	/// </summary>
-	private const string AuthorizedInputPath = "tools/acceptance/send-input.ps1";
+	private const string AuthorizedInputPath = "tools/acceptance/host/InputCommand.cs";
 
 	/// <summary>The names that one file may carry: sending input, moving the cursor, and forcing a window forward (a
 	/// background process may not simply call <c>SetForegroundWindow</c>, so the borrow-the-foreground-thread shape is
@@ -186,6 +186,8 @@ public class AcceptanceDriverGateTests
 		foreach (var file in files)
 		{
 			var relative = Path.GetRelativePath(RepositoryPaths.Root, file).Replace('\\', '/');
+			// Build output is not source: a compiled copy repeats the text the gate already judged above it.
+			if (relative.Contains("/bin/", StringComparison.Ordinal) || relative.Contains("/obj/", StringComparison.Ordinal)) { continue; }
 			if (IsDeclarationDirectory(relative)) { declarations++; }
 			var text = File.ReadAllText(file);
 			foreach (var token in OsInputApis)
@@ -350,6 +352,10 @@ public class AcceptanceDriverGateTests
 			.OrderBy(file => file, StringComparer.Ordinal)
 			.ToArray();
 		var offenders = files
+			// The host is a separate console process, not the game's main thread: it may wait between a
+			// window-capture attempt and an input gesture. Only the in-process driver and the recipes
+			// (which run on Unity's thread) are bound by the rule.
+			.Where(file => !Path.GetRelativePath(RepositoryPaths.Root, file).Replace('\\', '/').StartsWith("tools/acceptance/host/", StringComparison.Ordinal))
 			.Where(file => Regex.IsMatch(File.ReadAllText(file), @"\b(?:System\.Threading\.)?Thread\.Sleep\s*\("))
 			.Select(file => Path.GetRelativePath(RepositoryPaths.Root, file))
 			.ToArray();

@@ -41,8 +41,8 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 ## The two ways to drive
 
 - In-process is the default; extending that channel is ordinary tooling work.
-- OS-level input (`tools/acceptance/send-input.ps1` and the like) needs the user's authorisation, only after in-process
-  provably cannot reach the row.
+- OS-level input (`AcceptanceHost input …`) needs the user's authorisation, only after in-process provably cannot
+  reach the row.
 
 ## Close the clients before touching `src/`
 

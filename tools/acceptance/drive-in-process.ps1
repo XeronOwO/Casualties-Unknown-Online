@@ -865,9 +865,15 @@ if ($missing) {
 # the recipe never uses is a usage error, not something the client should be asked about.
 $recipeCode = $null
 if ($Action -eq 'recipe') {
+	# Two layers, one vocabulary: `recipes/` are the primitives a suite case uses, `probes/` are the manual
+	# instruments a diagnosed row still needs (2026-11-19). The name is looked up in both, recipes first.
 	$recipePath = Join-Path (Join-Path $PSScriptRoot 'recipes') ($Recipe + '.cs')
 	if (-not (Test-Path -LiteralPath $recipePath)) {
-		Write-Usage -Problem "no recipe '$Recipe' under tools/acceptance/recipes"
+		$recipePath = Join-Path (Join-Path $PSScriptRoot 'probes') ($Recipe + '.cs')
+	}
+
+	if (-not (Test-Path -LiteralPath $recipePath)) {
+		Write-Usage -Problem "no recipe '$Recipe' under tools/acceptance/recipes or tools/acceptance/probes"
 		exit 64
 	}
 	try {

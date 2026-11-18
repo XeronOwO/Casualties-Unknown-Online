@@ -68,11 +68,12 @@ capability is missing and `1` on its own error.
   never replaced by a weaker check.
 - **The install's BepInEx trees are not all the run's.** An install can carry CUO's tree and whatever the
   machine's owner keeps for their own play, and which one is ACTIVE is decided by the folder the game
-  loads. Before any build, deploy or launch, the run asks `tools/acceptance/session-environment.ps1`:
-  `-Mode status` reports the machine (each tree classified by its own marker DLL, never by a folder name),
-  and `-Mode ensure-cuo` makes CUO's tree active. It refuses while any game process is running — a running
-  game means its owner is playing — and in that case it kills nothing and moves nothing. The marker names,
-  the process name and the parking name are machine facts (`AGENTS.local.md`).
+  loads. Before any build, deploy or launch, the run asks the C# host
+  ([`tools/acceptance/host`](../../tools/acceptance/host)): `host env --mode status` reports the machine (each tree
+  classified by its own marker DLL, never by a folder name), and `host env --mode ensure-cuo` makes CUO's tree active.
+  It refuses while any game process is running — a running game means its owner is playing — and in that case it kills
+  nothing and moves nothing. The marker names, the process name and the parking name are machine facts
+  (`AGENTS.local.md`).
 - **A game or Steam instance is already running** → do not kill it. Report it and ask. Only processes
   this run started may be stopped by this run.
 
@@ -182,11 +183,12 @@ collected while its scenario is up.
   see the key.
 - Capture is per row, not per run: one frame (or recording) per `visual` / `feel` row, captured from the
   client's own window (never the desktop, so the run never needs the clients in front), written to `acceptance-artifacts-dir` under an artifact id, plus the log excerpts a `machine` row needs.
-  The capture itself is [`tools/acceptance/capture-window.ps1`](../../tools/acceptance/capture-window.ps1)
-  (`-Name <process> -Out <artifacts-dir>\<artifact-id>.png`): it finds the client's own window, renders it with
-  `PrintWindow` + `PW_RENDERFULLCONTENT` (no activation), and refuses a hidden or zero-size window rather than
-  writing an empty frame (verified 2026-10-24 on the 1280x720 window: 1298x767 with the CUO overlay legible —
-  the bitmap is the whole window, title bar included, so a box row is judged on the canvas inside it).
+  The capture itself is the C# host's [`capture` command](../../tools/acceptance/host/WindowCaptureCommand.cs)
+  (`host capture --pid <client> --out <artifacts-dir>\<artifact-id>.png`): it finds the client's own window, renders
+  it with `PrintWindow` + `PW_RENDERFULLCONTENT` (no activation, no foreground), and refuses a hidden or zero-size
+  window rather than writing an empty frame (verified 2026-10-24 on the 1280x720 window: 1298x767 with the CUO
+  overlay legible — the bitmap is the whole window, title bar included, so a box row is judged on the canvas inside
+  it).
   **A sandboxed client is capturable once the box stops hiding it**: Sandboxie's `CoverBoxedWindows` (and its
   sibling `BlockScreenCapture`) must be OFF for that box, or the host sees a covered window and
   `Get-Process` reports a zero `MainWindowHandle` (measured 2026-10-24: a guest client ran with its plugin
@@ -388,9 +390,10 @@ all need the same gesture, so they are ONE batch with one launch and four verdic
    gesture.
 3. **Find the item's slot** with the inventory probe (the item's held position on the client), because a
    drag starts on the item, not on a control id.
-4. **Perform the gesture** with `tools/acceptance/send-input.ps1 -Action drag -ProcessId <dragging client>
-   -FromX … -FromY … -ToX … -ToY …`: press on the item, move to the target body's pixel, release. Every
-   point is CLIENT coordinates; the helper brings the window forward itself.
+4. **Perform the gesture** with `CasualtiesUnknownOnline.AcceptanceHost input --action drag --pid <dragging client>
+   --from-x … --from-y … --to-x … --to-y …`: press on the item, move to the target body's pixel, release. Every
+   point is CLIENT coordinates. This is the one OS-level door, authorised per batch; it may bring the window forward
+   because the row needs the game's own focus path — a capture never does.
 5. **Read the verdict from the clients' own logs**, never from the picture: the cue line and the refusal
    line are on the operator's side, the applied/inventory result on the target's side.
 

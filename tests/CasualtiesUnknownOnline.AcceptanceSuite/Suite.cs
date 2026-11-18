@@ -16,6 +16,13 @@ internal static partial class Program
 {
 	private static async Task<int> Main(string[] args)
 	{
+		// The manual driver lives in the suite's own action client now (the port of drive-in-process.ps1):
+		// `--action`-style probes are `drive --url ... --action ...` here, and nothing about them is shell.
+		if (args.Length > 0 && string.Equals(args[0], "drive", StringComparison.Ordinal))
+		{
+			return await DriveCommand.RunAsync(args[1..]).ConfigureAwait(false);
+		}
+
 		var options = Options.Parse(args);
 		// Focused runs are the iteration loop: when the pair is already in a world, attach to it
 		// instead of paying the cold setup again. The full batch stays fresh by default so one

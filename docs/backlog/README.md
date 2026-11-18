@@ -65,7 +65,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - _No open ticket._
 
 ### In progress
-- _No open ticket._
+- [Acceptance rows as C# cases](in-progress/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — audit done; scripts move to C#.
 
 ### Review
 
@@ -119,7 +119,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [Every valuable acceptance row is a C# case](done/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — six rows read, 23 orphan recipes gone.
 - [Two members lose the second character](done/1.0-two-member-continue-mixes-characters.md) — **High** — a shared name, not a lost save.
 - [Push and carry have no host switch](done/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit was dropped by decision.
 - [Adapter capability catalog](done/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.

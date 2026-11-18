@@ -1188,6 +1188,9 @@ internal static class CaseRegistry
 		// line, the install-and-verify line and an available session. It reads the boot log, so it
 		// costs the batch nothing and it is the row that catches an update breaking a contract.
 		new CapabilityReportCase(),
+		// Batch 1's tourniquet row: the game's own lower-limb chain stops bleeding and nothing else
+		// does. By name because it starts its own world to have a body worth treating.
+		new MedicalTourniquetCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

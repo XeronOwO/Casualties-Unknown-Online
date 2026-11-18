@@ -1,0 +1,203 @@
+using System.Globalization;
+using System.Text.Json;
+
+namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
+
+/// <summary>
+/// The tourniquet row of batch 1: the game's own limb tool stops the bleeding of the limb
+/// it is on and of every limb further from the heart, and of nothing else.
+///
+/// The chain, read before the fixture: the player selects a wounded limb and releases the
+/// carried tourniquet in the wound view; <c>PlayerCamera.ApplyWoundItem</c> runs
+/// <c>item.Stats.useLimbAction(limb, item)</c>, which attaches <c>TourniquetScript</c>;
+/// its <c>Start</c> sets <c>blockedBleeding = true</c> on <c>GetLowerLimbs(limb)</c> and
+/// <c>TakeOff</c> clears the same set (reversing/release-1.0.2/Assembly-CSharp/
+/// TourniquetScript.cs:10-32). The row reads the game's own <c>GetLowerLimbs</c> set from
+/// the <c>limb-bleeding</c> recipe and asserts that set, never an anatomy guess
+/// (docs/design/mechanics/medical-view.md:54-58).
+/// </summary>
+internal sealed class MedicalTourniquetCase : AcceptanceCase
+{
+	public override string Name => "medical-tourniquet";
+
+	public override CaseCost Cost => CaseCost.NewWorld;
+
+	public override bool RunsInBatch => false;
+
+	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		var memberId = await SingleMemberAsync(context, cancellationToken).ConfigureAwait(false);
+		context.UseMember(memberId);
+
+		var (limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(limb >= 0, "no limb of the member's body has a lower-limb chain and can take a tourniquet");
+
+		var seeded = await RecipeAsync(context, "wound-seed", cancellationToken, ("limb", limb.ToString(CultureInfo.InvariantCulture)), ("force", "200"), ("infection", "0")).ConfigureAwait(false);
+		Require(Boolean(seeded, "ok"), "the wound seed failed on limb " + Text(limb) + ": " + Raw(seeded));
+		Require(Number(seeded, "bleedAmount") > 0.001,
+			"the seeded wound reads no bleed on limb " + Text(limb) + ": " + Raw(seeded));
+		Require(Number(seeded, "skinHealth") > 0.5,
+			"the seeded wound destroyed the limb instead of wounding it: " + Raw(seeded));
+
+		// A fresh member's six slots carry the starting supplies, and a created item needs one: drop
+		// the least interesting thing the kit holds (the game's own drop, read back by the answer).
+		Require(await TryFreeSlotAsync(context, cancellationToken).ConfigureAwait(false),
+			"the member's body has no slot to free for a tourniquet (every slot occupied or unusable)");
+
+		var provided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "tourniquet"), ("mode", "create")).ConfigureAwait(false);
+		Require(Boolean(provided, "ok"), "the member could not be given a tourniquet: " + Raw(provided));
+
+		var selected = await context.MemberRecipeAsync("select-limb", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);
+		Require(Boolean(selected, "ok"), "the member could not select limb " + Text(limb) + ": " + Raw(selected));
+
+		var used = await context.MemberRecipeAsync("limb-use", cancellationToken, ("type", "tourniquet"), ("mode", "use")).ConfigureAwait(false);
+		Require(Boolean(used, "ok"), "the wound view refused the tourniquet: " + Raw(used));
+		Require(Boolean(used, "actuallyUsable"), "the game does not consider the tourniquet usable on the selected limb: " + Raw(used));
+
+		var after = await WaitForTourniquetAsync(context, limb, cancellationToken).ConfigureAwait(false);
+		var treated = LimbRow(after, limb);
+		Require(treated.ValueKind == JsonValueKind.Object, "the treated limb is missing after the tourniquet: " + Raw(after));
+		Require(Boolean(treated, "tourniquet"), "the treated limb carries no tourniquet: " + treated.GetRawText());
+		Require(Boolean(treated, "blocked"), "the treated limb's bleeding is not blocked: " + treated.GetRawText());
+		Require(Numbers(after, "lower").SequenceEqual(chain),
+			"the blocked set changed between the probe and the tourniquet: " + Raw(after));
+
+		foreach (var index in chain)
+		{
+			var row = LimbRow(after, index);
+			Require(row.ValueKind == JsonValueKind.Object, "a lower limb is missing from the answer: " + Text(index));
+			Require(Boolean(row, "blocked"), "limb " + Text(index) + " is further from the heart but not blocked: " + row.GetRawText());
+		}
+
+		foreach (var row in LimbRows(after))
+		{
+			if (Number(row, "i") == limb || chain.Contains((int)Number(row, "i")))
+			{
+				continue;
+			}
+
+			Require(!Boolean(row, "blocked"), "a limb outside the tourniquet's chain is blocked: " + row.GetRawText());
+		}
+	}
+
+	/// <summary>Picks a treatable limb whose game chain reaches beyond itself, so the row proves the chain and not the item's own limb.</summary>
+	private static async Task<(int Limb, List<int> Chain)> PickLimbAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var body = await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", "-1")).ConfigureAwait(false);
+		foreach (var row in LimbRows(body).OrderByDescending(row => Number(row, "i")))
+		{
+			var index = (int)Number(row, "i");
+			if (index < 0 || Boolean(row, "dismembered") || Boolean(row, "tourniquet") || Number(row, "skin") < 60)
+			{
+				continue;
+			}
+
+			var probe = await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(index))).ConfigureAwait(false);
+			var chain = Numbers(probe, "lower");
+			// GetLowerLimbs starts with the limb itself; a foot's chain is therefore just itself and
+			// would make "the chain is blocked" the item's own limb, not the rule. Require a further limb.
+			if (chain.Count >= 2)
+			{
+				return (index, chain);
+			}
+		}
+
+		return (-1, []);
+	}
+
+	/// <summary>Polls until the tourniquet's Start has run on the treated limb and its set is blocked.</summary>
+	private static async Task<JsonElement?> WaitForTourniquetAsync(CaseContext context, int limb, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			last = await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);
+			var treated = LimbRow(last, limb);
+			if (treated.ValueKind == JsonValueKind.Object && Boolean(treated, "tourniquet") && Boolean(treated, "blocked"))
+			{
+				return last;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		return last;
+	}
+
+	/// <summary>Drops one carried item of a known starting kit through the game's own drop, to open a slot for the tourniquet.</summary>
+	private static async Task<bool> TryFreeSlotAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		foreach (var type in new[] { "trashbag", "dogfood", "waterbottle", "bandage" })
+		{
+			var dropped = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "drop"), ("type", type)).ConfigureAwait(false);
+			if (Boolean(dropped, "ok"))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>The host's roster names the member the suite joined; the log tail is unreliable here.</summary>
+	private static async Task<string> SingleMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var members = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			var ids = members.Where(id => !string.IsNullOrEmpty(id)).ToList();
+			if (ids.Count == 1)
+			{
+				return ids[0];
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException("the host's roster does not name exactly one member");
+	}
+
+	private static Task<JsonElement?> RecipeAsync(CaseContext context, string name, CancellationToken cancellationToken, params (string Key, string Value)[] arguments) =>
+		context.MemberRecipeAsync(name, cancellationToken, arguments);
+
+	private static IEnumerable<JsonElement> LimbRows(JsonElement? reading) =>
+		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty("limbs", out var limbs) && limbs.ValueKind == JsonValueKind.Array
+			? limbs.EnumerateArray()
+			: [];
+
+	private static JsonElement LimbRow(JsonElement? reading, int limb) =>
+		LimbRows(reading).FirstOrDefault(row => Number(row, "i") == limb);
+
+	private static List<int> Numbers(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } value || !value.TryGetProperty(property, out var array) || array.ValueKind != JsonValueKind.Array)
+		{
+			return [];
+		}
+
+		return [.. array.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.Number ? item.GetInt32() : -1).Where(index => index >= 0)];
+	}
+
+	private static double Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.Number
+			? propertyValue.GetDouble()
+			: double.NaN;
+
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.True;
+
+	private static string Text(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "(no answer)";
+
+	private static void Require(bool condition, string message)
+	{
+		if (!condition)
+		{
+			throw new InvalidOperationException(message);
+		}
+	}
+}

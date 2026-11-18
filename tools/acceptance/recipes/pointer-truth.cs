@@ -42,7 +42,18 @@
 	for (var b = 0; b < bodies.Length; b++) {
 		var cloneBody = bodies[b] as Body;
 		if (cloneBody == null) { continue; }
-		if (cloneBody.GetComponentInParent<CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver>() == null) { continue; }
+		// The driver type is internal to the batch assembly, so it is matched by simple name up the parent
+		// chain instead of being named: the evaluator compiles this snippet with reference-only access.
+		var hasDriver = false;
+		var cursor = cloneBody.transform;
+		while (cursor != null && !hasDriver) {
+			var components = cursor.GetComponents<UnityEngine.Component>();
+			for (var c = 0; c < components.Length; c++) {
+				if (components[c] != null && components[c].GetType().Name == "RemoteBodyDriver") { hasDriver = true; break; }
+			}
+			cursor = cursor.parent;
+		}
+		if (!hasDriver) { continue; }
 
 		var clonePos = cloneBody.transform.position;
 		var cloneScreen = camera.WorldToScreenPoint(new UnityEngine.Vector3(clonePos.x, clonePos.y, 0f));

@@ -1238,6 +1238,13 @@ internal static class CaseRegistry
 			// character, the second member's items merged onto the first, and the second member came
 			// back as a new character. Un-park it with the fix and read it again.
 			// new TwoMemberContinueCase(),
+			// The real drag: a bandage picked up by the game's own drag gesture and released onto the wound
+			// view's limb rect starts the game's bandage minigame — the hand path, not the direct use call.
+			new RealDragCase(),
+		// The mid-run late join (2026-11-19): a host already in a running world, a member joining after.
+		new LateJoinCase(),
+		// The sample mod's content inside a session (2026-11-19): its item, registry entry and limb action.
+		new SampleModCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

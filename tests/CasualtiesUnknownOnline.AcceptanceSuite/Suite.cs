@@ -1191,6 +1191,9 @@ internal static class CaseRegistry
 		// Batch 1's tourniquet row: the game's own lower-limb chain stops bleeding and nothing else
 		// does. By name because it starts its own world to have a body worth treating.
 		new MedicalTourniquetCase(),
+		// Batch 1's splint row: a splint on a fractured limb sets the game's own splinted flag and is
+		// consumed, and the wound view's special action takes it off and hands the item back.
+		new MedicalSplintCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

@@ -2,7 +2,9 @@
 // args: limb=n
 // returns: ok, limbs, lower, limb, error
 //
-// Reads every limb of the LOCAL body with the two facts a tourniquet row turns on:
+// Reads every limb of the LOCAL body with the facts the tourniquet and splint rows turn
+// on: `broken` and `splinted` (the game's own flags) plus whether the limb carries the
+// item's component (`TourniquetScript`, `SplintLimb`). The two facts a tourniquet row turns on:
 // `blockedBleeding` (the flag `TourniquetScript.Start` sets on its limb and on every
 // limb `GetLowerLimbs` returns, and clears in `TakeOff`) and whether the limb carries a
 // `TourniquetScript` at all. `lower` is the game's own answer for the requested limb:
@@ -31,6 +33,11 @@
 		sb.Append(",\"blocked\":").Append(limb.blockedBleeding ? "true" : "false");
 		sb.Append(",\"tourniquet\":").Append(limb.GetComponent<TourniquetScript>() != null ? "true" : "false");
 		sb.Append(",\"dismembered\":").Append(limb.dismembered ? "true" : "false");
+		sb.Append(",\"broken\":").Append(limb.broken ? "true" : "false");
+		sb.Append(",\"splinted\":").Append(limb.splinted ? "true" : "false");
+		sb.Append(",\"splint\":").Append(limb.GetComponent<SplintLimb>() != null ? "true" : "false");
+		sb.Append(",\"head\":").Append(limb.isHead ? "true" : "false");
+		sb.Append(",\"vital\":").Append(limb.isVital ? "true" : "false");
 		sb.Append('}');
 	}
 	sb.Append("],\"lower\":[");

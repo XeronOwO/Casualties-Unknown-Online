@@ -68,7 +68,7 @@ come back where they were when the cut was taken.
   `-c<digest8>` only while two present peers share the base name. A unique name keeps the bare key, so saves written before
   the identity existed still load; the same effective keys answer a `Claim`, so the member that follows a continue gets its
   own character back (decision 272; the 2026-11-19 reading is on
-  [the ticket](../../backlog/in-progress/1.0-ip-direct-duplicate-names-mix-characters.md)).
+  [the ticket](../../backlog/done/1.0-ip-direct-duplicate-names-mix-characters.md)).
 - **A continue restores the run's OWN world, not a stale one.** The recorded defect was "A Continue after a run opens a stale
   world (the layer-mod baseline then diverges)"; the fix moves the pointer to the run's own world at the first committed cut,
   and the acceptance reading is that all three clients "generated from the same decision entry state … and applied the same

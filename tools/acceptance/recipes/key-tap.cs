@@ -1,7 +1,7 @@
 // recipe: key-tap
 // args: vk=n action=s
 // requires: window-key - the eval declaration this recipe calls, sent once per client before the first
-//           key-tap step: drive-in-process.ps1 -Action declare -Declare window-key
+//           key-tap step: drive --url <ws> --action declare --declare window-key
 // serves: enter-key-opens-plain-chat
 // returns: ok, action, virtualKey, scanCode, window, isForeground, posted, error, detail
 //

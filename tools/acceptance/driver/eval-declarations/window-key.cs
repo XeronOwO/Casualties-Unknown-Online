@@ -24,7 +24,7 @@
 // API is a rule question, not a new line in this file.
 //
 // The evaluator compiles one input at a time and refuses a declaration carrying a trailing expression,
-// so a declaration is a file of its own: `drive-in-process.ps1 -Action declare -Declare window-key`
+// so a declaration is a file of its own: `drive --url <ws> --action declare --declare window-key`
 // sends this one once per client, and tools/acceptance/recipes/key-hold.cs then uses the type by name.
 using System;
 using System.Runtime.InteropServices;

@@ -6,7 +6,7 @@
 // state that its simulation keeps moving — `Body.HandleDogWaterShaking` starts the water-shake coroutine (and its `dogshake` clip) only after `wetness > 30 &&
 // temperature < 36.6 && !wasWater` has held for twelve seconds and resets the moment it stops. A one-shot write cannot hold that; a per-frame one does.
 //
-// Declare once per client (`-Action declare -Declare frame-seed`) before the first call.
+// Declare once per client (`drive --url <ws> --action declare --declare frame-seed`) before the first call.
 ((System.Func<string>)(() => {
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var mode = {{s:mode}};

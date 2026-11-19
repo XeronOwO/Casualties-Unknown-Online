@@ -4,7 +4,8 @@ using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceHost;
 
 /// <summary>
-/// Sends one real mouse/keyboard input to a window (a port of <c>tools/acceptance/send-input.ps1</c>).
+/// Sends one real mouse/keyboard input to a window (the successor of the deleted
+/// <c>tools/acceptance/send-input.ps1</c>).
 /// The user authorised simulated input for the acceptance tooling on 2026-10-24; coordinates are CLIENT
 /// coordinates of the target window, and the window is brought forward first because Unity reads input
 /// from the focused window only.

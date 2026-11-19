@@ -9,7 +9,7 @@
 // without OS-level input. `args` is the command's own argument line with single spaces between
 // arguments; the literal `none` means no arguments (for commands like kill/heal). A position argument
 // uses the game's own comma-free anchors (`cursor`, `player`, `random`) because the driver's
-// -RecipeArg values may not contain commas. The delegate's own output goes to the native console, not
+// --arg values may not contain commas. The delegate's own output goes to the native console, not
 // to this answer.
 ((System.Func<string>)(() => {
 	var name = {{s:command}};

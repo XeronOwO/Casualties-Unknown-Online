@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 namespace CasualtiesUnknownOnline.AcceptanceHost;
 
 /// <summary>
-/// The read-only dependency preflight (a port of <c>tools/acceptance/preflight.ps1</c>): one row per
+/// The read-only dependency preflight (the successor of the deleted
+/// <c>tools/acceptance/preflight.ps1</c>): one row per
 /// dependency, machine values from the acceptance-environment facts, exit 0 when a full two-client run
 /// is possible, 2 when a required row is not present, 1 when the preflight itself failed. The third
 /// client is an advisory row and never decides the exit code. Nothing on the machine is changed.

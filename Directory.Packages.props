@@ -30,7 +30,7 @@
     <PackageVersion Include="Mono.Cecil" Version="0.11.6" />
 
     <!-- tools/acceptance/host: the acceptance host draws a client's window to a PNG for the rows judged
-         from a frame (port of capture-window.ps1). Windows-only, as the tool itself is. -->
+         from a frame (successor of the deleted capture-window.ps1). Windows-only, as the tool itself is. -->
     <PackageVersion Include="System.Drawing.Common" Version="8.0.0" />
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <PackageVersion Include="protobuf-net" Version="3.4.21" />

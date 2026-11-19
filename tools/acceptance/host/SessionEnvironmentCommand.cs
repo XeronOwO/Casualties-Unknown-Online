@@ -2,7 +2,7 @@ namespace CasualtiesUnknownOnline.AcceptanceHost;
 
 /// <summary>
 /// Says whether the game install is free for an acceptance run, and swaps its BepInEx trees only when it
-/// is (a port of <c>tools/acceptance/session-environment.ps1</c>).
+/// is (the successor of the deleted <c>tools/acceptance/session-environment.ps1</c>).
 /// </summary>
 internal static class SessionEnvironmentCommand
 {

@@ -157,11 +157,14 @@ collected while its scenario is up.
   `--action recipe --recipe <name> --arg <key=value>`; each recipe declares the arguments it uses and the
   tickets it serves, and a multi-step scenario is the run's own loop of invocations. A recipe that needs an
   eval declaration says so in its own header (`// requires: <name>`), and the run loads that declaration
-  once per client with `--action declare --declare <name>` before the first step that uses it. Ad-hoc
+  once per client with `--action declare --declare <name>` before the first step that uses it. Declaration
+  pitfalls: a nested lambda that captures a local fails with no diagnostic — inline the value; a value a nested
+  delegate must read is a literal inside it; a reflected member read that answers its default is a defect in the
+  READ (try the property before the field). Ad-hoc
   probes stay evals of the same channel, and a batch-local sender of the `probe.ps1` shape substitutes
   `{{key}}` text VERBATIM: its template spells a string placeholder with its own quotes
   (`var mode = "{{s:mode}}"`) and its `-Arg` takes the full typed name (`s:mode=probe`), where the
-  committed driver's `{{s:key}}` inserts the quotes and its `-RecipeArg` takes `key=value`; a bare word the
+  committed driver's `{{s:key}}` inserts the quotes and its `--arg` takes `key=value`; a bare word the
   raw replacement leaves in the code comes back as `(1,1): InteractiveHost` (batch `20261020-a`). A window
   whose two carriers are written at different moments — an item report at once, the member's 1 Hz character
   report up to a second later — is held OPEN by parking the receiving family (`net-drop-message` on the

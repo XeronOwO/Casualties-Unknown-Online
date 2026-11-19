@@ -10,7 +10,7 @@
 // here forces a verdict - it performs the same `onClick` a player's click performs, only timed by the game's clock.
 //
 // The evaluator compiles one input at a time and refuses a trailing expression, so this file is a declaration of its own:
-// `drive-in-process.ps1 -Action declare -Declare cpr-rhythm` sends it once per client, and the `cpr-rhythm` recipe then
+// `drive --url <ws> --action declare --declare cpr-rhythm` sends it once per client, and the `cpr-rhythm` recipe then
 // starts it by name.
 using System.Collections;
 using UnityEngine;

@@ -3,7 +3,7 @@
 // serves: container-move-snapshot-only-sync row A1g (the game's container-expansion branch reads
 //         Input.GetKey(KeyBinds.GetBind("expanddesc")), so the kind needs a HELD key)
 // requires: window-key - the eval declaration this recipe calls, sent once per client before the first
-//           key-hold step: drive-in-process.ps1 -Action declare -Declare window-key
+//           key-hold step: drive --url <ws> --action declare --declare window-key
 // returns: ok, bind, key, action, virtualKey, scanCode, window, foreground, isForeground, posted,
 //          heldAtStart, heldAtEnd, osKeyAtStart, osKeyAtEnd, error, detail
 //

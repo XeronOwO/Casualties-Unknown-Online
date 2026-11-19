@@ -1,6 +1,7 @@
-// The in-process half of tools/acceptance/drive-in-process.ps1.
+// The in-process driver the suite's `drive` verb and every case use; it replaces the deleted
+// tools/acceptance/drive-in-process.ps1.
 //
-// The PowerShell caller substitutes COMMAND, ARGUMENT and TEXT and sends this file as one HotRepl eval
+// The suite substitutes COMMAND, ARGUMENT and TEXT and sends this file as one HotRepl eval
 // snippet; the snippet returns one JSON object as a string. It never uses OS-level input: it enters the
 // live Online UI at the frame's registered action table, handing the real control ids the same intent
 // payloads the native surface view emits, so the plugin's own policies (LobbySwitchActions and the

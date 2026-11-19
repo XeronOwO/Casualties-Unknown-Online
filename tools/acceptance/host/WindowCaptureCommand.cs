@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace CasualtiesUnknownOnline.AcceptanceHost;
 
 /// <summary>
-/// Captures one client window to a PNG for a row judged from a frame (a port of
+/// Captures one client window to a PNG for a row judged from a frame (the successor of the deleted
 /// <c>tools/acceptance/capture-window.ps1</c>): PrintWindow with PW_RENDERFULLCONTENT renders a D3D
 /// window without activating it, so the client never has to be in front.
 /// </summary>

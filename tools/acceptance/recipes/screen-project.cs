@@ -6,7 +6,7 @@
 //
 // Projects one world point to screen pixels through the game's own camera, and — while a remote wound view is open —
 // reports where the CPR control sits on screen and whether it is active. A run clicks the returned coordinates with
-// `tools/acceptance/send-input.ps1` (Windows' origin is top-left: yWin = screenHeight - screenY), which is how a gesture
+// the acceptance host's `input` command (Windows' origin is top-left: yWin = screenHeight - screenY), which is how a gesture
 // the in-process driver has no control id for is performed without guessing at pixel positions.
 //
 // Every type here is spelled with its namespace, the way `cuo-ui-dump` spells its own: the evaluator's compile unit

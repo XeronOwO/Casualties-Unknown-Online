@@ -65,7 +65,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - _No open ticket._
 
 ### In progress
-- _No open ticket._
+- [Acceptance failure paths and replay](in-progress/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — failure rows, live update replay.
 
 ### Review
 

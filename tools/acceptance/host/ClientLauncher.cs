@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace CasualtiesUnknownOnline.AcceptanceHost;
@@ -39,12 +40,19 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		bool Restart,
 		string? Only,
 		string? SaveRoot,
+		string? PidsPath,
+		bool TwinIdentity,
 		int SteamGraceSeconds,
 		int ReadyTimeoutSeconds);
 
 	public bool Launch()
 	{
 		BuildClientList();
+		if (!ApplyTwinIdentity())
+		{
+			return false;
+		}
+
 		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
 		if (needsSandbox && !EnsureSandboxService())
 		{
@@ -244,6 +252,234 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 		Thread.Sleep(3000);
 		Log("restarted: " + string.Join(", ", _clients.Select(c => c.Name)));
+	}
+
+	/// <summary>
+	/// A report can name what it ran, but the launcher is the only side that knows the pids of the
+	/// processes it started. A crash case kills the host by this file, never by guessing a name.
+	/// </summary>
+	public void WritePids()
+	{
+		if (string.IsNullOrWhiteSpace(_options.PidsPath))
+		{
+			return;
+		}
+
+		var hostExe = Path.GetFullPath(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"));
+		var hostPid = GameProcesses()
+			.Where(process => SamePath(process, hostExe))
+			.Select(process => (int?)process.Id)
+			.FirstOrDefault();
+		var payload = new
+		{
+			host = new { pid = hostPid, url = _options.HostUrl, gameDir = _options.GameDir },
+			guest = new
+			{
+				pids = BoxGameProcesses(_options.GuestBox).Select(process => process.Id).ToArray(),
+				url = _options.GuestUrl,
+				root = _options.GuestRoot,
+				box = _options.GuestBox,
+			},
+			alt = new
+			{
+				pids = BoxGameProcesses(_options.AltBox).Select(process => process.Id).ToArray(),
+				url = _options.AltUrl,
+				root = _options.AltRoot,
+				box = _options.AltBox,
+			},
+		};
+		Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_options.PidsPath))!);
+		File.WriteAllText(_options.PidsPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+		Log($"pids written (host pid {hostPid?.ToString() ?? "missing"})");
+	}
+
+	/// <summary>
+	/// Test-only fault injection for the duplicate-identity row: the alternate box is given the
+	/// guest's persistent identity, so the host sees one identity under one display name. The
+	/// write goes to the box's own gitignored config; it reuses the existing ClientIdentity setting,
+	/// adds no product behaviour, and touches no tracked file.
+	/// </summary>
+	private bool ApplyTwinIdentity()
+	{
+		var applies = _options.All || string.Equals(_options.Only, "alt", StringComparison.OrdinalIgnoreCase);
+		if (!_options.TwinIdentity || !applies)
+		{
+			if (!string.IsNullOrWhiteSpace(_options.AltRoot))
+			{
+				RestoreTwinIdentity(_options.AltRoot);
+			}
+
+			return true;
+		}
+
+		if (string.IsNullOrWhiteSpace(_options.AltRoot) || string.IsNullOrWhiteSpace(_options.GuestRoot))
+		{
+			Log("FAIL: --twin-identity needs both the guest and the alternate roots");
+			return false;
+		}
+
+		var guest = ReadIpDirectIdentity(_options.GuestRoot);
+		if (string.IsNullOrWhiteSpace(guest))
+		{
+			Log("FAIL: --twin-identity needs the guest's ClientIdentity in its config; the guest has not run yet");
+			return false;
+		}
+
+		BackUpTwinIdentity(_options.AltRoot);
+		WriteIpDirectIdentity(_options.AltRoot, guest);
+		Log("alternate box identity copied from the guest for the duplicate-identity row");
+		return true;
+	}
+
+	/// <summary>
+	/// The alternate box keeps the guest's identity only for the duplicate-identity run. The backup
+	/// beside its config is the original value; the next launch without the flag puts it back, so a
+	/// later run never starts with two clients sharing an identity.
+	/// </summary>
+	private void BackUpTwinIdentity(string root)
+	{
+		var backup = TwinBackupPath(root);
+		if (File.Exists(backup))
+		{
+			return;
+		}
+
+		Directory.CreateDirectory(Path.GetDirectoryName(backup)!);
+		File.WriteAllText(backup, ReadIpDirectIdentity(root) ?? "absent");
+	}
+
+	private void RestoreTwinIdentity(string root)
+	{
+		var backup = TwinBackupPath(root);
+		if (!File.Exists(backup))
+		{
+			return;
+		}
+
+		var original = File.ReadAllText(backup).Trim();
+		if (string.Equals(original, "absent", StringComparison.Ordinal))
+		{
+			RemoveIpDirectIdentity(root);
+		}
+		else if (original.Length > 0)
+		{
+			WriteIpDirectIdentity(root, original);
+		}
+
+		File.Delete(backup);
+		Log("restored the alternate box identity from the twin backup");
+	}
+
+	private static string TwinBackupPath(string root) =>
+		Path.Combine(root, "BepInEx", "config", "CasualtiesUnknownOnline.identity-backup");
+
+	private static string IpDirectConfigPath(string root) =>
+		Path.Combine(root, "BepInEx", "config", "CasualtiesUnknownOnline.cfg");
+
+	private static string? ReadIpDirectIdentity(string root)
+	{
+		var path = IpDirectConfigPath(root);
+		if (!File.Exists(path))
+		{
+			return null;
+		}
+
+		var inSection = false;
+		foreach (var line in File.ReadLines(path))
+		{
+			var trimmed = line.Trim();
+			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
+			{
+				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
+				continue;
+			}
+
+			if (!inSection)
+			{
+				continue;
+			}
+
+			var separator = line.IndexOf('=');
+			if (separator > 0 && string.Equals(line[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
+			{
+				return line[(separator + 1)..].Trim();
+			}
+		}
+
+		return null;
+	}
+
+	private static void WriteIpDirectIdentity(string root, string identity)
+	{
+		var path = IpDirectConfigPath(root);
+		var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : [];
+		var inSection = false;
+		var replaced = false;
+		for (var index = 0; index < lines.Count; index++)
+		{
+			var trimmed = lines[index].Trim();
+			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
+			{
+				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
+				continue;
+			}
+
+			if (!inSection)
+			{
+				continue;
+			}
+
+			var separator = trimmed.IndexOf('=');
+			if (separator > 0 && string.Equals(trimmed[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
+			{
+				lines[index] = "ClientIdentity = " + identity;
+				replaced = true;
+				break;
+			}
+		}
+
+		if (!replaced)
+		{
+			lines.Add("[IpDirect]");
+			lines.Add("ClientIdentity = " + identity);
+		}
+
+		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+		File.WriteAllLines(path, lines);
+	}
+
+	private static void RemoveIpDirectIdentity(string root)
+	{
+		var path = IpDirectConfigPath(root);
+		if (!File.Exists(path))
+		{
+			return;
+		}
+
+		var lines = File.ReadAllLines(path).ToList();
+		var inSection = false;
+		for (var index = 0; index < lines.Count; index++)
+		{
+			var trimmed = lines[index].Trim();
+			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
+			{
+				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
+				continue;
+			}
+
+			if (!inSection)
+			{
+				continue;
+			}
+
+			var separator = trimmed.IndexOf('=');
+			if (separator > 0 && string.Equals(trimmed[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
+			{
+				lines.RemoveAt(index);
+				File.WriteAllLines(path, lines);
+				return;
+			}
+		}
 	}
 
 	private void ApplySaveRoot()

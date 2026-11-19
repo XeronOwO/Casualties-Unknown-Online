@@ -668,6 +668,13 @@ internal sealed class SessionDriver(Options options)
 
 	private Task RelaunchHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
 
+	/// <summary>
+	/// Starts the host after a case has confirmed its process is down (the host-crash row). The
+	/// existing refusal for an answering client still applies: a crash case kills the host first,
+	/// and only a down client is started.
+	/// </summary>
+	public Task RestartHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
+
 	private async Task RelaunchAsync(string url, string only, CancellationToken cancellationToken)
 	{
 		// Only a client that is DOWN is started. A client that answers but cannot join is a finding,
@@ -690,6 +697,9 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		var hostProject = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "host", "CasualtiesUnknownOnline.AcceptanceHost.csproj");
+		// The cached socket belongs to the process that just died. Dropping it before the new host
+		// starts keeps the first state read from hitting the dead connection.
+		_drivers.TryRemove(url, out _);
 		var start = new ProcessStartInfo("dotnet")
 		{
 			RedirectStandardOutput = true,
@@ -707,6 +717,12 @@ internal sealed class SessionDriver(Options options)
 		{
 			start.ArgumentList.Add("--game-dir");
 			start.ArgumentList.Add(_options.GameDir!);
+		}
+
+		if (!string.IsNullOrEmpty(_options.SaveRoot))
+		{
+			start.ArgumentList.Add("--save-root");
+			start.ArgumentList.Add(_options.SaveRoot!);
 		}
 
 		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");

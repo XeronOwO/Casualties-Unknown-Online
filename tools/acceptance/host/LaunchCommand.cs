@@ -11,7 +11,7 @@ internal static class LaunchCommand
 		"launch [--facts <md>] [--game-dir <install>] [--out-dir <dir>] [--steam-exe <exe>] [--sandboxie <start.exe>] " +
 		"[--guest-box <box>] [--guest-root <install>] [--alt-box <box>] [--alt-root <install>] " +
 		"[--host-url <ws>] [--guest-url <ws>] [--alt-url <ws>] [--only host|guest|alt] [--all] [--restart] " +
-		"[--save-root <dir>] [--steam-grace <s>] [--ready-timeout <s>]";
+		"[--save-root <dir>] [--pids <file>] [--twin-identity] [--steam-grace <s>] [--ready-timeout <s>]";
 
 	public static int Run(string[] args)
 	{
@@ -36,6 +36,8 @@ internal static class LaunchCommand
 			Restart: arguments.Optional("restart") is not null,
 			Only: arguments.Optional("only"),
 			SaveRoot: arguments.Optional("save-root"),
+			PidsPath: arguments.Optional("pids"),
+			TwinIdentity: arguments.Optional("twin-identity") is not null,
 			SteamGraceSeconds: arguments.OptionalNumber("steam-grace", 60),
 			ReadyTimeoutSeconds: arguments.OptionalNumber("ready-timeout", 300));
 
@@ -46,6 +48,7 @@ internal static class LaunchCommand
 			return hostMissing ? 6 : 7;
 		}
 
+		launcher.WritePids();
 		Console.WriteLine("offline IP direct: no lobby to create; the endpoints are the deliverable");
 		return 0;
 	}

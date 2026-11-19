@@ -495,6 +495,10 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 
 	public string OutputDirectory { get; } = outputDirectory;
 
+	public string? SaveRoot => _options.SaveRoot;
+
+	public string? PidsPath => _options.PidsPath;
+
 	public List<string> Notes { get; } = [];
 
 	public Dictionary<string, string> Readings { get; } = new(StringComparer.Ordinal);
@@ -867,6 +871,8 @@ internal static class SuiteReport
 		builder.AppendLine($"- Pair ready (UTC): `{Timestamp(pairReadyUtc)}`");
 		builder.AppendLine($"- Finish (UTC): `{Timestamp(finishedUtc)}`");
 		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
+		var metadata = BuildMetadata.Read(options.GameDir);
+		builder.AppendLine($"- Build: game `{metadata.GameBuild ?? "unknown"}`, mod `{metadata.ModBuild ?? "unknown"}`, artifact `{metadata.Artifact ?? "unknown"}`");
 		var byNameOnly = CaseRegistry.All.Where(candidate => !candidate.RunsInBatch).Select(candidate => candidate.Name).ToList();
 		builder.AppendLine(byNameOnly.Count == 0
 			? "- Cases: every registered case runs in this batch."
@@ -959,10 +965,17 @@ internal static class SuiteReport
 
 	public static async Task WriteJsonAsync(string path, Options options, IReadOnlyList<CaseResult> results, double sharedSetupMs, double totalMs, SuiteLogs suiteLogs, DateTimeOffset startedUtc, DateTimeOffset finishedUtc, DateTimeOffset pairStartedUtc, DateTimeOffset pairReadyUtc, Timeline timeline)
 	{
+		var metadata = BuildMetadata.Read(options.GameDir);
 		var payload = new
 		{
 			suite = options.Suite,
 			host = options.HostUrl,
+			build = new
+			{
+				game = metadata.GameBuild,
+				mod = metadata.ModBuild,
+				artifact = metadata.Artifact,
+			},
 			startedAtUtc = Timestamp(startedUtc),
 			pairStartedAtUtc = Timestamp(pairStartedUtc),
 			pairReadyAtUtc = Timestamp(pairReadyUtc),
@@ -1046,6 +1059,12 @@ internal sealed record Options
 
 	public string? GameDir { get; init; }
 
+	/// <summary>The scratch save root the launcher gave the clients; a case may corrupt only this archive.</summary>
+	public string? SaveRoot { get; init; }
+
+	/// <summary>The launcher's pids snapshot; a case that kills the host reads its pid from here.</summary>
+	public string? PidsPath { get; init; }
+
 	/// <summary>
 	/// The eval's own timeout inside the action budget. The driver's eval must finish before the action's
 	/// cancellation fires, or a slow snippet reports as a missing answer; the one-off drive command
@@ -1096,6 +1115,12 @@ internal sealed record Options
 					break;
 				case "--game-dir" when index + 1 < args.Length:
 					options = options with { GameDir = args[++index] };
+					break;
+				case "--save-root" when index + 1 < args.Length:
+					options = options with { SaveRoot = args[++index] };
+					break;
+				case "--pids" when index + 1 < args.Length:
+					options = options with { PidsPath = args[++index] };
 					break;
 				case "--member" when index + 1 < args.Length:
 					options = options with { MemberId = args[++index] };

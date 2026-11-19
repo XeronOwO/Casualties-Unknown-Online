@@ -11,7 +11,8 @@ internal static class RunCommand
 {
 	private const string Usage =
 		"run --game-dir <install> [--out <dir>] [--suite <name>] [--fresh] [--parallel-setup] [--no-launch] [--reuse] " +
-		"[--delay-between-cases <s>] [--steam-exe <exe>] [--sandboxie <start.exe>] [--guest-box <box>] [--guest-root <install>] " +
+		"[--delay-between-cases <s>] [--all] [--pids <file>] [--twin-identity] " +
+		"[--steam-exe <exe>] [--sandboxie <start.exe>] [--guest-box <box>] [--guest-root <install>] " +
 		"[--alt-box <box>] [--alt-root <install>] [--host-url <ws>] [--guest-url <ws>] [--alt-url <ws>]";
 
 	public static int Run(string[] args)
@@ -21,6 +22,8 @@ internal static class RunCommand
 		var project = Path.Combine(repoRoot, "tests", "CasualtiesUnknownOnline.AcceptanceSuite");
 		var outDir = arguments.Optional("out") ?? Path.Combine(repoRoot, ".acceptance", "suite");
 		var reportDir = Path.Combine(outDir, "report");
+		var saveRoot = Path.Combine(outDir, "saves");
+		var pidsPath = arguments.Optional("pids") ?? Path.Combine(outDir, "pids.json");
 		var gameDir = arguments.Required("game-dir");
 		Directory.CreateDirectory(outDir);
 
@@ -44,8 +47,18 @@ internal static class RunCommand
 				"launch",
 				"--game-dir", gameDir,
 				"--out-dir", outDir,
-				"--save-root", Path.Combine(outDir, "saves"),
+				"--save-root", saveRoot,
+				"--pids", pidsPath,
 			};
+			if (arguments.Optional("all") is not null)
+			{
+				launchArgs.Add("--all");
+			}
+
+			if (arguments.Optional("twin-identity") is not null)
+			{
+				launchArgs.Add("--twin-identity");
+			}
 			foreach (var name in new[] { "steam-exe", "sandboxie", "guest-box", "guest-root", "alt-box", "alt-root", "host-url", "guest-url", "alt-url" })
 			{
 				var value = arguments.Optional(name);
@@ -87,6 +100,8 @@ internal static class RunCommand
 			"--suite", arguments.Optional("suite") ?? "all",
 			"--out", reportDir,
 			"--game-dir", gameDir,
+			"--save-root", saveRoot,
+			"--pids", pidsPath,
 		};
 		if (arguments.Optional("fresh") is not null)
 		{

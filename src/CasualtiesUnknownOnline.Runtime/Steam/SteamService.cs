@@ -96,6 +96,9 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 	public PlayerColorValue? LocalPlayerColor => _localPlayerColor;
 
+	/// <summary>Steam keys on the account id, so the client identity is empty on this path.</summary>
+	public string LocalClientIdentity => "";
+
 	public void SetLocalPlayerColor(PlayerColorValue? color) => _localPlayerColor = color;
 
 	/// <summary>Raised on the Unity main thread via <see cref="RunCallbacks"/>.</summary>

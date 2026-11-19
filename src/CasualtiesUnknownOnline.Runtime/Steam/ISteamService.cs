@@ -41,6 +41,13 @@ public interface ISteamService
 	/// when Steam returns an empty name).</summary>
 	string GetPersonaName(ulong steamId);
 
+	/// <summary>
+	/// The local client's own persistent identity ("" on the Steam path, where the account
+	/// id is the identity). The IP-direct adapter returns the configured GUID; the handshake
+	/// carries it so the host can keep two same-named players apart (2026-11-19).
+	/// </summary>
+	string LocalClientIdentity { get; }
+
 	/// <summary>The local player's manually selected marker color, or null when
 	/// the player uses the deterministic SteamId palette assignment. This is
 	/// part of the local identity surface: the handshake and roster messages

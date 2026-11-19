@@ -11,8 +11,8 @@ namespace CasualtiesUnknownOnline.Tests.Tooling;
 /// repository carries no machine's private layout.
 ///
 /// <para>
-/// <c>-GameProcessName powershell</c> stands in for a running game: the script's own PowerShell process
-/// carries that name, so the "a game is up" branch is deterministic without a real game.
+/// <c>-GameProcessName dotnet</c> stands in for a running game: the test runner itself carries that name,
+/// so the "a game is up" branch is deterministic without a real game.
 /// </para>
 /// </summary>
 public class SessionEnvironmentTests
@@ -24,7 +24,7 @@ public class SessionEnvironmentTests
 	{
 		using var fixture = Fixture.WithTheOwnerPlaying();
 
-		var run = Run(fixture, "-Mode", "status", "-GameProcessName", "powershell", "-PlayMarkerName", Fixture.OtherMarkerName);
+		var run = Run(fixture, "-Mode", "status", "-GameProcessName", "dotnet", "-PlayMarkerName", Fixture.OtherMarkerName);
 
 		Assert.Equal(0, run.ExitCode);
 		Assert.Contains("active=play", run.Output);
@@ -50,7 +50,7 @@ public class SessionEnvironmentTests
 	{
 		using var fixture = Fixture.WithTheOwnerPlaying();
 
-		Run(fixture, "-Mode", "status", "-GameProcessName", "powershell", "-PlayMarkerName", Fixture.OtherMarkerName);
+		Run(fixture, "-Mode", "status", "-GameProcessName", "dotnet", "-PlayMarkerName", Fixture.OtherMarkerName);
 
 		Assert.True(fixture.MarkerExists("BepInEx", Fixture.OtherMarkerPath), "the owner's tree is still the active one");
 		Assert.True(fixture.MarkerExists("BepInEx-cuo", Fixture.CuoMarkerPath), "CUO's tree was not touched");
@@ -62,7 +62,7 @@ public class SessionEnvironmentTests
 	{
 		using var fixture = Fixture.WithTheOwnerPlaying();
 
-		var run = Run(fixture, "-Mode", "ensure-cuo", "-GameProcessName", "powershell", "-PlayMarkerName", Fixture.OtherMarkerName);
+		var run = Run(fixture, "-Mode", "ensure-cuo", "-GameProcessName", "dotnet", "-PlayMarkerName", Fixture.OtherMarkerName);
 
 		Assert.Equal(2, run.ExitCode);
 		Assert.Contains("action=refused", run.Output);

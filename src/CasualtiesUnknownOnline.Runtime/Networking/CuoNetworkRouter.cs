@@ -57,6 +57,9 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 	/// <inheritdoc />
 	string ITransportIdentity.LocalDisplayName => GetPersonaName(LocalSteamId);
 
+	/// <inheritdoc />
+	string ITransportIdentity.LocalClientIdentity => _ipDirectActive ? _ipDirectSteam.LocalClientIdentity : "";
+
 	/// <summary>The IP-direct identity adapter (lobby events + local display name).</summary>
 	public IpDirectSteamService IpDirectSteam => _ipDirectSteam;
 
@@ -91,6 +94,9 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 
 	public string GetPersonaName(ulong steamId) =>
 		_ipDirectActive ? _ipDirectSteam.GetPersonaName(steamId) : _steamService.GetPersonaName(steamId);
+
+	public string LocalClientIdentity =>
+		_ipDirectActive ? _ipDirectSteam.LocalClientIdentity : _steamService.LocalClientIdentity;
 
 	public PlayerColorValue? LocalPlayerColor =>
 		_ipDirectActive ? _ipDirectSteam.LocalPlayerColor : _steamService.LocalPlayerColor;

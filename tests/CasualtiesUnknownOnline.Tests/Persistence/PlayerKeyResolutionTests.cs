@@ -97,6 +97,47 @@ public class PlayerKeyResolutionTests
 	}
 
 	[Fact]
+	public void EffectiveKeys_TwoSameNamedPeersWithDistinctIdentities_StayDistinct()
+	{
+		// Duplicate display names are allowed (2026-11-19): the key gains a digest of each
+		// client's own identity, so the cut writes two characters and each peer claims its own.
+		var first = new PlayerIdentity(11UL, "Bob", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+		var second = new PlayerIdentity(12UL, "Bob", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+
+		var keys = PlayerKeyResolution.EffectiveKeys([first, second], PlayerKeySpace.IpDirect);
+
+		Assert.NotEqual(keys[11UL], keys[12UL]);
+		Assert.StartsWith("name-bob-c", keys[11UL], StringComparison.Ordinal);
+		Assert.StartsWith("name-bob-c", keys[12UL], StringComparison.Ordinal);
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim(keys[11UL], PlayerKeySpace.IpDirect, [first, second], out var firstPeer));
+		Assert.Equal(11UL, firstPeer);
+		Assert.Equal(PlayerKeyClaim.Claimed, PlayerKeyResolution.Claim(keys[12UL], PlayerKeySpace.IpDirect, [first, second], out var secondPeer));
+		Assert.Equal(12UL, secondPeer);
+	}
+
+	[Fact]
+	public void EffectiveKeys_AUniqueNameKeepsItsBareKey_SoExistingSavesStillLoad()
+	{
+		var bob = new PlayerIdentity(11UL, "Bob", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+		var keys = PlayerKeyResolution.EffectiveKeys([bob], PlayerKeySpace.IpDirect);
+
+		Assert.Equal("name-bob", keys[11UL]);
+	}
+
+	[Fact]
+	public void EffectiveKeys_MixedOldAndNewSameNamedPeers_DoNotCollide()
+	{
+		var modern = new PlayerIdentity(11UL, "Bob", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+		var old = new PlayerIdentity(12UL, "Bob");
+
+		var keys = PlayerKeyResolution.EffectiveKeys([modern, old], PlayerKeySpace.IpDirect);
+
+		Assert.NotEqual(keys[11UL], keys[12UL]);
+		Assert.Equal("name-bob", keys[12UL]);
+	}
+
+	[Fact]
 	public void Claim_OnePeerListedTwice_IsNotAmbiguous()
 	{
 		// A roster that names one peer twice still has exactly ONE claimant: the refusal is

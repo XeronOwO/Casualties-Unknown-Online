@@ -19,6 +19,7 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 	private readonly Dictionary<ulong, string> _personas = [];
 	private bool _isActive;
 	private string _localDisplayName = "";
+	private string _clientIdentity = "";
 	private PlayerColorValue? _localPlayerColor;
 
 	public bool IsInitialized => true;
@@ -33,6 +34,12 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 
 	/// <summary>The configured in-game display name used by IP-direct sessions.</summary>
 	public string LocalDisplayName => _localDisplayName;
+
+	/// <summary>The client's persistent identity from the config ("" before it is set).</summary>
+	public string LocalClientIdentity => _clientIdentity;
+
+	/// <summary>Stores the configured client identity used to keep same-named players apart.</summary>
+	public void SetClientIdentity(string identity) => _clientIdentity = identity;
 
 	public PlayerColorValue? LocalPlayerColor => _localPlayerColor;
 

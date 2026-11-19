@@ -46,6 +46,9 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 
 	public PlayerColorValue? LocalPlayerColor { get; internal set; }
 
+	/// <summary>The local client's persistent identity; tests seed it to model two same-named players.</summary>
+	public string LocalClientIdentity { get; internal set; } = "";
+
 	internal int LeaveLobbyCalls { get; private set; }
 
 	public void LeaveLobby() => LeaveLobbyCalls++;

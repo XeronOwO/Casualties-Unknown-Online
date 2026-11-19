@@ -31,6 +31,13 @@ public sealed class MemberPresenceTable
 		public float RttMs = -1f; // per-member ping diagnostics
 
 		/// <summary>
+		/// The member's own persistent client identity from its handshake ("" for an old client
+		/// or a Steam-path member). Kept apart from the display name so two IP-direct players who
+		/// share a name still write and claim two characters (2026-11-19).
+		/// </summary>
+		public string ClientIdentity = "";
+
+		/// <summary>
 		/// Host only: the handshake ack this host sent the member (null before the first
 		/// ack). The warm-up pump re-sends it — with the scene field refreshed, the only
 		/// field that moves — while the member stays unconfirmed, because the ack's other

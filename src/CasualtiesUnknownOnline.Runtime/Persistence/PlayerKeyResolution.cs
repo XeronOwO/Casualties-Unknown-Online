@@ -26,6 +26,41 @@ public static class PlayerKeyResolution
 		_ => PlayerKey.ForSteam(peerId),
 	};
 
+	/// <summary>
+	/// The key each present peer writes and claims under, after the duplicate-name rule:
+	/// a base key that two or more peers share gains a digest of each peer's client identity,
+	/// so two players with one display name keep two characters. A peer whose identity is
+	/// empty keeps the bare key — an old client cannot be told apart from another old client,
+	/// and its duplicate stays the counted ambiguity decision 177 describes.
+	/// </summary>
+	public static IReadOnlyDictionary<ulong, string> EffectiveKeys(IReadOnlyList<PlayerIdentity> peers, PlayerKeySpace space)
+	{
+		var baseKeys = new Dictionary<ulong, string>(peers.Count);
+		var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+		foreach (var peer in peers)
+		{
+			var key = space == PlayerKeySpace.IpDirect ? peer.KeyIn(PlayerKeySpace.IpDirect) : PlayerKey.ForSteam(peer.PeerId);
+			baseKeys[peer.PeerId] = key;
+			counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
+		}
+
+		if (space != PlayerKeySpace.IpDirect)
+		{
+			return baseKeys;
+		}
+
+		var effective = new Dictionary<ulong, string>(peers.Count);
+		foreach (var peer in peers)
+		{
+			var key = baseKeys[peer.PeerId];
+			effective[peer.PeerId] = counts[key] > 1 && !string.IsNullOrWhiteSpace(peer.ClientIdentity)
+				? PlayerKey.WithClientIdentity(key, peer.ClientIdentity!)
+				: key;
+		}
+
+		return effective;
+	}
+
 	/// <summary>The key space a single stored key belongs to. A key that matches neither grammar is not one of ours.</summary>
 	public static bool TrySpaceOf(string? playerKey, out PlayerKeySpace space)
 	{
@@ -120,11 +155,12 @@ public static class PlayerKeyResolution
 
 		var claimedBy = ulong.MaxValue;
 		var found = false;
+		var ipKeys = space == PlayerKeySpace.IpDirect ? EffectiveKeys(peers, PlayerKeySpace.IpDirect) : null;
 		foreach (var peer in peers)
 		{
 			var matches = space == PlayerKeySpace.Steam
 				? peer.PeerId == steamId!.Value
-				: string.Equals(KeyOf(peer.PeerId, peer.DisplayName, PlayerKeySpace.IpDirect), playerKey, StringComparison.Ordinal);
+				: string.Equals(ipKeys![peer.PeerId], playerKey, StringComparison.Ordinal);
 			if (!matches)
 			{
 				continue;

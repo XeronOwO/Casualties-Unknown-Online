@@ -14,4 +14,7 @@ internal sealed class FakeTransportIdentity : ITransportIdentity
 	public ulong LocalPeerId { get; set; } = 1001UL;
 
 	public string LocalDisplayName { get; set; } = "Host";
+
+	/// <summary>The local client's persistent identity; a test seeds it to model two same-named players.</summary>
+	public string LocalClientIdentity { get; set; } = "";
 }

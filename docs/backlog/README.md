@@ -66,6 +66,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 - [Acceptance rows as C# cases](in-progress/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — audit done; scripts move to C#.
+- [Same names must not merge characters](in-progress/1.0-ip-direct-duplicate-names-mix-characters.md) — **High** — the key follows the client, not the name.
 
 ### Review
 
@@ -119,7 +120,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [Two members lose the second character](done/1.0-two-member-continue-mixes-characters.md) — **High** — a shared name, not a lost save.
 - [Push and carry have no host switch](done/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit was dropped by decision.
 - [Adapter capability catalog](done/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.
 - [1.0 regression: the verified rows on the release build](done/1.0-regression-sweep.md) — **High** — every batch carried or named.

@@ -58,6 +58,7 @@ internal sealed class IpDirectActions
 		}
 
 		_ipSteam.SetDisplayName(_config.DisplayName);
+		_ipSteam.SetClientIdentity(_config.ClientIdentity);
 		_router.UseIpDirect();
 		if (!_ipSteam.StartHost(_config.ListenPort, out var error))
 		{
@@ -90,6 +91,7 @@ internal sealed class IpDirectActions
 		}
 
 		_ipSteam.SetDisplayName(_config.DisplayName);
+		_ipSteam.SetClientIdentity(_config.ClientIdentity);
 		_router.UseIpDirect();
 		if (!_ipSteam.Connect(address.Trim(), port, out var error))
 		{

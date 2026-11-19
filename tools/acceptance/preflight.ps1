@@ -204,11 +204,12 @@ function Get-AppIdMapping {
 	return [pscustomobject]@{ State = 'unknown'; Detail = "app id $appId cannot be cross-checked against the install: no steam_appid.txt under game-dir and no appmanifest_$appId.acf with an installdir beside it; a manifest is only read when the install sits under a steamapps\common folder; do not launch on an unproven id" }
 }
 
-function Get-IpDirectDisplayName([string]$installRoot) {
-	# The IP-direct key space is the display name (PlayerKey.ForDisplayName), so a duplicate name is a
-	# machine defect: a continue cannot tell the two players apart and refuses the shared key
-	# (decision 177), which reads as a lost character. Measured 2026-11-19: the host and the alternate
-	# client both carried DisplayName = Host, and the two-member continue came back as a new character.
+function Get-IpDirectSetting([string]$installRoot, [string]$key) {
+	# The IP-direct key space is the display name (PlayerKey.ForDisplayName). Two clients may present the
+	# same name: each carries a persistent ClientIdentity (decision 178), and a shared name is only
+	# disambiguated by that identity. Measured 2026-11-19: the host and the alternate client both carried
+	# DisplayName = Host, and before the identity landed the two-member continue came back as a new
+	# character. This reads the raw config value; the row below interprets it.
 	if ([string]::IsNullOrWhiteSpace($installRoot)) { return $null }
 	$path = Join-Path $installRoot 'BepInEx\config\CasualtiesUnknownOnline.cfg'
 	if (-not (Test-Path -LiteralPath $path)) { return $null }
@@ -219,12 +220,20 @@ function Get-IpDirectDisplayName([string]$installRoot) {
 			continue
 		}
 
-		if ($inSection -and $line -match '^\s*DisplayName\s*=\s*(.*)$') {
+		if ($inSection -and $line -match ('^\s*' + [regex]::Escape($key) + '\s*=\s*(.*)$')) {
 			return $Matches[1].Trim()
 		}
 	}
 
 	return $null
+}
+
+function Get-IpDirectDisplayName([string]$installRoot) {
+	return Get-IpDirectSetting $installRoot 'DisplayName'
+}
+
+function Get-IpDirectClientIdentity([string]$installRoot) {
+	return Get-IpDirectSetting $installRoot 'ClientIdentity'
 }
 
 function Test-Capture {
@@ -418,30 +427,48 @@ function Invoke-Preflight {
 		}
 	}
 
-	# ip-names: the IP-direct display name is the player key, so two clients sharing one name cannot be
-	# told apart by a continue's character files (decision 177 refuses the shared key) — the run would
-	# read a lost character that is really a naming collision. Advisory only for the two-client pair;
-	# a third client is where this defect was measured, so the row is reported whenever any two are known.
+	# ip-names: the IP-direct display name is the player key's base, and two clients MAY share it — each
+	# carries a persistent ClientIdentity (decision 178) that disambiguates a shared name. The row exists
+	# because a client whose identity has not been generated yet cannot be told apart: that client must
+	# start IP-direct once more so the config receives its identity.
 	$ipNames = [ordered]@{
 		host = Get-IpDirectDisplayName $gameDir
 		guest = Get-IpDirectDisplayName $sandboxRoot
 		alt = Get-IpDirectDisplayName $altRoot
+	}
+	$ipIdentities = [ordered]@{
+		host = Get-IpDirectClientIdentity $gameDir
+		guest = Get-IpDirectClientIdentity $sandboxRoot
+		alt = Get-IpDirectClientIdentity $altRoot
 	}
 	$named = @($ipNames.Keys | Where-Object { -not [string]::IsNullOrWhiteSpace($ipNames[$_]) })
 	$collisions = @()
 	foreach ($left in $named) {
 		foreach ($right in $named) {
 			if ($left -lt $right -and [string]::Equals($ipNames[$left], $ipNames[$right], [System.StringComparison]::OrdinalIgnoreCase)) {
-				$collisions += "the $left and $right clients both present '$($ipNames[$left])'"
+				$collisions += @{ Left = $left; Right = $right; Name = $ipNames[$left] }
 			}
 		}
 	}
 
-	if ($collisions.Count -gt 0) {
-		[void]$results.Add((New-Result 'ip-names' 'missing' (($collisions -join '; ') + ' — the IP-direct player key is the display name, so a continue cannot tell them apart and refuses the shared character key (decision 177); rename one in [IpDirect] DisplayName')))
+	$unidentified = @()
+	foreach ($collision in $collisions) {
+		foreach ($side in @($collision.Left, $collision.Right)) {
+			if ([string]::IsNullOrWhiteSpace($ipIdentities[$side])) { $unidentified += $side }
+		}
 	}
-	elseif ($named.Count -eq 0) {
+
+	if ($named.Count -eq 0) {
 		[void]$results.Add((New-Result 'ip-names' 'missing' 'no client config carries an [IpDirect] DisplayName, so the names cannot be compared'))
+	}
+	elseif ($unidentified.Count -gt 0) {
+		$detail = ($named | ForEach-Object { "$_=$($ipNames[$_])" }) -join ', '
+		$missing = @($unidentified | Select-Object -Unique) -join ', '
+		[void]$results.Add((New-Result 'ip-names' 'missing' "shared display name without a client identity yet ($detail): $missing has no [IpDirect] ClientIdentity — start that client over IP-direct once so the identity is generated and the shared name is kept apart (decision 178)"))
+	}
+	elseif ($collisions.Count -gt 0) {
+		$detail = (($collisions | ForEach-Object { "$($_.Left) and $($_.Right) present '$($_.Name)'" }) -join '; ')
+		[void]$results.Add((New-Result 'ip-names' 'present' "a shared IP-direct display name is allowed ($detail); each client's ClientIdentity keeps the character keys apart (decision 178)"))
 	}
 	else {
 		$detail = ($named | ForEach-Object { "$_=$($ipNames[$_])" }) -join ', '

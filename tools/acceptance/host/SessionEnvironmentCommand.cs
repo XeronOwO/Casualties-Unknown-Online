@@ -28,7 +28,7 @@ internal static class SessionEnvironmentCommand
 
 		if (!Directory.Exists(gameDir))
 		{
-			Console.WriteLine($"usage: --game does not resolve: {gameDir}");
+			Console.WriteLine($"usage: -GameDir does not resolve: {gameDir}");
 			return 64;
 		}
 

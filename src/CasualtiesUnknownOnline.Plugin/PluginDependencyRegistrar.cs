@@ -248,13 +248,16 @@ internal static class PluginDependencyRegistrar
 				"TCP port of an IP-direct host to join.",
 				new AcceptableValueRange<int>(1, 65535)));
 		var ipDisplayName = config.Bind("IpDirect", "DisplayName", "",
-			new ConfigDescription("Custom in-game display name for IP-direct sessions (empty = player-<id>)."));
+			new ConfigDescription("Custom in-game display name for IP-direct sessions (empty = player-<id>). A duplicate is allowed; the character key uses the client identity below when two players share one."));
+		var ipClientIdentity = config.Bind("IpDirect", "ClientIdentity", "",
+			new ConfigDescription("This client's own persistent identity (generated on first use; never edit to copy another client's character)."));
 		services.AddSingleton(new IpDirectConfigEditor(
 			config,
 			ipListenPort,
 			ipJoinAddress,
 			ipJoinPort,
-			ipDisplayName));
+			ipDisplayName,
+			ipClientIdentity));
 
 		// Opt-in hot-path latency instrumentation. Default off: it must not
 		// affect normal play; when enabled it only adds a stopwatch per

@@ -62,6 +62,13 @@ come back where they were when the cut was taken.
   `WorldCharacterBinder.cs`: "Steam keys are `steam-<steamId64>`, IP-direct keys are `name-<sanitized display name>`, and the
   two spaces never silently collide"; "membership, not the 'in world' flag, decides who is present, and a stored key nobody
   claims is not an error (that player joins as a NEW character)".
+- **Two IP-direct players may share a display name; the client identity keeps their characters apart.** A shared
+  `name-<name>` key is not an error to police: each client carries a persistent `[IpDirect] ClientIdentity` (generated on its
+  first IP-direct start, carried in the handshake), and `PlayerKeyResolution.EffectiveKeys` folds it into the key as
+  `-c<digest8>` only while two present peers share the base name. A unique name keeps the bare key, so saves written before
+  the identity existed still load; the same effective keys answer a `Claim`, so the member that follows a continue gets its
+  own character back (decision 272; the 2026-11-19 reading is on
+  [the ticket](../../backlog/in-progress/1.0-ip-direct-duplicate-names-mix-characters.md)).
 - **A continue restores the run's OWN world, not a stale one.** The recorded defect was "A Continue after a run opens a stale
   world (the layer-mod baseline then diverges)"; the fix moves the pointer to the run's own world at the first committed cut,
   and the acceptance reading is that all three clients "generated from the same decision entry state … and applied the same

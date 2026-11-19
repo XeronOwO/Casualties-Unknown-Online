@@ -20,4 +20,12 @@ public interface ITransportIdentity
 
 	/// <summary>The display name the active transport advertises for the local peer ("" when unknown).</summary>
 	string LocalDisplayName { get; }
+
+	/// <summary>
+	/// The local client's own persistent identity ("" when the transport has none). It is the
+	/// fact that keeps two IP-direct players who share a display name apart: duplicate names
+	/// are allowed, and the key gains a digest of this instead of collapsing both players
+	/// onto one file (2026-11-19).
+	/// </summary>
+	string LocalClientIdentity { get; }
 }

@@ -1240,10 +1240,10 @@ internal static class CaseRegistry
 			// and lands the product in the crafter's bag, and the host's view of that player renders it. The
 			// panel row only opens the panel; this is the row that reads the outcome.
 			new CraftingOutcomeCase(),
-			// The two-member save/continue came back red on 2026-11-19 and is parked in
-			// `docs/backlog/todo/1.0-two-member-continue-mixes-characters.md`: the cut carried one
-			// character, the second member's items merged onto the first, and the second member came
-			// back as a new character. Un-park it with the fix and read it again.
+			// The two-member save/continue read 1 character in the cut on 2026-11-19. The root cause was
+			// the name-only IP-direct key: two clients presenting the same display name shared a key and
+			// `WorldCharacterBinder.Collect` refused both rows. Each client now carries a ClientIdentity
+			// (decision 272), and this row is the reading that proves the shared name keeps two characters.
 			new TwoMemberContinueCase(),
 			// The real drag: a bandage picked up by the game's own drag gesture and released onto the wound
 			// view's limb rect starts the game's bandage minigame — the hand path, not the direct use call.

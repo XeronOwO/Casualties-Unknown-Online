@@ -47,6 +47,7 @@ internal sealed class WorldCharacterBinder(
 	{
 		var peers = PresentPeers();
 		var space = LiveKeySpace();
+		var keys = PlayerKeyResolution.EffectiveKeys(peers, space);
 		var localPeerId = LocalPeerId;
 		var collected = new List<SavedCharacter>(peers.Count);
 		var ownerByKey = new Dictionary<string, ulong>(StringComparer.Ordinal);
@@ -65,7 +66,7 @@ internal sealed class WorldCharacterBinder(
 				continue;
 			}
 
-			var key = peer.KeyIn(space);
+			var key = keys[peer.PeerId];
 			ownerByKey[key] = peer.PeerId;
 			if (!claimants.TryGetValue(key, out var sharers))
 			{
@@ -241,7 +242,7 @@ internal sealed class WorldCharacterBinder(
 	private List<PlayerIdentity> PresentPeers()
 	{
 		var localPeerId = LocalPeerId;
-		var peers = new List<PlayerIdentity> { new(localPeerId, transport.LocalDisplayName) };
+		var peers = new List<PlayerIdentity> { new(localPeerId, transport.LocalDisplayName, transport.LocalClientIdentity) };
 		foreach (var member in session.Members)
 		{
 			if (!member.Handshaken || member.SteamId == localPeerId)
@@ -249,7 +250,7 @@ internal sealed class WorldCharacterBinder(
 				continue;
 			}
 
-			peers.Add(new PlayerIdentity(member.SteamId, member.DisplayName));
+			peers.Add(new PlayerIdentity(member.SteamId, member.DisplayName, member.ClientIdentity));
 		}
 
 		return peers;

@@ -58,6 +58,15 @@ public sealed class HandshakeMsg
 	public string CuoBuild { get; set; } = "";
 
 	/// <summary>
+	/// The sender's own persistent client identity (a GUID generated into its config on
+	/// first launch; empty from an old client or a Steam-path client). The host folds it
+	/// into a stored character's key only when two present players share a display name,
+	/// so duplicate names keep two characters instead of one (2026-11-19).
+	/// </summary>
+	[ProtoMember(10)]
+	public string ClientIdentity { get; set; } = "";
+
+	/// <summary>
 	/// The kernel/save archive schema the sender reads
 	/// (`SaveManifest.CurrentSchemaVersion`). The host refuses a different one.
 	/// </summary>

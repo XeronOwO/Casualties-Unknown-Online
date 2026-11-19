@@ -103,6 +103,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
 			member.DisplayName = displayName;
+			member.ClientIdentity = NormalizeClientIdentity(msg.ClientIdentity, sender);
 			member.SelectedColor = selectedColor;
 			// Reconnect restore: the world archive's stored character (decision
 			// 178 — this table is in-memory, the archive is what persists) is
@@ -290,6 +291,41 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			default:
 				throw new ArgumentOutOfRangeException(nameof(note), note.Kind, "Unknown mod admission note.");
 		}
+	}
+
+	/// <summary>
+	/// Accepts only a 32-character hex client identity (what the config editor generates).
+	/// Anything else is stored as empty: an old client, a Steam-path client, or a crafted
+	/// value must not change how a character key is built.
+	/// </summary>
+	private string NormalizeClientIdentity(string? identity, ulong sender)
+	{
+		var trimmed = identity?.Trim() ?? "";
+		if (trimmed.Length == 0)
+		{
+			return "";
+		}
+
+		if (trimmed.Length == 32)
+		{
+			var allHex = true;
+			foreach (var character in trimmed)
+			{
+				if (!Uri.IsHexDigit(character))
+				{
+					allHex = false;
+					break;
+				}
+			}
+
+			if (allHex)
+			{
+				return trimmed.ToLowerInvariant();
+			}
+		}
+
+		_log.LogWarning("Handshake from {Peer}: the client identity is not a 32-character hex value; it is ignored (the player keys on the display name).", sender);
+		return "";
 	}
 
 	private void SendRefusal(ulong sender, HandshakeRefusal refusal)

@@ -48,6 +48,19 @@ public static class PlayerKey
 	public static string ForDisplayName(string? displayName) =>
 		NamePrefix + Normalize(displayName);
 
+	/// <summary>
+	/// The suffix that keeps two players who share a display name apart: the key keeps
+	/// the readable name and gains a short digest of the client's own persisted identity.
+	/// Unique names never carry it, so existing saves keep loading under the key they
+	/// were written with; only a duplicate name needs the disambiguator (2026-11-19: two
+	/// members both named "Host" made one key, and the cut carried neither character).
+	/// </summary>
+	internal const string ClientMarker = "-c";
+
+	/// <summary>Appends the client-identity digest to a base key (see <see cref="ClientMarker"/>).</summary>
+	public static string WithClientIdentity(string baseKey, string clientIdentity) =>
+		baseKey + ClientMarker + DigestOf(clientIdentity.Trim().ToLowerInvariant());
+
 	/// <summary>The sanitized form used by <see cref="ForDisplayName"/> (without the prefix).</summary>
 	public static string Normalize(string? displayName)
 	{

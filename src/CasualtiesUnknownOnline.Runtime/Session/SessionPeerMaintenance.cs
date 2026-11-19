@@ -321,6 +321,9 @@ internal sealed class SessionPeerMaintenance(
 			// The local display name: Steam persona in Steam mode, the configured
 			// custom name in IP-direct mode (the IP adapter answers this query).
 			DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
+			// The client's own persistent identity: the IP-direct adapter answers the configured
+			// GUID, and the host folds it into the stored character key only for duplicate names.
+			ClientIdentity = _steam.LocalClientIdentity,
 			HasColor = color.HasValue,
 			Color = color.HasValue ? color.Value.ToNetColorRgba().ToNetColorRgbaMsg() : new(),
 		};

@@ -276,9 +276,10 @@ never a residual, and never a pass.
 
 ## The wall-time baseline
 
-The full batch reports against the recorded baseline: **39 rows in 282.2 s** (2026-11-19,
-`.acceptance/full-r32b/report/report.md`; the previous readings were 288.7 s on 2026-11-18, 293.3 s on 2026-11-18 and
-299.8 s on 2026-11-17). The record copies the report's `Wall time` line, the
+The full batch reports against the recorded baseline: **39 rows in 301.0 s** (2026-11-19,
+`.acceptance/host-run3/report/report.md`, through the C# host on an idle machine; the three green runs that day read
+294.3 s, 301.0 s and 307.1 s, so 301.0 s is the cluster and the single 282.2 s reading of `full-r32b` stays as history,
+with 288.7 s, 293.3 s and 299.8 s before it). The record copies the report's `Wall time` line, the
 suite wall, the shared pair setup and the per-case table exactly as the run wrote them, and names the
 baseline it is compared against. A case that adds a row to `all` — or more than about a second — either
 finds the time back first or records on its ticket why it cannot; a case that runs only by name

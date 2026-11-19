@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Diagnostics;
 using System.Text.Json;
@@ -1151,7 +1152,10 @@ internal sealed class SessionDriver(Options options)
 		}
 	}
 
-	private readonly Dictionary<string, DriverClient> _drivers = new(StringComparer.OrdinalIgnoreCase);
+	// The suite reads the host and the member log concurrently: they are two processes, and the
+	// per-case marks/counts start both calls together. A plain Dictionary corrupts under the two
+	// lazy creations that race on the first case, so the cache is concurrent by construction.
+	private readonly ConcurrentDictionary<string, DriverClient> _drivers = new(StringComparer.OrdinalIgnoreCase);
 
 	/// <summary>
 	/// One Online UI action, answered in-process over the client's own socket: the driver template that
@@ -1398,7 +1402,7 @@ internal sealed class SessionDriver(Options options)
 
 	private async Task<bool> ReconnectAsync(string url, DriverClient driver)
 	{
-		_drivers.Remove(url);
+		_drivers.TryRemove(url, out _);
 		try
 		{
 			await driver.DisposeAsync().ConfigureAwait(false);

@@ -242,10 +242,14 @@ internal static partial class Program
 			context = new CaseContext(options, outputDirectory, host, caseSession, timeline);
 
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
-			// case. A mark that cannot be read is a failed acceptance, not a zero count.
+			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
+			// the member are separate processes, so both marks are requested before either is awaited:
+			// the two file reads must not be paid one after the other.
+			var hostMarkTask = context.Session.LogOffsetAsync(options.HostUrl, CancellationToken.None);
+			var memberMarkTask = context.Session.LogOffsetAsync(options.MemberUrl, CancellationToken.None);
 			try
 			{
-				hostMark = await context.Session.LogOffsetAsync(options.HostUrl, CancellationToken.None).ConfigureAwait(false);
+				hostMark = await hostMarkTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{
@@ -254,7 +258,7 @@ internal static partial class Program
 
 			try
 			{
-				memberMark = await context.Session.LogOffsetAsync(options.MemberUrl, CancellationToken.None).ConfigureAwait(false);
+				memberMark = await memberMarkTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{
@@ -332,11 +336,14 @@ internal static partial class Program
 		LogCounts? hostLogs = null;
 		LogCounts? memberLogs = null;
 		var problem = existingProblem;
-		if (hostMark >= 0)
+		// The two counts are independent reads in two processes: ask both before awaiting either.
+		var hostLogsTask = hostMark >= 0 ? session.LogSinceAsync(options.HostUrl, hostMark, CancellationToken.None) : null;
+		var memberLogsTask = memberMark >= 0 ? session.LogSinceAsync(options.MemberUrl, memberMark, CancellationToken.None) : null;
+		if (hostLogsTask is not null)
 		{
 			try
 			{
-				hostLogs = await session.LogSinceAsync(options.HostUrl, hostMark, CancellationToken.None).ConfigureAwait(false);
+				hostLogs = await hostLogsTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{
@@ -344,11 +351,11 @@ internal static partial class Program
 			}
 		}
 
-		if (memberMark >= 0)
+		if (memberLogsTask is not null)
 		{
 			try
 			{
-				memberLogs = await session.LogSinceAsync(options.MemberUrl, memberMark, CancellationToken.None).ConfigureAwait(false);
+				memberLogs = await memberLogsTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{
@@ -396,11 +403,13 @@ internal static partial class Program
 		var problem = start.Problem;
 		LogCounts? hostTotal = null;
 		LogCounts? memberTotal = null;
-		if (start.Host >= 0)
+		var hostTotalTask = start.Host >= 0 ? session.LogSinceAsync(options.HostUrl, start.Host, CancellationToken.None) : null;
+		var memberTotalTask = start.Member >= 0 ? session.LogSinceAsync(options.MemberUrl, start.Member, CancellationToken.None) : null;
+		if (hostTotalTask is not null)
 		{
 			try
 			{
-				hostTotal = await session.LogSinceAsync(options.HostUrl, start.Host, CancellationToken.None).ConfigureAwait(false);
+				hostTotal = await hostTotalTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{
@@ -408,11 +417,11 @@ internal static partial class Program
 			}
 		}
 
-		if (start.Member >= 0)
+		if (memberTotalTask is not null)
 		{
 			try
 			{
-				memberTotal = await session.LogSinceAsync(options.MemberUrl, start.Member, CancellationToken.None).ConfigureAwait(false);
+				memberTotal = await memberTotalTask.ConfigureAwait(false);
 			}
 			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 			{

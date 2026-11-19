@@ -415,7 +415,7 @@ public class RepositoryGateTests
 	[InlineData(".jspace/task/notes.txt", true)]
 	[InlineData("AGENTS.md", false)]
 	[InlineData("docs/acceptance/AGENTS.md", false)]
-	[InlineData("tools/acceptance/preflight.ps1", false)]
+	[InlineData("tools/acceptance/host/PreflightCommand.cs", false)]
 	[InlineData("src/CasualtiesUnknownOnline.Runtime/Session/World/GenerationYield.cs", false)]
 	[InlineData("tests/CasualtiesUnknownOnline.NormativeGates.Tests/RepositoryGateTests.cs", false)]
 	public void LocalContentMatcher_FlagsTheNeverCommittedFamilyAndIgnoresOrdinaryPaths(string path, bool expected) =>

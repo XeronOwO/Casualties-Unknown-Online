@@ -4,7 +4,7 @@ Every capability an acceptance run can use, how the preflight detects it, what i
 happens when it is absent. The machine-specific values behind these checks live in
 [AGENTS.local.md](AGENTS.local.md) in this directory (gitignored); this page never carries one.
 
-`tools/acceptance/preflight.ps1` implements the detection column. It is read-only and prints one row
+`dotnet run --project tools/acceptance/host -- preflight` implements the detection column. It is read-only and prints one row
 per dependency with a state of `present`, `missing`, `unknown` or `pending` (declared, helper not
 built yet — staged work), plus the local facts it could not resolve. Exit code `0` means a full
 two-client run is possible, `2` means at least one required capability is not present, `1` means the

@@ -1,0 +1,544 @@
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+
+namespace CasualtiesUnknownOnline.AcceptanceHost;
+
+/// <summary>
+/// Starts, reuses and stops the acceptance clients. Every machine value is passed in or read from the
+/// facts file; a value found in neither place is a named error, never a guess.
+///
+/// One client that already answers is REUSED, never started again — the game refuses a second
+/// instance, but the run must not depend on that. A box keeps its own copy of the plug-in, so the
+/// desktop build is synced into the box before its process starts; a box running an older build makes
+/// every reading false.
+/// </summary>
+internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
+{
+	private static readonly string[] GameProcessName = ["CasualtiesUnknown"];
+
+	private readonly LauncherOptions _options = options;
+	private readonly List<(string Name, string Url, bool Boxed, string Root, string? Box)> _clients = [];
+	private readonly StreamWriter? _logFile = OpenLog(options.OutDir);
+
+	public IReadOnlyList<(string Name, string Url, bool Boxed, string Root, string? Box)> Clients => _clients;
+
+	/// <summary>Everything the launcher needs, already resolved from parameters or the facts file.</summary>
+	internal sealed record LauncherOptions(
+		string GameDir,
+		string SteamExe,
+		string SandboxieExe,
+		string GuestBox,
+		string GuestRoot,
+		string AltBox,
+		string AltRoot,
+		string HostUrl,
+		string GuestUrl,
+		string AltUrl,
+		string OutDir,
+		bool All,
+		bool Restart,
+		string? Only,
+		string? SaveRoot,
+		int SteamGraceSeconds,
+		int ReadyTimeoutSeconds);
+
+	public bool Launch()
+	{
+		BuildClientList();
+		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
+		if (needsSandbox && !EnsureSandboxService())
+		{
+			Log("FAIL: the sandbox cannot start, so no boxed client can come up");
+			return false;
+		}
+
+		if (_options.Restart)
+		{
+			RestartNamed();
+		}
+
+		ApplySaveRoot();
+
+		foreach (var client in _clients)
+		{
+			StartClient(client);
+		}
+
+		var ready = Endpoints.WaitAll([.. _clients.Select(c => (c.Name, c.Url))], _options.ReadyTimeoutSeconds, Log);
+		Log($"endpoints ready={ready}");
+
+		if (!ready)
+		{
+			var restarted = 0;
+			foreach (var client in _clients.Where(c => c.Boxed && !Endpoints.IsOpen(c.Url)))
+			{
+				if (BoxGameProcesses(client.Box!).Count > 0)
+				{
+					continue;
+				}
+
+				RestartBoxGame(client);
+				restarted++;
+			}
+
+			if (restarted == 0)
+			{
+				Log("no boxed game died; not waiting a second round");
+			}
+			else
+			{
+				ready = Endpoints.WaitAll([.. _clients.Select(c => (c.Name, c.Url))], _options.ReadyTimeoutSeconds, Log);
+				Log($"endpoints after the box restart: ready={ready}");
+			}
+		}
+
+		var missing = _clients.Where(c => !Endpoints.IsOpen(c.Url)).ToList();
+		if (missing.Count > 0)
+		{
+			foreach (var client in missing)
+			{
+				Log($"FAIL: {client.Name} endpoint never came up");
+			}
+
+			return false;
+		}
+
+		Log(string.Join(", ", _clients.Select(c => c.Name)) + " up (endpoints answered)");
+		return true;
+	}
+
+	private void BuildClientList()
+	{
+		var host = ("host", _options.HostUrl, false, _options.GameDir, (string?)null);
+		var guest = ("guest", _options.GuestUrl, true, _options.GuestRoot, _options.GuestBox);
+		var alt = ("alt", _options.AltUrl, true, _options.AltRoot, _options.AltBox);
+
+		if (!string.IsNullOrWhiteSpace(_options.Only))
+		{
+			_clients.Add(_options.Only switch
+			{
+				"host" => host,
+				"guest" => guest,
+				_ => alt
+			});
+			return;
+		}
+
+		if (_options.All)
+		{
+			_clients.AddRange([host, guest, alt]);
+			return;
+		}
+
+		_clients.AddRange([host, guest]);
+	}
+
+	private void StartClient((string Name, string Url, bool Boxed, string Root, string? Box) client)
+	{
+		var noReuse = _options.Restart;
+		if (!noReuse && Endpoints.IsOpen(client.Url))
+		{
+			Log($"{client.Name} already running (reused)");
+			return;
+		}
+
+		if (client.Boxed)
+		{
+			StartBoxGame(client);
+			return;
+		}
+
+		if (!noReuse && GameProcesses().Any(process => SamePath(process, Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"))))
+		{
+			Log("host process exists; letting it come up");
+			return;
+		}
+
+		Process.Start(new ProcessStartInfo(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"))
+		{
+			WorkingDirectory = _options.GameDir,
+			UseShellExecute = false
+		});
+		Log("host started");
+	}
+
+	private void StartBoxGame((string Name, string Url, bool Boxed, string Root, string? Box) client)
+	{
+		if (BoxGameProcesses(client.Box!).Count > 0)
+		{
+			Log($"{client.Name} process exists; letting it come up");
+			return;
+		}
+
+		SyncPlugins(client);
+		EnsureBoxSteam(client.Box!);
+		Process.Start(new ProcessStartInfo(_options.SandboxieExe)
+		{
+			Arguments = $"/box:{client.Box} \"{Path.Combine(client.Root, "CasualtiesUnknown.exe")}\"",
+			UseShellExecute = false
+		});
+		Log($"{client.Name} started");
+	}
+
+	/// <summary>The box keeps its own plug-in copy; the desktop deploy never reaches inside the sandbox.</summary>
+	private void SyncPlugins((string Name, string Url, bool Boxed, string Root, string? Box) client)
+	{
+		var desktop = Path.Combine(_options.GameDir, "BepInEx", "plugins", "CasualtiesUnknownOnline");
+		var boxed = Path.Combine(client.Root, "BepInEx", "plugins", "CasualtiesUnknownOnline");
+		if (!Directory.Exists(desktop) || string.Equals(Path.GetFullPath(client.Root).TrimEnd('\\'), Path.GetFullPath(_options.GameDir).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+		{
+			return;
+		}
+
+		Directory.CreateDirectory(boxed);
+		foreach (var file in Directory.EnumerateFiles(desktop, "*", SearchOption.AllDirectories))
+		{
+			var relative = Path.GetRelativePath(desktop, file);
+			var destination = Path.Combine(boxed, relative);
+			Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+			File.Copy(file, destination, overwrite: true);
+		}
+
+		Log($"{client.Name} plugins synced from the desktop build");
+	}
+
+	private void EnsureBoxSteam(string box)
+	{
+		if (BoxProcesses(box, "steam").Count > 0)
+		{
+			Log($"{box} has a Steam process (left alone; IP direct does not need it)");
+		}
+	}
+
+	private void RestartNamed()
+	{
+		foreach (var client in _clients.Where(c => c.Boxed))
+		{
+			StopBoxGame(client.Box!);
+		}
+
+		if (_clients.Any(c => c.Name == "host"))
+		{
+			var hostExe = Path.GetFullPath(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"));
+			var stopped = false;
+			foreach (var process in GameProcesses())
+			{
+				if (SamePath(process, hostExe))
+				{
+					StopQuietly(process.Id);
+					stopped = true;
+				}
+			}
+
+			if (!stopped)
+			{
+				var owner = PortOwner(new Uri(_options.HostUrl).Port);
+				if (owner is not null)
+				{
+					StopQuietly(owner.Value);
+				}
+			}
+
+			WaitUntil(() => !Endpoints.IsOpen(_options.HostUrl), TimeSpan.FromSeconds(10));
+		}
+
+		Thread.Sleep(3000);
+		Log("restarted: " + string.Join(", ", _clients.Select(c => c.Name)));
+	}
+
+	private void ApplySaveRoot()
+	{
+		if (string.IsNullOrWhiteSpace(_options.SaveRoot))
+		{
+			return;
+		}
+
+		var root = Path.GetFullPath(_options.SaveRoot);
+		Environment.SetEnvironmentVariable("CUO_SAVE_ROOT", root);
+		Environment.SetEnvironmentVariable("CUO_SAVE_TIMING", "1");
+		Directory.CreateDirectory(root);
+		Log("acceptance save root: " + root);
+	}
+
+	/// <summary>A box can only start when Sandboxie's service is up; an unelevated Start.exe cannot start it.</summary>
+	private bool EnsureSandboxService()
+	{
+		if (ServiceState("SbieSvc") == "RUNNING")
+		{
+			return true;
+		}
+
+		Log("SbieSvc is not running; starting it elevated (a UAC prompt is expected)");
+		try
+		{
+			Process.Start(new ProcessStartInfo("sc.exe", "start SbieSvc")
+			{
+				UseShellExecute = true,
+				Verb = "runas",
+				WindowStyle = ProcessWindowStyle.Hidden
+			});
+		}
+		catch (Exception exception)
+		{
+			Log("FAIL: elevation was refused or failed, so no box can start: " + exception.Message);
+			return false;
+		}
+
+		if (WaitUntil(() => ServiceState("SbieSvc") == "RUNNING", TimeSpan.FromSeconds(60)))
+		{
+			Log("SbieSvc is up");
+			return true;
+		}
+
+		Log("FAIL: SbieSvc did not reach Running within 60 s");
+		return false;
+	}
+
+	private static string ServiceState(string name)
+	{
+		try
+		{
+			using var process = Process.Start(new ProcessStartInfo("sc.exe", $"query {name}")
+			{
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			});
+			if (process is null)
+			{
+				return string.Empty;
+			}
+
+			var output = process.StandardOutput.ReadToEnd();
+			process.WaitForExit(5000);
+			var match = Regex.Match(output, "STATE\\s*:\\s*\\d+\\s+([A-Z]+)", RegexOptions.IgnoreCase);
+			return match.Success ? match.Groups[1].Value.ToUpperInvariant() : string.Empty;
+		}
+		catch (Exception)
+		{
+			return string.Empty;
+		}
+	}
+
+	private void RestartBoxGame((string Name, string Url, bool Boxed, string Root, string? Box) client)
+	{
+		StopBoxGame(client.Box!);
+		EnsureBoxSteam(client.Box!);
+		Process.Start(new ProcessStartInfo(_options.SandboxieExe)
+		{
+			Arguments = $"/box:{client.Box} \"{Path.Combine(client.Root, "CasualtiesUnknown.exe")}\"",
+			UseShellExecute = false
+		});
+		Log($"{client.Name} restarted once (its earlier process exited before answering)");
+	}
+
+	private void StopBoxGame(string box)
+	{
+		foreach (var process in BoxGameProcesses(box))
+		{
+			StopQuietly(process.Id);
+		}
+
+		WaitUntil(() => BoxGameProcesses(box).Count == 0, TimeSpan.FromSeconds(10));
+	}
+
+	private List<Process> BoxGameProcesses(string box)
+	{
+		var result = new List<Process>();
+		foreach (var pid in BoxProcessIds(box))
+		{
+			try
+			{
+				var process = Process.GetProcessById(pid);
+				if (GameProcessName.Any(name => string.Equals(process.ProcessName, name, StringComparison.OrdinalIgnoreCase)))
+				{
+					result.Add(process);
+				}
+			}
+			catch (ArgumentException)
+			{
+			}
+		}
+
+		return result;
+	}
+
+	private List<Process> BoxProcesses(string box, string name)
+	{
+		var result = new List<Process>();
+		foreach (var pid in BoxProcessIds(box))
+		{
+			try
+			{
+				var process = Process.GetProcessById(pid);
+				if (string.Equals(process.ProcessName, name, StringComparison.OrdinalIgnoreCase))
+				{
+					result.Add(process);
+				}
+			}
+			catch (ArgumentException)
+			{
+			}
+		}
+
+		return result;
+	}
+
+	private List<int> BoxProcessIds(string box)
+	{
+		var ids = new List<int>();
+		try
+		{
+			using var process = Process.Start(new ProcessStartInfo(_options.SandboxieExe, $"/box:{box} /listpids")
+			{
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			});
+			if (process is null)
+			{
+				return ids;
+			}
+
+			var output = process.StandardOutput.ReadToEnd();
+			process.StandardError.ReadToEnd();
+			process.WaitForExit(10000);
+			foreach (var line in output.Split('\n'))
+			{
+				var trimmed = line.Trim();
+				if (int.TryParse(trimmed, out var id) && id != 0)
+				{
+					ids.Add(id);
+				}
+			}
+		}
+		catch (Exception exception)
+		{
+			Log($"could not list pids in {box}: {exception.Message}");
+		}
+
+		return ids;
+	}
+
+	private static IEnumerable<Process> GameProcesses()
+	{
+		var processes = new List<Process>();
+		foreach (var name in GameProcessName)
+		{
+			try
+			{
+				processes.AddRange(Process.GetProcessesByName(name));
+			}
+			catch (Exception)
+			{
+			}
+		}
+
+		return processes;
+	}
+
+	private static bool SamePath(Process process, string path)
+	{
+		try
+		{
+			return string.Equals(Path.GetFullPath(process.MainModule?.FileName ?? string.Empty), path, StringComparison.OrdinalIgnoreCase);
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
+
+	private static int? PortOwner(int port)
+	{
+		try
+		{
+			using var process = Process.Start(new ProcessStartInfo("netstat", "-ano -p tcp")
+			{
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			});
+			if (process is null)
+			{
+				return null;
+			}
+
+			var output = process.StandardOutput.ReadToEnd();
+			process.WaitForExit(10000);
+			foreach (var line in output.Split('\n'))
+			{
+				var trimmed = line.Trim();
+				if (!trimmed.Contains($"LISTENING", StringComparison.OrdinalIgnoreCase))
+				{
+					continue;
+				}
+
+				var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+				if (parts.Length < 5 || !parts[1].EndsWith($":{port}", StringComparison.Ordinal))
+				{
+					continue;
+				}
+
+				if (int.TryParse(parts[^1], out var pid))
+				{
+					return pid;
+				}
+			}
+		}
+		catch (Exception)
+		{
+		}
+
+		return null;
+	}
+
+	private static void StopQuietly(int pid)
+	{
+		try
+		{
+			Process.GetProcessById(pid).Kill(entireProcessTree: true);
+		}
+		catch (Exception)
+		{
+		}
+	}
+
+	private static bool WaitUntil(Func<bool> condition, TimeSpan budget)
+	{
+		var deadline = DateTime.UtcNow + budget;
+		while (DateTime.UtcNow < deadline)
+		{
+			if (condition())
+			{
+				return true;
+			}
+
+			Thread.Sleep(250);
+		}
+
+		return condition();
+	}
+
+	private void Log(string line)
+	{
+		var text = $"{DateTimeOffset.Now:HH:mm:ss} {line}";
+		Console.WriteLine(text);
+		_logFile?.WriteLine(text);
+		_logFile?.Flush();
+	}
+
+	private static StreamWriter? OpenLog(string outDir)
+	{
+		try
+		{
+			Directory.CreateDirectory(outDir);
+			return new StreamWriter(Path.Combine(outDir, "launch.log"), append: false);
+		}
+		catch (Exception)
+		{
+			return null;
+		}
+	}
+}

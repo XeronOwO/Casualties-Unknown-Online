@@ -1037,6 +1037,13 @@ internal sealed record Options
 
 	public string? GameDir { get; init; }
 
+	/// <summary>
+	/// The eval's own timeout inside the action budget. The driver's eval must finish before the action's
+	/// cancellation fires, or a slow snippet reports as a missing answer; the one-off drive command
+	/// therefore passes a value derived from its budget.
+	/// </summary>
+	public int DriverEvalTimeoutMs { get; init; } = 60_000;
+
 	public string? MemberId { get; init; }
 
 	public string? Problem { get; init; }

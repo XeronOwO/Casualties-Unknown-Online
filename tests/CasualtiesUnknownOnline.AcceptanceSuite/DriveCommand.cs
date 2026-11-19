@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite;
@@ -78,7 +80,10 @@ internal static class DriveCommand
 		var declaration = values.GetValueOrDefault("declare");
 		var recipe = values.GetValueOrDefault("recipe");
 
-		var options = new Options { HostUrl = url };
+		// The eval inside the action budget: half the budget, clamped to what a generated snippet can
+		// take. A fixed eval timeout reports a loaded machine's slow answer as a missing value.
+		var evalTimeoutMs = Math.Max(10_000, Math.Min(90_000, timeoutMs / 2));
+		var options = new Options { HostUrl = url, DriverEvalTimeoutMs = evalTimeoutMs };
 		var session = new SessionDriver(options);
 		using var cancellation = new CancellationTokenSource(timeoutMs);
 
@@ -139,6 +144,15 @@ internal static class DriveCommand
 
 			var json = answer.Value.GetRawText();
 			Console.WriteLine(json);
+			if (answer.Value.ValueKind == JsonValueKind.Object
+				&& answer.Value.TryGetProperty("ok", out var ok)
+				&& ok.ValueKind == JsonValueKind.False)
+			{
+				// The driver answered, and the answer is a refusal (a control never offered, a lobby
+				// that never appeared): the same failure the cases raise, in the console's words.
+				Console.Error.WriteLine($"the client refused '{action}': " + json);
+				return 1;
+			}
 			if (values.TryGetValue("json", out var jsonPath) && !string.IsNullOrWhiteSpace(jsonPath))
 			{
 				var directory = Path.GetDirectoryName(Path.GetFullPath(jsonPath));
@@ -152,17 +166,78 @@ internal static class DriveCommand
 
 			return 0;
 		}
-		catch (OperationCanceledException)
+		catch (Exception exception) when (IsTransport(exception))
+		{
+			Console.Error.WriteLine("transport failure (" + exception.GetType().Name + "): " + exception.Message);
+			return 2;
+		}
+		catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
 		{
 			Console.Error.WriteLine($"the action '{action}' exceeded its {timeoutMs} ms budget");
+			return 3;
+		}
+		catch (OperationCanceledException exception)
+		{
+			// The socket gave up before our own budget did: the client is not there.
+			Console.Error.WriteLine("transport failure (" + exception.GetType().Name + "): " + exception.Message);
+			return 2;
+		}
+		catch (DriverException exception) when (IsUsageError(exception))
+		{
+			Console.Error.WriteLine(exception.Message);
+			return 64;
+		}
+		catch (DriverException exception) when (IsEvalTimeout(exception))
+		{
+			Console.WriteLine("{\"error\":\"timeout\",\"detail\":" + JsonSerializer.Serialize(exception.Message) + "}");
 			return 3;
 		}
 		catch (DriverException exception)
 		{
 			Console.Error.WriteLine(exception.Message);
-			return 4;
+			return 1;
+		}
+		catch (WebSocketException exception)
+		{
+			Console.Error.WriteLine("transport failure: " + exception.Message);
+			return 2;
+		}
+		catch (HttpRequestException exception)
+		{
+			Console.Error.WriteLine("transport failure: " + exception.Message);
+			return 2;
+		}
+		catch (IOException exception)
+		{
+			Console.Error.WriteLine("transport failure: " + exception.Message);
+			return 2;
 		}
 	}
+
+	private static bool IsTransport(Exception exception)
+	{
+		for (var current = exception; current is not null; current = current.InnerException)
+		{
+			if (current is WebSocketException
+				or HttpRequestException
+				or SocketException)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool IsUsageError(DriverException exception) =>
+		exception.Message.Contains("needs an argument", StringComparison.Ordinal)
+		|| exception.Message.Contains("places '", StringComparison.Ordinal)
+		|| exception.Message.Contains("reads '", StringComparison.Ordinal);
+
+	private static bool IsEvalTimeout(DriverException exception) =>
+		exception.Message.Contains("evalTimeout", StringComparison.Ordinal)
+		|| exception.Message.Contains("\"Timeout\"", StringComparison.Ordinal)
+		|| exception.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase);
 
 	private static Dictionary<string, string> ParsePairs(IEnumerable<string> pairs)
 	{

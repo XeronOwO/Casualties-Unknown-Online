@@ -688,23 +688,23 @@ internal sealed class SessionDriver(Options options)
 			// Not answering: the client is not running. Start it (a start, not a restart).
 		}
 
-		var launcher = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "launch-clients.ps1");
-		var start = new ProcessStartInfo("pwsh")
+		var hostProject = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "host", "CasualtiesUnknownOnline.AcceptanceHost.csproj");
+		var start = new ProcessStartInfo("dotnet")
 		{
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
 			UseShellExecute = false,
 		};
-		start.ArgumentList.Add("-NoProfile");
-		start.ArgumentList.Add("-File");
-		start.ArgumentList.Add(launcher);
-		start.ArgumentList.Add("-Only");
+		start.ArgumentList.Add("run");
+		start.ArgumentList.Add("--project");
+		start.ArgumentList.Add(hostProject);
+		start.ArgumentList.Add("--");
+		start.ArgumentList.Add("launch");
+		start.ArgumentList.Add("--only");
 		start.ArgumentList.Add(only);
-		start.ArgumentList.Add("-NoJoin");
-		start.ArgumentList.Add("-AllowOfflineSteam");
 		if (!string.IsNullOrEmpty(_options.GameDir))
 		{
-			start.ArgumentList.Add("-GameDir");
+			start.ArgumentList.Add("--game-dir");
 			start.ArgumentList.Add(_options.GameDir!);
 		}
 
@@ -1327,7 +1327,7 @@ internal sealed class SessionDriver(Options options)
 
 		if (!_drivers.TryGetValue(url, out var driver))
 		{
-			driver = new DriverClient(url);
+			driver = new DriverClient(url, _options.DriverEvalTimeoutMs);
 			await driver.ConnectAsync(cancellationToken).ConfigureAwait(false);
 			_drivers[url] = driver;
 		}
@@ -1358,7 +1358,7 @@ internal sealed class SessionDriver(Options options)
 	{
 		if (!_drivers.TryGetValue(url, out var driver))
 		{
-			driver = new DriverClient(url);
+			driver = new DriverClient(url, _options.DriverEvalTimeoutMs);
 			await driver.ConnectAsync(cancellationToken).ConfigureAwait(false);
 			_drivers[url] = driver;
 		}
@@ -1407,7 +1407,7 @@ internal sealed class SessionDriver(Options options)
 		{
 		}
 
-		var fresh = new DriverClient(url);
+		var fresh = new DriverClient(url, _options.DriverEvalTimeoutMs);
 		try
 		{
 			await fresh.ConnectAsync(CancellationToken.None).ConfigureAwait(false);

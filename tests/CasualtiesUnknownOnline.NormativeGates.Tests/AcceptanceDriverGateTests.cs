@@ -25,7 +25,7 @@ namespace CasualtiesUnknownOnline.Tests.Tooling.NormativeGates;
 public class AcceptanceDriverGateTests
 {
 	private const string TemplatePath = "tools/acceptance/driver/InProcessDriver.cs";
-	private const string DriverPath = "tools/acceptance/drive-in-process.ps1";
+	private const string DriverPath = "tests/CasualtiesUnknownOnline.AcceptanceSuite/SessionDriver.cs";
 
 	/// <summary>The OS-input families the ban must cover: actuation, cursor and key state, focus and hook
 	/// manipulation, window messages, and the managed clipboard/cursor wrappers. The scan is capability
@@ -178,8 +178,8 @@ public class AcceptanceDriverGateTests
 
 		// A census floor: the scan must see the script and the template it sends.
 		Assert.True(files.Length >= 2, $"tools/acceptance/ held only {files.Length} file(s); the check would pass by scanning nothing");
-		Assert.Contains(files, file => file.EndsWith("drive-in-process.ps1", StringComparison.Ordinal));
 		Assert.Contains(files, file => file.EndsWith("InProcessDriver.cs", StringComparison.Ordinal));
+		Assert.Contains(files, file => file.EndsWith("InputCommand.cs", StringComparison.Ordinal));
 
 		var failures = new List<string>();
 		var declarations = 0;
@@ -225,7 +225,7 @@ public class AcceptanceDriverGateTests
 
 		Assert.False(IsDeclarationException(DeclarationDirectory + "/window-key.cs", "SendMessage"), "a declaration may not reach for a message API the exception does not name");
 		Assert.False(IsDeclarationException(DeclarationDirectory + "/window-key.cs", "SetForegroundWindow"), "a declaration may read the foreground window but never set it");
-		Assert.False(IsDeclarationException("tools/acceptance/drive-in-process.ps1", "PostMessage"), "the driver script is not a declaration file");
+		Assert.False(IsDeclarationException("tools/acceptance/host/InputCommand.cs", "PostMessage"), "the OS-input door is not a declaration file");
 	}
 
 	[Fact]
@@ -295,11 +295,13 @@ public class AcceptanceDriverGateTests
 
 		// The scenario vocabulary is the Online UI's own control ids and the native start entry: the
 		// driver must not fall back to calling Steam directly, which is the policy bypass this whole
-		// capability exists to avoid.
-		foreach (var control in new[] { "home.create_lobby", "home.lobby_id", "home.join", "tab.home" })
-		{
-			Assert.Contains(control, script, StringComparison.Ordinal);
-		}
+		// capability exists to avoid. The C# driver hands over the id its case names (the lobby ids
+		// come from the live action table at run time), so the literal that must survive here is the
+		// one the suite itself clicks; the intent path below is what proves the ids reach the UI.
+		Assert.Contains("tab.home", script, StringComparison.Ordinal);
+		Assert.True(
+			template.Contains("action table", StringComparison.Ordinal) || template.Contains("home.create_lobby", StringComparison.Ordinal),
+			"the driver must take the lobby controls from the live action table (or name them literally), never from a Steam call");
 
 		Assert.Contains("Runtime.OnlineUi.OnlineUiIntent", template, StringComparison.Ordinal);
 		Assert.Contains("ControlInvoked", template, StringComparison.Ordinal);

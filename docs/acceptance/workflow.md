@@ -53,7 +53,7 @@ names.
 ## 2. Dependency preflight — a gate, not a formality
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/acceptance/preflight.ps1
+dotnet run --project tools/acceptance/host -- preflight
 ```
 
 The preflight is read-only. It reports, per dependency: present / missing / unknown, plus the local
@@ -131,13 +131,13 @@ collected while its scenario is up.
   never guessed from the two participant views.
 - Both join through the game's own Online UI (host creates the lobby, guest joins with the lobby id).
   The native UI is the only lobby surface CUO has; the run reuses it. Getting the clients that far is
-  [`tools/acceptance/launch-clients.ps1`](../../tools/acceptance/launch-clients.ps1): it reuses a client whose
-  driver endpoint already answers (never starts a second), starts a box's Steam only when the box has none and
-  never stops it, waits for Steam before the game (a box Steam needs up to a minute; the game's own
-  `Steam initialized` line is the check, and a game that came up without it restarts that box's client only),
-  and then creates the lobby, joins guest and alt and starts the run. Every machine value is a parameter; a value
-  left out comes from the gitignored local facts file, and a value in neither place is a named error. Pass
-  `-NoJoin` to only start the three clients.
+  `dotnet run --project tools/acceptance/host -- launch` (the C# host's `launch` command, the port of the
+  deleted `launch-clients.ps1`): it reuses a client whose driver endpoint already answers (never starts a
+  second), starts a box's Steam only when the box has none and never stops it, waits for Steam before the
+  game, syncs the desktop plug-in into a box before its process starts, and waits once for every endpoint.
+  Every machine value is a parameter; a value left out comes from the gitignored local facts file, and a
+  value in neither place is a named error. `--only host|guest|alt` narrows the run; `--restart` replaces
+  the named clients instead of reusing them.
 - **The lobby join is not the session.** The join's own answer reads `role: Guest` while the member's
   session is still inactive — no handshake has completed, the host has no member yet, and a host-only
   console verb is refused in that state ("Permission denied: this command is host-only", the host's own
@@ -146,20 +146,18 @@ collected while its scenario is up.
   its own bounded wait — the member's own session/announcement reading is what says it exists — before the
   first row's step.
 - Probes and actuation use the in-process evaluator at `hotrepl-host-url` / `hotrepl-guest-url`:
-  reading live state, forcing a setup, or asserting that a message was handled. The committed driver
-  helper `tools/acceptance/drive-in-process.ps1` carries the scenario vocabulary — `state`,
-  `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`, `start-run`,
-  `continue-run`, `leave-world`, `console`, `quit` (`-ListActions` prints it) — and reproduces a setup
-  through the Online UI's own registered controls, the game's own run entries and the CUO console,
-  never through OS-level keyboard or mouse. Gameplay states that vocabulary cannot reach — a carry
-  relation, a forced body state, a movement window, a key a gesture reads — are the committed scenario
-  recipes under
+  reading live state, forcing a setup, or asserting that a message was handled. The vocabulary lives in
+  the suite's own action client — `CasualtiesUnknownOnline.AcceptanceSuite.exe drive --url <ws> --action …`
+  — with `state`, `open-window`, `goto-page`, `click`, `set-text`, `create-lobby`, `join-lobby`,
+  `start-run`, `continue-run`, `leave-world`, `console`, `quit`; it reproduces a setup through the Online
+  UI's own registered controls, the game's own run entries and the CUO console, never through OS-level
+  keyboard or mouse. Gameplay states that vocabulary cannot reach — a carry relation, a forced body state,
+  a movement window, a key a gesture reads — are the committed scenario recipes under
   `tools/acceptance/recipes/`, run one eval per invocation with
-  `drive-in-process.ps1 -Action recipe -Recipe <name> -RecipeArg <key=value>`; each recipe declares the
-  arguments it uses and the tickets it serves, and a multi-step scenario is the run's own loop of
-  invocations. A recipe that needs an eval declaration says so in its own header (`// requires: <name>`),
-  and the run loads that declaration once per client with
-  `drive-in-process.ps1 -Action declare -Declare <name>` before the first step that uses it. Ad-hoc
+  `--action recipe --recipe <name> --arg <key=value>`; each recipe declares the arguments it uses and the
+  tickets it serves, and a multi-step scenario is the run's own loop of invocations. A recipe that needs an
+  eval declaration says so in its own header (`// requires: <name>`), and the run loads that declaration
+  once per client with `--action declare --declare <name>` before the first step that uses it. Ad-hoc
   probes stay evals of the same channel, and a batch-local sender of the `probe.ps1` shape substitutes
   `{{key}}` text VERBATIM: its template spells a string placeholder with its own quotes
   (`var mode = "{{s:mode}}"`) and its `-Arg` takes the full typed name (`s:mode=probe`), where the
@@ -231,8 +229,8 @@ collected while its scenario is up.
   `virtual-input mode=install|move|press|release|clear|clear-buttons|uninstall|report` stages a screen position (origin bottom-left) and/or a button, and
   the game's own reads answer the staged state: `press` gives `held=true, down=true, up=false` in that frame, a later call gives
   `held=true, down=false, up=false`, `release` gives `up=true` for its frame only, and `uninstall` puts the real input back. It is OFF by default and
-  nothing but that recipe reaches it, so a player's session never sees it. Verification needs ONE client (`launch-clients.ps1 -Only host`), because the
-  patches are client-local.
+  nothing but that recipe reaches it, so a player's session never sees it. Verification needs ONE client
+  (`dotnet run --project tools/acceptance/host -- launch --only host`), because the patches are client-local.
 - **A recipe's body is ONE line.** The client evaluates a submission as one top-level expression through a Mono.CSharp REPL, so a body that opens a
   block on one line and closes it on another is refused as `eval 'recipe:<name>' failed: (1,1): InteractiveHost` — the same answer whether the file is
   new or an existing recipe's header with a new body, which is why the failure looked like "new files are rejected" (ticket
@@ -355,10 +353,10 @@ Which steps of this page are executable today, and which are still being built:
 
 | Step | Status |
 |---|---|
-| 2 — dependency preflight | **executable**: `tools/acceptance/preflight.ps1` |
+| 2 — dependency preflight | **executable**: `dotnet run --project tools/acceptance/host -- preflight` |
 | 1, 3, 6, 7, 8 — plan, verdicts, record, transition | **executable** as a procedure; the run is driven by the agent, not yet by a script |
 | 4 — build, deploy, identity, shadow rule | **executable**: existing `tools/*.ps1` plus the local shadow rule |
-| 5 — session, probes, capture | **partly executable**: a running client is driven through the committed in-process helper (`tools/acceptance/drive-in-process.ps1`), which acts through the Online UI's own registered controls and runs the committed scenario recipes (`tools/acceptance/recipes/`) for gameplay states the UI cannot reach, one eval per invocation, loading the eval declaration a recipe names (`-Action declare`, once per client) before the first step that needs it; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
+| 5 — session, probes, capture | **partly executable**: a running client is driven through the suite's `drive` command, which acts through the Online UI's own registered controls and runs the committed scenario recipes (`tools/acceptance/recipes/`) for gameplay states the UI cannot reach, one eval per invocation, loading the eval declaration a recipe names (`--action declare`, once per client) before the first step that needs it; launching both clients, frame capture and the log channels keep their steps, and each run records which mechanism produced each piece of evidence |
 
 ## Limits
 
@@ -379,12 +377,12 @@ The remaining rows of the drag family (`cross-player-drag-use-feedback`,
 `cross-player-drag-use-model-bounds`, `topical-limb-action-shape`, `remote-medical-treatment-operations`)
 all need the same gesture, so they are ONE batch with one launch and four verdicts:
 
-1. **Launch both clients once** (`tools/acceptance/launch-clients.ps1`), form the session, enter the world. **Then close
+1. **Launch both clients once** (`dotnet run --project tools/acceptance/host -- launch`), form the session, enter the world. **Then close
    the Online UI window on the client that performs the gesture** (`-Action click -ControlId window.close`): CUO's own
    `PlayerCameraHandleInputPatch` skips the native `HandleInput` while that modal is open, by design, so a key sent before
    the window is closed never reaches the game — the socket keeps answering, so the batch reads its evidence with the modal
    down and the gesture is the only thing the game sees.
-2. **Point at the target**: `drive-in-process.ps1 -Action recipe -Recipe screen-project -RecipeArg x=…,y=…`
+2. **Point at the target**: `drive --action recipe --recipe screen-project --arg x=… --arg y=…`
    on the dragging client answers the target body's CLIENT pixel and the panel's own screen rect. The
    recipe exists because the projection has to come from the game's own camera; a guessed pixel is not a
    gesture.

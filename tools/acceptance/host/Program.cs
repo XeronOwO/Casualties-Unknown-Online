@@ -28,6 +28,9 @@ internal static class Program
 				"env" => SessionEnvironmentCommand.Run(rest),
 				"capture" => WindowCaptureCommand.Run(rest),
 				"input" => InputCommand.Run(rest),
+				"launch" => LaunchCommand.Run(rest),
+				"run" => RunCommand.Run(rest),
+				"preflight" => PreflightCommand.Run(rest),
 				_ => Unknown(command),
 			};
 		}
@@ -62,6 +65,9 @@ internal static class Program
 		Console.WriteLine("  env      --game <install> [--mode status|ensure-cuo] [--play-marker <dll>] [--parked-tree <name>]");
 		Console.WriteLine("  capture  --out <png> [--process <name>] [--pid <id>] [--attempts <n>] [--delay-ms <n>]");
 		Console.WriteLine("  input    --action click|key|drag|rdrag|move|rpress|rrelease [--process <name>] [--pid <id>] ...");
+		Console.WriteLine("  launch   [--game-dir <install>] [--only host|guest|alt] [--all] [--restart] ...");
+		Console.WriteLine("  run      --game-dir <install> [--out <dir>] [--suite <name>] [--fresh] [--no-launch] ...");
+		Console.WriteLine("  preflight [--facts <md>] [--json <path>] [--timeout-ms <ms>]");
 		Console.WriteLine();
 		Console.WriteLine("Every command prints one JSON object on success and a message on failure.");
 	}

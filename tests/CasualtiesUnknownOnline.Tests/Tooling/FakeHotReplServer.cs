@@ -69,15 +69,22 @@ internal sealed class FakeHotReplServer : IDisposable
 
 	/// <summary>True when a frame asks for the given driver command (matching the substituted literal, not a template comment).</summary>
 	internal static bool AsksFor(string frame, string command) =>
-		frame.Contains("var command = \\\"" + command + "\\\"", StringComparison.Ordinal);
+		Unescape(frame).Contains("var command = \"" + command + "\"", StringComparison.Ordinal);
 
 	/// <summary>True when a frame carries the given driver argument (a control id, page or lobby id).</summary>
 	internal static bool Argues(string frame, string argument) =>
-		frame.Contains("var argument = \\\"" + argument + "\\\"", StringComparison.Ordinal);
+		Unescape(frame).Contains("var argument = \"" + argument + "\"", StringComparison.Ordinal);
 
 	/// <summary>True when a frame carries the given driver text value.</summary>
 	internal static bool Texted(string frame, string text) =>
-		frame.Contains("var text = \\\"" + text + "\\\"", StringComparison.Ordinal);
+		Unescape(frame).Contains("var text = \"" + text + "\"", StringComparison.Ordinal);
+
+	/// <summary>
+	/// The frame arrives JSON-encoded: the suite's serializer writes a quote inside the snippet as
+	/// <c>\u0022</c>, where the old PowerShell caller wrote <c>\"</c>. Both texts mean the same snippet,
+	/// so the matchers compare the unescaped form.
+	/// </summary>
+	private static string Unescape(string frame) => frame.Replace("\\u0022", "\"");
 
 	/// <summary>Wraps a client JSON answer into the <c>eval_result</c> frame the evaluator would send.</summary>
 	internal static string ReplyFor(string requestFrame, string clientJson) =>

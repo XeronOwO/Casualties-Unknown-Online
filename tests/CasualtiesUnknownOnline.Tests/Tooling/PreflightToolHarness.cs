@@ -7,18 +7,19 @@ using System.Text.RegularExpressions;
 namespace CasualtiesUnknownOnline.Tests.Tooling;
 
 /// <summary>
-/// The black-box harness for tools/acceptance/preflight.ps1: a throwaway acceptance machine (fact file,
-/// dummy executables and a fake Steam install) plus one Windows PowerShell invocation per call. Every
-/// call spawns its own process and fixture directory — this class holds no state.
+/// The black-box harness for the acceptance host's <c>preflight</c> command (the port of the deleted
+/// tools/acceptance/preflight.ps1): a throwaway acceptance machine (fact file, dummy executables and a
+/// fake Steam install) plus one host invocation per call. Every call spawns its own process and fixture
+/// directory — this class holds no state.
 /// </summary>
 internal static class PreflightToolHarness
 {
 	internal static RunResult Run(Fixture fixture)
 	{
-		var script = FindScript();
-		var arguments = string.Join(" ", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Quote(script), "-FactsPath", Quote(fixture.FactsPath)]);
+		var host = FindHost();
+		var arguments = string.Join(" ", [Quote(host), "preflight", "--facts", Quote(fixture.FactsPath)]);
 
-		var startInfo = new ProcessStartInfo("powershell.exe", arguments)
+		var startInfo = new ProcessStartInfo("dotnet", arguments)
 		{
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
@@ -29,7 +30,7 @@ internal static class PreflightToolHarness
 		};
 
 		using var process = Process.Start(startInfo)
-			?? throw new InvalidOperationException("powershell.exe did not start");
+			?? throw new InvalidOperationException("dotnet did not start");
 		var stdout = process.StandardOutput.ReadToEnd();
 		var stderr = process.StandardError.ReadToEnd();
 		process.WaitForExit();
@@ -53,12 +54,12 @@ internal static class PreflightToolHarness
 		return match.Success ? match.Groups["ids"].Value : string.Empty;
 	}
 
-	private static string FindScript()
+	private static string FindHost()
 	{
 		var directory = new DirectoryInfo(AppContext.BaseDirectory);
 		while (directory != null)
 		{
-			var candidate = Path.Combine(directory.FullName, "tools", "acceptance", "preflight.ps1");
+			var candidate = Path.Combine(directory.FullName, "tools", "acceptance", "host", "bin", "Debug", "net8.0-windows", "CasualtiesUnknownOnline.AcceptanceHost.dll");
 			if (File.Exists(candidate))
 			{
 				return candidate;
@@ -67,7 +68,7 @@ internal static class PreflightToolHarness
 			directory = directory.Parent;
 		}
 
-		throw new InvalidOperationException($"tools/acceptance/preflight.ps1 not found above {AppContext.BaseDirectory}");
+		throw new InvalidOperationException($"the acceptance host's build was not found above {AppContext.BaseDirectory}");
 	}
 
 	private static string Quote(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";

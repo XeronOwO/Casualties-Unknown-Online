@@ -8,19 +8,19 @@ using System.Text.RegularExpressions;
 namespace CasualtiesUnknownOnline.Tests.Tooling;
 
 /// <summary>
-/// The black-box harness for tools/acceptance/drive-in-process.ps1: one Windows PowerShell invocation
-/// per call, against whatever endpoint the caller points it at. Every call spawns its own process and
-/// this class holds no state.
+/// The black-box harness for the acceptance suite's <c>drive</c> subcommand: one process per call,
+/// against whatever endpoint the caller points it at. Every call spawns its own process and this class
+/// holds no state.
 /// </summary>
 internal static class DriverToolHarness
 {
 	internal static RunResult Run(params string[] arguments)
 	{
-		var script = FindScript();
-		var parts = new List<string> { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Quote(script), "-NoStepGate" };
-		parts.AddRange(arguments);
+		var suite = FindSuite();
+		var parts = new List<string> { Quote(suite) };
+		parts.AddRange(Translate(arguments));
 
-		var startInfo = new ProcessStartInfo("powershell.exe", string.Join(" ", parts))
+		var startInfo = new ProcessStartInfo("dotnet", string.Join(" ", parts))
 		{
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
@@ -31,19 +31,78 @@ internal static class DriverToolHarness
 		};
 
 		using var process = Process.Start(startInfo)
-			?? throw new InvalidOperationException("powershell.exe did not start");
+			?? throw new InvalidOperationException("dotnet did not start");
 		var stdout = process.StandardOutput.ReadToEnd();
 		var stderr = process.StandardError.ReadToEnd();
 		process.WaitForExit();
-		return new RunResult(process.ExitCode, stderr.Length == 0 ? stdout : stdout + Environment.NewLine + "[stderr] " + stderr);
+		var output = stderr.Length == 0 ? stdout : stdout + Environment.NewLine + "[stderr] " + stderr;
+		return new RunResult(process.ExitCode, output);
 	}
 
-	internal static string FindScript()
+	/// <summary>
+	/// The old script's flag names are kept by the callers; the suite speaks the long form the cases use.
+	/// </summary>
+	internal static IReadOnlyList<string> Translate(IReadOnlyList<string> arguments)
+	{
+		var translated = new List<string> { "drive" };
+		for (var index = 0; index < arguments.Count; index++)
+		{
+			var token = arguments[index];
+			switch (token)
+			{
+				case "-NoStepGate":
+					continue;
+				case "-ListActions":
+					translated.Add("--list-actions");
+					continue;
+				case "-Url":
+					translated.Add("--url");
+					continue;
+				case "-Action":
+					translated.Add("--action");
+					continue;
+				case "-Control":
+					translated.Add("--control");
+					continue;
+				case "-Text":
+					translated.Add("--text");
+					continue;
+				case "-LobbyId":
+					translated.Add("--lobby");
+					continue;
+				case "-Page":
+					translated.Add("--page");
+					continue;
+				case "-Recipe":
+					translated.Add("--recipe");
+					continue;
+				case "-RecipeArg":
+					translated.Add("--arg");
+					continue;
+				case "-Declare":
+					translated.Add("--declare");
+					continue;
+				case "-JsonPath":
+					translated.Add("--json");
+					continue;
+				case "-TimeoutMs":
+					translated.Add("--timeout-ms");
+					continue;
+				default:
+					translated.Add(token);
+					continue;
+			}
+		}
+
+		return translated;
+	}
+
+	internal static string FindSuite()
 	{
 		var directory = new DirectoryInfo(AppContext.BaseDirectory);
 		while (directory != null)
 		{
-			var candidate = Path.Combine(directory.FullName, "tools", "acceptance", "drive-in-process.ps1");
+			var candidate = Path.Combine(directory.FullName, "tests", "CasualtiesUnknownOnline.AcceptanceSuite", "bin", "Debug", "net8.0", "CasualtiesUnknownOnline.AcceptanceSuite.dll");
 			if (File.Exists(candidate))
 			{
 				return candidate;
@@ -52,11 +111,25 @@ internal static class DriverToolHarness
 			directory = directory.Parent;
 		}
 
-		throw new InvalidOperationException($"tools/acceptance/drive-in-process.ps1 not found above {AppContext.BaseDirectory}");
+		throw new InvalidOperationException($"the acceptance suite's build was not found above {AppContext.BaseDirectory}");
 	}
 
-	internal static string FindTemplate() =>
-		Path.Combine(Path.GetDirectoryName(FindScript())!, "driver", "InProcessDriver.cs");
+	internal static string FindTemplate()
+	{
+		var directory = new DirectoryInfo(AppContext.BaseDirectory);
+		while (directory != null)
+		{
+			var candidate = Path.Combine(directory.FullName, "tools", "acceptance", "driver", "InProcessDriver.cs");
+			if (File.Exists(candidate))
+			{
+				return candidate;
+			}
+
+			directory = directory.Parent;
+		}
+
+		throw new InvalidOperationException($"tools/acceptance/driver/InProcessDriver.cs not found above {AppContext.BaseDirectory}");
+	}
 
 	/// <summary>Reads the first JSON field with the given name; the driver's own output is pretty-printed, so the pattern tolerates spacing and value kinds.</summary>
 	internal static string Field(string json, string name)
@@ -74,7 +147,7 @@ internal static class DriverToolHarness
 	internal static bool HasField(string json, string name) =>
 		Regex.IsMatch(json, "\"" + Regex.Escape(name) + "\"\\s*:");
 
-	private static string Quote(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
+	private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
 
 	internal sealed record RunResult(int ExitCode, string Output);
 }

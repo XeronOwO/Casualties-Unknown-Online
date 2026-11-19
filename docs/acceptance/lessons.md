@@ -27,7 +27,7 @@ is what the reader needs. A narrative entry (a Symptom/Cause story) is refused b
 
 ## 2026-09-27 — A title-screen click is not "start the game"
 
-Session actions go through the Online UI's own registered controls; before an in-process click on a scene object becomes a setup step, the handler's target is identified from evidence, because every title-screen object carries its own action — `tools/acceptance/drive-in-process.ps1`, `workflow.md` §5.
+Session actions go through the Online UI's own registered controls; before an in-process click on a scene object becomes a setup step, the handler's target is identified from evidence, because every title-screen object carries its own action — the suite's `drive` command, `workflow.md` §5.
 
 ## 2026-09-27 — A row that names a past event is judged by its durable outcomes
 
@@ -112,7 +112,7 @@ Before designing a scenario for a write site, run the caller census and the ship
 
 ## 2026-10-01 — Two "parallel" tool calls are not a same-instant race
 
-A race scenario opens BOTH evaluator sockets first and sends both evals in ONE event-loop tick; two shell calls differ by hundreds of milliseconds, which is longer than the relay's travel time, so the second sender acts on an already-changed world — the batch's own race helper beside `tools/acceptance/drive-in-process.ps1`.
+A race scenario opens BOTH evaluator sockets first and sends both evals in ONE event-loop tick; two shell calls differ by hundreds of milliseconds, which is longer than the relay's travel time, so the second sender acts on an already-changed world — the batch's own race helper beside the suite's `drive` command.
 
 ## 2026-10-01 — A substituted numeric literal is a double, and the REPL only says `InteractiveHost`
 
@@ -301,7 +301,7 @@ A submission carrying a double quote fails at `(1,1)` on the local probe client 
 
 ## 2026-10-07 — Batch `20261007-c`: a census invoked through `powershell -File` binds no array argument
 
-`-File` passes every argument as a literal string, so `-Patterns 'a','b'` arrives as `a,b` and matches nothing while reporting `= 0` per client: call a local helper in-process with `&`, where array binding is ordinary PowerShell, and read a comma-joined pattern name in its output as the tell that the census checked nothing — keeping `powershell -File` for the scripts whose contract is "ASCII, no dependent modules" (`preflight.ps1`, `session-environment.ps1`).
+`-File` passes every argument as a literal string, so `-Patterns 'a','b'` arrives as `a,b` and matches nothing while reporting `= 0` per client: call a local helper in-process with `&`, where array binding is ordinary PowerShell, and read a comma-joined pattern name in its output as the tell that the census checked nothing — keeping `powershell -File` only for the scripts whose contract is "ASCII, no dependent modules" (the acceptance host's `preflight` and `env` commands replaced those).
 
 ## 2026-10-07 — A park window is only as long as the command that holds it
 
@@ -452,7 +452,7 @@ Before a row is recorded as "this world has none of X", read the population over
 Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identity-forge' failed: (1,1): InteractiveHost` — the evaluator's Mono REPL names no line and no symbol, so each wrong guess cost a whole three-client session: the recipe had put `IKernelProtocolControl` under `Runtime.Session.Items` (it lives in `Application.Kernel`) and `EnemyEffectKind` under `Runtime.Protocol.Messages` (it lives in `Runtime.Protocol`), and then read the pickup id from a field the host's record does not spell that way (`container-read mode=host` writes `"id"`, not `"instanceId"`). A recipe is compiled against the loaded assemblies with no editor and no diagnostics, so every type, member and JSON field a NEW recipe names is opened in the tree first (`src/**` for the type, an existing recipe's own answer for the field), and a recipe that must read one number is written as the smallest thing that returns it (`tools/acceptance/recipes/member-id.cs`) and read on the machine before it grows branches.
 ## 2026-10-17 — A recipe's `// args:` line is a requirement list, and a cell's state belongs to the host
 
-`drive-in-process.ps1` REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.
+The `drive` command REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.
 
 ## 2026-10-18 — A member's console verb answers later; read the console history
 

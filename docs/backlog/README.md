@@ -66,6 +66,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 
+- [Acceptance rows as C# cases](in-progress/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — tools are C#; 301.0 s against the 287.2 s target.
+
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
@@ -118,7 +120,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [Acceptance rows as C# cases](done/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — every tool is C#, 39 rows in 301.0 s.
 - [Same names must not merge characters](done/1.0-ip-direct-duplicate-names-mix-characters.md) — **High** — the key follows the client, not the name.
 - [Push and carry have no host switch](done/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit was dropped by decision.
 - [Adapter capability catalog](done/adapter-capability-catalog.md) — **High** — a Required failure refuses; an Optional unit can be switched off.

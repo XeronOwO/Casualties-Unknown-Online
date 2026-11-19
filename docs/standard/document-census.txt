@@ -214,7 +214,7 @@ docs/backlog/resolved/runtime-di-feature-registration-lifecycle.md | keep | inde
 docs/backlog/resolved/runtime-log-errors-2026-08-30.md | keep | index | docs/backlog/README.md
 docs/backlog/resolved/sleep-behavior-policy.md | keep | index | docs/backlog/README.md
 docs/backlog/done/adapter-capability-catalog.md | keep | index | docs/backlog/README.md
-docs/backlog/done/1.0-acceptance-rows-as-c-sharp-cases.md | keep | claim | docs/backlog/README.md
+docs/backlog/in-progress/1.0-acceptance-rows-as-c-sharp-cases.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-ip-direct-duplicate-names-mix-characters.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-restored-character-item-is-not-judged.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md

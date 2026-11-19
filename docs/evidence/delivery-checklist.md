@@ -1,4 +1,6 @@
-# Delivery checklist — this cycle
+# Delivery checklist
+
+Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal ` — evidence: ` followed by the evidence.
 
 - [ ] Design comprehension
 - [ ] Native parity
@@ -11,5 +13,4 @@
 - [ ] Plan approved by the user
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
-- [ ] Release-cycle deployment/acceptance: no product change, nothing to deploy this cycle.
-- [ ] FORBIDDEN — never check this box
+- [ ] Release-cycle deployment/acceptance

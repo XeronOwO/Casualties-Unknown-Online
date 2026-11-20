@@ -31,6 +31,7 @@ internal static class Program
 				"launch" => LaunchCommand.Run(rest),
 				"run" => RunCommand.Run(rest),
 				"preflight" => PreflightCommand.Run(rest),
+				"replay" => ReplayCommand.Run(rest),
 				_ => Unknown(command),
 			};
 		}
@@ -68,6 +69,7 @@ internal static class Program
 		Console.WriteLine("  launch   [--game-dir <install>] [--only host|guest|alt] [--all] [--restart] ...");
 		Console.WriteLine("  run      --game-dir <install> [--out <dir>] [--suite <name>] [--fresh] [--no-launch] ...");
 		Console.WriteLine("  preflight [--facts <md>] [--json <path>] [--timeout-ms <ms>]");
+		Console.WriteLine("  replay   --baseline <report.json> --candidate <report.json> [--case-wall-ms <n>] [--case-wall-percent <n>] ...");
 		Console.WriteLine();
 		Console.WriteLine("Every command prints one JSON object on success and a message on failure.");
 	}

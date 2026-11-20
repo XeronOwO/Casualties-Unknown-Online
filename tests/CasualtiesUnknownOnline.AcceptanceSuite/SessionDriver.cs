@@ -772,13 +772,21 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
-		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+		// A launcher's stdout is a pipe its own child can inherit: a game that outlives the launcher
+		// keeps the write end open, so awaiting the end of that stream hangs this case past every
+		// budget. Measured A3, 2026-11-20: no launcher process was left, the restarted host answered
+		// on its port, and the case had been silent for minutes with no verdict and no report. The
+		// exit code decides whether the launch worked; the text is a courtesy, taken with a cap.
+		var output = ReadAll(process.StandardOutput);
+		var errors = ReadAll(process.StandardError);
 		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+		var text = await TakeAsync(output).ConfigureAwait(false);
+		_ = await TakeAsync(errors).ConfigureAwait(false);
 		// The launcher's own readiness wait already says whether the host came up; polling
 		// another 120 s behind a launcher that exited 6 would hide its named failure.
 		if (process.ExitCode != 0)
 		{
-			throw new InvalidOperationException($"the acceptance launcher could not start the {only} (exit {process.ExitCode}): " + output.Trim());
+			throw new InvalidOperationException($"the acceptance launcher could not start the {only} (exit {process.ExitCode}): " + text.Trim());
 		}
 
 		var deadline = Stopwatch.StartNew();
@@ -795,7 +803,28 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
-		throw new InvalidOperationException($"the suite started the {only} but its driver never answered: " + output.Trim());
+		throw new InvalidOperationException($"the suite started the {only} but its driver never answered: " + text.Trim());
+	}
+
+	private static Task<string> ReadAll(StreamReader reader) => Task.Run(async () =>
+	{
+		try
+		{
+			return await reader.ReadToEndAsync().ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// A client still holds the write end and the stream was closed under the reader; the
+			// launcher's text is a courtesy for the error message, never the verdict.
+			return string.Empty;
+		}
+	});
+
+	/// <summary>Takes the reader's text if it arrived shortly after the launcher exited; otherwise none.</summary>
+	private static async Task<string> TakeAsync(Task<string> reading)
+	{
+		var finished = await Task.WhenAny(reading, Task.Delay(TimeSpan.FromSeconds(2))).ConfigureAwait(false);
+		return finished == reading ? await reading.ConfigureAwait(false) : string.Empty;
 	}
 
 	/// <summary>

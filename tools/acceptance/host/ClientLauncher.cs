@@ -19,6 +19,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 	private readonly LauncherOptions _options = options;
 	private readonly List<(string Name, string Url, bool Boxed, string Root, string? Box)> _clients = [];
+	private readonly List<Process> _started = [];
 	private readonly StreamWriter? _logFile = OpenLog(options.OutDir);
 
 	public IReadOnlyList<(string Name, string Url, bool Boxed, string Root, string? Box)> Clients => _clients;
@@ -169,11 +170,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 			WaitUntil(() => !Endpoints.IsOpen(client.Url), TimeSpan.FromSeconds(10));
 		}
 
-		Process.Start(new ProcessStartInfo(hostExe)
-		{
-			WorkingDirectory = _options.GameDir,
-			UseShellExecute = false
-		});
+		StartDetached(new ProcessStartInfo(hostExe) { WorkingDirectory = _options.GameDir }, "host");
 		Log("host started");
 	}
 
@@ -187,13 +184,50 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 		SyncPlugins(client);
 		EnsureBoxSteam(client.Box!);
-		Process.Start(new ProcessStartInfo(_options.SandboxieExe)
-		{
-			Arguments = $"/box:{client.Box} \"{Path.Combine(client.Root, "CasualtiesUnknown.exe")}\"",
-			UseShellExecute = false
-		});
+		StartDetached(
+			new ProcessStartInfo(_options.SandboxieExe)
+			{
+				Arguments = $"/box:{client.Box} \"{Path.Combine(client.Root, "CasualtiesUnknown.exe")}\""
+			},
+			client.Name);
 		Log($"{client.Name} started");
 	}
+
+	/// <summary>
+	/// Starts a client detached from the caller's console: the child gets private pipes this launcher
+	/// drains, so a game that outlives the launcher cannot hold the caller's stdout open.
+	///
+	/// Measured 2026-11-20 (A3): the suite starts this launcher with <c>dotnet run … launch</c> and reads
+	/// its stdout to the end (<c>SessionDriver.cs:775</c>). The launcher exited, the relaunched host
+	/// answered on its port, and the suite still sat in that read: the game, started here with no
+	/// redirect, had inherited the launcher's stdout pipe and kept the write end open after the
+	/// launcher was gone. Handing the child its own drained pipes removes the inherited handle, so the
+	/// read ends when the launcher's own process ends.
+	/// </summary>
+	private void StartDetached(ProcessStartInfo start, string name)
+	{
+		start.UseShellExecute = false;
+		start.RedirectStandardOutput = true;
+		start.RedirectStandardError = true;
+		var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the {name}");
+		// The launcher outlives the start call on purpose (the guest runs for the whole session), so the
+		// Process object is kept: a collected one closes the read ends and kills the drain.
+		_started.Add(process);
+		Drain(process.StandardOutput);
+		Drain(process.StandardError);
+	}
+
+	private static void Drain(StreamReader reader) => _ = Task.Run(async () =>
+	{
+		try
+		{
+			await reader.BaseStream.CopyToAsync(Stream.Null).ConfigureAwait(false);
+		}
+		catch (Exception)
+		{
+			// The client closed its side, or this launcher is shutting down; nothing left to drain.
+		}
+	});
 
 	/// <summary>The box keeps its own plug-in copy; the desktop deploy never reaches inside the sandbox.</summary>
 	private void SyncPlugins((string Name, string Url, bool Boxed, string Root, string? Box) client)

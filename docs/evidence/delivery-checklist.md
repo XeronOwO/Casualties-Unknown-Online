@@ -11,7 +11,7 @@ Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal 
 - [ ] Self-check table — the red must fail, and the same case must pass with the variable unset
 - [ ] Verification design — build, units, gates, format, deploy `-Acceptance`, red run, green rerun, trace run
 - [ ] Plan approved by the user — the night-mode goal authorises self-chosen ticket work without asking
-- [ ] Structure review done — the patches are stateless, find their targets by name (no product reference), log through BepInEx when they arm and warn instead of passing silently when a target is missing
+- [ ] Structure review done — the patches are stateless, find their targets by name (no product reference), and the trace writes its own file because CUO's log sink carries only its own categories
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate

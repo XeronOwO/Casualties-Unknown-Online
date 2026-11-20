@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Reflection;
+using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 
@@ -42,7 +44,32 @@ internal static class RemoteViewTracePatch
 		installed += Patch(harmony, apply, nameof(TraceApply), "ApplyCloneInventory");
 		installed += Patch(harmony, load, nameof(TraceLoad), "Container.LoadItem");
 		installed += Patch(harmony, bind, nameof(TraceBind), "RemoteItemSceneOps.BindToContainer");
-		Logger.LogInfo($"[RemoteViewTrace] armed on {installed} of 3 paths; the arrival's route is written below.");
+		Write($"armed on {installed} of 3 paths; the arrival's route is written here.");
+	}
+
+	/// <summary>
+	/// The trace writes its own file beside the assembly: CUO's log sink only carries its own categories, and a warning
+	/// would enter the case's log budget. The file is the reading, so it never competes with the row's assertion.
+	/// </summary>
+	private static void Write(string line)
+	{
+		var message = $"[RemoteViewTrace] {line}";
+		Logger.LogInfo(message);
+		try
+		{
+			File.AppendAllText(Path.Combine(TraceDirectory(), "cuo-remote-view-trace.log"), $"{DateTime.UtcNow:HH:mm:ss.fff} {message}{Environment.NewLine}");
+		}
+		catch (Exception exception)
+		{
+			Logger.LogWarning($"[RemoteViewTrace] could not write its file: {exception.Message}");
+		}
+	}
+
+	private static string TraceDirectory()
+	{
+		var root = Paths.BepInExRootPath;
+		var directory = Path.Combine(root, "plugins", "CasualtiesUnknownOnline");
+		return Directory.Exists(directory) ? directory : root;
 	}
 
 	private static int Patch(Harmony harmony, MethodBase? method, string name, string label)
@@ -58,13 +85,13 @@ internal static class RemoteViewTracePatch
 	}
 
 	private static void TraceApply(Body? clone) =>
-		Logger.LogInfo($"[RemoteViewTrace] ApplyCloneInventory clone {clone?.name ?? "null"} draws {Drawn(clone)} item(s).");
+		Write($"ApplyCloneInventory clone {clone?.name ?? "null"} draws {Drawn(clone)} item(s).");
 
 	private static void TraceLoad(Container? __instance, Item? item) =>
-		Logger.LogInfo($"[RemoteViewTrace] Container.LoadItem container {InstanceId(__instance)} children {__instance?.transform.childCount ?? 0} item {item?.id ?? "null"}.");
+		Write($"Container.LoadItem container {InstanceId(__instance)} children {__instance?.transform.childCount ?? 0} item {item?.id ?? "null"}.");
 
 	private static void TraceBind(Item? item, ulong parentItemId) =>
-		Logger.LogInfo($"[RemoteViewTrace] BindToContainer item {item?.id ?? "null"} into parent {parentItemId}.");
+		Write($"BindToContainer item {item?.id ?? "null"} into parent {parentItemId}.");
 
 	private static int Drawn(Body? clone) => clone == null ? 0 : clone.GetComponentsInChildren<Item>(true).Length;
 

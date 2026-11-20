@@ -50,8 +50,8 @@ internal static class RemoteViewRedPatch
 		Logger.LogInfo($"[RemoteViewRed] armed on {Target}.ApplyCloneInventory; it suppresses every application after the first only when CUO_ACCEPTANCE_RED is {Case}.");
 	}
 
-	// The first application draws the clone (and the container the fixture opens); everything after it is an
-	// update, which is exactly the arriving slot the row asserts.
+	// The first application draws the clone's backpack container (the one the fixture opens); once that container
+	// holds drawn children, every later application is the update that would carry the arriving slot.
 	private static bool Prefix(Body clone)
 	{
 		if (!string.Equals(Environment.GetEnvironmentVariable("CUO_ACCEPTANCE_RED"), Case, StringComparison.Ordinal))
@@ -59,7 +59,22 @@ internal static class RemoteViewRedPatch
 			return true;
 		}
 
-		if (clone == null || clone.GetComponentsInChildren<Item>(true).Length == 0) // Unity objects — ==
+		if (clone == null) // Unity object — ==
+		{
+			return true;
+		}
+
+		var drawn = false;
+		foreach (var container in clone.GetComponentsInChildren<Container>(true))
+		{
+			if (container != null && container.transform.childCount > 0) // Unity objects — ==
+			{
+				drawn = true;
+				break;
+			}
+		}
+
+		if (!drawn)
 		{
 			return true;
 		}

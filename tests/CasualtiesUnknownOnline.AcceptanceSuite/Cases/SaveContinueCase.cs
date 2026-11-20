@@ -54,7 +54,7 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(HasLabeledItem(memberSeesHostBefore, "HostColor", 3), "the member's displayed copy does not carry the host's colour: " + Raw(memberSeesHostBefore));
 		context.Read("host sees member colour", hostSeesMemberBefore);
 		context.Read("member sees host colour", memberSeesHostBefore);
-		var storedBefore = await context.RecipeAsync("saved-color-read", cancellationToken, ("guest", context.MemberId)).ConfigureAwait(false);
+		var storedBefore = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("host stored character before save", storedBefore);
 
 		// The save must come after real world damage. The 2026-11-15 merged run saved after a trap
@@ -97,37 +97,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(beforeTypes.Count > 0, "the host's world held no geyser rows before saving: " + Raw(beforeGeysers));
 		context.Read("geyser types before save", beforeGeysers);
 
-		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
-		context.Read("save", save);
-
-		var committed = await WaitForLogAsync(context, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
-		Require(committed.Contains("Cut Command committed", StringComparison.Ordinal), "the save cut did not commit");
-
-		await context.Session.ActionAsync(context.Session.HostUrl, "leave-world", cancellationToken).ConfigureAwait(false);
-		var left = false;
-		for (var wait = 0; wait < 20 && !left; wait++)
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-			var state = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-			left = !IsTrue(state, "inWorld");
-		}
-
-		Require(left, "the host did not leave the world before continuing");
-
-		var continued = await context.Session.ActionAsync(context.Session.HostUrl, "continue-run", cancellationToken).ConfigureAwait(false);
-		context.Read("continue", continued);
-		var restored = await WaitForLogAsync(context, "Continue restored world", TimeSpan.FromSeconds(40), cancellationToken).ConfigureAwait(false);
-		Require(restored.Contains("Continue restored world", StringComparison.Ordinal), "the continue never restored the world");
-
-		var inWorld = false;
-		for (var wait = 0; wait < 30 && !inWorld; wait++)
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-			var state = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
-			inWorld = IsTrue(state, "inWorld");
-		}
-
-		Require(inWorld, "the host did not enter the restored world");
+		await SaveContinueCycle.SaveAsync(context, cancellationToken).ConfigureAwait(false);
+		var restored = await SaveContinueCycle.ContinueAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 
 		// The live-world replay holds the native geyser set while the live count is still growing,

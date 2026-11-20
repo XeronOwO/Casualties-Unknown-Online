@@ -23,7 +23,7 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		Require(members.Length == 1, "the run does not have exactly one member on the host: " + members.Length);
 		context.UseMember(members[0]);
 
-		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "2")).ConfigureAwait(false);
+		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4")).ConfigureAwait(false);
 		context.Read("scan", scan);
 		JsonElement? cells = null;
 		if (scan is { ValueKind: JsonValueKind.Object } scanElement
@@ -34,60 +34,86 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		}
 
 		var resolvedCells = cells.GetValueOrDefault();
-		Require(resolvedCells.ValueKind == JsonValueKind.Array && resolvedCells.GetArrayLength() >= 2,
-			"the host has fewer than two breakable cells: " + Raw(scan));
-		var firstCell = resolvedCells[0];
-		var secondCell = resolvedCells[1];
-		var firstX = firstCell.GetProperty("x").GetInt32();
-		var firstY = firstCell.GetProperty("y").GetInt32();
-		var secondX = secondCell.GetProperty("x").GetInt32();
-		var secondY = secondCell.GetProperty("y").GetInt32();
+		Require(resolvedCells.ValueKind == JsonValueKind.Array && resolvedCells.GetArrayLength() >= 4,
+			"the host has fewer than four breakable cells: " + Raw(scan));
 
-		var hostFirstBefore = await ReadAsync(context, false, firstX, firstY, cancellationToken).ConfigureAwait(false);
-		var hostSecondBefore = await ReadAsync(context, false, secondX, secondY, cancellationToken).ConfigureAwait(false);
-		var memberFirstBefore = await ReadAsync(context, true, firstX, firstY, cancellationToken).ConfigureAwait(false);
-		var memberSecondBefore = await ReadAsync(context, true, secondX, secondY, cancellationToken).ConfigureAwait(false);
-		context.Read("host:first-before", hostFirstBefore);
-		context.Read("host:second-before", hostSecondBefore);
-		context.Read("member:first-before", memberFirstBefore);
-		context.Read("member:second-before", memberSecondBefore);
+		var firstX = 0;
+		var firstY = 0;
+		var secondX = 0;
+		var secondY = 0;
+		var firstOld = -1;
+		var secondOld = -1;
+		var firstNew = -1;
+		var secondNew = -1;
+		var stale = false;
+		for (var attempt = 0; attempt < 2 && !stale; attempt++)
+		{
+			var firstCell = resolvedCells[attempt * 2];
+			var secondCell = resolvedCells[(attempt * 2) + 1];
+			firstX = firstCell.GetProperty("x").GetInt32();
+			firstY = firstCell.GetProperty("y").GetInt32();
+			secondX = secondCell.GetProperty("x").GetInt32();
+			secondY = secondCell.GetProperty("y").GetInt32();
 
-		var firstOld = Int(hostFirstBefore, "block");
-		var secondOld = Int(hostSecondBefore, "block");
-		Require(firstOld >= 0 && secondOld >= 0, "the host could not read the two cells: " + Raw(hostFirstBefore) + " " + Raw(hostSecondBefore));
-		Require(Int(memberFirstBefore, "block") == firstOld && Int(memberSecondBefore, "block") == secondOld,
-			"the two clients do not start on the same value: host=" + firstOld + "/" + secondOld + " member=" + Raw(memberFirstBefore) + "/" + Raw(memberSecondBefore));
+			var hostFirstBefore = await ReadAsync(context, false, firstX, firstY, cancellationToken).ConfigureAwait(false);
+			var hostSecondBefore = await ReadAsync(context, false, secondX, secondY, cancellationToken).ConfigureAwait(false);
+			var memberFirstBefore = await ReadAsync(context, true, firstX, firstY, cancellationToken).ConfigureAwait(false);
+			var memberSecondBefore = await ReadAsync(context, true, secondX, secondY, cancellationToken).ConfigureAwait(false);
+			context.Read("host:first-before", hostFirstBefore);
+			context.Read("host:second-before", hostSecondBefore);
+			context.Read("member:first-before", memberFirstBefore);
+			context.Read("member:second-before", memberSecondBefore);
 
-		var firstNew = firstOld == 0 ? 1 : 0;
-		var secondNew = secondOld == 0 ? 2 : 0;
+			firstOld = Int(hostFirstBefore, "block");
+			secondOld = Int(hostSecondBefore, "block");
+			Require(firstOld >= 0 && secondOld >= 0, "the host could not read the two cells: " + Raw(hostFirstBefore) + " " + Raw(hostSecondBefore));
+			Require(Int(memberFirstBefore, "block") == firstOld && Int(memberSecondBefore, "block") == secondOld,
+				"the two clients do not start on the same value: host=" + firstOld + "/" + secondOld + " member=" + Raw(memberFirstBefore) + "/" + Raw(memberSecondBefore));
 
-		var firstForced = await context.Session.ActionAsync(
-			context.Session.HostUrl,
-			"block-force",
-			cancellationToken,
-			("-Text", firstX.ToString(CultureInfo.InvariantCulture) + "," + firstY.ToString(CultureInfo.InvariantCulture) + "," + firstNew.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		var secondForced = await context.Session.ActionAsync(
-			context.Session.HostUrl,
-			"block-force",
-			cancellationToken,
-			("-Text", secondX.ToString(CultureInfo.InvariantCulture) + "," + secondY.ToString(CultureInfo.InvariantCulture) + "," + secondNew.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		context.Read("host:first-forced", firstForced);
-		context.Read("host:second-forced", secondForced);
-		Require(Boolean(firstForced, "ok") == true && Boolean(secondForced, "ok") == true,
-			"the host could not force the two table writes: " + Raw(firstForced) + " " + Raw(secondForced));
+			firstNew = firstOld == 0 ? 1 : 0;
+			secondNew = secondOld == 0 ? 2 : 0;
 
+			var firstForced = await context.Session.ActionAsync(
+				context.Session.HostUrl,
+				"block-force",
+				cancellationToken,
+				("-Text", firstX.ToString(CultureInfo.InvariantCulture) + "," + firstY.ToString(CultureInfo.InvariantCulture) + "," + firstNew.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			var secondForced = await context.Session.ActionAsync(
+				context.Session.HostUrl,
+				"block-force",
+				cancellationToken,
+				("-Text", secondX.ToString(CultureInfo.InvariantCulture) + "," + secondY.ToString(CultureInfo.InvariantCulture) + "," + secondNew.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host:first-forced", firstForced);
+			context.Read("host:second-forced", secondForced);
+			Require(Boolean(firstForced, "ok") == true && Boolean(secondForced, "ok") == true,
+				"the host could not force the two table writes: " + Raw(firstForced) + " " + Raw(secondForced));
+
+			// The reconcile body can run on its 60 s timer while this pair is staged. Wait,
+			// bounded, for a pair the member has not received; when the timer beat this pair,
+			// force a second pair instead of accepting a non-stale member.
+			for (var wait = 0; wait < 20; wait++)
+			{
+				var memberFirstStale = await ReadAsync(context, true, firstX, firstY, cancellationToken).ConfigureAwait(false);
+				var memberSecondStale = await ReadAsync(context, true, secondX, secondY, cancellationToken).ConfigureAwait(false);
+				context.Read("member:first-stale", memberFirstStale);
+				context.Read("member:second-stale", memberSecondStale);
+				if (Int(memberFirstStale, "block") == firstOld && Int(memberSecondStale, "block") == secondOld)
+				{
+					stale = true;
+					break;
+				}
+
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		Require(stale, "the member was not stale before the reconcile after two forced pairs");
 		var hostFirstAfter = await ReadAsync(context, false, firstX, firstY, cancellationToken).ConfigureAwait(false);
 		var hostSecondAfter = await ReadAsync(context, false, secondX, secondY, cancellationToken).ConfigureAwait(false);
-		var memberFirstStale = await ReadAsync(context, true, firstX, firstY, cancellationToken).ConfigureAwait(false);
-		var memberSecondStale = await ReadAsync(context, true, secondX, secondY, cancellationToken).ConfigureAwait(false);
 		context.Read("host:first-after", hostFirstAfter);
 		context.Read("host:second-after", hostSecondAfter);
-		context.Read("member:first-stale", memberFirstStale);
-		context.Read("member:second-stale", memberSecondStale);
 		Require(Int(hostFirstAfter, "block") == firstNew && Int(hostSecondAfter, "block") == secondNew,
 			"the host's own table did not take the forced writes: " + Raw(hostFirstAfter) + " " + Raw(hostSecondAfter));
-		Require(Int(memberFirstStale, "block") == firstOld && Int(memberSecondStale, "block") == secondOld,
-			"the member was not stale before the reconcile: " + Raw(memberFirstStale) + " " + Raw(memberSecondStale));
 
 		// The 60 s step is the reconciler's unit fact; this action calls the production reconcile
 		// body at a due timestamp, so the wire diff/send path is exercised without a production

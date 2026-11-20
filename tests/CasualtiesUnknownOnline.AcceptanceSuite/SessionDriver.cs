@@ -17,7 +17,7 @@ internal sealed class SessionDriver(Options options)
 	private static readonly TimeSpan StartBudget = TimeSpan.FromSeconds(30);
 	// Normal member generation is 21-24 s on this box. The budget is one measured normal plus
 	// a small margin: a blocked load fails at 30 s instead of hiding for a minute.
-	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(30);
+	private static readonly TimeSpan JoinBudget = TimeSpan.FromSeconds(50);
 
 	private readonly Options _options = options;
 
@@ -509,6 +509,16 @@ internal sealed class SessionDriver(Options options)
 			return "the member was already in the host's run";
 		}
 
+		if (IsTrue(state, "inWorld") && sameRun)
+		{
+			// The member is in the host's current run, but the host's roster does not carry it yet:
+			// it is still generating its world (measured 2026-11-20: the guest's scene stayed
+			// InMenu (PreGen) for 12-17 s while the host counted a stale second connection).
+			// Leaving here destroys the session the world join needs, so wait for the roster.
+			await WaitForMemberListedAsync(localId, TimeSpan.FromSeconds(50), cancellationToken).ConfigureAwait(false);
+			return $"the suite waited for the member to appear in the host's run ({localId})";
+		}
+
 		if (IsTrue(state, "inWorld"))
 		{
 			// The member still sits in an earlier session; the host's fresh run does not list it,
@@ -603,16 +613,23 @@ internal sealed class SessionDriver(Options options)
 					{
 						await ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
 						activeSince.Restart();
-						continue;
 					}
-
-					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+					else
+					{
+						await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+					}
 				}
-
-				continue;
 			}
 
-			if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
+			var page = StringValue(state, "page");
+			if (!string.Equals(page, "Home", StringComparison.Ordinal) && controls.Contains("tab.home"))
+			{
+				// The join controls live on the home page; a client parked on another tab has no
+				// ip.join and no transport switch. Measured A1: the cleared guest sat on page=Network
+				// with only the tabs and the ping, so clicking tab.network again never left it.
+				await TryActionAsync(_options.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+			}
+			else if (controls.Contains("home.leave") && !string.Equals(StringValue(state, "role"), "Guest", StringComparison.Ordinal))
 			{
 				// A member that holds a session the host's fresh run does not name (a guest of the
 				// run the restart replaced) leaves it, and the join below is the judge. A member that
@@ -652,6 +669,27 @@ internal sealed class SessionDriver(Options options)
 
 		throw new InvalidOperationException(
 			"the suite could not join the member to the host's session: " + DescribeMemberState(state));
+	}
+
+	private async Task WaitForMemberListedAsync(string localId, TimeSpan budget, CancellationToken cancellationToken)
+	{
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < budget)
+		{
+			var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			var listed = localId.Length > 0
+				? members.Contains(localId, StringComparer.Ordinal)
+				: members.Length > 0;
+			if (listed)
+			{
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException(
+			$"the member {localId} never appeared in the host's roster after {budget.TotalSeconds:F0}s");
 	}
 
 	private static string DescribeMemberState(JsonElement state) =>
@@ -707,12 +745,20 @@ internal sealed class SessionDriver(Options options)
 			UseShellExecute = false,
 		};
 		start.ArgumentList.Add("run");
+		start.ArgumentList.Add("--no-build");
 		start.ArgumentList.Add("--project");
 		start.ArgumentList.Add(hostProject);
 		start.ArgumentList.Add("--");
 		start.ArgumentList.Add("launch");
 		start.ArgumentList.Add("--only");
 		start.ArgumentList.Add(only);
+		// The host the case killed can leave a process that exists but never answers (measured
+		// A3, 2026-11-20: "host process exists; letting it come up" sat on the launcher's 300 s
+		// budget). The case has already refused an answering client, so this start stops any
+		// leftover and uses the same measured 120 s startup budget.
+		start.ArgumentList.Add("--restart");
+		start.ArgumentList.Add("--ready-timeout");
+		start.ArgumentList.Add("120");
 		if (!string.IsNullOrEmpty(_options.GameDir))
 		{
 			start.ArgumentList.Add("--game-dir");
@@ -728,6 +774,13 @@ internal sealed class SessionDriver(Options options)
 		using var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the acceptance launcher for the {only}");
 		var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 		await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+		// The launcher's own readiness wait already says whether the host came up; polling
+		// another 120 s behind a launcher that exited 6 would hide its named failure.
+		if (process.ExitCode != 0)
+		{
+			throw new InvalidOperationException($"the acceptance launcher could not start the {only} (exit {process.ExitCode}): " + output.Trim());
+		}
+
 		var deadline = Stopwatch.StartNew();
 		while (deadline.Elapsed < TimeSpan.FromSeconds(120))
 		{

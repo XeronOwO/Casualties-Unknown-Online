@@ -41,18 +41,12 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		string? Only,
 		string? SaveRoot,
 		string? PidsPath,
-		bool TwinIdentity,
 		int SteamGraceSeconds,
 		int ReadyTimeoutSeconds);
 
 	public bool Launch()
 	{
 		BuildClientList();
-		if (!ApplyTwinIdentity())
-		{
-			return false;
-		}
-
 		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
 		if (needsSandbox && !EnsureSandboxService())
 		{
@@ -156,13 +150,26 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 			return;
 		}
 
-		if (!noReuse && GameProcesses().Any(process => SamePath(process, Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"))))
+		var hostExe = Path.Combine(_options.GameDir, "CasualtiesUnknown.exe");
+		var existingHost = GameProcesses().FirstOrDefault(process => SamePath(process, hostExe));
+		if (!noReuse && existingHost is not null)
 		{
-			Log("host process exists; letting it come up");
-			return;
+			// A process that has existed longer than a launch can take but still has no endpoint is
+			// a leftover, not a client coming up (measured 2026-11-20: the A3 relaunch left one and
+			// every later run sat on the 300 s endpoint budget). The endpoint is closed here, so the
+			// "never restart a client that answers" rule does not cover this process.
+			if (HostAge(existingHost) < TimeSpan.FromSeconds(30))
+			{
+				Log("host process exists; letting it come up");
+				return;
+			}
+
+			Log($"host process {existingHost.Id} is stale ({HostAge(existingHost).TotalSeconds:F0} s old, no endpoint); stopping it");
+			StopQuietly(existingHost.Id);
+			WaitUntil(() => !Endpoints.IsOpen(client.Url), TimeSpan.FromSeconds(10));
 		}
 
-		Process.Start(new ProcessStartInfo(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"))
+		Process.Start(new ProcessStartInfo(hostExe)
 		{
 			WorkingDirectory = _options.GameDir,
 			UseShellExecute = false
@@ -291,195 +298,6 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_options.PidsPath))!);
 		File.WriteAllText(_options.PidsPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
 		Log($"pids written (host pid {hostPid?.ToString() ?? "missing"})");
-	}
-
-	/// <summary>
-	/// Test-only fault injection for the duplicate-identity row: the alternate box is given the
-	/// guest's persistent identity, so the host sees one identity under one display name. The
-	/// write goes to the box's own gitignored config; it reuses the existing ClientIdentity setting,
-	/// adds no product behaviour, and touches no tracked file.
-	/// </summary>
-	private bool ApplyTwinIdentity()
-	{
-		var applies = _options.All || string.Equals(_options.Only, "alt", StringComparison.OrdinalIgnoreCase);
-		if (!_options.TwinIdentity || !applies)
-		{
-			if (!string.IsNullOrWhiteSpace(_options.AltRoot))
-			{
-				RestoreTwinIdentity(_options.AltRoot);
-			}
-
-			return true;
-		}
-
-		if (string.IsNullOrWhiteSpace(_options.AltRoot) || string.IsNullOrWhiteSpace(_options.GuestRoot))
-		{
-			Log("FAIL: --twin-identity needs both the guest and the alternate roots");
-			return false;
-		}
-
-		var guest = ReadIpDirectIdentity(_options.GuestRoot);
-		if (string.IsNullOrWhiteSpace(guest))
-		{
-			Log("FAIL: --twin-identity needs the guest's ClientIdentity in its config; the guest has not run yet");
-			return false;
-		}
-
-		BackUpTwinIdentity(_options.AltRoot);
-		WriteIpDirectIdentity(_options.AltRoot, guest);
-		Log("alternate box identity copied from the guest for the duplicate-identity row");
-		return true;
-	}
-
-	/// <summary>
-	/// The alternate box keeps the guest's identity only for the duplicate-identity run. The backup
-	/// beside its config is the original value; the next launch without the flag puts it back, so a
-	/// later run never starts with two clients sharing an identity.
-	/// </summary>
-	private void BackUpTwinIdentity(string root)
-	{
-		var backup = TwinBackupPath(root);
-		if (File.Exists(backup))
-		{
-			return;
-		}
-
-		Directory.CreateDirectory(Path.GetDirectoryName(backup)!);
-		File.WriteAllText(backup, ReadIpDirectIdentity(root) ?? "absent");
-	}
-
-	private void RestoreTwinIdentity(string root)
-	{
-		var backup = TwinBackupPath(root);
-		if (!File.Exists(backup))
-		{
-			return;
-		}
-
-		var original = File.ReadAllText(backup).Trim();
-		if (string.Equals(original, "absent", StringComparison.Ordinal))
-		{
-			RemoveIpDirectIdentity(root);
-		}
-		else if (original.Length > 0)
-		{
-			WriteIpDirectIdentity(root, original);
-		}
-
-		File.Delete(backup);
-		Log("restored the alternate box identity from the twin backup");
-	}
-
-	private static string TwinBackupPath(string root) =>
-		Path.Combine(root, "BepInEx", "config", "CasualtiesUnknownOnline.identity-backup");
-
-	private static string IpDirectConfigPath(string root) =>
-		Path.Combine(root, "BepInEx", "config", "CasualtiesUnknownOnline.cfg");
-
-	private static string? ReadIpDirectIdentity(string root)
-	{
-		var path = IpDirectConfigPath(root);
-		if (!File.Exists(path))
-		{
-			return null;
-		}
-
-		var inSection = false;
-		foreach (var line in File.ReadLines(path))
-		{
-			var trimmed = line.Trim();
-			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
-			{
-				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
-				continue;
-			}
-
-			if (!inSection)
-			{
-				continue;
-			}
-
-			var separator = line.IndexOf('=');
-			if (separator > 0 && string.Equals(line[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
-			{
-				return line[(separator + 1)..].Trim();
-			}
-		}
-
-		return null;
-	}
-
-	private static void WriteIpDirectIdentity(string root, string identity)
-	{
-		var path = IpDirectConfigPath(root);
-		var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : [];
-		var inSection = false;
-		var replaced = false;
-		for (var index = 0; index < lines.Count; index++)
-		{
-			var trimmed = lines[index].Trim();
-			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
-			{
-				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
-				continue;
-			}
-
-			if (!inSection)
-			{
-				continue;
-			}
-
-			var separator = trimmed.IndexOf('=');
-			if (separator > 0 && string.Equals(trimmed[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
-			{
-				lines[index] = "ClientIdentity = " + identity;
-				replaced = true;
-				break;
-			}
-		}
-
-		if (!replaced)
-		{
-			lines.Add("[IpDirect]");
-			lines.Add("ClientIdentity = " + identity);
-		}
-
-		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-		File.WriteAllLines(path, lines);
-	}
-
-	private static void RemoveIpDirectIdentity(string root)
-	{
-		var path = IpDirectConfigPath(root);
-		if (!File.Exists(path))
-		{
-			return;
-		}
-
-		var lines = File.ReadAllLines(path).ToList();
-		var inSection = false;
-		for (var index = 0; index < lines.Count; index++)
-		{
-			var trimmed = lines[index].Trim();
-			if (trimmed.StartsWith('[') && trimmed.EndsWith(']'))
-			{
-				inSection = string.Equals(trimmed, "[IpDirect]", StringComparison.OrdinalIgnoreCase);
-				continue;
-			}
-
-			if (!inSection)
-			{
-				continue;
-			}
-
-			var separator = trimmed.IndexOf('=');
-			if (separator > 0 && string.Equals(trimmed[..separator].Trim(), "ClientIdentity", StringComparison.Ordinal))
-			{
-				lines.RemoveAt(index);
-				File.WriteAllLines(path, lines);
-				return;
-			}
-		}
 	}
 
 	private void ApplySaveRoot()
@@ -683,6 +501,19 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		catch (Exception)
 		{
 			return false;
+		}
+	}
+
+	/// <summary>How long the process has existed; an unreadable start time is treated as fresh, so it is never killed blindly.</summary>
+	private static TimeSpan HostAge(Process process)
+	{
+		try
+		{
+			return DateTime.Now - process.StartTime;
+		}
+		catch (Exception)
+		{
+			return TimeSpan.Zero;
 		}
 	}
 

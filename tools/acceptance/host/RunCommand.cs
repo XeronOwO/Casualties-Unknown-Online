@@ -11,7 +11,7 @@ internal static class RunCommand
 {
 	private const string Usage =
 		"run --game-dir <install> [--out <dir>] [--suite <name>] [--fresh] [--parallel-setup] [--no-launch] [--reuse] " +
-		"[--delay-between-cases <s>] [--all] [--pids <file>] [--twin-identity] " +
+		"[--delay-between-cases <s>] [--all] [--pids <file>] " +
 		"[--steam-exe <exe>] [--sandboxie <start.exe>] [--guest-box <box>] [--guest-root <install>] " +
 		"[--alt-box <box>] [--alt-root <install>] [--host-url <ws>] [--guest-url <ws>] [--alt-url <ws>]";
 
@@ -55,10 +55,6 @@ internal static class RunCommand
 				launchArgs.Add("--all");
 			}
 
-			if (arguments.Optional("twin-identity") is not null)
-			{
-				launchArgs.Add("--twin-identity");
-			}
 			foreach (var name in new[] { "steam-exe", "sandboxie", "guest-box", "guest-root", "alt-box", "alt-root", "host-url", "guest-url", "alt-url" })
 			{
 				var value = arguments.Optional(name);

@@ -26,8 +26,18 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 		// A loopback endpoint must never go through a proxy (measured: the suite refused 18591 while
 		// a direct ClientWebSocket to the same URL answered).
 		_socket.Options.Proxy = null;
-		await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
-		await SelectEvaluatorAsync(cancellationToken).ConfigureAwait(false);
+		try
+		{
+			await _socket.ConnectAsync(new Uri(Url), cancellationToken).ConfigureAwait(false);
+			await SelectEvaluatorAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is WebSocketException or IOException)
+		{
+			// A client that is down is a case finding, not a suite crash: every caller records a
+			// DriverException as the row's problem (2026-11-20: the host-crash row killed the host driver and
+			// the raw WebSocketException escaped the suite's log read at Suite.cs:346).
+			throw new DriverException($"the driver at {Url} did not answer: {exception.Message}", exception);
+		}
 	}
 
 	/// <summary>
@@ -80,8 +90,15 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 		{
 			_socket.Dispose();
 			_socket = new ClientWebSocket();
-			await ConnectAsync(cancellationToken).ConfigureAwait(false);
-			return await EvalOnceAsync(code, label, cancellationToken, allowNoValue).ConfigureAwait(false);
+			try
+			{
+				await ConnectAsync(cancellationToken).ConfigureAwait(false);
+				return await EvalOnceAsync(code, label, cancellationToken, allowNoValue).ConfigureAwait(false);
+			}
+			catch (Exception retry) when (retry is WebSocketException or IOException)
+			{
+				throw new DriverException($"the driver at {Url} dropped while answering '{label}': {retry.Message}", retry);
+			}
 		}
 	}
 
@@ -222,7 +239,18 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 	private static partial Regex PlaceholderPattern();
 }
 
-internal sealed class DriverException(string message) : Exception(message);
+internal sealed class DriverException : Exception
+{
+	public DriverException(string message)
+		: base(message)
+	{
+	}
+
+	public DriverException(string message, Exception innerException)
+		: base(message, innerException)
+	{
+	}
+}
 
 /// <summary>The repository root: the nearest ancestor of the binary that names the solution.</summary>
 internal static class RepositoryPaths

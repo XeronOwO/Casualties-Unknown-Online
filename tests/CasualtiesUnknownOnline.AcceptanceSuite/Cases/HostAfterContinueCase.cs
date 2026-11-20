@@ -155,6 +155,68 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 
 		context.Notes.Add("roster after the join: " + string.Join(", ", roster));
 		Require(roster.Length > 0, "the host's roster does not name the member it just accepted");
+
+		// A5: the member that joined a session opened over a running world must not be left
+		// with a ghost role when that session ends, and the next run must accept it again on
+		// the same processes. End the adopted session, require the member's role to clear,
+		// then open a second session+run and join it.
+		await EndSessionAsync(context, cancellationToken).ConfigureAwait(false);
+		JsonElement? memberAfterEnd = null;
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			memberAfterEnd = await context.Session.ActionAsync(context.Session.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (Text(memberAfterEnd, "role") == "None")
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Read("member after the adopted session ended", memberAfterEnd);
+		Require(Text(memberAfterEnd, "role") == "None",
+			"the member kept a role after the adopted session ended, so it is a ghost: " + Raw(memberAfterEnd));
+
+		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.HostUrl, "start-run", cancellationToken).ConfigureAwait(false);
+		var hostNext = await WaitForStateAsync(
+			context.Session,
+			context.Session.HostUrl,
+			state => Text(state, "role") == "Host" && IsTrue(state, "inWorld"),
+			TimeSpan.FromSeconds(20),
+			cancellationToken).ConfigureAwait(false);
+		context.Read("host next run", hostNext);
+		Require(Text(hostNext, "role") == "Host", "the host did not open the next session: " + Raw(hostNext));
+		Require(IsTrue(hostNext, "inWorld"), "the host's next run did not enter the world: " + Raw(hostNext));
+
+		await context.Session.ActionAsync(context.Session.MemberUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		await TryClickAsync(context.Session, context.Session.MemberUrl, "ip.notice_confirm", cancellationToken).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.address"), ("-Text", "127.0.0.1")).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.MemberUrl, "set-text", cancellationToken, ("-Control", "ip.port"), ("-Text", "7777")).ConfigureAwait(false);
+		await context.Session.ActionAsync(context.Session.MemberUrl, "click", cancellationToken, ("-Control", "ip.join")).ConfigureAwait(false);
+		var memberNext = await WaitForStateAsync(
+			context.Session,
+			context.Session.MemberUrl,
+			state => Text(state, "role") == "Guest" && IsTrue(state, "inWorld"),
+			TimeSpan.FromSeconds(30),
+			cancellationToken,
+			onMiss: async attempt =>
+			{
+				if (attempt % 6 == 5)
+				{
+					await TryClickAsync(context.Session, context.Session.MemberUrl, "ip.join", cancellationToken).ConfigureAwait(false);
+				}
+			}).ConfigureAwait(false);
+		context.Read("member in the next run", memberNext);
+		Require(Text(memberNext, "role") == "Guest",
+			"the member did not join the next run after the adopted session ended: " + Raw(memberNext));
+		Require(IsTrue(memberNext, "inWorld"),
+			"the member joined the next session but never entered its world: " + Raw(memberNext));
 	}
 
 	/// <summary>Home &gt; Leave: ends the lobby (and, for IP direct, the connection that is the room).</summary>

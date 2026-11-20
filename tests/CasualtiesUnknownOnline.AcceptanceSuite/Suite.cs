@@ -1293,6 +1293,14 @@ internal static class CaseRegistry
 		new LateJoinCase(),
 		// The sample mod's content inside a session (2026-11-19): its item, registry entry and limb action.
 		new SampleModCase(),
+		// The failure-path batch (2026-11-20, the acceptance-expansion ticket): these stage
+		// failure states and run by name in their own batch, never in the 39-row batch whose
+		// wall time has a baseline. host-crash-restart is last: it kills the host process.
+		new DropMidTransferCase(),
+		new SaveWriteInterruptedCase(),
+		new SaveContinueReentryCase(),
+		new RemoteBackpackRefreshCase(),
+		new HostCrashRestartCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds
 		// later — the kind rides the run row, which advances at the layer end that a fresh by-name

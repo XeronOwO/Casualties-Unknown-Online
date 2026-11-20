@@ -40,7 +40,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.GameState` | 20 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Entities` | 19 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Fluids` | 8 | read |
-| `CasualtiesUnknownOnline.GameState/Domains/Items` | 32 | read |
+| `CasualtiesUnknownOnline.GameState/Domains/Items` | 34 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/Players` | 24 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/World` | 11 | read |
 | `CasualtiesUnknownOnline.GameState/Domains/WorldEntities` | 19 | read |

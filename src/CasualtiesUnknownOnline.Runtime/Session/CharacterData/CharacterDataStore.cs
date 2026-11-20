@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -302,12 +303,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				_savedCharacters.Remove(oldPeer);
 				_savedCharacters[steamId] = adopted;
 				data = adopted;
+				_items.ReassignOwner(oldPeer, steamId);
 				CharacterReconnectAdoption.RemoveStalePresence(_session, _log, oldPeer, steamId);
 			}
 		}
 
 		if (data is not null)
 		{
+			DropItemsAnotherOwnerHolds(steamId, data);
 			MergeTransferredItems(steamId, data);
 			// The kernel is the authority for terminal player facts; project it
 			// over the saved snapshot so a reconnect restores the latest
@@ -352,6 +355,52 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				steamId, outcome.Unplaced);
 		}
 	}
+
+	/// <summary>
+	/// The snapshot is the guest's last report, and a reconnect may follow an item
+	/// it handed over: the host's take moved the kernel row to the host, and the
+	/// transfer-table entry went with the guest's body. The kernel is the authority
+	/// for ownership, so drop every snapshot item it records as another owner's
+	/// before the restore; an instance id it has never judged is kept (a pickup
+	/// moments before the disconnect is exactly what this restore is for). The item
+	/// still lives inside its container, so the walk is recursive.
+	/// </summary>
+	private void DropItemsAnotherOwnerHolds(ulong steamId, CharacterDataMsg data)
+	{
+		var dropped = new List<ulong>();
+		var removed = RemoveItemsAnotherOwnerHolds(steamId, data.Items, dropped);
+		if (removed > 0)
+		{
+			_log.LogInformation("[Character] the restore of {Peer} omits {Count} item(s) the kernel records as another owner's: {Items}.",
+				steamId, removed, string.Join(", ", dropped));
+		}
+	}
+
+	private int RemoveItemsAnotherOwnerHolds(ulong steamId, List<CharacterItemMsg> items, List<ulong> dropped)
+	{
+		var removed = 0;
+		for (var index = items.Count - 1; index >= 0; index--)
+		{
+			var item = items[index];
+			if (item.InstanceId != 0
+				&& _items.FindJudgedItem(item.InstanceId) is { } row
+				&& IsOwnerKeyed(row.Location)
+				&& row.Location.Owner.Value != steamId)
+			{
+				items.RemoveAt(index);
+				dropped.Add(item.InstanceId);
+				removed++;
+				continue;
+			}
+
+			removed += RemoveItemsAnotherOwnerHolds(steamId, item.Contents, dropped);
+		}
+
+		return removed;
+	}
+
+	private static bool IsOwnerKeyed(ItemLocation location) =>
+		location.Kind is ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied;
 
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>

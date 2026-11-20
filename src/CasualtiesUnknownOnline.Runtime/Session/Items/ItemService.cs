@@ -320,6 +320,53 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldIt
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
 	public bool OwnsCarriedItem(ulong steamId, ulong itemId) => _kernelAuthority.OwnsCarriedItem(steamId, itemId);
+
+	/// <summary>
+	/// Host only: the same player reconnected under a new transport id. Re-key
+	/// every carried/contained/applied row the kernel still holds for the old id,
+	/// then rebuild the transfer table from the kernel so the reconnect restore
+	/// merges the items onto the new owner instead of handing the old identity's
+	/// rows back through the arbitration's ignore path.
+	/// </summary>
+	public int ReassignOwner(ulong oldOwner, ulong newOwner)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return 0;
+		}
+
+		var moved = 0;
+		foreach (var item in _kernelAuthority.QueryItems().Values.ToList())
+		{
+			var location = item.Location;
+			if (location.Owner.Value != oldOwner
+				|| location.Kind is not (ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied))
+			{
+				continue;
+			}
+
+			if (_kernelAuthority.TryReassignOwner(_session.LocalSteamId, item.Identity.InstanceId,
+					new ActorId(oldOwner), new ActorId(newOwner), out _, out var rejection))
+			{
+				moved++;
+			}
+			else
+			{
+				_log.LogWarning("Could not re-key item {ItemId} from {OldOwner} to {NewOwner}: {Reason} {Message}",
+					item.Identity.InstanceId, oldOwner, newOwner, rejection?.Reason, rejection?.Message);
+			}
+		}
+
+		if (moved > 0)
+		{
+			_arbitration.RebuildCarriedTableFromKernel();
+		}
+
+		_log.LogInformation("Re-keyed {Moved} item row(s) from the old transport id {OldOwner} to the new one {NewOwner}.",
+			moved, oldOwner, newOwner);
+		return moved;
+	}
+
 	public void SendItemSnapshot(ulong targetSteamId) => _snapshots.SendItemSnapshot(targetSteamId);
 
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)

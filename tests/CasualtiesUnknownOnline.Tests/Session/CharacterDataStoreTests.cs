@@ -653,4 +653,62 @@ public class CharacterDataStoreTests
 		}
 	}
 
+	[Fact]
+	public void SendSavedCharacter_AfterReconnect_ReKeysTheOldPeersItemsAndDropsAnotherOwnersItem()
+	{
+		// A1 drop-mid-transfer: the guest gave an item to the host, left, and
+		// reconnected under a new transport id. The kernel's item rows still
+		// named the old id and the saved snapshot still carried the host's item;
+		// the restore re-created it on the guest (one item in two bags).
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var items = host.Services.GetRequiredService<IItemControl>();
+			items.AdoptTransferredItem(GuestId, 42, new CharacterItemMsg
+			{
+				InstanceId = 42,
+				ItemId = "lantern",
+				Label = "MemberColor",
+				ColorSwatch = 5,
+			});
+			items.AdoptTransferredItem(GuestId, 43, new CharacterItemMsg { InstanceId = 43, ItemId = "dogfood" });
+			items.AdoptTransferredItem(HostId, 44, new CharacterItemMsg { InstanceId = 44, ItemId = "rifle" });
+
+			var control = (ISessionControl)host.Session;
+			var old = control.GetOrCreateMember(GuestId);
+			old.DisplayName = "Guest";
+			old.Handshaken = true;
+			old.InWorld = false;
+			var reconnected = control.GetOrCreateMember(3001);
+			reconnected.DisplayName = "Guest";
+			reconnected.Handshaken = true;
+			reconnected.InWorld = false;
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			store.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Items =
+				[
+					new CharacterItemMsg { InstanceId = 42, ItemId = "lantern", Label = "MemberColor", ColorSwatch = 5 },
+					new CharacterItemMsg { InstanceId = 43, ItemId = "dogfood" },
+					new CharacterItemMsg { ItemId = "unjudged" },
+					new CharacterItemMsg { InstanceId = 44, ItemId = "rifle" },
+				],
+			});
+			MarkHostInWorld(host);
+
+			store.SendSavedCharacter(3001);
+
+			var adopted = store.GetSavedCharacter(3001);
+			Assert.NotNull(adopted);
+			Assert.Equal(3, adopted!.Items.Count);
+			Assert.DoesNotContain(adopted.Items, item => item.InstanceId == 44);
+			Assert.Equal(3001ul, items.FindJudgedItem(42)!.Value.Location.Owner.Value);
+			Assert.Equal(3001ul, items.FindJudgedItem(43)!.Value.Location.Owner.Value);
+			Assert.Equal(HostId, items.FindJudgedItem(44)!.Value.Location.Owner.Value);
+			Assert.Equal(2, items.GetTransferredItems(3001).Count);
+		}
+	}
 }

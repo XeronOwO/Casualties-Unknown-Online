@@ -19,7 +19,7 @@ internal sealed class ItemDomainModule : IDomainModule
 	public bool CanHandle(GameCommand command) => command switch
 	{
 		SpawnItemCommand or PickUpItemCommand or DropItemCommand or DestroyItemCommand
-			or UpdateItemStateCommand or TransferItemCommand or CookItemCommand
+			or UpdateItemStateCommand or TransferItemCommand or ReassignItemOwnerCommand or CookItemCommand
 			or ApplyLimbItemCommand or RemoveLimbItemCommand
 			or SyncContainerItemsCommand or ResetWorldItemsCommand => true,
 		_ => false,
@@ -36,6 +36,7 @@ internal sealed class ItemDomainModule : IDomainModule
 			DestroyItemCommand destroy => DecideDestroy(destroy, state),
 			UpdateItemStateCommand update => DecideUpdate(update, state),
 			TransferItemCommand transfer => DecideTransfer(transfer, state),
+			ReassignItemOwnerCommand reassign => ItemOwnerReassignmentRules.Decide(reassign, state),
 			ApplyLimbItemCommand apply => LimbItemLocationRules.DecideApply(apply, state),
 			RemoveLimbItemCommand remove => LimbItemLocationRules.DecideRemove(remove, state),
 			CookItemCommand cook => DecideCook(cook, state),

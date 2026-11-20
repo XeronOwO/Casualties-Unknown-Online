@@ -85,3 +85,11 @@ dotnet_diagnostic.IDE0066.severity = error
 # No underscore prefix required for fields (AGENTS.md: game-binding fields keep
 # game naming; CUO code uses underscore-prefixed private fields)
 dotnet_diagnostic.IDE1006.severity = none
+
+# Build-generated files carry no auto-generated header: BepInEx writes
+# MyPluginInfo.cs into obj/, and the IDE analyzers/`dotnet format` would demand
+# the hand-written style from a file the next build rewrites. Mark them
+# generated so the formatter skips what we do not own.
+[**/obj/**]
+generated_code = true
+

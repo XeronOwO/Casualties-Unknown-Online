@@ -326,6 +326,35 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	}
 
 	/// <summary>
+	/// The same player reconnected under a new transport id: re-key every item row
+	/// the kernel holds for <paramref name="oldOwner"/> — carried, contained,
+	/// applied — to <paramref name="newOwner"/> without changing its placement.
+	/// Host only: the transport id is a host-known session fact. A row whose
+	/// relocation is refused keeps the old owner and is named by the caller.
+	/// </summary>
+	public bool TryReassignOwner(ulong actor, ulong itemId, ActorId oldOwner, ActorId newOwner, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var current = _kernel.FindItem(itemId);
+		if (current is null)
+		{
+			rejection = Rejection.Of(RejectionReason.UnknownAggregate, $"item {itemId} does not exist");
+			batch = null;
+			return false;
+		}
+
+		var command = new ReassignItemOwnerCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			itemId,
+			oldOwner,
+			newOwner,
+			current.Value.Revision);
+		return TryExecute(command, actor, "reassign-owner", out batch, out rejection);
+	}
+
+	/// <summary>
 	/// An item becomes the installed form of a limb component (the game's own
 	/// <c>useLimbAction</c> turned it into a <c>SplintLimb</c> /
 	/// <c>TourniquetScript</c>): a RELOCATION that keeps the instance id, which is

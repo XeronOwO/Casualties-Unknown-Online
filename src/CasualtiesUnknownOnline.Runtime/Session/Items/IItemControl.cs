@@ -247,6 +247,15 @@ public interface IItemControl : IRestoredWorldItemSource
 	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
 	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
 
+	/// <summary>
+	/// Host only: the same player reconnected under a new transport id — move every
+	/// item row the kernel keys by <paramref name="oldOwner"/> (carried, contained,
+	/// applied) to <paramref name="newOwner"/>, preserving each row's placement, and
+	/// rebuild the transfer table for the new owner. Returns the rows moved; a row
+	/// whose relocation is refused stays with the old owner and is named in the log.
+	/// </summary>
+	int ReassignOwner(ulong oldOwner, ulong newOwner);
+
 	/// <summary>Host only: adopt a carried item into a guest's transfer table (a cross-player transfer result — the recipient now owns it for use/slot/drop arbitration and reconnect restore).</summary>
 	void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item);
 

@@ -26,7 +26,8 @@ design, not permission to replace it with one of your own.
 ## Keep unfinished work open
 
 No completion claim, no "future work", no moving on. A cycle that ends incomplete is recorded as failed, with the point
-it stopped at.
+it stopped at. A cycle stopped by the user's decision, or because the next step would be a guess, is recorded as stopped
+at that point with its reason; that is not the failure this rule names, which is dropping the item without saying so.
 ## Ask on design, execute on implementation
 
 Ambiguity with user-visible trade-offs goes to the user; routine detail does not. A rejection is a question, not a

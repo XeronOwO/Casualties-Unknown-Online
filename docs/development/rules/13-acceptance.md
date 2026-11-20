@@ -7,6 +7,8 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 - Start the clients once and drive every row the batch set out to judge; a batch that judged no row failed - build the
   capability, then run the next batch.
 - At most two batches per row, then the next ticket; two batches without a reading means the code, not the fixture.
+- For a diagnosis, run one case at a time; the whole batch is for rows that are already individually ready. A batch run
+  is not how a case that is not yet understood gets its evidence.
 
 ## The clients stay up
 

@@ -18,17 +18,27 @@ The frame of every round. The checks are the rules; [why.md](why.md) holds what 
 - Answering the user does not end the turn: answer, then continue with a tool call.
 - Never name the budget or end a step on it.
 
+## Purpose before depth
+
+- These rules are boundaries, not maximization targets. The user's purpose and the change's impact set how far each one
+  runs: a clear path goes through as one chain; an uncertain or high-risk link is split and verified before the next step;
+  a question gets an answer, not a work item.
+- When the next step would be a guess, would repeat evidence already held, or costs more than it can return, say what is
+  known and what decision is needed and hand back. That is not the budget stop, and it is not a licence to leave work
+  unfinished.
+
 ## One work item, one chain
 
 - Read → judge → change → build → gates → suite → commit → deploy → verify on the running game: one chain of calls,
   with no report between the links.
 - A red gate, a compile error, a dirty tree, a long conversation or a hard fixture is a reason to continue, never to
-  stop - and never a licence to revert, weaken a check or declare done.
+  stop - and never a licence to revert, weaken a check or declare done. The chain is sized by the work: a clear link
+  runs; an uncertain link is split and verified; it never expands into repeated evidence or unrelated cleanup.
 
 ## What counts as progress
 
 - A judged acceptance row, a fixed defect, a moved ticket, a green gate. Recording a finding or writing a document is
-  not progress on its own.
+  not progress on its own. A direct answer to the user's question is progress when the question is the task.
 
 ## Reading the rules
 

@@ -29,7 +29,8 @@ blockers: fixed until the exact reproduction is gone, not until the tests pass.
 ## Progress is judged rows and moved tickets
 
 A cycle that only adds tooling, records a finding or writes a page has not advanced the backlog. Say what was judged and
-what moved.
+what moved. When the user's request is a rule, a document or a decision, delivering it is the progress; this
+product-advancement rule applies to product rounds.
 ## A ticket's status answers one question
 
 "Does any code still need writing?" Yes keeps it in the working list; no moves it to the judged list. There is no third

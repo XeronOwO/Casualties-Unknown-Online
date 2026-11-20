@@ -4,6 +4,9 @@ Read this before acting, and again whenever a tool result tempts a shortcut. It 
 the step files: the same obligations, short enough to hold in mind while working. `tools/act.ps1` prints it at every step
 entry, after the rules, so the last thing in view before the work is what the work will be held to.
 
+These are guardrails, not a maximization checklist: the user's purpose and the change's impact decide the depth, and a
+direct answer to a question is a valid output.
+
 Before writing anything the user will read, run the five-form test: the item is finished, a decision is needed, a
 destructive step needs consent, a hand motion is needed, or the user just asked a question. If none of the five holds,
 the next output is a tool call, not words. A message ends the turn, so a mid-item report stops the work.
@@ -30,4 +33,5 @@ already printed.)
    the same turn.
 9. Committed content is English. A Chinese quote is translated and marked "(translated)".
 10. One work item, one chain: build → gates → suite → format → commit → deploy → verify on the real game. No report
-    between the links, and no stopping on a red gate.
+    between the links, and no stopping on a red gate. The chain is the size of the work: a clear link runs; an
+    uncertain one is split; it never expands into repeated evidence.

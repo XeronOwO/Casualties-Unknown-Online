@@ -7,7 +7,8 @@ actions, trade steps, entity kinds, container paths, console verbs, UI rows).
 
 When one member of a family is wrong, enumerate every member first: how many are there, what keeps each one honest, which
 ones this change touches, and which ones stay untouched and why. "Not introduced by this change" is never a reason to
-leave a member broken.
+leave a member broken. The family is the set of members that share the mechanism; fix it at the owner. Unrelated features
+are not swept in - record them and keep moving.
 
 ## A mechanism needs a named consumer
 

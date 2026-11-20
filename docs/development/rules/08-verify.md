@@ -5,7 +5,9 @@ Read this file and `08-verify.local.md` completely before any verification claim
 ## The order
 
 Focused test or gate first, then the full suite once, then `dotnet format`, then commit, then deploy, then verify the
-deployed artefact's identity, then run it. A claim made before that order is a guess.
+deployed artefact's identity, then run it. A claim made before that order is a guess. The depth follows the risk: a
+docs-only change skips build, test and format (the root `AGENTS.md` says so); the full suite is the release gate, not a
+ritual repeated after every small edit.
 
 ## Green tests are not acceptance
 

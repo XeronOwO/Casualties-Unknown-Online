@@ -22,7 +22,9 @@ by a command.
 ## Tests
 
 Cover core, edge, exception and failure paths; every key path and branch must be observable from the log with context
-that locates a failure (branch, state, ids, input, result). Only the happy path is not verification.
+that locates a failure (branch, state, ids, input, result). Only the happy path is not verification. Depth follows the
+risk: cover the failure paths that can occur, not every syntactic branch; a test for a branch no input can reach is
+ceremony.
 ## Details that are gated elsewhere
 
 Prefer `using` directives and aliases; a fully qualified name only when unavoidable. Extension methods use the C# 14

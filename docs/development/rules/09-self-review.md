@@ -6,7 +6,8 @@ Read this file and `09-self-review.local.md` completely before the commit.
 
 Against the frozen tree, ask each question in `docs/development/review-prompt.md`: what did I assume without reading,
 which entrance did I not walk, which role or direction is untested, what happens on a refusal, on a second call, on a
-stale message, on a client that joined late.
+stale message, on a client that joined late. One bounded pass over the prompt: record the findings and fix them; do not
+re-litigate a finding after the fix or turn the review into a redesign.
 
 ## Findings are fixed in the same commit
 

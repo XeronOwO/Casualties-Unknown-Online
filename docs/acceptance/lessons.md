@@ -530,3 +530,7 @@ A watched eat replays through the `AudioClip` overload, so a spectator sound cou
 
 Both `geyser-types` reads answered `total:0` before the host was in the world, so the case compared two empty sets and its assertion was vacuous: wait for `total > 0` and record the state seen when the wait expires.
 
+
+## 2026-11-21 — An acceptance assembly's log lines never reach the client's log file
+
+The acceptance plug-in's `ManualLogSource` writes nowhere the case can read: CUO's sink forwards only its own categories and Unity warnings/errors, so `latest.log` held no `[RemoteViewTrace]` line and `log-tail` returns 200 lines at a time; a reading the case needs must be appended to a file the case can open, and not into `BepInEx/plugins/`, which `verify-deploy.ps1` counts, or the deploy reads as a mismatch.

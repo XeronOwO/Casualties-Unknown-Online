@@ -64,15 +64,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, StandingItemMa
 	private void KillNow(Item item)
 	{
 		_materializedFrame.Remove(item);
-		foreach (var child in item.GetComponentsInChildren<Item>(true)) // the root is included — zeroing twice is harmless
-		{
-			var childId = child.GetComponent<ItemInstanceId>();
-			if (childId != null) // Unity object — ==
-			{
-				childId.Id = 0;
-			}
-		}
-
+		ItemInstanceId.ZeroSubtree(item);
 		Object.Destroy(item.gameObject);
 	}
 

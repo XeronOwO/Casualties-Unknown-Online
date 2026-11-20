@@ -28,6 +28,26 @@ public sealed class ItemInstanceId : MonoBehaviour
 	private ulong _id;
 
 	/// <summary>
+	/// Zero the instance ids of an item object and everything it carries, so the DEFERRED
+	/// <c>Object.Destroy</c> that follows cannot be reported as a player destroy. The object goes;
+	/// the item's identity is stated by whoever moves or re-creates it (a remote deletion, a
+	/// definition swap, a restore that re-states the snapshot's ids). The whole subtree is zeroed
+	/// because Unity destroys a container's children with it, and a child's id still set would
+	/// report ITS end the same way.
+	/// </summary>
+	internal static void ZeroSubtree(Item item)
+	{
+		foreach (var carried in item.GetComponentsInChildren<Item>(true)) // the root is included — zeroing twice is harmless
+		{
+			var id = carried.GetComponent<ItemInstanceId>();
+			if (id != null) // Unity object — ==
+			{
+				id.Id = 0;
+			}
+		}
+	}
+
+	/// <summary>
 	/// The instance id. Setting it registers the live scene object in the
 	/// runtime index; zeroing it (remote kill) unregisters it; destroying the
 	/// object unregisters it. The index is the authoritative scene-side

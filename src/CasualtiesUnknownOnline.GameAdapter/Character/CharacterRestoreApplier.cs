@@ -59,12 +59,27 @@ internal sealed class CharacterRestoreApplier(
 		// (CharacterDataSync's second pass), so the slots are actually empty when
 		// PickUpItem runs — it silently refuses a non-empty slot
 		// (Body.cs:1388) and the item would be stranded.
+		//
+		// The wipe RETIRES the objects through the id-zeroing step every CUO-side removal uses:
+		// the snapshot re-states these ids on the next frame, so this object's end is not a fact
+		// about the item and must not travel home as a player destroy. It used to: a member whose
+		// character arrived twice wiped the four objects the first copy had placed, the deferred
+		// destroy reported all four, the kernel (the member owns them) committed them Terminal,
+		// and the next MenuReturn cut dropped them from the character file — the member rejoined
+		// with an empty bag (2026-11-20, save-continue-reentry).
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var holder = body.slots[slot].transform;
 			for (var i = holder.childCount - 1; i >= 0; i--)
 			{
-				Object.Destroy(holder.GetChild(i).gameObject);
+				var child = holder.GetChild(i);
+				var item = child.GetComponent<Item>();
+				if (item != null) // Unity object — ==
+				{
+					ItemInstanceId.ZeroSubtree(item);
+				}
+
+				Object.Destroy(child.gameObject);
 			}
 		}
 

@@ -449,7 +449,7 @@ Before a row is recorded as "this world has none of X", read the population over
 
 ## 2026-10-17 — A recipe's type names and field names are read from the tree, never guessed
 
-Four runs of batch `20261017-a` produced nothing but `eval 'recipe:member-identity-forge' failed: (1,1): InteractiveHost` — the evaluator's Mono REPL names no line and no symbol, so each wrong guess cost a whole three-client session: the recipe had put `IKernelProtocolControl` under `Runtime.Session.Items` (it lives in `Application.Kernel`) and `EnemyEffectKind` under `Runtime.Protocol.Messages` (it lives in `Runtime.Protocol`), and then read the pickup id from a field the host's record does not spell that way (`container-read mode=host` writes `"id"`, not `"instanceId"`). A recipe is compiled against the loaded assemblies with no editor and no diagnostics, so every type, member and JSON field a NEW recipe names is opened in the tree first (`src/**` for the type, an existing recipe's own answer for the field), and a recipe that must read one number is written as the smallest thing that returns it (`tools/acceptance/recipes/member-id.cs`) and read on the machine before it grows branches.
+A recipe compiles against the loaded assemblies with no line numbers, so every type, member and JSON field a NEW recipe names is opened in `src/**` first, and one number is read through the smallest recipe that returns it; batch `20261017-a` burned four sessions on a namespaced type, a mis-namespaced enum and a field spelled `id` not `instanceId` — `tools/acceptance/recipes/member-id.cs`.
 ## 2026-10-17 — A recipe's `// args:` line is a requirement list, and a cell's state belongs to the host
 
 The `drive` command REFUSES a recipe call that omits any parameter its `// args:` line declares — `block-drop-forge`'s optional-looking `absolute`, `building`, `airwrite`, `item2` and `condition2` are all required — and it says so as exit 64 in the DRIVER log while the batch log shows only `ok=missing`; and a probe that needs a cell HOLDING a block cannot find one by probing offsets around the member (eight `block-read` calls all answered `block=0`, and the reading was reached only because the absolute cell the forged break landed on happened to hold block 14). A cell's state is the host's own fact, so ask the host; a setup step that failed is a reason to stop rather than to continue, because a batch that reached its setup by accident cannot say what it proved.
@@ -460,7 +460,7 @@ A member's `/give` returns no line and the host's answer lands at least a frame 
 
 ## 2026-10-18 — A 15 s blackout window is one process's budget, not a step-by-step driver's
 
-The member ends its own session 15 s after the last host frame, and a host layer change (`skiplayer`) spends 8-13 s of that budget re-entering the world. The committed driver spawns one Windows PowerShell process and one websocket per step (~2.2 s), so a correct step-by-step window still lands past the deadline — batch `20261018-s3`'s first attempt answered `No active session` at 15.2 s, with the host ready 1.7 s earlier. Two rules from that run: arm the blackout BEFORE `skiplayer` (without it the member's own generation follows the host to the next layer within ~3 s, before the host re-enters), and drive the window itself over sockets opened before it, reusing the committed recipes through the same in-process evaluator protocol — the window then closes in ~8 s. The helper is a batch-local artifact named in the record (`docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md`); a committed fast-window action would let the next batch drop it.
+The member ends its own session 15 s after the last host frame and a layer change spends 8–13 s of that budget re-entering, so a correct step-by-step window still misses: arm the blackout before `skiplayer` and drive the window over sockets opened in advance (batch `20261018-s3` closed it in ~8 s) — `docs/evidence/acceptance/item-and-entity-data-commands-20261018-s3.md`.
 
 ## 2026-10-18 — A command's help text is not its requirement
 
@@ -524,5 +524,9 @@ A watched eat replays through the `AudioClip` overload, so a spectator sound cou
 
 ## 2026-11-17 — The pair runs one install and one build
 
-`-GameDir` must be the install the sandbox roots mirror and the deployed plug-in this tree's build; a mixed pair's reading is a fixture defect. Measured: the host from the demo install, the boxed member from the full install, no join. Rule: [workflow.md](workflow.md) §4.
+`-GameDir` must be the install the sandbox roots mirror and the deployed plug-in this tree's build; re-measured 2026-11-20, the same mix refused the handshake (`GameBuild (host 7.0.1, member 1.0.2)`) while the suite reported only a join failure, so the first read is `-GameDir` against `AGENTS.local.md` — [workflow.md](workflow.md) §4.
+
+## 2026-11-20 — A world-fact read must prove its table non-empty
+
+Both `geyser-types` reads answered `total:0` before the host was in the world, so the case compared two empty sets and its assertion was vacuous: wait for `total > 0` and record the state seen when the wait expires.
 

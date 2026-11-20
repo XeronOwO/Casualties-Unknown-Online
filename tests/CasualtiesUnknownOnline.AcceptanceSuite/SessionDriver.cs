@@ -707,6 +707,51 @@ internal sealed class SessionDriver(Options options)
 	private Task RelaunchHostAsync(CancellationToken cancellationToken) => RelaunchAsync(_options.HostUrl, "host", cancellationToken);
 
 	/// <summary>
+	/// Opens the host's IP session over the world this process already has — the crash row's restored
+	/// world. Unlike <see cref="EnsureHostSessionAsync"/> it never leaves that world: the restored
+	/// world is the artefact under test, and leaving it would throw the reading away. The transport
+	/// switch is the same one the setup path uses, because the Home page offers no `ip.create_host`
+	/// until the IP transport is selected (measured A3, 2026-11-20: the row clicked create_host on a
+	/// Steam-transport page and the state kept `role=None`).
+	/// </summary>
+	public async Task<string> OpenHostSessionOverWorldAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (!IsTrue(state, "inWorld"))
+		{
+			throw new InvalidOperationException("the host is not in a world, so there is no restored world to open a session over: " + DescribeMemberState(state));
+		}
+
+		if (string.Equals(StringValue(state, "role"), "Host", StringComparison.Ordinal))
+		{
+			return "the host already holds its session over the restored world";
+		}
+
+		await ActionAsync(_options.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
+		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.notice_confirm")).ConfigureAwait(false);
+		await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "home.transport.ip")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+		// The member's join reads this port; pin it the same way the setup path does.
+		await TryActionAsync(_options.HostUrl, "set-text", cancellationToken, ("-Control", "ip.listen_port"), ("-Text", "7777")).ConfigureAwait(false);
+
+		var deadline = Stopwatch.StartNew();
+		while (deadline.Elapsed < TimeSpan.FromSeconds(20))
+		{
+			await TryActionAsync(_options.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (string.Equals(StringValue(state, "role"), "Host", StringComparison.Ordinal) && IsTrue(state, "active"))
+			{
+				return "the host opened its IP session over the restored world";
+			}
+		}
+
+		throw new InvalidOperationException("the restarted host could not open a session over its restored world: " + DescribeMemberState(state));
+	}
+
+	/// <summary>
 	/// Starts the host after a case has confirmed its process is down (the host-crash row). The
 	/// existing refusal for an answering client still applies: a crash case kills the host first,
 	/// and only a down client is started.
@@ -743,6 +788,9 @@ internal sealed class SessionDriver(Options options)
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
 			UseShellExecute = false,
+			// A console program started with redirected pipes from a caller that has no console gets a
+			// fresh one: a terminal window pops over the reader's desktop on every relaunch (2026-11-20).
+			CreateNoWindow = true,
 		};
 		start.ArgumentList.Add("run");
 		start.ArgumentList.Add("--no-build");
@@ -796,6 +844,9 @@ internal sealed class SessionDriver(Options options)
 			try
 			{
 				await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+				// The launcher rewrote pids.json for the process it just started: hold that handle now,
+				// while the process is alive, or its exit code is lost with it.
+				ClientExits?.Refresh();
 				return;
 			}
 			catch (Exception)
@@ -1411,7 +1462,31 @@ internal sealed class SessionDriver(Options options)
 		return completion.Task.IsCompletedSuccessfully ? await completion.Task.ConfigureAwait(false) : null;
 	}
 
+	/// <summary>
+	/// The client processes the suite is driving, held open for their exit codes. A refused socket is
+	/// the symptom; the row fails with the code that caused it (see <see cref="ClientExitLedger"/>).
+	/// </summary>
+	public ClientExitLedger? ClientExits => _options.ClientExits;
+
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
+	{
+		try
+		{
+			return await ActionCoreAsync(url, action, cancellationToken, extraArguments).ConfigureAwait(false);
+		}
+		catch (Exception exception)
+		{
+			var ended = ClientExits?.Describe(url);
+			if (ended is null)
+			{
+				throw;
+			}
+
+			throw new ClientEndedException($"{exception.Message} — {ended}", exception);
+		}
+	}
+
+	private async Task<JsonElement> ActionCoreAsync(string url, string action, CancellationToken cancellationToken, (string Name, string Value)[] extraArguments)
 	{
 		var argument = string.Empty;
 		var text = string.Empty;

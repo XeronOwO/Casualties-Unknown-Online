@@ -69,6 +69,11 @@ internal static partial class Program
 		var sharedSetup = Stopwatch.StartNew();
 		var timeline = new Timeline();
 		timeline.Begin("suite");
+		// Opened before the first case drives a client: an exit code cannot be read from a process that
+		// is already gone, and the 2026-11-20 A3 member died between two socket calls (see the ledger).
+		var clientExits = new ClientExitLedger(options.PidsPath);
+		clientExits.Refresh();
+		options = options with { ClientExits = clientExits };
 		var session = new SessionDriver(options) { Timeline = timeline.Step };
 		// The per-case marks cover only the case's own window. Everything the pair writes during setup,
 		// a restart, the gap between cases or the teardown would otherwise be invisible: the 2026-11-15
@@ -1064,6 +1069,12 @@ internal sealed record Options
 
 	/// <summary>The launcher's pids snapshot; a case that kills the host reads its pid from here.</summary>
 	public string? PidsPath { get; init; }
+
+	/// <summary>
+	/// The clients' exit codes, held from the moment the suite starts driving them. Set once by the
+	/// run, after the launcher has written its snapshot; a refused socket is reported with the code.
+	/// </summary>
+	public ClientExitLedger? ClientExits { get; init; }
 
 	/// <summary>
 	/// The eval's own timeout inside the action budget. The driver's eval must finish before the action's

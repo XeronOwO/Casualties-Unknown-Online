@@ -239,7 +239,12 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 	private static partial Regex PlaceholderPattern();
 }
 
-internal sealed class DriverException : Exception
+/// <summary>
+/// A driver call that could not be answered. Not sealed: <see cref="ClientEndedException"/> carries the
+/// exit code of a client that had already ended, and every existing handler of an unanswered call must
+/// keep handling it.
+/// </summary>
+internal class DriverException : Exception
 {
 	public DriverException(string message)
 		: base(message)

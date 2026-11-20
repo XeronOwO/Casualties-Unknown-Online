@@ -65,14 +65,14 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 
 		// The continue restores the world with no session (the host process is new). Open the
-		// session over the running world, the same adoption the natural-order row reads.
-		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "tab.home")).ConfigureAwait(false);
-		await context.Session.ActionAsync(context.Session.HostUrl, "click", cancellationToken, ("-Control", "ip.create_host")).ConfigureAwait(false);
+		// session over the running world through the driver's own transport sequence — the Home
+		// page offers no ip.create_host until the IP transport is selected — and keep the world:
+		// the restore is the reading, so unlike the setup path it is never left.
+		context.Note(await context.Session.OpenHostSessionOverWorldAsync(cancellationToken).ConfigureAwait(false));
 		var hosting = await WaitForStateAsync(
 			context,
 			context.Session.HostUrl,
-			state => Text(state, "role") == "Host" && IsTrue(state, "active") && IsTrue(state, "inWorld"),
+			state => Text(state, "role") == "Host" && IsTrue(state, "inWorld"),
 			TimeSpan.FromSeconds(20),
 			cancellationToken).ConfigureAwait(false);
 		context.Read("host session over the restored world", hosting);
@@ -104,6 +104,9 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 			throw new InvalidOperationException("the pid file names " + name + " (pid " + pid + "), not the game's host process");
 		}
 
+		// The stop is the case's own action: the ledger records it as expected, so a later read of this
+		// client names the kill as the case's step instead of blaming it for the row's outcome.
+		context.Session.ClientExits?.Expect(pid);
 		process.Kill(entireProcessTree: true);
 		context.Note("killed the host process " + pid);
 		if (!process.WaitForExit(10_000))

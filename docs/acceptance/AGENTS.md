@@ -32,22 +32,23 @@ ticket is code-complete and waits for this run, which moves it. Machine facts li
    naming the failing row and its evidence; tickets whose rows all pass move to `done/`. Index rows move in the same change.
 9. `[RULE]` **Every run leaves this area better**: fold a reusable lesson into [lessons.md](lessons.md), a machine value into
    `AGENTS.local.md`, a wrong or missing rule into this file — and into `docs/AGENTS.md` or the root `AGENTS.md` when it binds the
-   repository. Closing an acceptance conversation runs this harvest.
+   repository. Closing an acceptance conversation runs this harvest. A probe worth running twice becomes a driver
+   action, never a throwaway script.
 10. `[CRITICAL]` **Wall time is a measured fact.** Report connect/setup/case time per case, classified `InRun`,
     `NewWorld` or `ClientRestart`; seconds per case and tens of seconds per group are the target, and an overrun is a finding
-    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups. An overrun is
-    read from the field — processes, `report/`, both logs — never by waiting on a status.
+    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups. An overrun
+    is read from the field, never by waiting on a status.
 11. `[CRITICAL]` **Every case counts the logs it caused.** Mark both clients' log offsets before it starts; count every `Warning`
     and `Error` written since, and assert the case's declared budget (zero errors by default). An unexplained error fails even
     when behaviour passed; known warnings are named and bounded, never filtered out.
 12. `[CRITICAL]` **Assertions prove the design, not the happy path.** Name the design claim and read the player-visible state on
-    every affected client — host and member, watcher and watched — plus the unchanged side or a control where a false pass is
-    possible. "Non-empty", "ok" and "connected" are preconditions, never verdicts.
+    every affected client — host and member, watcher and watched — plus the unchanged side or a control.
+    "Non-empty", "ok" and "connected" are preconditions, never verdicts.
 13. `[CRITICAL]` **The automated suite is the last acceptance gate.** A `review/` row closes only when an automated case covers
     it, ran against the deployed artifact, and its report (log counts and per-client readings) is cited. Manual play
     may explain a failure, never substitute for a missing case; a row without a case stays open.
-14. `[CRITICAL]` **The full batch's wall time is a recorded baseline: 39 rows in 282.2 s** (`.acceptance/full-r32b/report/report.md`,
-    2026-11-19, 39 of 39 green); five minutes is the ceiling and the C#-acceptance ticket's target is that baseline + 5 s.
+14. `[CRITICAL]` **The full batch's wall time is a recorded baseline: 39 rows in 262.1 s** (`.acceptance/full-39c/report/report.md`,
+    2026-11-20, 39 of 39 green); five minutes is the ceiling and the C#-acceptance ticket's target is that baseline + 5 s.
     A change that adds a row or about a second finds the time back or records on its ticket why it cannot; the baseline
     moves only with a green run's reading. Measurement: [workflow.md](workflow.md).
 

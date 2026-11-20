@@ -54,8 +54,34 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(HasLabeledItem(memberSeesHostBefore, "HostColor", 3), "the member's displayed copy does not carry the host's colour: " + Raw(memberSeesHostBefore));
 		context.Read("host sees member colour", hostSeesMemberBefore);
 		context.Read("member sees host colour", memberSeesHostBefore);
-		var storedBefore = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
-		context.Read("host stored character before save", storedBefore);
+
+		// Both colours must be in the cut the save writes, so the archive is read against a cut taken
+		// here instead of before any cut (a fresh archive root has none: 2026-11-20 full batch failed
+		// this read at 23:56:44 for a state the row never had). A created item is not in the host's
+		// item table, so a cut drops it as an unknown creation — the member's bandage was world-placed
+		// 40 ms after the cut committed and the archive stored 0 items. When the first cut lacks a
+		// colour, take a real world item through the game's own pickup and cut again; the row then
+		// judges the save/continue that follows, which is its subject.
+		await SaveContinueCycle.SaveAsync(context, cancellationToken).ConfigureAwait(false);
+		var primed = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("host stored character before the damage", primed);
+		if (!HasLabeledItem(primed, "MemberColor", 5) || !HasLabeledItem(primed, "HostColor", 3))
+		{
+			context.Note("the first cut's archive did not carry both colours — taking a world item and cutting again");
+			var replacement = await ExistingWorldItemAsync(context, cancellationToken).ConfigureAwait(false);
+			var replacementSlot = StringValue(replacement, "slot");
+			if (replacementSlot.Length > 0)
+			{
+				await context.MemberRecipeAsync("item-customize-native", cancellationToken, ("slot", replacementSlot), ("label", "MemberColor"), ("swatch", "5")).ConfigureAwait(false);
+			}
+
+			await SaveContinueCycle.SaveAsync(context, cancellationToken).ConfigureAwait(false);
+			primed = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
+			context.Read("host stored character after the re-acquire", primed);
+		}
+
+		Require(HasLabeledItem(primed, "MemberColor", 5), "the member's colour never reached the archive the save writes: " + Raw(primed));
+		Require(HasLabeledItem(primed, "HostColor", 3), "the host's colour never reached the archive the save writes: " + Raw(primed));
 
 		// The save must come after real world damage. The 2026-11-15 merged run saved after a trap
 		// blast and the restore then refused the cut's building-health rows; the suite hid that by
@@ -173,13 +199,43 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			}
 		}
 
-		// A long-lived suite world may have consumed the starting kit. Create one
-		// carried item instead; the customizer close re-reports the inventory, so
-		// the new item is in the character record by the time the save runs.
+		// A long-lived suite world may have consumed the starting kit. Take a real world
+		// item through the game's own pickup guard before creating one: a created item is
+		// not in the host's item table, so the cut drops it as an unknown creation and the
+		// character record loses it (2026-11-20 full batch: the member's colour vanished at
+		// the save, `[ItemDrop] bandage ... re-placing` right after the cut committed).
+		foreach (var type in new[] { "bandage", "lantern", "trashbag", "dogfood", "waterbottle" })
+		{
+			var picked = member
+				? await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "pickup")).ConfigureAwait(false)
+				: await context.RecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "pickup")).ConfigureAwait(false);
+			if (Boolean(picked, "found") && StringValue(picked, "slot").Length > 0)
+			{
+				return picked;
+			}
+		}
+
+		// Last resort: create one on the spot (the declared setup substitution). It may not
+		// survive a cut, so the caller's save reading is the one that names it.
 		var created = member
 			? await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false)
 			: await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
 		return Boolean(created, "found") ? created : null;
+	}
+
+	/// <summary>The member takes a real world item through the game's own pickup guard: its creation is in the host's table, so a cut keeps it.</summary>
+	private static async Task<JsonElement?> ExistingWorldItemAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		foreach (var type in new[] { "bandage", "lantern", "trashbag", "dogfood", "waterbottle" })
+		{
+			var picked = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "pickup")).ConfigureAwait(false);
+			if (Boolean(picked, "found") && StringValue(picked, "slot").Length > 0)
+			{
+				return picked;
+			}
+		}
+
+		return await ExistingItemAsync(context, true, cancellationToken).ConfigureAwait(false);
 	}
 
 	private static async Task<JsonElement?> WaitForCloneAsync(Func<Task<JsonElement?>> read, string label, int swatch, CancellationToken cancellationToken)

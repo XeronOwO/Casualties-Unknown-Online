@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -206,22 +207,69 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	/// </summary>
 	private void StartDetached(ProcessStartInfo start, string name)
 	{
+		DetachStandardHandles();
 		start.UseShellExecute = false;
+		start.CreateNoWindow = true;
 		start.RedirectStandardOutput = true;
 		start.RedirectStandardError = true;
 		var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the {name}");
 		// The launcher outlives the start call on purpose (the guest runs for the whole session), so the
 		// Process object is kept: a collected one closes the read ends and kills the drain.
 		_started.Add(process);
-		Drain(process.StandardOutput);
-		Drain(process.StandardError);
+		Drain(process.StandardOutput, name, "stdout");
+		Drain(process.StandardError, name, "stderr");
 	}
 
-	private static void Drain(StreamReader reader) => _ = Task.Run(async () =>
+	/// <summary>
+	/// Removes this process's own standard handles from what a child inherits. A redirected child still
+	/// gets the private pipes created for it; clearing the flag keeps the pipe this launcher's stdout is
+	/// connected to out of the child. Without it the game holds the caller's read end open after the
+	/// launcher is gone and the caller never reads its end of the stream (measured 2026-11-20, A3: the
+	/// suite wrote its report at 23:04:50 and the caller's job only finished at 23:06:26, when the
+	/// restarted host died). Clearing is per handle and idempotent, so every start repeats it.
+	/// </summary>
+	private static void DetachStandardHandles()
+	{
+		foreach (var which in new[] { StdInput, StdOutput, StdError })
+		{
+			var handle = GetStdHandle(which);
+			if (handle != nint.Zero && handle != InvalidHandle)
+			{
+				SetHandleInformation(handle, HandleFlagInherit, 0);
+			}
+		}
+	}
+
+	private const int StdInput = -10;
+	private const int StdOutput = -11;
+	private const int StdError = -12;
+	private const uint HandleFlagInherit = 0x1;
+	private static readonly nint InvalidHandle = -1;
+
+	[DllImport("kernel32.dll")]
+	private static extern nint GetStdHandle(int which);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	private static extern bool SetHandleInformation(nint handle, uint mask, uint flags);
+
+	/// <summary>
+	/// Drains one pipe of a client the launcher started, keeping the text in <c>%TEMP%</c> instead of
+	/// throwing it away. A game that ends on its own writes why on these pipes — Unity's fatal-error
+	/// text and Mono's unhandled-exception banner go to stderr, never to <c>Player.log</c> — and a
+	/// client that dies with only a last log line is a failure this harness has to be able to explain
+	/// (measured 2026-11-20, A3: the sandboxed guest ended 0.4 s after its own session teardown with
+	/// no crash report, no WER entry, and nothing else on disk).
+	/// </summary>
+	private static void Drain(StreamReader reader, string name, string channel) => _ = Task.Run(async () =>
 	{
 		try
 		{
-			await reader.BaseStream.CopyToAsync(Stream.Null).ConfigureAwait(false);
+			using var sink = new FileStream(
+				Path.Combine(Path.GetTempPath(), $"cuo-client-{name}.{channel}.log"),
+				FileMode.Append,
+				FileAccess.Write,
+				FileShare.ReadWrite);
+			await reader.BaseStream.CopyToAsync(sink).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{
@@ -415,7 +463,8 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		Process.Start(new ProcessStartInfo(_options.SandboxieExe)
 		{
 			Arguments = $"/box:{client.Box} \"{Path.Combine(client.Root, "CasualtiesUnknown.exe")}\"",
-			UseShellExecute = false
+			UseShellExecute = false,
+			CreateNoWindow = true
 		});
 		Log($"{client.Name} restarted once (its earlier process exited before answering)");
 	}

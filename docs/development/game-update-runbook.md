@@ -112,7 +112,7 @@ stored baseline:
 
 ```powershell
 dotnet tools/acceptance/host/bin/Debug/net8.0-windows/CasualtiesUnknownOnline.AcceptanceHost.dll replay `
-    --baseline ".acceptance/full-39c/report/report.json" `
+    --baseline ".acceptance/full-41/report/report.json" `
     --candidate ".acceptance/<the new batch>/report/report.json"
 ```
 
@@ -128,7 +128,9 @@ to run (2026-11-20: the 39b -> 39c pair, a green improvement, moved ten of them)
 Measured 2026-11-20 on the 39-row batch: `full-39b -> full-39c` printed
 `result   : PASS — no regression` (suite wall 285059.9 -> 262111.6 ms); the same pair
 reversed printed three regressions and exited 1; an unstamped 2026-11-18 report was
-refused with `names no build`.
+refused with `names no build`. The recorded baseline moved to `full-41` on
+2026-11-21: 39 of 39 green in 254.1 s on the artifact `0.1.0+a93d2c7a9…`, and
+`full-39c -> full-41` replayed PASS with the wall `-7974.5 ms`.
 
 ## 7. Write the compatibility verdict, then fix
 

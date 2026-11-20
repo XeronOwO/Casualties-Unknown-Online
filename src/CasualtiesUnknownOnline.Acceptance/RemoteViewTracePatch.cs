@@ -67,9 +67,11 @@ internal static class RemoteViewTracePatch
 
 	private static string TraceDirectory()
 	{
-		var root = Paths.BepInExRootPath;
-		var directory = Path.Combine(root, "plugins", "CasualtiesUnknownOnline");
-		return Directory.Exists(directory) ? directory : root;
+		// Beside the client's own logs, never inside the deployed plug-in folder: the folder is an inventory that
+		// tools/verify-deploy.ps1 compares against the build output, and a file written at runtime would read as a
+		// deployment mismatch (measured 2026-11-21).
+		var logs = Path.Combine(Paths.BepInExRootPath, "logs");
+		return Directory.Exists(logs) ? logs : Paths.BepInExRootPath;
 	}
 
 	private static int Patch(Harmony harmony, MethodBase? method, string name, string label)

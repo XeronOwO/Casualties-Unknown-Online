@@ -6,8 +6,8 @@ Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal 
 - [ ] Native parity — no native chain is mirrored or replaced; the seam refuses one production render call in an acceptance-only assembly
 - [ ] Native parity probe — no probe: the row reads the native window's own slot buttons through `containerUnloadButtons`
 - [ ] Entry mapping — one entry: `AcceptancePlugin.Awake` installs the red seam and the trace beside the recorders
-- [ ] Mechanism inventory — five red seams exist and each is a case-scoped env switch (A1 arming, A2 backups aside, C1 archive aside, A3 skipped restart, C3 skipped later clone applications)
-- [ ] Whole-family audit — every seam returns the untouched path unless `CUO_ACCEPTANCE_RED` names its case; seven narrower C3 seams were measured and all left the row green
+- [ ] Mechanism inventory — five red seams exist and each is a case-scoped env switch
+- [ ] Whole-family audit — every seam returns the untouched path unless `CUO_ACCEPTANCE_RED` names its case; eight C3 seams were measured and the narrow one failed at the row's precondition because the same call builds the container and draws the items
 - [ ] Self-check table — the red must fail, and the same case must pass with the variable unset
 - [ ] Verification design — build, units, gates, format, deploy `-Acceptance`, red run, green rerun
 - [ ] Plan approved by the user — the night-mode goal authorises self-chosen ticket work without asking

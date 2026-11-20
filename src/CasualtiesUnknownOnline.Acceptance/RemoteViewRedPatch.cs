@@ -6,18 +6,21 @@ namespace CasualtiesUnknownOnline.Acceptance;
 
 /// <summary>
 /// The deliberate red for the <c>remote-backpack-refresh</c> row. The row's claim is that an item arriving in the
-/// owner's backpack reaches a member's already-open window. The traced path (2026-11-21) is
-/// <c>CloneInventoryRenderer.ApplyCloneInventory</c>: the member's drawn copy of the owner's body goes 4 → 5 items as
-/// the item arrives, while <c>Container.LoadItem</c> and <c>RemoteItemSceneOps.BindToContainer</c> never fire.
-/// This prefix lets the first population through (it creates the container the window shows) and refuses every later
-/// application when <c>CUO_ACCEPTANCE_RED</c> names the case, so the arriving item never reaches the drawn copy.
+/// owner's backpack reaches a member's already-open window. This prefix skips
+/// <c>CloneInventoryRenderer.ApplyCloneInventory</c> — the adapter's per-snapshot render of the member's copy of
+/// the owner's body — when <c>CUO_ACCEPTANCE_RED</c> names the case, so the member's copy never materializes the
+/// backpack container and the row cannot open the view it asserts. That is where the row fails.
 ///
 /// <para>
-/// Seven narrower seams were measured before the trace, and what they measured is recorded on the ticket: the
-/// renderer's removal-only <c>RefreshOpenRemoteContainer</c>; <c>RemoteBackpackView.UpdatePendingContainerRefresh</c>
+/// Seven finer seams were measured first and are recorded on the ticket, because what they measured is the finding:
+/// the renderer's removal-only <c>RefreshOpenRemoteContainer</c>; <c>RemoteBackpackView.UpdatePendingContainerRefresh</c>
 /// (the game rebuilds the window itself); <c>RestoreRemoteContents</c> on a drawn container; every application after
 /// the clone's first; every application after the clone's container is drawn; every application once the open window
-/// draws a slot; and a refused <c>Container.LoadItem</c> into a second child of a marked proxy.
+/// draws a slot; and a refused <c>Container.LoadItem</c> into a second child of a marked proxy. All seven left the row
+/// green, and none of the guards ever matched, which means the arriving item reaches the open window through a path
+/// these seams do not name. A case-scoped break that keeps the row's precondition therefore has to be found from that
+/// path, not guessed at from the render; the ticket carries that as the open question, and this seam demonstrates the
+/// row fails when the member's copy is not rendered at all.
 /// </para>
 ///
 /// <para>
@@ -50,19 +53,9 @@ internal static class RemoteViewRedPatch
 		Logger.LogInfo($"[RemoteViewRed] armed on {Target}.ApplyCloneInventory; it skips the member's copy of the owner's body only when CUO_ACCEPTANCE_RED is {Case}.");
 	}
 
-	/// <summary>
-	/// The seam keeps the clone's first population — that is what creates the container the open window shows — and
-	/// refuses every later application, so a snapshot that carries a newly arrived item never reaches the drawn copy.
-	/// The row then fails on the arrival it asserts, with its precondition intact.
-	/// </summary>
-	private static bool Prefix(Body clone)
+	private static bool Prefix()
 	{
 		if (!string.Equals(Environment.GetEnvironmentVariable("CUO_ACCEPTANCE_RED"), Case, StringComparison.Ordinal))
-		{
-			return true;
-		}
-
-		if (clone == null || clone.GetComponentsInChildren<Item>(true).Length == 0) // Unity objects — ==
 		{
 			return true;
 		}
@@ -70,7 +63,7 @@ internal static class RemoteViewRedPatch
 		if (!_suppressionLogged)
 		{
 			_suppressionLogged = true;
-			Logger.LogInfo("[RemoteViewRed] the drawn copy keeps its first population; later snapshots are not applied for the red row.");
+			Logger.LogInfo("[RemoteViewRed] the member's copy of the owner's body is not rendered for the red row; the row cannot open the view it asserts.");
 		}
 
 		return false;

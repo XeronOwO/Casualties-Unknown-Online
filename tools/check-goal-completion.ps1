@@ -15,7 +15,9 @@
 #     blocked on a fixture                   the state the row needs cannot be produced from a batch
 #     blocked on hardware / on the machine   the machine cannot stage it
 # A status that carries a marker AND a residual row (owed / unproven / residual / TODO / pending / still needs) still fails: a
-# parked ticket parks the whole ticket, not one row of it.
+# parked ticket parks the whole ticket, not one row of it. The folder label the status must repeat ("Todo", "Review", ...) is not a
+# residual claim: it is scanned out before the words are judged, because a parked ticket still lives under the folder the backlog
+# gate names it by.
 #
 # Usage: pwsh tools/check-goal-completion.ps1 [-Quiet]
 # Exit codes: 0 = every remaining ticket names why it is not actionable; 1 = at least one is actionable; 2 = the backlog is missing.
@@ -40,6 +42,9 @@ if (-not (Test-Path -LiteralPath $BacklogRoot)) {
 $parkedPattern = '(?i)blocked\s+(on|by)\s+(a\s+|an\s+|the\s+)?(user|human|build|capability|fixture|hardware|machine)'
 $residualPattern = '(?i)\b(owed|unproven|residual|TODO|pending|not yet|still needs)\b'
 $statusPattern = '^\s*-\s*Status\s*:\s*(?<text>.+)$'
+# The status field must repeat the label its folder implies (BacklogIntegrityGateTests enforces that), so the label itself
+# is not a claim about leftover work: "Todo" is where a parked ticket lives, not an admission. Only the words after it count.
+$statusLabelPattern = '(?i)^\s*(todo|review|in\s+progress|done|resolved|future|watchlist)\s*(?:—|-|:)?\s*'
 
 function Read-TicketStatus {
     param([string] $Path)
@@ -63,7 +68,8 @@ foreach ($queue in @('todo', 'review')) {
     foreach ($file in Get-ChildItem -LiteralPath $directory -Filter '*.md' -File | Sort-Object Name) {
         $status = Read-TicketStatus -Path $file.FullName
         $parked = ($null -ne $status) -and ($status -match $parkedPattern)
-        $residual = ($null -ne $status) -and ($status -match $residualPattern)
+        $claim = if ($null -ne $status) { [regex]::Replace($status, $statusLabelPattern, '') } else { $null }
+        $residual = ($null -ne $claim) -and ($claim -match $residualPattern)
         $tickets += [pscustomobject]@{
             Queue    = $queue
             Name     = $file.BaseName

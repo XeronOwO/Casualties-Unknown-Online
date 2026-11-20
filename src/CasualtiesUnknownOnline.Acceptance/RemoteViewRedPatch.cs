@@ -5,32 +5,44 @@ using UDebug = UnityEngine.Debug;
 namespace CasualtiesUnknownOnline.Acceptance;
 
 /// <summary>
-/// The deliberate red for the <c>remote-backpack-refresh</c> row. The row's claim is that the open remote
-/// backpack keeps up with its owner's inventory, drawn through the production
-/// <c>CloneInventoryRenderer.RefreshOpenRemoteContainer</c> call; this prefix skips that call when
-/// <c>CUO_ACCEPTANCE_RED</c> names the case, so the window keeps its old slots and the row fails at the
-/// arrival it asserts instead of passing on the clone body's own update. The variable is the whole switch:
-/// without it a prefix returns true and the call runs untouched, and a production install never carries the
-/// acceptance assembly at all (it is deployed only with <c>-Acceptance</c>).
+/// The deliberate red for the <c>remote-backpack-refresh</c> row. The row's claim is that an open remote
+/// backpack keeps up with its owner's inventory: the clone renderer marks the window's refresh pending (on a
+/// structure change and on the open proxy being re-created), and <c>RemoteBackpackView.UpdatePendingContainerRefresh</c>
+/// rebuilds the native slot buttons through <c>PlayerCamera.RepopulateContainer</c>. This prefix skips that
+/// rebuild when <c>CUO_ACCEPTANCE_RED</c> names the case, so the window keeps the slots it opened with and the
+/// row fails at the arriving slot it asserts. The first seam tried the renderer's own
+/// <c>RefreshOpenRemoteContainer</c> call, which only runs on removals; the arriving item re-renders the whole
+/// proxy and the rebuild comes from the pending flag, so the consumer is the seam that the row actually reads.
+/// Without the variable the prefix returns true and the production rebuild runs untouched, and a production
+/// install never carries the acceptance assembly at all (it is deployed only with <c>-Acceptance</c>).
 /// </summary>
 internal static class RemoteViewRedPatch
 {
 	private const string Case = "remote-backpack-refresh";
-	private const string Target = "CasualtiesUnknownOnline.GameAdapter.Character.CloneInventoryRenderer";
+	private const string Target = "CasualtiesUnknownOnline.GameAdapter.RemoteBackpackView";
 
 	internal static void Install(Harmony harmony)
 	{
 		var type = AccessTools.TypeByName(Target);
-		var method = type == null ? null : AccessTools.Method(type, "RefreshOpenRemoteContainer");
+		var method = type == null ? null : AccessTools.Method(type, "UpdatePendingContainerRefresh");
 		if (method == null)
 		{
-			UDebug.LogWarning($"[RemoteViewRed] no {Target}.RefreshOpenRemoteContainer to patch; the red run would read the production path.");
+			UDebug.LogWarning($"[RemoteViewRed] no {Target}.UpdatePendingContainerRefresh to patch; the red run would read the production refresh.");
 			return;
 		}
 
 		harmony.Patch(method, prefix: new HarmonyMethod(typeof(RemoteViewRedPatch), nameof(Prefix)));
+		UDebug.Log($"[RemoteViewRed] armed on {Target}.UpdatePendingContainerRefresh; it suppresses the rebuild only when CUO_ACCEPTANCE_RED is {Case}.");
 	}
 
-	private static bool Prefix() =>
-		!string.Equals(Environment.GetEnvironmentVariable("CUO_ACCEPTANCE_RED"), Case, StringComparison.Ordinal);
+	private static bool Prefix()
+	{
+		if (!string.Equals(Environment.GetEnvironmentVariable("CUO_ACCEPTANCE_RED"), Case, StringComparison.Ordinal))
+		{
+			return true;
+		}
+
+		UDebug.Log("[RemoteViewRed] the pending container refresh is suppressed for the red row.");
+		return false;
+	}
 }

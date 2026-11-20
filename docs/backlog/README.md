@@ -62,10 +62,10 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- _No open ticket._
+- [Acceptance failure paths and replay](todo/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — failure rows and live update replay; rejected once.
 
 ### In progress
-- [Acceptance failure paths and replay](in-progress/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — failure rows, live update replay.
+- _No active ticket._
 
 ### Review
 

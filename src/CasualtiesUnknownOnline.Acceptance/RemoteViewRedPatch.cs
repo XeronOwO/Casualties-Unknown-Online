@@ -6,17 +6,18 @@ namespace CasualtiesUnknownOnline.Acceptance;
 
 /// <summary>
 /// The deliberate red for the <c>remote-backpack-refresh</c> row. The row's claim is that an item arriving in the
-/// owner's backpack while a member has that backpack open reaches the open window. The adapter materializes the
-/// clone's container children in <c>CloneInventoryRenderer.RestoreRemoteContents</c>; the first render (an empty
-/// container) must run so the window has something to open, and every later update is the arriving slot itself.
-/// This prefix suppresses the later updates when <c>CUO_ACCEPTANCE_RED</c> names the case, so the window keeps the
-/// slots it opened with and the row fails at the second give it asserts.
+/// owner's backpack reaches a member's already-open window. The adapter's per-snapshot entry is
+/// <c>CharacterDataSync</c> → <c>CloneInventoryRenderer.ApplyCloneInventory</c>, which reconciles the clone's slots
+/// and the container children the native window draws. This prefix suppresses every application after the first one
+/// when <c>CUO_ACCEPTANCE_RED</c> names the case: the window still has a container to open (the first application
+/// built it), and the arriving item never reaches it, so the row fails at the second give it asserts.
 ///
 /// <para>
-/// Two coarser seams left the row green and are recorded on the ticket: the renderer's removal-only
-/// <c>RefreshOpenRemoteContainer</c> call, and <c>RemoteBackpackView.UpdatePendingContainerRefresh</c> (the game
-/// rebuilds the window itself when the container's children change). Skipping the whole clone render also fails the
-/// row, but at "the open view shows no container", which is the fixture's precondition rather than the claim.
+/// Four finer seams were measured and left the row green, all recorded on the ticket: the renderer's
+/// removal-only <c>RefreshOpenRemoteContainer</c> call; <c>RemoteBackpackView.UpdatePendingContainerRefresh</c>
+/// (the game rebuilds the window itself when the container's children change); the whole clone render (fails at
+/// "the open view shows no container", the fixture's precondition, not the claim); and
+/// <c>RestoreRemoteContents</c> on an already-drawn container (the arrival turns out not to travel through it).
 /// </para>
 ///
 /// <para>
@@ -38,28 +39,27 @@ internal static class RemoteViewRedPatch
 	internal static void Install(Harmony harmony)
 	{
 		var type = AccessTools.TypeByName(Target);
-		var method = type == null ? null : AccessTools.Method(type, "RestoreRemoteContents");
+		var method = type == null ? null : AccessTools.Method(type, "ApplyCloneInventory");
 		if (method == null)
 		{
-			Logger.LogWarning($"[RemoteViewRed] no {Target}.RestoreRemoteContents to patch; the red run would read the production render.");
+			Logger.LogWarning($"[RemoteViewRed] no {Target}.ApplyCloneInventory to patch; the red run would read the production render.");
 			return;
 		}
 
 		harmony.Patch(method, prefix: new HarmonyMethod(typeof(RemoteViewRedPatch), nameof(Prefix)));
-		Logger.LogInfo($"[RemoteViewRed] armed on {Target}.RestoreRemoteContents; it suppresses an already-drawn container's updates only when CUO_ACCEPTANCE_RED is {Case}.");
+		Logger.LogInfo($"[RemoteViewRed] armed on {Target}.ApplyCloneInventory; it suppresses every application after the first only when CUO_ACCEPTANCE_RED is {Case}.");
 	}
 
-	// The first render of a container has no drawn children; suppressing only the later calls keeps the window's
-	// precondition (a container to open) intact and breaks exactly the arriving slot the row asserts.
-	private static bool Prefix(Item containerItem)
+	// The first application draws the clone (and the container the fixture opens); everything after it is an
+	// update, which is exactly the arriving slot the row asserts.
+	private static bool Prefix(Body clone)
 	{
 		if (!string.Equals(Environment.GetEnvironmentVariable("CUO_ACCEPTANCE_RED"), Case, StringComparison.Ordinal))
 		{
 			return true;
 		}
 
-		var container = containerItem == null ? null : containerItem.GetComponent<Container>();
-		if (container == null || container.transform.childCount == 0) // Unity objects — ==
+		if (clone == null || clone.GetComponentsInChildren<Item>(true).Length == 0) // Unity objects — ==
 		{
 			return true;
 		}
@@ -67,7 +67,7 @@ internal static class RemoteViewRedPatch
 		if (!_suppressionLogged)
 		{
 			_suppressionLogged = true;
-			Logger.LogInfo("[RemoteViewRed] a drawn remote container's update is suppressed for the red row; the arriving slot never reaches the open window.");
+			Logger.LogInfo("[RemoteViewRed] the remote clone's later inventory applications are suppressed for the red row; the arriving slot never reaches the open window.");
 		}
 
 		return false;

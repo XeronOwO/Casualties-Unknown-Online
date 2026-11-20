@@ -2,12 +2,12 @@
 
 Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal ` — evidence: ` followed by the evidence.
 
-- [ ] Design comprehension — the row's claim is that the open remote backpack draws an arriving item through the pending-refresh rebuild, so the red break removes that rebuild and leaves both entries (a structure change, a re-created open proxy) feeding a flag nobody consumes
-- [ ] Native parity — no native chain is mirrored or replaced; the seam skips one production rebuild in an acceptance-only assembly
-- [ ] Native parity probe — no probe: the row reads the native window's own slot buttons through the containerUnloadButtons it rebuilt
+- [ ] Design comprehension — the row's claim is that the member's open copy of the owner's backpack keeps up with the owner's inventory, and the production path that gives the window its slot is the clone render materializing the item
+- [ ] Native parity — no native chain is mirrored or replaced; the seam skips one production render in an acceptance-only assembly
+- [ ] Native parity probe — no probe: the row reads the native window's own slot buttons through `containerUnloadButtons`, not the clone body
 - [ ] Entry mapping — one entry: `AcceptancePlugin.Awake` installs the prefix beside the recorders
-- [ ] Mechanism inventory — five red seams exist and each is a case-scoped env switch (A1 arming, A2 backups aside, C1 archive aside, A3 skipped restart, C3 skipped rebuild)
-- [ ] Whole-family audit — every seam returns the untouched path unless `CUO_ACCEPTANCE_RED` names its case; two attempts named too narrow a seam (the renderer's removal-only call, then a silent logger), so the seam now logs through BepInEx and the report's member warning count shows it running
+- [ ] Mechanism inventory — five red seams exist and each is a case-scoped env switch (A1 arming, A2 backups aside, C1 archive aside, A3 skipped restart, C3 skipped clone render)
+- [ ] Whole-family audit — every seam returns the untouched path unless `CUO_ACCEPTANCE_RED` names its case; three seams were needed here (the renderer's removal-only refresh, our pending rebuild the game does itself, then the render the window's slots come from) and each dead one is recorded on the ticket
 - [ ] Self-check table — the red must fail at the arriving slot, and the same case must pass with the variable unset
 - [ ] Verification design — build, units, gates, format, deploy `-Acceptance`, red run, green rerun
 - [ ] Plan approved by the user — the night-mode goal authorises self-chosen ticket work without asking

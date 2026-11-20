@@ -1,6 +1,6 @@
 using System;
+using BepInEx.Logging;
 using HarmonyLib;
-using UDebug = UnityEngine.Debug;
 
 namespace CasualtiesUnknownOnline.Acceptance;
 
@@ -21,18 +21,22 @@ internal static class RemoteViewRedPatch
 	private const string Case = "remote-backpack-refresh";
 	private const string Target = "CasualtiesUnknownOnline.GameAdapter.RemoteBackpackView";
 
+	// BepInEx's own log source, because UnityEngine.Debug output did not reach either client log (measured
+	// 2026-11-21: an armed seam wrote nothing while the plug-in's LogInfo line was present).
+	private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("CUO Acceptance Red");
+
 	internal static void Install(Harmony harmony)
 	{
 		var type = AccessTools.TypeByName(Target);
 		var method = type == null ? null : AccessTools.Method(type, "UpdatePendingContainerRefresh");
 		if (method == null)
 		{
-			UDebug.LogWarning($"[RemoteViewRed] no {Target}.UpdatePendingContainerRefresh to patch; the red run would read the production refresh.");
+			Logger.LogWarning($"[RemoteViewRed] no {Target}.UpdatePendingContainerRefresh to patch; the red run would read the production refresh.");
 			return;
 		}
 
 		harmony.Patch(method, prefix: new HarmonyMethod(typeof(RemoteViewRedPatch), nameof(Prefix)));
-		UDebug.Log($"[RemoteViewRed] armed on {Target}.UpdatePendingContainerRefresh; it suppresses the rebuild only when CUO_ACCEPTANCE_RED is {Case}.");
+		Logger.LogInfo($"[RemoteViewRed] armed on {Target}.UpdatePendingContainerRefresh; it suppresses the rebuild only when CUO_ACCEPTANCE_RED is {Case}.");
 	}
 
 	private static bool Prefix()
@@ -42,7 +46,7 @@ internal static class RemoteViewRedPatch
 			return true;
 		}
 
-		UDebug.Log("[RemoteViewRed] the pending container refresh is suppressed for the red row.");
+		Logger.LogInfo("[RemoteViewRed] the pending container refresh is suppressed for the red row.");
 		return false;
 	}
 }

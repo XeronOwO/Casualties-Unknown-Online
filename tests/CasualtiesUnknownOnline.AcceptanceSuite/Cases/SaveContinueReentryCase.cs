@@ -39,12 +39,13 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 		var first = await SaveContinueCycle.ContinueAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("first restored line", TextElement(first));
 		var firstStored = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
-		var firstGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		var firstGeysers = await ReadGeyserTableAsync(context, cancellationToken).ConfigureAwait(false);
 		var firstBag = await RejoinAndReadMarkerAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("first entry stored", firstStored);
 		context.Read("first entry geysers", firstGeysers);
 		context.Read("first entry member bag", firstBag);
 		Require(HasItem(firstStored, "MemberColor", 5), "the first entry lost the stored character: " + Raw(firstStored));
+		Require(GeyserSignature(firstGeysers).Length > 0, "the first entry's geyser table is empty: " + Raw(firstGeysers));
 
 		var live = NewestLive(saveRoot!);
 		Require(live is not null, "no live archive was written under the batch's save root: " + saveRoot);
@@ -77,13 +78,14 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 
 			context.Read("second restored line", TextElement(second));
 			var secondStored = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
-			var secondGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+			var secondGeysers = await ReadGeyserTableAsync(context, cancellationToken).ConfigureAwait(false);
 			var secondBag = await RejoinAndReadMarkerAsync(context, cancellationToken).ConfigureAwait(false);
 			context.Read("second entry stored", secondStored);
 			context.Read("second entry geysers", secondGeysers);
 			context.Read("second entry member bag", secondBag);
 
 			Require(HasItem(secondStored, "MemberColor", 5), "the second entry lost the stored character: " + Raw(secondStored));
+			Require(GeyserSignature(secondGeysers).Length > 0, "the second entry's geyser table is empty: " + Raw(secondGeysers));
 			Require(SameStoredItems(firstStored, secondStored), "the second entry's stored character differs from the first: " + Raw(firstStored) + " then " + Raw(secondStored));
 			Require(MarkerCopies(firstBag) == MarkerCopies(secondBag), "the second entry changed the member's stored marker copies: " + MarkerCopies(firstBag) + " then " + MarkerCopies(secondBag));
 			Require(GeyserSignature(firstGeysers) == GeyserSignature(secondGeysers), "the second entry's geyser type set differs from the first: " + Raw(firstGeysers) + " then " + Raw(secondGeysers));
@@ -112,6 +114,33 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// The host's geyser table, read only once the host is in the world and the table has rows: the
+	/// window after a Continue opens before the regenerated geysers exist, and an early read returns
+	/// <c>total 0</c> — which compares equal to the next entry's empty read and makes the row's
+	/// world-fact assertion vacuous (measured 2026-11-20: both entries read `total 0`).
+	/// </summary>
+	private static async Task<JsonElement> ReadGeyserTableAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(45);
+		JsonElement? lastTable = null;
+		var lastState = default(JsonElement);
+		while (DateTime.UtcNow < deadline)
+		{
+			lastState = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			lastTable = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+			if (Integer(lastTable, "total") > 0)
+			{
+				return lastTable!.Value;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new AssertionException(
+			"the host's geyser table never reached the live world; last state " + Raw(lastState) + ", last table " + Raw(lastTable));
 	}
 
 	private static async Task<JsonElement> WaitForMarkerAsync(CaseContext context, CancellationToken cancellationToken)
@@ -259,6 +288,13 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
+
+	private static int Integer(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetInt32()
+			: -1;
 
 	private static string Raw(JsonElement? reading) => reading?.ToString() ?? "(null)";
 

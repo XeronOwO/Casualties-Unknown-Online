@@ -35,7 +35,9 @@ gitignored [AGENTS.local.md](AGENTS.local.md): read it first, never copy machine
    repository. Closing an acceptance conversation runs this harvest unprompted.
 10. `[CRITICAL]` **Wall time is a measured fact.** Report connect / setup / case per case and classify the case `InRun`,
     `NewWorld` or `ClientRestart`; seconds per case and tens of seconds per group are the target, and an overrun is a finding
-    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups.
+    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups. A run that
+    outlives its measured wall time is read from the field — the game processes, `report/`, both `latest.log`s — never by
+    waiting on a status.
 11. `[CRITICAL]` **Every case counts the logs it caused.** Mark both clients' log offsets before it starts; count every `Warning`
     and `Error` written since, and assert the case's declared budget (zero errors by default). An unexplained error fails even
     when behaviour passed; known warnings are named and bounded, never filtered out.

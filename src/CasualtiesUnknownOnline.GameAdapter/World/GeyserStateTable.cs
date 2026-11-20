@@ -77,9 +77,10 @@ internal static class GeyserStateTable
 	/// geyser) pair inside the radius is a candidate, the candidates are taken
 	/// shortest-first, and a taken row or geyser cannot be claimed twice. Two geysers 1.35 m
 	/// apart (measured 2026-11-17) would otherwise let one live object take the row its
-	/// neighbour owns and leave that row refused. A row no live geyser reaches is refused
-	/// and named at warning level with its position, so the restore's refused count — rows
-	/// minus applied — has its evidence.
+	/// neighbour owns and leave that row refused. A row no claim takes is refused and named at warning
+	/// level with its position, its nearest live geyser, that distance and the live/row counts — the
+	/// reading that separates a shifted position from a lost live object, so the restore's refused
+	/// count — rows minus applied — carries its own evidence.
 	///
 	/// Each write runs through <c>ContainedRowLoop.Run</c>: a throwing write costs ITSELF,
 	/// is not counted as applied, and the remembered type is kept only after the write
@@ -89,10 +90,16 @@ internal static class GeyserStateTable
 	{
 		var live = Object.FindObjectsOfType<GeyserScript>(true);
 		var candidates = new List<(float Distance, int Row, int Live)>();
+		// The nearest live geyser per saved row, kept even when it is outside the tolerance: it is the
+		// evidence a refusal needs (see the report below), because "no live geyser within 6 m" does not
+		// say whether the geyser stands 6.4 m away or the live set holds different objects entirely.
+		var nearestDistance = new float[geysers.Count];
+		var nearestPoint = new Vector2[geysers.Count];
 		for (var row = 0; row < geysers.Count; row++)
 		{
 			var saved = geysers[row];
 			var position = new Vector2(saved.Position.X, saved.Position.Y);
+			nearestDistance[row] = float.PositiveInfinity;
 			for (var index = 0; index < live.Length; index++)
 			{
 				var geyser = live[index];
@@ -103,6 +110,12 @@ internal static class GeyserStateTable
 
 				var point = geyser.transform.position;
 				var distance = Vector2.Distance(position, new Vector2(point.x, point.y));
+				if (distance < nearestDistance[row])
+				{
+					nearestDistance[row] = distance;
+					nearestPoint[row] = new Vector2(point.x, point.y);
+				}
+
 				if (distance <= PositionTolerance)
 				{
 					candidates.Add((distance, row, index));
@@ -128,13 +141,50 @@ internal static class GeyserStateTable
 
 		for (var row = 0; row < geysers.Count; row++)
 		{
-			if (!claimedRows[row])
+			if (claimedRows[row])
+			{
+				continue;
+			}
+
+			var savedRow = geysers[row];
+			if (live.Length == 0)
 			{
 				log.LogWarning(
-					"Restored geyser type row at ({X:F1},{Y:F1}) found no live geyser within {Tolerance} m; the row is refused.",
-					geysers[row].Position.X,
-					geysers[row].Position.Y,
-					PositionTolerance);
+					"Restored geyser type row at ({X:F1},{Y:F1}) was not written: the live world holds no geyser at all ({Rows} saved row(s)); the row is refused.",
+					savedRow.Position.X,
+					savedRow.Position.Y,
+					geysers.Count);
+				continue;
+			}
+
+			// Two shapes, told apart by the nearest distance: a live geyser sits inside the tolerance
+			// and another row's claim took it (a pairing that is not one-to-one), or the nearest live
+			// geyser is simply too far away (a shifted position or a live set that is not the cut's).
+			if (nearestDistance[row] <= PositionTolerance)
+			{
+				log.LogWarning(
+					"Restored geyser type row at ({X:F1},{Y:F1}) was not written: its nearest live geyser at ({X2:F1},{Y2:F1}) stands {Distance:F1} m away, inside the {Tolerance} m tolerance, and another row's claim took it; {Live} live geyser(s) against {Rows} saved row(s); the row is refused.",
+					savedRow.Position.X,
+					savedRow.Position.Y,
+					nearestPoint[row].x,
+					nearestPoint[row].y,
+					nearestDistance[row],
+					PositionTolerance,
+					live.Length,
+					geysers.Count);
+			}
+			else
+			{
+				log.LogWarning(
+					"Restored geyser type row at ({X:F1},{Y:F1}) was not written: the nearest live geyser at ({X2:F1},{Y2:F1}) stands {Distance:F1} m away, outside the {Tolerance} m tolerance; {Live} live geyser(s) against {Rows} saved row(s); the row is refused.",
+					savedRow.Position.X,
+					savedRow.Position.Y,
+					nearestPoint[row].x,
+					nearestPoint[row].y,
+					nearestDistance[row],
+					PositionTolerance,
+					live.Length,
+					geysers.Count);
 			}
 		}
 

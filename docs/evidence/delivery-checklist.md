@@ -2,16 +2,16 @@
 
 Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal ` — evidence: ` followed by the evidence.
 
-- [ ] Design comprehension — the save/recovery page's WorldBackupPromotion section and this ticket's A2 design row were read before the change
-- [ ] Native parity — no native chain is mirrored by this change; it reorders three existing host writes and substitutes none
-- [ ] Native parity probe — no substitute exists to probe; the two restore facts the reorder could break are pinned by tests
-- [ ] Entry mapping — the reconnect restore has one entry and one write order
-- [ ] Mechanism inventory — the family is every write the restore commits, in journal order: player facts, player row, item re-key, arbitration
-- [ ] Whole-family audit — the code sweep's CharacterData block now counts 41 files and the two evidence ledgers name the moved lines
-- [ ] Self-check table — the write order is asserted by the ordering test plus the 16 focused restore tests
-- [ ] Verification design — focused tests first, then the full suite once, then format
+- [ ] Design comprehension — the save/recovery page's restored-set paragraph (one row to one live geyser, shortest pair first, inside 6 m) was read before the change
+- [ ] Native parity — no native chain is mirrored; the change only names the nearest live geyser on a refusal and leaves the pairing rule as it was
+- [ ] Native parity probe — no substitute exists to probe; the two refusal shapes are told apart by a distance the row already computes
+- [ ] Entry mapping — the restored geyser set has one entry and one write order
+- [ ] Mechanism inventory — the family is every saved row's type write plus every refusal report, in saved-row order
+- [ ] Whole-family audit — the report now covers the no-geyser, claim-taken and out-of-tolerance shapes instead of one message for all
+- [ ] Self-check table — the acceptance case refuses a vacuous comparison: a non-empty host table is required at both entries
+- [ ] Verification design — focused tests first, then the full suite once, then format; the acceptance verdict comes from the rerun on the deployed artifact
 - [ ] Plan approved by the user — the night-mode goal authorises self-chosen ticket work without asking
-- [ ] Structure review done — the restore's writes left the store for one class with one entry, and the store dropped from 697 to 609 lines
+- [ ] Structure review done — the refusal report stays in the method that owns the pairing, and the change adds no state outside `Apply`
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate

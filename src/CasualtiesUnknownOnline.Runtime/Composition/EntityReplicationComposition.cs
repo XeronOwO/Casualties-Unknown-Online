@@ -50,6 +50,9 @@ internal static class EntityReplicationComposition
 		// limb components whose item survives the transform (see the projection's own doc).
 		services.AddSingleton<AppliedItemConditionProjection>();
 		services.AddSingleton<PlayerKernelRestoreProjection>();
+		// The reconnect restore's write order: the player row before the item re-key, because a
+		// guest applies journal batches in commit order (the A2 journal loop).
+		services.AddSingleton<CharacterReconnectRestore>();
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 		// The host's continuous-vitals wire pump (2026-10-18 ruling): the model itself runs on the

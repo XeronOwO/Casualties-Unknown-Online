@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -709,6 +711,55 @@ public class CharacterDataStoreTests
 			Assert.Equal(3001ul, items.FindJudgedItem(43)!.Value.Location.Owner.Value);
 			Assert.Equal(HostId, items.FindJudgedItem(44)!.Value.Location.Owner.Value);
 			Assert.Equal(2, items.GetTransferredItems(3001).Count);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_AfterReconnect_CommitsThePlayerBeforeTheItemReKey()
+	{
+		// A2 save-write-interrupted: the item re-key commits before the player's
+		// status batch, so a guest replaying the journal meets a carried item for
+		// a player it does not know yet and can never advance past that batch
+		// (PlayerDomainModule's unknown-player invariant), which turns the
+		// reconnect into an endless range-request/resend loop.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var items = host.Services.GetRequiredService<IItemControl>();
+			items.AdoptTransferredItem(GuestId, 42, new CharacterItemMsg { InstanceId = 42, ItemId = "lantern" });
+
+			var control = (ISessionControl)host.Session;
+			var old = control.GetOrCreateMember(GuestId);
+			old.DisplayName = "Guest";
+			old.Handshaken = true;
+			old.InWorld = false;
+			var reconnected = control.GetOrCreateMember(3001);
+			reconnected.DisplayName = "Guest";
+			reconnected.Handshaken = true;
+			reconnected.InWorld = false;
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			store.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Health = new CharacterHealthMsg { Alive = true, Conscious = true },
+				Items = [new CharacterItemMsg { InstanceId = 42, ItemId = "lantern" }],
+			});
+			MarkHostInWorld(host);
+
+			var kernel = host.Services.GetRequiredService<ItemKernelAuthority>();
+			var batches = new List<CommittedBatch>();
+			kernel.BatchCommitted += batches.Add;
+
+			store.SendSavedCharacter(3001);
+
+			var playerAt = batches.FindIndex(batch => batch.Events.Any(@event => @event is PlayerStatusUpdatedEvent));
+			var itemAt = batches.FindIndex(batch => batch.Events.Any(@event => @event is ItemRelocatedEvent));
+			Assert.True(playerAt >= 0, "the restore must commit the player's status");
+			Assert.True(itemAt >= 0, "the restore must commit the item re-key");
+			Assert.True(playerAt < itemAt,
+				$"a guest replaying the journal must know the player before the item re-key (player batch {playerAt}, item batch {itemAt})");
 		}
 	}
 }

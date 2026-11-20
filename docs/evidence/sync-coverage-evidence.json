@@ -3640,7 +3640,7 @@
 
       "row": "P3",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterReconnectRestore.cs",
 
       "quote": "MergeTransferredItems(steamId, data);"
 
@@ -4000,7 +4000,7 @@
 
       "row": "P7",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterReconnectRestore.cs",
 
       "quote": "MergeTransferredItems(steamId, data);"
 
@@ -4108,7 +4108,7 @@
 
       "row": "P8",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterReconnectRestore.cs",
 
       "quote": "MergeTransferredItems(steamId, data);"
 
@@ -4312,7 +4312,7 @@
 
       "row": "P10",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterReconnectRestore.cs",
 
       "quote": "MergeTransferredItems(steamId, data);"
 
@@ -8308,7 +8308,7 @@
 
       "row": "P2",
 
-      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs",
+      "file": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterReconnectRestore.cs",
 
       "quote": "_playerKernelRestore.Apply(steamId, data);"
 

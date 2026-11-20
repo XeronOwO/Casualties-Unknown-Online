@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -28,21 +26,21 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// physiological values, skills, items, and position.
 /// Not an ICuoService: it has no pump, it only reacts to reports and
 /// handshakes. Reads role/session-active through <see cref="ISessionControl"/>
-/// (resolved after the session is built) and the transfer table through
-/// <see cref="IItemControl"/> — acyclic constructor graph (ItemService never
-/// depends on this store), abstract extraction (user rule).
+/// (resolved after the session is built); the restore's kernel and item
+/// writes are ordered by <see cref="CharacterReconnectRestore"/> — acyclic
+/// constructor graph (ItemService never depends on this store), abstract
+/// extraction (user rule).
 /// </summary>
 public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISessionReset
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ILogger<CharacterDataStore> _log;
-	private readonly IItemControl _items;
 	private readonly PlayerKernelLimbProjection _playerLimbKernel;
 
 	/// <summary>The applied item row's durability writer (see <see cref="AppliedItemConditionProjection"/>).</summary>
 	private readonly AppliedItemConditionProjection _appliedItems;
-	private readonly PlayerKernelRestoreProjection _playerKernelRestore;
+	private readonly CharacterReconnectRestore _restore;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private readonly Dictionary<ulong, string> _savedNames = []; // host: the display name each saved report arrived under
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
@@ -69,17 +67,16 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	private readonly CharacterVisualPublisher _visuals;
 
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
-		ILogger<CharacterDataStore> log, IItemControl items,
+		ILogger<CharacterDataStore> log,
 		PlayerKernelLimbProjection playerLimbKernel,
-		PlayerKernelRestoreProjection playerKernelRestore,
+		CharacterReconnectRestore restore,
 		AppliedItemConditionProjection appliedItems)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
-		_items = items;
 		_playerLimbKernel = playerLimbKernel;
-		_playerKernelRestore = playerKernelRestore;
+		_restore = restore;
 		_appliedItems = appliedItems;
 		_savedCharacters = [];
 		_eventMerges = new CharacterEventMerges(FindSaved, playerLimbKernel, log);
@@ -287,6 +284,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			return;
 		}
 
+		ulong? adoptedFrom = null;
 		if (!_savedCharacters.TryGetValue(steamId, out var data))
 		{
 			// IP-direct reconnects get a new transport id, while the saved table is
@@ -303,23 +301,19 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				_savedCharacters.Remove(oldPeer);
 				_savedCharacters[steamId] = adopted;
 				data = adopted;
-				_items.ReassignOwner(oldPeer, steamId);
+				adoptedFrom = oldPeer;
 				CharacterReconnectAdoption.RemoveStalePresence(_session, _log, oldPeer, steamId);
 			}
 		}
 
 		if (data is not null)
 		{
-			DropItemsAnotherOwnerHolds(steamId, data);
-			MergeTransferredItems(steamId, data);
-			// The kernel is the authority for terminal player facts; project it
-			// over the saved snapshot so a reconnect restores the latest
-			// alive/conscious/limb/body facts even if the last 1 Hz report was
-			// captured before a dedicated terminal event landed. A respawn snapshot
-			// is already in the kernel: SaveCharacterData projected its alive/
-			// conscious/limb/body facts there before this send (PlayerKernelLimbProjection),
-			// so this projection confirms the revive instead of overwriting it.
-			_playerKernelRestore.Apply(steamId, data);
+			// The restore's writes are ordered inside the restore: the kernel's terminal
+			// facts over the snapshot, then the adopted player's row, then the item
+			// re-key and arbitration (see CharacterReconnectRestore — a guest replaying
+			// the journal applies batches in commit order, so an item batch that names
+			// a player it has not learned yet stalls the replay at that revision).
+			_restore.Prepare(steamId, data, adoptedFrom);
 			_sender.Send(steamId, NetMsg.CharacterData, data);
 			if (runEntry)
 			{
@@ -329,78 +323,6 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items, {Deaths} death(s)).", steamId, data.Items.Count, data.Deaths);
 		}
 	}
-
-	/// <summary>
-	/// Merge the host's authoritative ownership record (the transfer table — what the
-	/// arbitration moved into the guest's hands, never overwritten by the guest's own
-	/// reports) over the guest's last snapshot, and name both halves of the result: how
-	/// many entries updated a node the snapshot already carried, and how many had to be
-	/// appended because it carried the id nowhere. The rules live in
-	/// <see cref="TransferTableRestoreMerge"/>.
-	/// </summary>
-	private void MergeTransferredItems(ulong steamId, CharacterDataMsg data)
-	{
-		var transferred = _items.GetTransferredItems(steamId);
-		if (transferred.Count == 0)
-		{
-			return;
-		}
-
-		var outcome = TransferTableRestoreMerge.Apply(data, transferred);
-		_log.LogInformation("Merged {Matched} transfer-table items onto the restore of {Peer} ({Appended} appended — the snapshot did not carry them; {Unplaced} unplaceable; {Total} items total).",
-			outcome.Matched, steamId, outcome.Appended, outcome.Unplaced, data.Items.Count);
-		if (outcome.Unplaced > 0)
-		{
-			_log.LogWarning("The restore of {Peer} cannot place {Unplaced} transfer-table item(s): the snapshot does not carry them anywhere and their entries state no body placement (a container content's slot is its parent's, and the table cannot state the parent — an item moved into a container after the last 1 Hz report). They are dropped by name, not silently.",
-				steamId, outcome.Unplaced);
-		}
-	}
-
-	/// <summary>
-	/// The snapshot is the guest's last report, and a reconnect may follow an item
-	/// it handed over: the host's take moved the kernel row to the host, and the
-	/// transfer-table entry went with the guest's body. The kernel is the authority
-	/// for ownership, so drop every snapshot item it records as another owner's
-	/// before the restore; an instance id it has never judged is kept (a pickup
-	/// moments before the disconnect is exactly what this restore is for). The item
-	/// still lives inside its container, so the walk is recursive.
-	/// </summary>
-	private void DropItemsAnotherOwnerHolds(ulong steamId, CharacterDataMsg data)
-	{
-		var dropped = new List<ulong>();
-		var removed = RemoveItemsAnotherOwnerHolds(steamId, data.Items, dropped);
-		if (removed > 0)
-		{
-			_log.LogInformation("[Character] the restore of {Peer} omits {Count} item(s) the kernel records as another owner's: {Items}.",
-				steamId, removed, string.Join(", ", dropped));
-		}
-	}
-
-	private int RemoveItemsAnotherOwnerHolds(ulong steamId, List<CharacterItemMsg> items, List<ulong> dropped)
-	{
-		var removed = 0;
-		for (var index = items.Count - 1; index >= 0; index--)
-		{
-			var item = items[index];
-			if (item.InstanceId != 0
-				&& _items.FindJudgedItem(item.InstanceId) is { } row
-				&& IsOwnerKeyed(row.Location)
-				&& row.Location.Owner.Value != steamId)
-			{
-				items.RemoveAt(index);
-				dropped.Add(item.InstanceId);
-				removed++;
-				continue;
-			}
-
-			removed += RemoveItemsAnotherOwnerHolds(steamId, item.Contents, dropped);
-		}
-
-		return removed;
-	}
-
-	private static bool IsOwnerKeyed(ItemLocation location) =>
-		location.Kind is ItemLocationKind.Carried or ItemLocationKind.Contained or ItemLocationKind.Applied;
 
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>

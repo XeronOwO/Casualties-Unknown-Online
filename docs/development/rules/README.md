@@ -10,7 +10,9 @@ even when the previous round read them, even when the step looks routine. The wh
 rule is in front of the agent at the moment it acts, instead of being remembered from the top of a long conversation.
 
 A round starts when step 0 is printed: `tools/act.ps1 -Step 0` opens this round's record, and a step printed before it
-belongs to an earlier round and is void. That is why the commit hook can refuse a step this round never read.
+belongs to an earlier round and is void. A step is entered with `-Intent "<the plan and the rule that binds it>"`, which
+the printer refuses to omit and records with the step; it also stores the file's SHA, which is why the commit hook can
+refuse a step this round never read.
 
 Step 0 is special: its local file points at the user-level rules, which are read first, before anything else in a
 round.

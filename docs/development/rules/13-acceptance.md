@@ -4,11 +4,11 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 
 ## One session, many rows
 
-- Start the clients once and drive every row the batch set out to judge; a batch that judged no row failed - build the
-  capability, then run the next batch.
+- Start the clients once and drive every row the batch set out to judge; a batch that judged no row failed — build the
+  capability first.
 - At most two batches per row, then the next ticket; two batches without a reading means the code, not the fixture.
-- For a diagnosis, run one case at a time; the whole batch is for rows that are already individually ready. A batch run
-  is not how a case that is not yet understood gets its evidence.
+- For a diagnosis, run one case at a time; the batch is for rows that are already individually ready — not how a case
+  that is not yet understood gets its evidence.
 
 ## The clients stay up
 
@@ -19,18 +19,17 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 
 ## Every row on its own evidence
 
-- Machine rows from a reading; visual rows from an opened, enlarged crop plus a measured number for position, width or
+- Machine rows from a reading; visual rows from an enlarged crop plus a measured number for position, width or
   alignment.
-- Name the instrument in the batch scope before it runs; a row is never judged by a weaker check afterwards.
-- A failed row is a finding; a row nobody can judge is a named residual, never a weaker check.
+- Name the instrument in the batch scope before it runs; a row is never judged by a weaker check afterwards. A failed row
+  is a finding; a row nobody can judge is a named residual, never a weaker check.
 
 ## A fixture is derived, never discovered
 
 - Before staging a mechanic, read `docs/design/mechanics/`, `surfaces/`, `items/` and the game code they cite; write the
-  gesture's input contract into the ticket before the first staged input.
+  gesture's input contract into the ticket first.
 - Name the row's entry before the fixture: read the family table (`docs/design/items/README.md`) and the family's page,
   write the entry into the ticket; a row driven from a ruled-out entry is `not driven` and stays open.
-- A repeat of a caught mistake is a process failure: land the rule here the same turn.
 - Name the object by the game's own prefab id, never the class or a guess: `Openable` is not a door
   (2026-11-07).
 
@@ -40,7 +39,7 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
   copy, a prompt, an object - that is a product question: park the row and ask.
 - "A third party observes" means the bystander's client does not break or desync, not that it shows a copy.
 
-## The two ways to drive
+## Two ways to drive
 
 - In-process is the default; extending that channel is ordinary tooling work.
 - OS-level input (`AcceptanceHost input …`) needs the user's authorisation, only after in-process provably cannot
@@ -49,14 +48,14 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 ## Close the clients before touching `src/`
 
 - Every project under `src/` counts, the batch-only assembly included: a running client holds the file the next deploy
-  must overwrite and the deploy refuses.
+  overwrites.
 
 ## Reading a job is the work
 
 - `run_in_background` is for a command that outlives one call; read it back with `job_output(wait: true)` in the same
-  step. A turn that ends with the job unread threw it away.
+  step (step 0's job rule).
 
 ## Closing
 
 - Quit the clients through the game, then stop what the run started. A reusable pitfall goes to
-  `docs/acceptance/lessons.md`, a machine value to the local facts file, and a wrong rule to the page that owns it.
+  `docs/acceptance/lessons.md`, a machine value to the local facts file, a wrong rule to the owning page.

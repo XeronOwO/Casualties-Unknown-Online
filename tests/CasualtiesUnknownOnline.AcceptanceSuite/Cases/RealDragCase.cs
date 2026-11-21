@@ -47,6 +47,10 @@ internal sealed class RealDragCase : AcceptanceCase
 		var selected = await context.RecipeAsync("select-limb", cancellationToken, ("limb", "2")).ConfigureAwait(false);
 		Require(Boolean(selected, "ok"), "the limb could not be selected: " + Raw(selected));
 
+		// Our own Online UI panel owns the interaction focus on the client that shows it, and the game's wound view
+		// refuses to open while another native surface holds it (measured 2026-11-22: `wound-view = {"ok":true,"open":false}`
+		// right after a wound was seeded on a run whose panel the suite had opened to read state).
+		_ = await context.Session.CloseWindowAsync(context.Session.MemberUrl, CancellationToken.None).ConfigureAwait(false);
 		var opened = await context.RecipeAsync("open-own-wound", cancellationToken).ConfigureAwait(false);
 		context.Read("wound-view", opened);
 		Require(Boolean(opened, "open"), "the host's own wound view did not open: " + Raw(opened));

@@ -92,16 +92,18 @@ internal sealed class MedicalCprCase : AcceptanceCase
 			"the breaths did not raise the patient's oxygen: " + oxygenStart.ToString("0.###", CultureInfo.InvariantCulture) +
 			" -> " + oxygenAfter.ToString("0.###", CultureInfo.InvariantCulture));
 
-		// Enough well-spaced compressions build the pressure past the restore threshold (6 per press
-		// from 5, restart at 45: seven presses would do it; the cap allows twelve).
+		// Enough WELL-SPACED compressions build the pressure past the restore threshold: the policy pays per
+		// compression only inside the reference's own rhythm band (65–220 a minute, `CprRhythmPolicy`), so the presses go
+		// at 100 a minute from the client itself. Measured 2026-11-22: one round-trip press every 600 ms sent the client
+		// a near-zero interval and lifted nothing — fourteen presses, `heartRate 50.761`, pressure still short.
 		var pressure = 5f;
 		var heartRate = 0f;
 		var pressed = 0;
 		for (var attempt = 0; attempt < 14 && pressure < 45f; attempt++)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
-			await context.RecipeAsync("cpr-press", cancellationToken, ("mode", "press"), ("control", "compress"), ("count", "1"), ("interval", "0")).ConfigureAwait(false);
-			pressed++;
+			await context.RecipeAsync("cpr-press", cancellationToken, ("mode", "press"), ("control", "compress"), ("count", "8"), ("interval", "0.6")).ConfigureAwait(false);
+			pressed += 8;
 			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 
 			var read = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);

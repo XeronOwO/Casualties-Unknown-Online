@@ -83,6 +83,27 @@ if (Test-Path -LiteralPath $artifacts) {
 	}
 }
 
+$notes = Join-Path $repo '.agent-local'
+if (Test-Path -LiteralPath $notes) {
+	$liveNotes = @('INDEX.md', 'harness.md', 'git-history.md')
+	$noteCutoff = (Get-Date).AddDays(-$KeepDays)
+	foreach ($file in @(Get-ChildItem -LiteralPath $notes -File -Force -ErrorAction SilentlyContinue)) {
+		if ($liveNotes -contains $file.Name) { continue }
+		if ($file.Extension -eq '.ps1') { continue }
+		if ($file.LastWriteTime -ge $noteCutoff) { continue }
+		$report += [pscustomobject]@{ Target = ".agent-local/$($file.Name)"; Kind = 'file'; Files = 1; MB = [math]::Round($file.Length / 1MB, 2); Action = 'delete' }
+	}
+}
+
+$releases = Join-Path $repo 'artifacts/release'
+if (Test-Path -LiteralPath $releases) {
+	$releaseCutoff = (Get-Date).AddDays(-$KeepDays)
+	foreach ($file in @(Get-ChildItem -LiteralPath $releases -File -Force -ErrorAction SilentlyContinue)) {
+		if ($file.LastWriteTime -ge $releaseCutoff) { continue }
+		$report += [pscustomobject]@{ Target = "artifacts/release/$($file.Name)"; Kind = 'file'; Files = 1; MB = [math]::Round($file.Length / 1MB, 2); Action = 'delete' }
+	}
+}
+
 $acceptance = Join-Path $repo '.acceptance'
 if (Test-Path -LiteralPath $acceptance) {
 	$documented = (Get-ChildItem -LiteralPath (Join-Path $repo 'docs') -Recurse -File -Filter *.md -ErrorAction SilentlyContinue |

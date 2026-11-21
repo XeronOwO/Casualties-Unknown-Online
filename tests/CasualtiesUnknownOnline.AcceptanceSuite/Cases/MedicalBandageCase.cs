@@ -207,10 +207,21 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("radius", radius.ToString("0.###", CultureInfo.InvariantCulture)),
-				("deg", "6"),
+				("deg", "1.2"),
 				("frames", "1200")).ConfigureAwait(false);
 			context.Read("pointer circle started", circle);
 			Require(Boolean(circle, "ok"), "the pointer circle could not start: " + Raw(circle));
+
+			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
+			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand
+			// stops relative to the roll (2026-11-22: one 20-degree step in a 21 s gesture, `angle 0.832`, fill 0.002 —
+			// the numbers alone could not say which of the three stopped first).
+			for (var sample = 0; sample < 8; sample++)
+			{
+				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+				var stepped = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				context.Read("gesture sample " + (sample + 1).ToString(CultureInfo.InvariantCulture), stepped);
+			}
 
 			// The gesture runs inside the client now — one lap per second, the attack key owned there — so the row waits
 			// for the treatment it produces and nothing else. The old shape sampled the hand's angle from outside every

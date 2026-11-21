@@ -62,7 +62,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ## Ticket index
 
 ### Todo
-- [Acceptance failure paths and replay](todo/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — rows green alone; the batch compare is open.
+- [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
 
 ### In progress
 - _No active ticket._
@@ -119,6 +119,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.
 - [Acceptance rows as C# cases](done/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — 39/39 in 276.1 s; the two clients' logs are read together.
 - [Same names must not merge characters](done/1.0-ip-direct-duplicate-names-mix-characters.md) — **High** — the key follows the client, not the name.
 - [Push and carry have no host switch](done/1.0-rule-toggles-missing-for-carry-and-push.md) — **Low** — two landed; the stack limit was dropped by decision.

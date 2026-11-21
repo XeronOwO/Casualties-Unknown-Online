@@ -54,12 +54,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	}
 
 	/// <summary>
-	/// A failing total must name the row and the cell, not just the hash: walk the eight 128-row bands,
-	/// find the first differing row, then compare that row cell by cell. The reading is recorded before
-	/// the assertion throws, so the ticket gets the location even though the case fails.
+	/// A failing total must name the shape, not just the hash: walk the eight 128-row bands and count how many rows
+	/// differ in each, then for the first and the last differing row count the differing cells and how many of them the
+	/// member reads as 00. One side empty across a band means a band still filling in; a handful of cells means a
+	/// structural divergence. The readings are recorded before the assertion throws, so the ticket gets the extent even
+	/// though the case fails.
 	/// </summary>
 	private static async Task DiagnoseAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		var walked = 0;
 		for (var y0 = 0; y0 < 1024; y0 += 128)
 		{
 			var y1 = Math.Min(1024, y0 + 128);
@@ -69,31 +72,59 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y0", y0.ToString()), ("y1", y1.ToString()), ("width", "1024")).ConfigureAwait(false);
 			var hostRows = Rows(host, "host");
 			var memberRows = Rows(member, "member");
+			var differing = new List<int>();
 			for (var i = 0; i < Math.Min(hostRows.Length, memberRows.Length); i++)
 			{
-				if (string.Equals(hostRows[i], memberRows[i], StringComparison.Ordinal))
+				if (!string.Equals(hostRows[i], memberRows[i], StringComparison.Ordinal))
 				{
-					continue;
+					differing.Add(y0 + i);
 				}
+			}
 
-				var y = y0 + i;
-				context.Note($"first differing row: {y}");
+			if (differing.Count == 0)
+			{
+				continue;
+			}
+
+			context.Note($"band {y0}..{y1}: {differing.Count} of {hostRows.Length} row(s) differ, first {differing[0]}, last {differing[^1]}");
+			if (walked++ > 0)
+			{
+				continue;
+			}
+
+			foreach (var y in new[] { differing[0], differing[^1] })
+			{
 				var hostRow = await context.RecipeAsync("block-row-dump", cancellationToken,
 					("y", y.ToString()), ("width", "1024")).ConfigureAwait(false);
 				var memberRow = await context.MemberRecipeAsync("block-row-dump", cancellationToken,
 					("y", y.ToString()), ("width", "1024")).ConfigureAwait(false);
 				var hostValues = StringValue(hostRow, "values");
 				var memberValues = StringValue(memberRow, "values");
-				for (var x = 0; x < Math.Min(hostValues.Length, memberValues.Length) / 2; x++)
+				var cells = Math.Min(hostValues.Length, memberValues.Length) / 2;
+				var differingCells = 0;
+				var memberZeros = 0;
+				var firstX = -1;
+				for (var x = 0; x < cells; x++)
 				{
 					if (hostValues[x * 2] == memberValues[x * 2] && hostValues[x * 2 + 1] == memberValues[x * 2 + 1])
 					{
 						continue;
 					}
 
-					context.Note($"first differing cell: x={x}, y={y}, host={hostValues.Substring(x * 2, 2)}, member={memberValues.Substring(x * 2, 2)}");
-					return;
+					differingCells++;
+					if (memberValues[x * 2] == '0' && memberValues[x * 2 + 1] == '0')
+					{
+						memberZeros++;
+					}
+
+					if (firstX < 0)
+					{
+						firstX = x;
+						context.Note($"row {y}: first differing cell x={x}, host={hostValues.Substring(x * 2, 2)}, member={memberValues.Substring(x * 2, 2)}");
+					}
 				}
+
+				context.Note($"row {y}: {differingCells} of {cells} cell(s) differ, member 00 in {memberZeros} of them, first x={firstX}");
 			}
 		}
 	}

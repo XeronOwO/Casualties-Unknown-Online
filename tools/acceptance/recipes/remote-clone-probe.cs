@@ -20,6 +20,24 @@
 	if (cloneType == null) { return "{\"ok\":false,\"error\":\"no-clone-type\"}"; }
 
 	var found = UnityEngine.Object.FindObjectsOfType(cloneType);
+	if (found == null || found.Length == 0) {
+		// The player clone carries `RemoteBodyDriver`, not the item marker: the inventory renderer marks item proxies,
+		// while `RemoteBodyFactory` attaches the driver to the body it builds. Fall back to the driver so the row reads
+		// the clone the product actually creates (measured 2026-11-22: the host logged "Remote body … built from the
+		// viewer's own body" on the same run this probe answered cloneCount 0).
+		System.Type driverType = null;
+		for (var i = 0; i < assemblies.Length; i++) {
+			try { driverType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver", false); } catch { driverType = null; }
+			if (driverType != null) { break; }
+		}
+		if (driverType != null) {
+			var drivers = UnityEngine.Object.FindObjectsOfType(driverType);
+			if (drivers != null && drivers.Length > 0) {
+				found = new UnityEngine.Object[drivers.Length];
+				for (var i = 0; i < drivers.Length; i++) { found[i] = drivers[i]; }
+			}
+		}
+	}
 	if (found == null || found.Length == 0) { return "{\"ok\":true,\"cloneCount\":0}"; }
 	// The marker also sits on carried-item clones. The player's clone is the one whose hierarchy
 	// carries the game's own Body; selecting the first marker read an item and reported charType -1.
@@ -30,6 +48,30 @@
 		if (candidate == null) { continue; }
 		var body = candidate.GetComponentInChildren<Body>();
 		if (body != null) { clone = candidate; cloneBody = body; break; }
+	}
+	if (clone == null) {
+		// The player clone carries `RemoteBodyDriver`, not the item marker: the inventory renderer marks item proxies,
+		// while `RemoteBodyFactory` attaches the driver to the body it builds. Fall back to the driver so the row reads
+		// the clone the product actually creates (measured 2026-11-22: the host logged "Remote body … built from the
+		// viewer's own body" on the same run this probe answered cloneCount 0).
+		System.Type driverType = null;
+		for (var i = 0; i < assemblies.Length; i++) {
+			try { driverType = assemblies[i].GetType("CasualtiesUnknownOnline.GameAdapter.Character.RemoteBodyDriver", false); } catch { driverType = null; }
+			if (driverType != null) { break; }
+		}
+		if (driverType != null) {
+			var drivers = UnityEngine.Object.FindObjectsOfType(driverType);
+			if (drivers != null && drivers.Length > 0) {
+				found = new UnityEngine.Object[drivers.Length];
+				for (var i = 0; i < drivers.Length; i++) { found[i] = drivers[i]; }
+				for (var i = 0; i < found.Length; i++) {
+					var candidate = found[i] as UnityEngine.Component;
+					if (candidate == null) { continue; }
+					var driverBody = candidate.GetComponent<Body>();
+					if (driverBody != null) { clone = candidate; cloneBody = driverBody; break; }
+				}
+			}
+		}
 	}
 	if (clone == null) { clone = found[0] as UnityEngine.Component; }
 	if (clone == null) { return "{\"ok\":false,\"error\":\"no-clone-body\",\"cloneCount\":" + found.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}"; }

@@ -1060,7 +1060,83 @@ internal sealed class SessionDriver(Options options)
 		return (hostNote, memberNote);
 	}
 
+	/// <summary>
+	/// The runner's guarantee for a case that verifies inside a world: the pair is live when the case
+	/// starts, whoever left the world last. The 2026-11-21 all-case run measured what a case-owned
+	/// guarantee costs: `character-solo-lock` left the world as its own verdict, and the nine rows
+	/// after it that expected a world — <c>player-deaths</c>, the four medical rows, `crafting-outcome`,
+	/// `two-member-continue`, `late-join` — each waited out its join budget against a host that was
+	/// not hosting, while the sound rows read a body with no position. A live pair costs two state
+	/// reads; a pair whose world is gone is rebuilt here, and the rebuild is charged to the case's
+	/// setup, never hidden.
+	/// </summary>
+	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken)
+	{
+		BeginSetup();
+		try
+		{
+			var hostState = await TryStateAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
+			var hostInWorld = hostState is { } host
+				&& IsTrue(host, "inWorld")
+				&& !IsTrue(host, "gateWaiting");
+			if (hostInWorld)
+			{
+				var memberState = await TryStateAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+				if (memberState is { } member && IsTrue(member, "inWorld"))
+				{
+					// A member in its own world is not the host's member: the roster is the host's
+					// own account of who shares this run, and an empty one means the pair is not
+					// live however each client describes itself (measured 2026-11-12).
+					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+					if (members.Length > 0)
+					{
+						return "the pair was already live";
+					}
+				}
+
+				// The host still holds the run: the member comes back to it rather than the run being
+				// thrown away (a rebuild costs a world load and a new world answers different rows).
+				try
+				{
+					var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+					if (roster.Length > 0)
+					{
+						return "the host kept its run; the member rejoined it: " + memberNote;
+					}
+				}
+				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+				{
+					Timeline?.Invoke("the member could not rejoin the host's run: " + exception.Message);
+				}
+			}
+
+			Timeline?.Invoke("no live pair before the case; rebuilding it");
+			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
+			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote;
+		}
+		finally
+		{
+			EndSetup();
+		}
+	}
+
+	private async Task<JsonElement?> TryStateAsync(string url, CancellationToken cancellationToken)
+	{
+		try
+		{
+			return await ActionAsync(url, "state", cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+		{
+			// A client that does not answer is not a live pair; the rebuild path names it.
+			Timeline?.Invoke($"state read failed at {url}: {exception.Message}");
+			return null;
+		}
+	}
+
 	private Task<string> RecoverPairAsync(CancellationToken cancellationToken)
+
 	{
 		// The pair is never recreated to make a run work: a restart throws away the session being
 		// measured and hides the reason the pair stopped answering (the user's rule, 2026-11-14).

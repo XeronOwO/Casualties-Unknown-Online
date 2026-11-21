@@ -19,10 +19,8 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 	/// <summary>
-	/// It gives up the session and restores a world (tens of seconds), so it runs by name and stays out
-	/// of the batch whose wall time has a recorded baseline (docs/acceptance/AGENTS.md rule 14).
+	/// It gives up the session and restores a world (tens of seconds); that restore is the cost it declares.
 	/// </summary>
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

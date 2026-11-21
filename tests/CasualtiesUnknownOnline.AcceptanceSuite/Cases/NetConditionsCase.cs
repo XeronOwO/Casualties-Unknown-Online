@@ -23,11 +23,10 @@ internal sealed class NetConditionsCase : AcceptanceCase
 	public override CaseCost Cost => CaseCost.InRun;
 
 	/// <summary>
-	/// Shapes the whole pair, so it runs by name, never inside the shared batch: a row that leaves the link
-	/// slow or lossy makes every later row's reading depend on it (2026-11-18: inside the batch it left the
-	/// host's remote clone unreadable for the two rows after it).
+	/// Shapes the whole pair, so the registry places it last: a row that leaves the link slow or lossy
+	/// makes every later row's reading depend on it (2026-11-18: inside a batch it left the host's
+	/// remote clone unreadable for the two rows after it). The case clears the profile in a finally.
 	/// </summary>
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

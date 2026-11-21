@@ -25,7 +25,6 @@ internal sealed class GiveContainerSoundCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

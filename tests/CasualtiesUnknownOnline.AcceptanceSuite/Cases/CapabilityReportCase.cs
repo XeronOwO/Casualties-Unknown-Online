@@ -11,8 +11,8 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// missing capability or a count mismatch is a finding — this is the one place a run
 /// states what the adapter thinks of the game it is attached to.
 ///
-/// It reads the boot log, so it runs by name: it costs the batch nothing and it is the
-/// only row that can fail when an update breaks a contract before any world exists.
+/// It reads the boot log, so it costs the run nothing and it is the only row that can fail
+/// when an update breaks a contract before any world exists.
 /// </summary>
 internal sealed class CapabilityReportCase : AcceptanceCase
 {
@@ -20,7 +20,6 @@ internal sealed class CapabilityReportCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
-	public override bool RunsInBatch => false;
 
 	private static readonly string[] ExpectedIds =
 	[

@@ -12,8 +12,9 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// <para>
 /// The gestures go through the same runtime entry the Online UI uses (<c>push-player</c> and <c>carry-start</c>
 /// call <c>IPlayerInteractionControl</c>), the rule is written with the real console verb, and the member's
-/// side is read with <c>host-rules-read</c>. It runs by name: it writes host rules and would leave the next
-/// row reading state it changed, and the batch's wall time has a recorded baseline (rule 14).
+/// side is read with <c>host-rules-read</c>. It writes host rules and would leave the next row reading
+/// state it changed, so it is registered after the rows that read the default rules, and it restores them
+/// before it ends.
 /// </para>
 /// </summary>
 internal sealed class HostRuleTogglesCase : AcceptanceCase
@@ -22,8 +23,7 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
-	/// <summary>Writes host rules; a by-name row keeps the batch's recorded baseline out of it.</summary>
-	public override bool RunsInBatch => false;
+	/// <summary>Writes host rules, so the registry places it after every case that reads the default rules.</summary>
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

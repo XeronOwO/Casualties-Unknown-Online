@@ -17,8 +17,8 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	public override string Name => "lockpick";
 
-	// By name only: the row needs a fresh lockable and a hold long enough to fill the game's progress.
-	public override bool RunsInBatch => false;
+	// Needs a lockable the run has not picked yet and a hold long enough to fill the game's progress;
+	// the registry places it before the cases that open containers for their own readings.
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

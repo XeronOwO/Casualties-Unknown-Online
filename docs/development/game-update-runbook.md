@@ -104,11 +104,11 @@ simulation worlds on a monotonic timeline; `tools/compare-itemtrace.ps1` compare
 a real log against a replay `SimTrace`. Together they are the strongest evidence
 that a fix preserved user-observable semantics without the game running.
 
-## 6. Replay the acceptance batch against the stored baseline
+## 6. Replay the acceptance run against the stored reading
 
 A contract can survive a game update while the game's own behaviour moves under it.
-After deploying the rebuilt mod, run the full batch and compare its report with the
-stored baseline:
+After deploying the rebuilt mod, run the full suite — every case, one run — and compare its report with the
+stored one:
 
 ```powershell
 dotnet tools/acceptance/host/bin/Debug/net8.0-windows/CasualtiesUnknownOnline.AcceptanceHost.dll replay `
@@ -116,7 +116,7 @@ dotnet tools/acceptance/host/bin/Debug/net8.0-windows/CasualtiesUnknownOnline.Ac
     --candidate ".acceptance/<the new batch>/report/report.json"
 ```
 
-The baseline is the last recorded green batch (`docs/acceptance/AGENTS.md`, rule 14).
+The baseline is the last recorded green run (`docs/acceptance/AGENTS.md`, rule 14).
 The comparer prints the build stamp of both, the row set, the suite wall and every
 row's wall/log deltas. It exits 1 on a regression — a baseline row missing from the
 candidate, a verdict that stopped passing, a case past max(5 s, 20% of its baseline),

@@ -21,7 +21,6 @@ internal sealed class SaveWriteInterruptedCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
-	public override bool RunsInBatch => false;
 
 	/// <summary>
 	/// The damaged-live path reports itself loudly twice: the unreadable live archive and the backup

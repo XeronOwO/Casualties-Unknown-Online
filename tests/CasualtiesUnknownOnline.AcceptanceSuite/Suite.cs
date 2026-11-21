@@ -40,14 +40,16 @@ internal static partial class Program
 		{
 			foreach (var acceptanceCase in CaseRegistry.All)
 			{
-				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}\t{acceptanceCase.Cost}\t{(acceptanceCase.RunsInBatch ? "batch" : "by-name")}");
+				Console.WriteLine($"{acceptanceCase.Name}\t{acceptanceCase.Launch}\t{acceptanceCase.Cost}");
 			}
 
 			return 0;
 		}
 
+		// Acceptance is one run over every registered case, in the registry's order: a case that needs a
+		// world, a restart or a first-world character declares that in Cost and the runner pays it there.
 		IReadOnlyList<AcceptanceCase> selected = options.Suite == "all"
-			? [.. CaseRegistry.All.Where(candidate => candidate.RunsInBatch)]
+			? [.. CaseRegistry.All]
 			: [.. CaseRegistry.All.Where(candidate => options.Suite.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(candidate.Name, StringComparer.Ordinal))];
 		if (options.Cost is { Length: > 0 } costFilter)
 		{
@@ -121,6 +123,7 @@ internal static partial class Program
 		Console.WriteLine($"session\t{sessionNote}");
 		Console.WriteLine($"member\t{memberNote}");
 		Console.WriteLine($"setup\t{sharedSetup.Elapsed.TotalSeconds:F1}s (shared pair)");
+		WriteProgress(outputDirectory, $"suite\tstart\t{selected.Count} case(s)");
 		foreach (var acceptanceCase in selected)
 		{
 			// The member's id is the HOST's view of it, and that view exists only once the handshake
@@ -135,7 +138,9 @@ internal static partial class Program
 				}
 			}
 
+			WriteProgress(outputDirectory, $"case\tstart\t{acceptanceCase.Name}");
 			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline).ConfigureAwait(false));
+			WriteProgress(outputDirectory, $"case\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{acceptanceCase.Name}\t{results[^1].TotalMs / 1000:F1}s");
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Cost}\tsetup {results[^1].SetupMs / 1000:F1}s\tcase {results[^1].CaseMs / 1000:F1}s\ttotal {results[^1].TotalMs / 1000:F1}s\t{results[^1].Note}");
 			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
 			{
@@ -166,6 +171,25 @@ internal static partial class Program
 		}
 
 		return passed ? 0 : 1;
+	}
+
+	/// <summary>
+	/// A run of every case takes long enough that someone has to be able to see where it is while it
+	/// runs: the console is buffered whenever the harness captures it, so each case announces itself in
+	/// progress.log as well. Appending and closing per line is what makes it readable from outside.
+	/// </summary>
+	private static void WriteProgress(string outputDirectory, string line)
+	{
+		try
+		{
+			File.AppendAllText(
+				Path.Combine(outputDirectory, "progress.log"),
+				string.Format(CultureInfo.InvariantCulture, "{0:HH:mm:ss.fff}\t{1}{2}", DateTimeOffset.Now, line, Environment.NewLine));
+		}
+		catch (IOException)
+		{
+			// Progress is a courtesy for whoever watches the run; a locked file must not stop the suite.
+		}
 	}
 
 	/// <summary>
@@ -245,6 +269,12 @@ internal static partial class Program
 			connect.Stop();
 			var caseSession = new SessionDriver(options) { Timeline = timeline.Step };
 			context = new CaseContext(options, outputDirectory, host, caseSession, timeline);
+			// The runner owns the world's lifetime: a case that verifies inside a world must find one,
+			// whoever left the world last. Measured 2026-11-21: `character-solo-lock` left it as its
+			// own verdict and the nine rows after it waited out their join budgets against a host that
+			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
+			// in the case's setup when it is not.
+			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None).ConfigureAwait(false));
 
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
@@ -789,13 +819,8 @@ internal abstract class AcceptanceCase
 	/// </summary>
 	public virtual CaseCost Cost => CaseCost.InRun;
 
-	/// <summary>
-	/// Whether <c>--suite all</c> runs this case. The full batch has a recorded wall-time baseline
-	/// (<c>docs/acceptance/AGENTS.md</c> rule 14), so a row that must give up the session and restore a
-	/// world — tens of seconds — is selected by name and stays out of the batch until it can pay for
-	/// itself there. A by-name run is still the automated suite: same pair, same report, same log counts.
-	/// </summary>
-	public virtual bool RunsInBatch => true;
+	// (No "runs in the batch" switch: acceptance is one run over every registered case — a case that
+	// costs a world restart says so in Cost, and the runner pays it there instead of hiding the case.)
 
 	/// <summary>
 	/// The error lines this case is allowed to cause. Zero is the default: an error is a finding,
@@ -878,10 +903,13 @@ internal static class SuiteReport
 		builder.AppendLine($"- Wall time: {Seconds(totalMs)} s (shared pair setup {Seconds(sharedSetupMs)} s)");
 		var metadata = BuildMetadata.Read(options.GameDir);
 		builder.AppendLine($"- Build: game `{metadata.GameBuild ?? "unknown"}`, mod `{metadata.ModBuild ?? "unknown"}`, artifact `{metadata.Artifact ?? "unknown"}`");
-		var byNameOnly = CaseRegistry.All.Where(candidate => !candidate.RunsInBatch).Select(candidate => candidate.Name).ToList();
-		builder.AppendLine(byNameOnly.Count == 0
-			? "- Cases: every registered case runs in this batch."
-			: $"- Cases run by name only (not in this batch): {string.Join(", ", byNameOnly)}.");
+		var notRun = CaseRegistry.All
+			.Where(candidate => !results.Any(result => string.Equals(result.Name, candidate.Name, StringComparison.Ordinal)))
+			.Select(candidate => candidate.Name)
+			.ToList();
+		builder.AppendLine(notRun.Count == 0
+			? "- Cases: every registered case ran."
+			: $"- Cases NOT run by this selection: {string.Join(", ", notRun)}.");
 		builder.AppendLine();
 		builder.Append(timeline.Render());
 		builder.AppendLine($"- Logs outside cases: host {Counts(suiteLogs.HostOutside)}, member {Counts(suiteLogs.MemberOutside)} — {(suiteLogs.OutsideErrors == 0 && suiteLogs.Problem is null ? "PASS" : "FAIL")}");
@@ -1055,8 +1083,8 @@ internal sealed record Options
 	public string MemberUrl { get; init; } = "ws://127.0.0.1:18591";
 
 	/// <summary>
-	/// The third client (the second member). Only up when the launch asked for it (`run-suite -All`);
-	/// rows that need two members are by name and name this endpoint in their report.
+	/// The third client (Steam2). Only up when the launch asked for it (`launch --all`); a row that needs
+	/// two members reports this endpoint as missing rather than skipping itself.
 	/// </summary>
 	public string AltUrl { get; init; } = "ws://127.0.0.1:18592";
 
@@ -1156,18 +1184,23 @@ internal static class CaseRegistry
 		// and a later case's exploration tears the comparison down to a time-dependent reading.
 		new WorldFingerprintCase(),
 		// Un-parked 2026-11-18: the case restarts the run itself, so the first world entry grants the kit
-		// (the 2026-11-12 park needed a first-entry character that the shared run could not give it). It
-		// runs by name: it restarts the run, which no other batch row may pay for.
+		// (the 2026-11-12 park needed a first-entry character that the shared run could not give it).
 		new StartingSuppliesCase(),
+		// The three rows that read state the rest of the run consumes: the character's unspent starting
+		// materials, a lock the run has not picked yet, and the boot log's own capability account. They
+		// sit right after the restart so a single pass still finds that state.
+		new CraftingCase(),
+		new LockpickCase(),
+		new CapabilityReportCase(),
 		new MedicalChartCase(),
 		// Re-registered 2026-11-18 for the ticket's next step: the row now records `minigame-live` at the
 		// first press, so its failure names the minigame's own state (holding, handStarted, angle, fill) at
-		// the moment the staged press lands. It runs by name because the item's minigame takes frames.
+		// the moment the staged press lands. The item's minigame advances over frames, so the row takes
+		// as long as the game needs and declares no restore of its own.
 		new MedicalBandageCase(),
 		new ItemRestingsCase(),
 		new ItemCustomizationCase(),
 		new GiveItemCase(),
-		new NetConditionsCase(),
 		new OverlaySoundCase(),
 		new SettingsPageCase(),
 		new ConsoleCompletionCase(), // the console offers only the commands the player can run
@@ -1179,14 +1212,9 @@ internal static class CaseRegistry
 		new DrinkCase(), // the drink family: water is drunk through the game's own path, the refuse type is refused
 		// (a row the sweep lists under the unhooked item families).
 		new LayerPanelCase(),
-		// Un-parked 2026-11-18 by name: the 2026-11-15 park was the shared run's materials having been spent
-		// by an earlier case. A by-name run starts on a fresh character, so the row can be read; it must not
-		// join `all` (a batch's materials depend on every case before it).
-		new CraftingCase(),
 		new WorldCensusCase(),
 		// Un-parked 2026-11-18: the 2026-11-13 park was the recipe's own product sprite throwing inside
 		// RefreshRecipeList (the crafting-screen ticket, fixed 2026-11-14 with a placeholder prefab).
-		// It runs by name so the batch's recorded wall time is untouched until the row has a reading.
 		new CraftPanelCase(),
 		new ProstheticCase(),
 		new RunSettingsCase(),
@@ -1222,8 +1250,8 @@ internal static class CaseRegistry
 		new EnemyKillCase(), // a host's kill cuts the member's own animal count (judged as a fall, not arithmetic)
 		new RadiationLineCase(),
 		new RoleClearingCase(), // the host ends its run: the member drops its role and rejoins a new session without a restart
-		// Continue first, then host: the session must open over the running world (run by name; it gives up
-		// the session and restores a world, which is more than the batch's recorded wall time can pay).
+		// Continue first, then host: the session must open over the running world. It gives up the session
+		// and restores a world, and that restore is the cost it declares.
 		new HostAfterContinueCase(),
 		new RemoteRemovalCase(), // the member leaves last; the host's displayed body goes and its own log says so
 		new RunEndCase(), // the host leaves the world: the member leaves it too (run-end broadcast)
@@ -1242,22 +1270,15 @@ internal static class CaseRegistry
 		// the host's native solo picker must come back after the session is left.
 		new CharacterSoloLockCase(),
 		// The per-player death count (the user's decision 2026-11-14): two deaths with a revive between
-		// them, read from both clients, then the same count after a save and a continue. It runs by name
-		// because the save/continue costs tens of seconds and the batch's wall time has a baseline.
+		// them, read from both clients, then the same count after a save and a continue; that restore is
+		// the cost it declares.
 		new PlayerDeathsCase(),
 		// The body-action switches (the user's 2026-11-14 decision): a refused push named on the pusher's
 		// own client with the target unmoved, and a carry the game's rule refuses let through by the host's
-		// allow_always_carry. It writes host rules, so it runs by name and restores them before it ends.
-		new HostRuleTogglesCase(),
-		// Un-parked 2026-11-18 by name: the 2026-11-14 park was the shared order's slow progress; a
-		// by-name run starts on a fresh lockable and pays for its own hold.
-		new LockpickCase(),
-		// The adapter's own account of the game it is attached to: every capability once, the count
-		// line, the install-and-verify line and an available session. It reads the boot log, so it
-		// costs the batch nothing and it is the row that catches an update breaking a contract.
-		new CapabilityReportCase(),
+		// allow_always_carry. It writes host rules, so it is registered with the pair-shaping rows at the
+		// end of the list, and it restores them before it ends.
 		// Batch 1's tourniquet row: the game's own lower-limb chain stops bleeding and nothing else
-		// does. By name because it starts its own world to have a body worth treating.
+		// does. It starts its own world to have a body worth treating.
 		new MedicalTourniquetCase(),
 		// Batch 1's splint row: a splint on a fractured limb sets the game's own splinted flag and is
 		// consumed, and the wound view's special action takes it off and hands the item back.
@@ -1267,8 +1288,8 @@ internal static class CaseRegistry
 		// Painkillers effect is the readable value).
 		new MedicalInjectionCase(),
 			// The CPR controls read at the end: the operator's panel, both channels over a real
-			// operation, and the patient's own restart and oxygen. By name because a run of presses
-			// costs a few seconds of real time.
+			// operation, and the patient's own restart and oxygen. A run of presses costs a few seconds
+			// of real time, which is the cost it declares.
 			new MedicalCprCase(),
 			// The shrapnel session: the operator's special starts the host-authoritative operation and
 			// the patient's own limb loses the piece. The row read its limb with the game's CLEARING call
@@ -1304,13 +1325,15 @@ internal static class CaseRegistry
 		new LateJoinCase(),
 		// The sample mod's content inside a session (2026-11-19): its item, registry entry and limb action.
 		new SampleModCase(),
-		// The failure-path batch (2026-11-20, the acceptance-expansion ticket): these stage
-		// failure states and run by name in their own batch, never in the 39-row batch whose
-		// wall time has a baseline. host-crash-restart is last: it kills the host process.
+		// The failure-path rows (2026-11-20, the acceptance-expansion ticket): these stage failure states.
 		new DropMidTransferCase(),
 		new SaveWriteInterruptedCase(),
 		new SaveContinueReentryCase(),
 		new RemoteBackpackRefreshCase(),
+		// The three rows that shape the pair are last, in this order: a lossy profile would change every
+		// later reading, the rule switches write host rules, and the crash row kills the host process.
+		new NetConditionsCase(),
+		new HostRuleTogglesCase(),
 		new HostCrashRestartCase(),
 		// Ending (2026-11-18 reading): the host's own tracker records ending=Merc when the game's
 		// MercEnding runs, and the member's tracker stays ending=None|authority=False eight seconds

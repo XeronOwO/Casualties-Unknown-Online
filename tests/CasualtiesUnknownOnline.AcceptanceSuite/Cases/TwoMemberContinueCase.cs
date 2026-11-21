@@ -15,9 +15,10 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// the entry instruction. This row's difference is the second peer: the host's roster must carry both, the
 /// cut's character section must carry both, and both clients must read their own bag after the continue.
 ///
-/// It needs the third client, so it is by name and only runs when the launch asked for it
-/// (<c>run-suite -All</c>). The marker item is a bandage each member puts in its own bag through the
-/// game's grant path before the save; a character whose items were lost would read the starting kit only.
+/// It needs the third client (Steam2), so it reads that endpoint: when the launch did not start it the
+/// row fails naming the missing client instead of skipping itself. The marker item is a bandage each
+/// member puts in its own bag through the game's grant path before the save; a character whose items were
+/// lost would read the starting kit only.
 /// </summary>
 internal sealed class TwoMemberContinueCase : AcceptanceCase
 {
@@ -25,7 +26,6 @@ internal sealed class TwoMemberContinueCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.NewWorld;
 
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

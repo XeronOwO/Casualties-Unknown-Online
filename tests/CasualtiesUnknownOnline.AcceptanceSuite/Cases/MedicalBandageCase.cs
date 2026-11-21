@@ -14,8 +14,8 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// and the limb read back with <c>limb-read</c>.
 /// </para>
 /// <para>
-/// It runs by name: the item's minigame advances over frames, so the row takes as long as the game
-/// needs, and the shared batch's wall time has a recorded baseline.
+/// The item's minigame advances over frames, so the row takes as long as the game needs; it restores
+/// nothing, so the run pays only that time for it.
 /// </para>
 /// </summary>
 internal sealed class MedicalBandageCase : AcceptanceCase
@@ -24,7 +24,6 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.InRun;
 
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

@@ -15,9 +15,8 @@ internal sealed class CraftingCase : AcceptanceCase
 
 	public override string Name => "crafting";
 
-	// By name only: the row needs the character's unspent starting materials, which an all-suite run
-	// has already used by the time it reaches this case.
-	public override bool RunsInBatch => false;
+	// Needs the character's unspent starting materials: it is registered before any case that spends
+	// them, so a single run still reaches it with a craftable recipe in hand.
 
 	public override CaseCost Cost => CaseCost.ClientRestart;
 

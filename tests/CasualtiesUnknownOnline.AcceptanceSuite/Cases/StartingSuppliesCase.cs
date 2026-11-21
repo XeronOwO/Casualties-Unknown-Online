@@ -13,10 +13,7 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 {
 	public override string Name => "starting-supplies";
 
-	// By name only: the row restarts the run to get a character's first world entry, which the shared
-	// batch must not pay for.
-	public override bool RunsInBatch => false;
-
+	// Restarts the run to get a character's first world entry; that restart is the case's declared cost.
 	public override CaseCost Cost => CaseCost.ClientRestart;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)

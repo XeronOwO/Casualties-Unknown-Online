@@ -47,10 +47,10 @@ ticket is code-complete and waits for this run, which moves it. Machine facts li
 13. `[CRITICAL]` **The automated suite is the last acceptance gate.** A `review/` row closes only when an automated case covers
     it, ran against the deployed artifact, and its report (log counts and per-client readings) is cited. Manual play
     may explain a failure, never substitute for a missing case; a row without a case stays open.
-14. `[CRITICAL]` **The full batch's wall time is a recorded baseline: 39 rows in 254.1 s** (`.acceptance/full-41/report/report.md`,
-    2026-11-21, 39 of 39 green); five minutes is the ceiling and the C#-acceptance ticket's target is that baseline + 5 s.
-    A change that adds a row or about a second finds the time back or records on its ticket why it cannot; the baseline
-    moves only with a green run's reading. Measurement: [workflow.md](workflow.md).
+14. `[CRITICAL]` **One run covers every case.** Acceptance happens once, at the end of a work item: one command runs
+    every registered case and every row is green. No case is dropped from the run to save time; a case that needs a
+    world or a client restart declares that cost, and one that cannot run here (a missing client) is named in the
+    report as not run.
 
 ## Related
 

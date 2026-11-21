@@ -22,7 +22,6 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.NewWorld;
 
-	public override bool RunsInBatch => false;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

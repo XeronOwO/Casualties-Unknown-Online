@@ -277,17 +277,17 @@ never a residual, and never a pass.
   that demands an applied line for the parent fails a clean run — batch `20261025-c`'s driver did, and the
   window's evidence was re-judged against the child's fact.
 
-## The wall-time baseline
+## The wall-time reading
 
-The full batch reports against the recorded baseline: **39 rows in 282.2 s** (2026-11-19,
-`.acceptance/full-r32b/report/report.md`; earlier readings 288.7 s, 293.3 s and 299.8 s). The C#-acceptance ticket's target
-is that baseline + 5 s; three post-migration runs read 294.3 s, 301.0 s and 307.1 s through `host run`, i.e. over it, and
-that ticket stays open on the time row until a run comes back inside the target. The record copies the report's `Wall time` line, the
-suite wall, the shared pair setup and the per-case table exactly as the run wrote them, and names the
-baseline it is compared against. A case that adds a row to `all` — or more than about a second — either
-finds the time back first or records on its ticket why it cannot; a case that runs only by name
-(`RunsInBatch => false`) costs the batch nothing and the report header names it. The baseline moves only
-when a green full run's reading replaces it, never because a target was written down.
+The run reports the wall time it measured, and the last green reading is the one to compare against: **39 rows in
+254.1 s** (`.acceptance/full-41/report/report.md`, 2026-11-21, 39 of 39 green; before it 282.2 s in
+`.acceptance/full-r32b`, then 262.1 s and 272.7 s). The record copies the report's `Wall time` line, the suite wall, the
+shared pair setup and the per-case table exactly as the run wrote them, and names the reading it is compared against.
+
+A case that adds a row — or more than about a second — finds the time back (a cheaper setup, a merged world, a cut dead
+wait) or records on its ticket why the row needs it. The number never decides which rows run: every registered case runs
+in the one run, and a case that cannot run on this machine is named in the report as not run. The reading moves only when
+a green full run replaces it, never because a target was written down.
 
 ## 7. The record
 

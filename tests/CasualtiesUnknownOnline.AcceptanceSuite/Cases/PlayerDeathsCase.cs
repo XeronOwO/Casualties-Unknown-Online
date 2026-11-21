@@ -13,8 +13,8 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// <para>
 /// The deaths are driven through the game's own field (<c>Body.brainHealth</c>, the value <c>Body.alive</c>
 /// reads) with the <c>body-force</c> recipe on the member's own client — the same edge a real kill produces,
-/// without guessing at damage. It saves, continues and rejoins the member (tens of seconds), so it runs by
-/// name and stays out of the batch whose wall time has a recorded baseline (rule 14).
+/// without guessing at damage. It saves, continues and rejoins the member, and that restore of tens of
+/// seconds is the cost it declares.
 /// </para>
 /// </summary>
 internal sealed class PlayerDeathsCase : AcceptanceCase
@@ -23,8 +23,7 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 
 	public override CaseCost Cost => CaseCost.NewWorld;
 
-	/// <summary>Tens of seconds of save/continue; the batch's 299.8 s baseline is untouched by a by-name row.</summary>
-	public override bool RunsInBatch => false;
+	/// <summary>Tens of seconds of save/continue; that restore is the cost it declares.</summary>
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

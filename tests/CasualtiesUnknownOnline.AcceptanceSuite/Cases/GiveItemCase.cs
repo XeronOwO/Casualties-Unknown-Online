@@ -23,6 +23,21 @@ internal sealed class GiveItemCase : AcceptanceCase
 		await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
 		var emptyBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 		context.Read("member-bag-empty", emptyBag);
+
+		// An empty bag is not the same as a slot that can take one: an earlier medical row can leave the member
+		// missing a limb, and a missing limb's slot reports `canPickUp false`, so the give lands nowhere (measured
+		// 2026-11-22, `.acceptance/every-12`: filled 0 while the give answered ok). Healing restores what the game
+		// can restore, and the reading below refuses the row if no slot opened up.
+		var slots = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "slots"), ("type", string.Empty)).ConfigureAwait(false);
+		context.Read("member-slots", slots);
+		if (!HasUsableSlot(slots))
+		{
+			await context.MemberRecipeAsync("native-heal", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			slots = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "slots"), ("type", string.Empty)).ConfigureAwait(false);
+			context.Read("member-slots-after-heal", slots);
+			Require(HasUsableSlot(slots), "the member's body has no slot a given item could land in: " + Raw(slots));
+		}
 		var hostBody = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 		context.Read("host-body", hostBody);
 		var (hostX, hostY) = Position(hostBody);
@@ -81,6 +96,35 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 		context.Read("member-bag", memberBag);
 		Require(landed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
+	}
+
+	/// <summary>
+	/// Whether the member's body reports a slot that could take an item: present, pickable and empty.
+	/// </summary>
+	/// <remarks>
+	/// The item recipe answers <c>{"ok":true,"mode":"slots","count":6,"slots":[{"canPickUp":…,"holding":…}]}</c>; a limb
+	/// the run amputated leaves its slot present but unpickable, and a give into that body lands nowhere.
+	/// </remarks>
+	private static bool HasUsableSlot(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("slots", out var slots)
+			|| slots.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		foreach (var slot in slots.EnumerateArray())
+		{
+			if (slot.ValueKind == JsonValueKind.Object
+				&& slot.TryGetProperty("canPickUp", out var pickable) && pickable.ValueKind == JsonValueKind.True
+				&& slot.TryGetProperty("holding", out var holding) && holding.ValueKind == JsonValueKind.False)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static (double X, double Y) Position(JsonElement? reading)

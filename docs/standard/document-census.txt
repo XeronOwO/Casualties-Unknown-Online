@@ -1433,3 +1433,4 @@ docs/backlog/done/split-session-service.md | keep | claim | docs/backlog/README.
 docs/backlog/done/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-a-host-leaving-the-world-strands-the-members.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-split-the-code-audit-ledger.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/1.0-the-save-cut-that-never-commits.md | keep | index | docs/backlog/README.md

@@ -64,6 +64,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Todo
 - [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
+- [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
+  "queued" twice and never writes; two rows wait for it.
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.

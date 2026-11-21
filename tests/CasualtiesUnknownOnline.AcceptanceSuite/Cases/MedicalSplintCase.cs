@@ -32,6 +32,12 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		context.UseMember(memberId);
 
 		var limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		if (limb < 0)
+		{
+			await context.StartFreshBodyAsync(cancellationToken).ConfigureAwait(false);
+			limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		}
+
 		Require(limb >= 0, "no limb of the member's body can take a splint");
 
 		var before = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "find")).ConfigureAwait(false);

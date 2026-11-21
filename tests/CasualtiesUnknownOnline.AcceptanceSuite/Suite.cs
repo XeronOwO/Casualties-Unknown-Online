@@ -645,6 +645,25 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 
 		throw new InvalidOperationException("the member's own body did not spawn");
 	}
+
+	/// <summary>
+	/// Gives the member a whole body by starting a fresh run, then re-reads who the member is and waits
+	/// for the new body. A severed limb never heals back, so a row that needs one the batch has already
+	/// taken cannot be repaired on the maimed body: it asks for a new character instead of failing
+	/// (measured 2026-11-22, `every-16`: `medical-tourniquet` spent 57.1 s on fallbacks and then failed
+	/// with "no limb of the member's body has a lower-limb chain and can take a tourniquet").
+	/// </summary>
+	public async Task StartFreshBodyAsync(CancellationToken cancellationToken)
+	{
+		Note("starting a fresh run so the member has a whole body");
+		await Session.StartFreshRunAsync(cancellationToken).ConfigureAwait(false);
+		if (await Session.SingleMemberIdAsync(cancellationToken).ConfigureAwait(false) is { Length: > 0 } member)
+		{
+			UseMember(member);
+		}
+
+		await WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
+	}
 	public async Task WaitForCustodyAsync(CancellationToken cancellationToken)
 	{
 		var path = HostLogPath;

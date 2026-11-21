@@ -42,6 +42,21 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 			(limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
 		}
 
+		if (limb < 0)
+		{
+			// A severed limb does not heal back: once an earlier medical row has taken the member's legs the
+			// run's body stays maimed and the chain this row asserts no longer exists. A row that needs a
+			// lower-limb chain therefore asks for a body that has one — a fresh run is a new character
+			// (measured 2026-11-22, `every-16`: this row spent 57.1 s on the fallbacks and then failed with
+			// "no limb of the member's body has a lower-limb chain and can take a tourniquet").
+			context.Note("no limb qualified even after a native heal; starting a fresh run so the member has a whole body");
+			await context.Session.StartFreshRunAsync(cancellationToken).ConfigureAwait(false);
+			memberId = await SingleMemberAsync(context, cancellationToken).ConfigureAwait(false);
+			context.UseMember(memberId);
+			await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
+			(limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		}
+
 		Require(limb >= 0, "no limb of the member's body has a lower-limb chain and can take a tourniquet");
 
 		var seeded = await RecipeAsync(context, "wound-seed", cancellationToken, ("limb", limb.ToString(CultureInfo.InvariantCulture)), ("force", "200"), ("infection", "0")).ConfigureAwait(false);

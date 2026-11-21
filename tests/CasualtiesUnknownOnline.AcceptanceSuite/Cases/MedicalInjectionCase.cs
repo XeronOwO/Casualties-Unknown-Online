@@ -34,6 +34,12 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		var limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		if (limb < 0)
+		{
+			await context.StartFreshBodyAsync(cancellationToken).ConfigureAwait(false);
+			limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		}
+
 		Require(limb >= 0, "no limb of the member's body can take an injection");
 
 		// The doctor's kit is emptied through the player's own drop so the syringe is the item the

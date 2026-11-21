@@ -151,9 +151,11 @@ internal sealed class PointerCircle : MonoBehaviour
 			return 1.5f;
 		}
 
-		var lead = HandMagnitude() < 240f ? 0f : 22f;
+		var lead = HandMagnitude() < 240f ? 0f : 40f;
 		var behind = Mathf.DeltaAngle(_angle % 360f, (roll + lead) % 360f);
-		return behind <= 0f ? 0.5f : Mathf.Min(behind, 2.5f);
+		// The hand must pass the last action by more than the game's 20-degree stride, and the game's own damping pulls
+		// it back, so the pointer stays about forty degrees ahead and may move four degrees a frame.
+		return behind <= 0f ? 0.5f : Mathf.Min(behind, 4f);
 	}
 
 	/// <summary>

@@ -762,4 +762,57 @@ public class CharacterDataStoreTests
 				$"a guest replaying the journal must know the player before the item re-key (player batch {playerAt}, item batch {itemAt})");
 		}
 	}
+
+	[Fact]
+	public void ReestablishAdoptions_AfterARestore_PutsTheAdoptedRowBackWithTheItems()
+	{
+		// 2026-11-21, the one-run hang: a save restore replaced the kernel with the cut's rows — the
+		// player under the transport id the cut knew — while the member stayed connected under the
+		// adopted id and kept reporting its carried items under it. The batch then named a player the
+		// peers never heard about, every peer refused that revision, and the host re-sent it forever
+		// (`carried item … references unknown player …`, journal loop from revision 8).
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var items = host.Services.GetRequiredService<IItemControl>();
+			var kernel = host.Services.GetRequiredService<ItemKernelAuthority>();
+			var beforeTheAdoption = kernel.CreateCheckpoint();
+
+			items.AdoptTransferredItem(GuestId, 42, new CharacterItemMsg { InstanceId = 42, ItemId = "lantern" });
+			items.AdoptTransferredItem(GuestId, 43, new CharacterItemMsg { InstanceId = 43, ItemId = "dogfood" });
+
+			var control = (ISessionControl)host.Session;
+			var old = control.GetOrCreateMember(GuestId);
+			old.DisplayName = "Guest";
+			old.Handshaken = true;
+			old.InWorld = false;
+			var reconnected = control.GetOrCreateMember(3001);
+			reconnected.DisplayName = "Guest";
+			reconnected.Handshaken = true;
+			reconnected.InWorld = true;
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			store.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Health = new CharacterHealthMsg { Alive = true, Conscious = true },
+				Items =
+				[
+					new CharacterItemMsg { InstanceId = 42, ItemId = "lantern" },
+					new CharacterItemMsg { InstanceId = 43, ItemId = "dogfood" },
+				],
+			});
+			MarkHostInWorld(host);
+			store.SendSavedCharacter(3001);
+
+			// The restore puts the cut's rows back: the cut knew only the transport id the character was
+			// saved under, so the adopted id would vanish from the players table while the member stays
+			// connected under it. The store hears the restore and puts the adopted row back, so the item
+			// batches the member's 5 s report produces still name a player every peer knows.
+			kernel.Restore(beforeTheAdoption);
+
+			Assert.Contains(kernel.QueryPlayers()!.Players, player => player.SteamId == 3001);
+		}
+	}
 }

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -43,6 +45,13 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	private readonly CharacterReconnectRestore _restore;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private readonly Dictionary<ulong, string> _savedNames = []; // host: the display name each saved report arrived under
+
+	/// <summary>
+	/// Host: the transport id each saved row was adopted from. A cut holds the player row under the id it
+	/// was saved with, while the member is connected under a newer one, so a restore has to map the row
+	/// forward again — this is the only place that remembers what "forward" means.
+	/// </summary>
+	private readonly Dictionary<ulong, ulong> _adoptedFrom = [];
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	/// <summary>Members whose latest report was refused for a non-finite physiological field; the warning is named once, not at 1 Hz.</summary>
@@ -70,7 +79,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		ILogger<CharacterDataStore> log,
 		PlayerKernelLimbProjection playerLimbKernel,
 		CharacterReconnectRestore restore,
-		AppliedItemConditionProjection appliedItems)
+		AppliedItemConditionProjection appliedItems,
+		ItemKernelAuthority kernelAuthority)
 	{
 		_session = session;
 		_sender = sender;
@@ -79,6 +89,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_restore = restore;
 		_appliedItems = appliedItems;
 		_savedCharacters = [];
+
+		// A restore replaces the kernel with the cut's rows — including the player row under the id the
+		// cut knew. The member keeps its current one, so the adopted row has to be put back after every
+		// restore or its carried items end up owned by a player the peers never hear about.
+		kernelAuthority.CheckpointRestored += OnKernelCheckpointRestored;
 		_eventMerges = new CharacterEventMerges(FindSaved, playerLimbKernel, log);
 		_visuals = new CharacterVisualPublisher(session, sender);
 
@@ -302,6 +317,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 				_savedCharacters[steamId] = adopted;
 				data = adopted;
 				adoptedFrom = oldPeer;
+				_adoptedFrom[steamId] = oldPeer;
 				CharacterReconnectAdoption.RemoveStalePresence(_session, _log, oldPeer, steamId);
 			}
 		}
@@ -327,6 +343,44 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
 		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
+
+	private void OnKernelCheckpointRestored(GameCheckpoint checkpoint) => ReestablishAdoptions();
+
+	/// <summary>
+	/// Host only: put the adopted rows back after the kernel has been replaced by a restore. The cut
+	/// brings back the player row under the transport id it was saved with, while the member is connected
+	/// under a newer one and keeps reporting its carried items under it; without this pass the kernel ends
+	/// up holding carried items whose owner row it does not have, every peer refuses that revision, and
+	/// the host re-sends it forever (measured 2026-11-21: `carried item 150959648765 references unknown
+	/// player 2518207895626860263`, journal loop from revision 8 — see the one-run ticket).
+	/// The pass is idempotent: the player sync re-commits the same row and the re-key only moves items
+	/// still owned by the id the row was adopted from.
+	/// </summary>
+	internal void ReestablishAdoptions()
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var reestablished = 0;
+		foreach (var member in _session.Members)
+		{
+			if (!member.InWorld || FindSaved(member.SteamId) is not { } data)
+			{
+				continue;
+			}
+
+			ulong? oldPeer = _adoptedFrom.TryGetValue(member.SteamId, out var from) ? from : null;
+			_restore.Prepare(member.SteamId, data, oldPeer);
+			reestablished++;
+		}
+
+		if (reestablished > 0)
+		{
+			_log.LogInformation("Re-established {Count} adopted character row(s) after the kernel restore.", reestablished);
+		}
+	}
 
 	/// <summary>The saved-snapshot lookup the event-merge seams read; the table itself never leaves this class.</summary>
 	private CharacterDataMsg? FindSaved(ulong steamId) =>

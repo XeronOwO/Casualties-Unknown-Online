@@ -1090,7 +1090,7 @@ internal sealed class SessionDriver(Options options)
 					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 					if (members.Length > 0)
 					{
-						return "the pair was already live";
+						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -1102,7 +1102,8 @@ internal sealed class SessionDriver(Options options)
 					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 					if (roster.Length > 0)
 					{
-						return "the host kept its run; the member rejoined it: " + memberNote;
+						return "the host kept its run; the member rejoined it: " + memberNote
+							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
@@ -1113,12 +1114,57 @@ internal sealed class SessionDriver(Options options)
 
 			Timeline?.Invoke("no live pair before the case; rebuilding it");
 			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
-			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote;
+			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
+				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
 			EndSetup();
 		}
+	}
+
+	/// <summary>
+	/// The batch's model is one guest in the run: a member row left behind by an earlier case — or a second
+	/// client still connected — makes every row that addresses "the member" answer with two ids and fail on
+	/// its own precondition (measured 2026-11-21: `the run does not have exactly one member: 2`, and the
+	/// host's roster naming two ids in `net-conditions` and `host-rule-toggles`). The extras are removed
+	/// through the host's own kick, and the roster is re-read until only this guest is named. Cases that
+	/// bring a second client in (two-member-continue) do it after this guarantee, as their own step.
+	/// </summary>
+	public async Task<string> EnsureSingleMemberAsync(CancellationToken cancellationToken)
+	{
+		var state = await TryStateAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+		var memberId = state is { } member ? StringValue(member, "steamId") : string.Empty;
+		if (memberId.Length == 0)
+		{
+			return "the member's own id was not readable; the roster was left as it is";
+		}
+
+		for (var attempt = 0; attempt < 12; attempt++)
+		{
+			var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+			var extras = members.Where(id => !string.Equals(id, memberId, StringComparison.Ordinal)).ToArray();
+			if (extras.Length == 0)
+			{
+				return members.Length == 1
+					? "the run names exactly this guest"
+					: $"the run names no member yet ({members.Length}); the pair's own handshake owns the roster";
+			}
+
+			foreach (var extra in extras)
+			{
+				await RecipeAtAsync(_options.HostUrl, "kick-member", new Dictionary<string, string>
+				{
+					["steamId"] = extra,
+					["reason"] = "the batch keeps one member",
+				}, cancellationToken).ConfigureAwait(false);
+				Timeline?.Invoke($"the roster named {extra}; the host kicked it before the case");
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		throw new InvalidOperationException($"the host's roster never fell back to the one guest ({memberId})");
 	}
 
 	private async Task<JsonElement?> TryStateAsync(string url, CancellationToken cancellationToken)

@@ -13,7 +13,8 @@ internal static class RunCommand
 		"run --game-dir <install> [--out <dir>] [--suite <name>] [--fresh] [--parallel-setup] [--no-launch] [--reuse] " +
 		"[--delay-between-cases <s>] [--all] [--pids <file>] " +
 		"[--steam-exe <exe>] [--sandboxie <start.exe>] [--guest-box <box>] [--guest-root <install>] " +
-		"[--alt-box <box>] [--alt-root <install>] [--host-url <ws>] [--guest-url <ws>] [--alt-url <ws>]";
+		"[--alt-box <box>] [--alt-root <install>] [--host-url <ws>] [--guest-url <ws>] [--alt-url <ws>] " +
+		"[--frames <dir>] [--frames-interval-ms <n>]";
 
 	public static int Run(string[] args)
 	{
@@ -116,9 +117,17 @@ internal static class RunCommand
 			suiteArgs.Add(delay);
 		}
 
+		var framesDir = arguments.Optional("frames");
+		var framesInterval = arguments.OptionalNumber("frames-interval-ms", 700);
+		using var frames = framesDir is null ? null : new FrameRecorder(Path.Combine(outDir, framesDir), pidsPath, framesInterval);
+
 		var suiteWatch = Stopwatch.StartNew();
 		var suiteExit = RunProcess("dotnet", [suiteDll, .. suiteArgs], repoRoot);
 		suiteWatch.Stop();
+		if (frames is not null)
+		{
+			Console.WriteLine($"frames: {frames.Captured} frame(s) under {Path.Combine(outDir, framesDir!)}");
+		}
 		Console.WriteLine(
 			$"suite build: {buildWatch.Elapsed.TotalSeconds:F1}s; launch to endpoints: {launchWatch.Elapsed.TotalSeconds:F1}s; " +
 			$"suite wall: {suiteWatch.Elapsed.TotalSeconds:F1}s; exit: {suiteExit}");

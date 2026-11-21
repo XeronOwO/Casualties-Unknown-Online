@@ -37,6 +37,8 @@ param(
 	[string[]] $Query,
 	[Parameter(Mandatory = $true, ParameterSetName = 'Changed')]
 	[switch] $Changed,
+	[Parameter(Mandatory = $true, ParameterSetName = 'Map')]
+	[switch] $Map,
 	[int] $Limit = 40
 )
 
@@ -116,6 +118,20 @@ function Split-Words {
 		}
 	}
 	return ($words | Select-Object -Unique)
+}
+
+if ($Map) {
+	$readme = Join-Path $root 'docs/README.md'
+	$lines = [System.IO.File]::ReadAllLines($readme)
+	$inside = $false
+	foreach ($line in $lines) {
+		if ($line -match '^## Start from the task') { $inside = $true; Write-Output $line; continue }
+		if ($inside -and $line -match '^## ') { break }
+		if ($inside -and $line -match '^\|') { Write-Output $line }
+	}
+	Write-Output ''
+	Write-Output 'knowledge: open the pages the row names before reading code; -Query finds a topic, -Changed lists the pages to write back'
+	exit 0
 }
 
 if ($Changed) {

@@ -460,7 +460,7 @@ docs/design/AGENTS.md | keep | spec | docs/architecture/surfaces.md
 docs/contracts/design-comprehension-baseline.txt | keep | loaded | tests/CasualtiesUnknownOnline.NormativeGates.Tests/DesignComprehensionGateTests.cs
 docs/design/INDEX.md | keep | spec | docs/design/AGENTS.md
 docs/design/audit/README.md | keep | spec | docs/design/INDEX.md
-docs/design/audit/code.md | rework | none | docs/backlog/done/document-corpus-audit.md
+docs/design/audit/code.md | rework | none | docs/backlog/todo/1.0-split-the-code-audit-ledger.md
 docs/design/audit/sweep.md | keep | spec | docs/design/INDEX.md
 docs/design/audit/native.md | keep | spec | docs/design/INDEX.md
 docs/design/surfaces/README.md | keep | spec | docs/design/INDEX.md
@@ -1432,3 +1432,4 @@ docs/backlog/done/1.0-player-death-stats-missing.md | keep | claim | docs/backlo
 docs/backlog/done/split-session-service.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-a-host-leaving-the-world-strands-the-members.md | keep | claim | docs/backlog/README.md
+docs/backlog/todo/1.0-split-the-code-audit-ledger.md | keep | index | docs/backlog/README.md

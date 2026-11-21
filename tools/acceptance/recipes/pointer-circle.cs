@@ -36,9 +36,8 @@
 	// mode=start-press owns the attack key too: it goes down on the frame the hand passes the roll's start and comes up
 	// after a full turn, so the caller does not sample frames from outside to catch the window (measured 2026-11-22:
 	// that sampling cost `medical-bandage` 66.3 s of case time for a gesture a player makes in about two).
-	// mode=start-rub is the minigame's own gesture: the hand swings +-24 degrees around the roll every frame while the key
-	// is held, which is the offset `BandageMinigame.PhysicsUpdate` counts, instead of walking a lap to find the window.
+	// The gesture is one lap: the game counts the wrap in 20-degree steps, so the hand has to keep walking past the
+	// roll, and rubbing back and forth is not what the minigame reads (`BandageMinigame.PhysicsUpdate`).
 	var press = mode != "start";
-	var rub = mode == "start-rub" ? 24f : 0f;
-	return (string)start.Invoke(null, new object[] { cx, cy, radius, deg, frames, press, rub });
+	return (string)start.Invoke(null, new object[] { cx, cy, radius, deg, frames, press });
 }))()

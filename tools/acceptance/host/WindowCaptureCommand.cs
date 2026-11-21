@@ -68,6 +68,48 @@ internal static class WindowCaptureCommand
 		throw new CommandFailure(1, $"PrintWindow failed {attempts} time(s) for '{processName}': {detail} (is the client minimised?).");
 	}
 
+	/// <summary>
+	/// Captures a running client by process id, for the frame recorder a batch run carries: the same
+	/// PrintWindow call as <c>capture</c>, without the console line and without touching the foreground.
+	/// </summary>
+	internal static bool TryCapture(int processId, string path, out string detail)
+	{
+		detail = string.Empty;
+		NativeMethods.SetProcessDPIAware();
+
+		System.Diagnostics.Process? target;
+		try
+		{
+			target = System.Diagnostics.Process.GetProcessById(processId);
+		}
+		catch (ArgumentException)
+		{
+			detail = "the process has ended";
+			return false;
+		}
+
+		var handle = target.MainWindowHandle;
+		if (handle == IntPtr.Zero)
+		{
+			detail = "the window handle is zero";
+			return false;
+		}
+
+		if (!NativeMethods.IsWindowVisible(handle))
+		{
+			detail = "the window is not visible";
+			return false;
+		}
+
+		var directory = Path.GetDirectoryName(path);
+		if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+		{
+			Directory.CreateDirectory(directory);
+		}
+
+		return Capture(handle, path, out detail);
+	}
+
 	private static bool Capture(IntPtr handle, string path, out string detail)
 	{
 		detail = string.Empty;

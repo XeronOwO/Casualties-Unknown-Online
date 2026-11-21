@@ -1089,7 +1089,7 @@ internal sealed class SessionDriver(Options options)
 					// own account of who shares this run, and an empty one means the pair is not
 					// live however each client describes itself (measured 2026-11-12).
 					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (members.Length > 0)
+					if (members.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
@@ -1101,7 +1101,7 @@ internal sealed class SessionDriver(Options options)
 				{
 					var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (roster.Length > 0)
+					if (roster.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
@@ -1136,6 +1136,29 @@ internal sealed class SessionDriver(Options options)
 	/// through the host's own kick, and the roster is re-read until only this guest is named. Cases that
 	/// bring a second client in (two-member-continue) do it after this guarantee, as their own step.
 	/// </summary>
+	/// <summary>
+	/// True when the host stands near ground the game will break.
+	/// </summary>
+	/// <remarks>
+	/// The rows that stage terrain read the cells around the host, and a world kept from an earlier case can leave it
+	/// standing where nothing breaks (measured 2026-11-22: block-sync, block-reconcile, mine-blast and save-continue all
+	/// read "no breakable terrain cell", and the four passed once the pair was new). A pair whose ground cannot answer
+	/// them is rebuilt instead of the row failing on a world it did not choose.
+	/// </remarks>
+	private async Task<bool> HasBreakableGroundAsync(CancellationToken cancellationToken)
+	{
+		var reading = await RecipeAtAsync(_options.HostUrl, "block-find-breakable",
+			new Dictionary<string, string> { ["count"] = "1" }, cancellationToken).ConfigureAwait(false);
+		if (reading is not { } answer
+			|| !answer.TryGetProperty("count", out var count)
+			|| count.ValueKind != JsonValueKind.Number)
+		{
+			return false;
+		}
+
+		return count.GetInt32() > 0;
+	}
+
 	public async Task<string> EnsureSingleMemberAsync(CancellationToken cancellationToken)
 	{
 		var state = await TryStateAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);

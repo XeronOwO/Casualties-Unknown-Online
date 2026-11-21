@@ -213,6 +213,26 @@
 		return finish(fields);
 	}
 
+	// The window is a full overlay: it keeps the pointer, and a staged press lands on it instead of on the
+	// game under it. A row that drives the game's own pointer has to take this window down first (measured
+	// 2026-11-22: the bandage roll never turned because the press went to the Online UI window above it).
+	if (command == "close-window") {
+		if (overlay == null || windowState == null) {
+			return fail(escape, "no-online-ui", "the CUO Online UI is not reachable in this process");
+		}
+		if (readBool(windowState, "Visible")) {
+			var toggle = findMethodWith(overlay, "ToggleWindow", 1);
+			if (toggle == null) { return fail(escape, "no-toggle", "OnlineUiOverlay.ToggleWindow was not found"); }
+			if (session == null) { return fail(escape, "no-session", "SessionService is not available to carry the launcher's role"); }
+			toggle.Invoke(overlay, new object[] { session.Role });
+		}
+		putRaw(fields, escape, "ok", "true");
+		putText(fields, escape, "command", command);
+		putRaw(fields, escape, "visible", readBool(windowState, "Visible") ? "true" : "false");
+		putText(fields, escape, "page", pageName(windowState));
+		return finish(fields);
+	}
+
 	if (command == "click" || command == "set-text") {
 		if (overlay == null || actions == null) {
 			return fail(escape, "no-action-table", "the Online UI window is not offering controls in this frame");

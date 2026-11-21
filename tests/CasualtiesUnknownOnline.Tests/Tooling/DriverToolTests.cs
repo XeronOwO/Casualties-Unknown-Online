@@ -21,7 +21,7 @@ public class DriverToolTests
 		var run = DriverToolHarness.Run("-ListActions");
 
 		Assert.Equal(0, run.ExitCode);
-		foreach (var action in new[] { "ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "continue-run", "leave-world", "console", "quit", "recipe", "declare" })
+		foreach (var action in new[] { "ping", "state", "open-window", "close-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run", "continue-run", "leave-world", "console", "quit", "recipe", "declare" })
 		{
 			Assert.True(run.Output.Contains(action, StringComparison.Ordinal), $"the vocabulary does not name '{action}':{Environment.NewLine}{run.Output}");
 		}

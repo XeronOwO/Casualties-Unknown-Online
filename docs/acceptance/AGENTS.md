@@ -21,7 +21,9 @@ ticket is code-complete and waits for this run, which moves it. Machine facts li
 3. `[CRITICAL]` **A row passes only on evidence from THIS run against the deployed artifact**: the evidence pointer (log excerpt,
    probe result, captured frame) is the verdict. An earlier green test is not evidence; `unproven` is not `pass`.
 4. `[RULE]` **Judge by reading the evidence, frames included**: a visual row is judged from a captured frame the agent inspected,
-   captured per client window (never the desktop). A subjective judgement is a residual, never a self-pass.
+   captured per client window (never the desktop). A subjective judgement is a residual, never a self-pass. A pointer or click
+   that does nothing is read from the frame first: the panel above the target, not the pointer, is the first suspect — our own
+   window swallows the press.
 5. `[RULE]` **Reproducible from the record**: commit, deployed artifact identity, rows, one verdict/evidence pointer each,
    dependencies used, residuals.
 6. `[RULE]` **The machine is shared property**: never kill a process the run did not start, never delete sandbox files
@@ -34,10 +36,9 @@ ticket is code-complete and waits for this run, which moves it. Machine facts li
    `AGENTS.local.md`, a wrong or missing rule into this file — and into `docs/AGENTS.md` or the root `AGENTS.md` when it binds the
    repository. Closing an acceptance conversation runs this harvest. A probe worth running twice becomes a driver
    action, never a throwaway script.
-10. `[CRITICAL]` **Wall time is a measured fact.** Report connect/setup/case time per case, classified `InRun`,
-    `NewWorld` or `ClientRestart`; seconds per case and tens of seconds per group are the target, and an overrun is a finding
-    to optimize (reuse a healthy pair, cut dead waits), not a normal cost. `--cost` and `--reuse` select groups. An overrun
-    is read from the field, never by waiting on a status.
+10. `[CRITICAL]` **Wall time is a measured fact.** Report setup and case time per case, classified `InRun`, `NewWorld` or
+    `ClientRestart`; seconds per case are the target, and an overrun is a finding to optimize (reuse a healthy pair, cut dead
+    waits), not a normal cost. It is read from the field, never by waiting on a status.
 11. `[CRITICAL]` **Every case counts the logs it caused.** Mark both clients' log offsets before it starts; count every `Warning`
     and `Error` written since, and assert the case's declared budget (zero errors by default). An unexplained error fails even
     when behaviour passed; known warnings are named and bounded, never filtered out.

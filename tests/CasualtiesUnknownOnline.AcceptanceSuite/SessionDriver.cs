@@ -1073,6 +1073,7 @@ internal sealed class SessionDriver(Options options)
 	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken)
 	{
 		BeginSetup();
+		var clock = Stopwatch.StartNew();
 		try
 		{
 			var hostState = await TryStateAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
@@ -1120,6 +1121,10 @@ internal sealed class SessionDriver(Options options)
 		finally
 		{
 			EndSetup();
+			// The run's own wall time is a product number here: the twenty-minute reading is mostly
+			// this guarantee, so every case records what it cost (measured 2026-11-22: 461 s of setup
+			// across 67 rows, most of it sixteen world loads and the per-row body waits).
+			Timeline?.Invoke($"world guarantee: {clock.Elapsed.TotalSeconds:F1}s");
 		}
 	}
 
@@ -1589,6 +1594,15 @@ internal sealed class SessionDriver(Options options)
 	/// the symptom; the row fails with the code that caused it (see <see cref="ClientExitLedger"/>).
 	/// </summary>
 	public ClientExitLedger? ClientExits => _options.ClientExits;
+
+	/// <summary>
+	/// Takes the Online UI window down on one client, so a row that drives the game's own pointer has the
+	/// game under it, not our overlay. The window keeps the press; a staged bandage gesture that lands on the
+	/// window never reaches the minigame (measured 2026-11-22: the roll did not turn for eighteen attempts
+	/// while the window was up, and the row's own answer was that the pointer hit the panel).
+	/// </summary>
+	public Task<JsonElement> CloseWindowAsync(string url, CancellationToken cancellationToken) =>
+		ActionAsync(url, "close-window", cancellationToken);
 
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{

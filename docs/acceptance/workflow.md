@@ -94,6 +94,24 @@ in the same world, which tickets reuse one another's setup, and what has to be t
 a row can be observed (a world entered, an item held, a peer in range). A ticket whose setup cannot
 share the session already running gets its own run, and that decision is recorded.
 
+### Before a row is written, the docs answer first
+
+A row that drives a game mechanism starts from what the project already recorded about that
+mechanism, not from a guess made while reading its code. Two commands make that a step instead of a
+good intention:
+
+```powershell
+pwsh -File tools/knowledge.ps1 -Query "bandage pointer"   # before designing the row
+pwsh -File tools/knowledge.ps1 -Changed                   # before the commit, after the work
+```
+
+`-Query` prints the design, architecture, decision and lesson lines that carry the words, with their
+page and line; open the pages it names before opening the code. `-Changed` runs the other way: it
+prints, for each file this checkout changed, the pages those words live on, so the pages this change
+made false are updated in the same commit. A mechanism page that describes behaviour the row had to
+work around (our own overlay reading the pointer first, a panel that must be closed) is itself part of
+the row's evidence: quote it in the ticket's record.
+
 ## 4. Build, deploy, artifact identity
 
 Acceptance runs against a commit, never against a dirty tree with an unrecorded build.

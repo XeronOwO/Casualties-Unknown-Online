@@ -17,6 +17,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
 /// did not move at all). This component moves the pointer a fixed number of degrees per frame, which is the gesture the
 /// minigame is written for.
 /// </para>
+///
+/// <para>
+/// <c>press=1</c> makes the component own the attack input too: it goes down on the frame the hand passes the roll's own
+/// start (0 degrees) and stays down while the wrap turns, then comes up a little past a full turn. The batch used to do
+/// that from outside, one round trip per candidate frame, and the row's own budget was sixty seconds of polling because
+/// the press had to land inside a window the script could only sample every forty milliseconds (measured 2026-11-22:
+/// `medical-bandage` 66.3 s of case time for a gesture a player makes in about two). Pressing here is the same gesture on
+/// the same frames, without the trip. The press stages BOTH the mouse button and the attack key: `holdingBandage` is
+/// stamped from the frame the game sees the click START, and a press that only satisfied one of the two queries left the
+/// hand unheld (measured 2026-11-22: `handStarted false` while the key was staged down).
+/// </para>
 /// </summary>
 internal sealed class PointerCircle : MonoBehaviour
 {
@@ -32,8 +43,14 @@ internal sealed class PointerCircle : MonoBehaviour
 
 	private int _framesLeft;
 
+	private bool _press;
+
+	private bool _pressed;
+
+	private float _pressedAt;
+
 	/// <summary>Starts the circle: centre and radius in the game's pointer space (bottom-left origin), degrees per frame.</summary>
-	internal static string Start(float centreX, float centreY, float radius, float degreesPerFrame, int frames)
+	internal static string Start(float centreX, float centreY, float radius, float degreesPerFrame, int frames, bool press)
 	{
 		Stop();
 		var host = new GameObject("CUO acceptance pointer circle");
@@ -44,12 +61,14 @@ internal sealed class PointerCircle : MonoBehaviour
 		circle._degreesPerFrame = degreesPerFrame;
 		circle._angle = 0f;
 		circle._framesLeft = Mathf.Max(1, frames);
+		circle._press = press;
 		circle.Step();
 		_running = circle;
 		return "{\"ok\":true,\"running\":true,\"centre\":[" + centreX.ToString("0.#", CultureInfo.InvariantCulture)
 			+ "," + centreY.ToString("0.#", CultureInfo.InvariantCulture) + "],\"radius\":"
 			+ radius.ToString("0.#", CultureInfo.InvariantCulture) + ",\"degreesPerFrame\":"
-			+ degreesPerFrame.ToString("0.##", CultureInfo.InvariantCulture) + ",\"frames\":" + frames + "}";
+			+ degreesPerFrame.ToString("0.##", CultureInfo.InvariantCulture) + ",\"frames\":" + frames
+			+ ",\"press\":" + (press ? "true" : "false") + "}";
 	}
 
 	/// <summary>Stops the circle and leaves the pointer wherever it last was.</summary>
@@ -58,6 +77,13 @@ internal sealed class PointerCircle : MonoBehaviour
 		if (_running == null)
 		{
 			return "{\"ok\":true,\"running\":false}";
+		}
+
+		if (_running._pressed)
+		{
+			VirtualInput.Release(0);
+			VirtualInput.ReleaseKey(KeyCode.Mouse0);
+			_running._pressed = false;
 		}
 
 		Object.Destroy(_running.gameObject);
@@ -75,6 +101,8 @@ internal sealed class PointerCircle : MonoBehaviour
 
 		return "{\"ok\":true,\"running\":true,\"angle\":" + _running._angle.ToString("0.#", CultureInfo.InvariantCulture)
 			+ ",\"framesLeft\":" + _running._framesLeft
+			+ ",\"pressed\":" + (_running._pressed ? "true" : "false")
+			+ ",\"pressedAt\":" + _running._pressedAt.ToString("0.#", CultureInfo.InvariantCulture)
 			+ ",\"x\":" + _running.LastX.ToString("0.#", CultureInfo.InvariantCulture)
 			+ ",\"y\":" + _running.LastY.ToString("0.#", CultureInfo.InvariantCulture) + "}";
 	}
@@ -87,8 +115,7 @@ internal sealed class PointerCircle : MonoBehaviour
 	{
 		if (_framesLeft <= 0)
 		{
-			Object.Destroy(gameObject);
-			_running = null;
+			Stop();
 			return;
 		}
 
@@ -102,6 +129,42 @@ internal sealed class PointerCircle : MonoBehaviour
 		LastX = _centre.x + Mathf.Cos(radians) * _radius;
 		LastY = _centre.y + Mathf.Sin(radians) * _radius;
 		VirtualInput.MoveTo(LastX, LastY);
+		PressOnPass();
 		_framesLeft--;
+	}
+
+	/// <summary>
+	/// The attack input's window is the roll's own start: the game stamps <c>holdingBandage</c> only on the frame the
+	/// click starts while the hand's direction is within about 25 degrees of the roll (0 degrees here), so the press goes
+	/// down on the pass and stays down until the wrap has turned past a full circle.
+	/// </summary>
+	private void PressOnPass()
+	{
+		if (!_press)
+		{
+			return;
+		}
+
+		var wrapped = _angle % 360f;
+		if (!_pressed)
+		{
+			if (wrapped <= 30f || wrapped >= 330f)
+			{
+				VirtualInput.Press(0);
+				VirtualInput.PressKey(KeyCode.Mouse0);
+				_pressed = true;
+				_pressedAt = _angle;
+			}
+
+			return;
+		}
+
+		// A full turn plus the window it started from: the game sets `didWrap` at 360 and stops counting afterwards.
+		if (_angle - _pressedAt >= 380f)
+		{
+			VirtualInput.Release(0);
+			VirtualInput.ReleaseKey(KeyCode.Mouse0);
+			_pressed = false;
+		}
 	}
 }

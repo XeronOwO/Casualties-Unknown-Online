@@ -2,8 +2,9 @@
 // args: mode=s cx=n cy=n radius=n deg=n frames=n
 // returns: ok, running, centre, radius, degreesPerFrame, frames, angle, framesLeft, x, y, error, detail
 //
-// Drives the bandage/splint minigame's gesture: the hand has to go AROUND the roll, not past it. mode=start begins a circular pointer
-// path (one step per frame, inside the client - see PointerCircle), mode=read reports the angle drawn so far, mode=stop ends it.
+// Drives the bandage/splint minigame's gesture: the hand has to go AROUND the roll, not past it. mode=start begins a
+// circular pointer path (one step per frame, inside the client - see PointerCircle), mode=start-press does the same and
+// owns the attack key on the pass through the roll's start, mode=read reports the angle drawn so far, mode=stop ends it.
 // `BandageMinigame.PhysicsUpdate` advances `bandageAngle` only while `holdingBandage` (the hand's direction within about 25 degrees of
 // the roll) and sets `didWrap` at a full turn, so the caller also holds the attack button (`virtual-input mode=press button=0`).
 //
@@ -32,5 +33,12 @@
 	if (mode == "read") { return (string)report.Invoke(null, null); }
 	if (mode == "stop") { return (string)circle.GetMethod("Stop", Flags).Invoke(null, null); }
 	var start = circle.GetMethod("Start", Flags);
-	return (string)start.Invoke(null, new object[] { cx, cy, radius, deg, frames });
+	// mode=start-press owns the attack key too: it goes down on the frame the hand passes the roll's start and comes up
+	// after a full turn, so the caller does not sample frames from outside to catch the window (measured 2026-11-22:
+	// that sampling cost `medical-bandage` 66.3 s of case time for a gesture a player makes in about two).
+	// mode=start-rub is the minigame's own gesture: the hand swings +-24 degrees around the roll every frame while the key
+	// is held, which is the offset `BandageMinigame.PhysicsUpdate` counts, instead of walking a lap to find the window.
+	var press = mode != "start";
+	var rub = mode == "start-rub" ? 24f : 0f;
+	return (string)start.Invoke(null, new object[] { cx, cy, radius, deg, frames, press, rub });
 }))()

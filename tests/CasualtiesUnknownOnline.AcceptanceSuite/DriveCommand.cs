@@ -18,7 +18,7 @@ internal static class DriveCommand
 
 	private static readonly string[] Actions =
 	[
-		"ping", "state", "open-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run",
+		"ping", "state", "open-window", "close-window", "goto-page", "click", "set-text", "create-lobby", "join-lobby", "start-run",
 		"continue-run", "leave-world", "console", "console-ui", "console-accept", "console-arrow", "quit", "wait-log",
 		"wait-state", "log-tail", "recipe", "declare", "select-character",
 	];

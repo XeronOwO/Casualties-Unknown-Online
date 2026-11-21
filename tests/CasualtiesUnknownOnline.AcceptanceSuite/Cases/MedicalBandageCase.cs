@@ -126,6 +126,16 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		context.Read("select-limb", selected);
 		Require(Boolean(selected, "ok"), "the wound view did not select the wounded limb: " + Raw(selected));
 
+		// Our own window keeps the pointer: with it up, the staged press lands on the panel above the minigame
+		// and the roll never turns (measured 2026-11-22 — eighteen attempts, all from the same cause). The row
+		// takes the window down before the minigame opens; the shot of the running gesture is what proves the
+		// game, not the panel, is receiving it.
+		var closed = await context.Session.CloseWindowAsync(context.Session.MemberUrl, cancellationToken).ConfigureAwait(false);
+		context.Read("member window closed", closed);
+		Require(
+			!Boolean(closed, "visible"),
+			"the member's Online UI window is still up, so the gesture would press it instead of the minigame: " + Raw(closed));
+
 		var started = await context.MemberRecipeAsync(
 			"limb-use",
 			cancellationToken,
@@ -159,7 +169,6 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		var centerY = double.Parse(centre[1], CultureInfo.InvariantCulture);
 		var radius = 300d * scale;
 
-		JsonElement? pressed = null;
 
 		var after = wounded;
 		JsonElement? minigameAtPress = null;
@@ -194,73 +203,35 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			var circle = await context.MemberRecipeAsync(
 				"pointer-circle",
 				cancellationToken,
-				("mode", "start"),
+				("mode", "start-press"),
 				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("radius", radius.ToString("0.###", CultureInfo.InvariantCulture)),
-				("deg", "0.8"),
-				("frames", "3600")).ConfigureAwait(false);
+				("deg", "6"),
+				("frames", "1200")).ConfigureAwait(false);
 			context.Read("pointer circle started", circle);
 			Require(Boolean(circle, "ok"), "the pointer circle could not start: " + Raw(circle));
 
-			var armDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
-			var armed = false;
-			var pass = 0;
-			while (DateTime.UtcNow < armDeadline)
-			{
-				pass++;
-				var reading = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-				if (pass % 25 == 0)
-				{
-					// The hand's own angle as it walks the ring: the key goes down on the pass through
-					// the roll's start, so these readings say where the hand actually is when a pass
-					// does not come.
-					context.Read("hand pass " + pass, reading);
-				}
+			// The gesture runs inside the client now — one lap per second, the attack key owned there — so the row waits
+			// for the treatment it produces and nothing else. The old shape sampled the hand's angle from outside every
+			// 40 ms to catch a pass, then polled for up to sixty seconds (measured 2026-11-22: 66.3 s of case time and the
+			// wrap never completed).
 
-				var handAngle = Number(reading, "handAngle");
-				if (!double.IsNaN(handAngle) && (handAngle <= 20d || handAngle >= 340d))
-				{
-					minigameAtPress = reading;
-					pressed = await context.MemberRecipeAsync(
-						"virtual-input",
-						cancellationToken,
-						("mode", "press-key"),
-						("x", (centerX + radius).ToString("0.###", CultureInfo.InvariantCulture)),
-						("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-						("button", "0")).ConfigureAwait(false);
-					context.Read("attack key pressed", pressed);
-					context.Read("minigame when the key went down", reading);
-					armed = Boolean(pressed, "ok");
-					if (armed)
-					{
-						break;
-					}
-				}
-
-				await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken).ConfigureAwait(false);
-			}
-
-			Require(armed, "the hand never passed the roll's start, so the attack key was never pressed: " + Raw(minigameAtPress));
-
-			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
+			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
 			var step = 0;
 			while (DateTime.UtcNow < deadline)
 			{
 				step++;
-				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-				if (step % 5 != 0)
-				{
-					continue;
-				}
-
-				context.Read("minigame at step " + step, await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false));
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 				after = await ReadLimbAsync(context, limb, cancellationToken).ConfigureAwait(false);
 				if (Number(after, "bleedAmount") <= 0.001)
 				{
 					break;
 				}
 			}
+
+			minigameAtPress = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+			context.Read("minigame after the wrap", minigameAtPress);
 		}
 		finally
 		{

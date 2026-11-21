@@ -37,10 +37,20 @@
 	// The bandage minigame's own fields: the ring angle it tracks, whether it wrapped, the action counter, and the sprite's fill.
 	var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var angle = current.GetType().GetField("bandageAngle", flags);
+	// `holdingBandage` is the flag `PhysicsUpdate` gates on. It is set only on the frame the game sees
+	// the attack key go down with the hand inside the roll, and cleared on the frame it sees it go up
+	// (BandageMinigame.cs:74-80) — so a hand that circles without turning the roll reads `holding: false`
+	// while `handClicking` stays true, and that pair is the difference between a dropped grip and a
+	// stride that jumped past the roll (measured 2026-11-21).
+	var holding = current.GetType().GetField("holdingBandage", flags);
 	var didWrap = current.GetType().GetField("didWrap", flags);
 	var lastAction = current.GetType().GetField("lastActionAngle", flags);
 	var sprite = current.GetType().GetField("bandageSprite", flags);
 	if (angle != null) { body += ",\"angle\":" + System.Convert.ToSingle(angle.GetValue(current)).ToString("0.###", inv); }
+	if (holding != null) { body += ",\"holding\":" + (System.Convert.ToBoolean(holding.GetValue(current)) ? "true" : "false"); }
+	// The hand's own direction, in the same degrees the roll is measured in, so a reading says whether
+	// the hand is inside the roll's 20-degree window without the reader redoing the trigonometry.
+	if (magnitude > 0.001f) { body += ",\"handAngle\":" + ((((UnityEngine.Mathf.Atan2(main.handPos.x, main.handPos.y) * 57.29578f) + 360f) % 360f)).ToString("0.###", inv); }
 	if (didWrap != null) { body += ",\"didWrap\":" + (System.Convert.ToBoolean(didWrap.GetValue(current)) ? "true" : "false"); }
 	if (lastAction != null) { body += ",\"lastActionAngle\":" + System.Convert.ToInt32(lastAction.GetValue(current)).ToString(inv); }
 	if (sprite != null) {

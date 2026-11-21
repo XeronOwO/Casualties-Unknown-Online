@@ -29,7 +29,19 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 		var memberId = await SingleMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		context.UseMember(memberId);
 
+		// The body has to exist before its limbs can be read, and a run that has already wounded it —
+		// an earlier medical row bleeds a limb to the bone — leaves no limb this row can use. The
+		// precondition is "an intact limb with something below it", so it is established, not assumed.
+		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 		var (limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		if (limb < 0)
+		{
+			context.Note("no limb qualified on the member's shared body; healing it natively and re-probing");
+			await context.MemberRecipeAsync("native-heal", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			(limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+		}
+
 		Require(limb >= 0, "no limb of the member's body has a lower-limb chain and can take a tourniquet");
 
 		var seeded = await RecipeAsync(context, "wound-seed", cancellationToken, ("limb", limb.ToString(CultureInfo.InvariantCulture)), ("force", "200"), ("infection", "0")).ConfigureAwait(false);

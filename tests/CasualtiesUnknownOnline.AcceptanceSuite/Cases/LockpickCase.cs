@@ -72,7 +72,11 @@ internal sealed class LockpickCase : AcceptanceCase
 
 			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 			var screen = StringValue(live, "screenPos").Split(',');
-			var ui = Number(live, "uiScale");
+			// A minigame that closed between the aim and this read carries no scale at all: the reading
+			// below is the one that decides whether it has to be reopened, so this loop breaks instead
+			// of reporting a missing scale as the row's verdict (2026-11-21: the throw was the whole
+			// message the row gave).
+			var ui = NumberOr(live, "uiScale", 0);
 			if (screen.Length != 2 || ui <= 0)
 			{
 				break;

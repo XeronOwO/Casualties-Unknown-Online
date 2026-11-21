@@ -33,11 +33,30 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 		var hostId = Text(hostState, "steamId");
 		Require(hostId.Length > 0 && hostId != "0", "the host state does not name its own SteamId: " + Raw(hostState));
 
-		var opened = await context.MemberRecipeAsync("remote-view-items", cancellationToken, ("mode", "open"), ("target", hostId), ("name", "")).ConfigureAwait(false);
+		// The member's copy of the host's body is rendered on the adapter's own tick, and its containers
+		// carry their marker ids only once that render has run: opening the view the instant the body
+		// exists reads "container 0" (2026-11-21: the row failed that way in two runs whose pair was
+		// fresh). So the row opens it again until the copy has a marked container, and keeps the last
+		// reading for the verdict.
+		JsonElement? opened = null;
+		var container = "0";
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			opened = await context.MemberRecipeAsync("remote-view-items", cancellationToken, ("mode", "open"), ("target", hostId), ("name", "")).ConfigureAwait(false);
+			var read = Text(opened, "container");
+			if (read != "0")
+			{
+				container = read;
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("member opened the host's backpack view", opened);
 		Require(IsTrue(opened, "ok") && IsTrue(opened, "open"), "the member could not open the host's backpack view: " + Raw(opened));
 		Require(Text(opened, "focused") == hostId, "the view is focused on " + Text(opened, "focused") + " instead of the host " + hostId);
-		var container = Text(opened, "container");
 		Require(container != "0", "the open view shows no container: " + Raw(opened));
 
 		// The first give seeds the window's panel set; the second is the arriving slot

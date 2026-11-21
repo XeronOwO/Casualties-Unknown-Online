@@ -142,72 +142,99 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		// The 2026-11-18 reading drove the minigame's fields directly and got 1200 driven frames with zero
 		// game actions, because `BandageMinigame.Update` sets `holdingBandage` only on the frame the game's
 		// own click-start edge arrives; the staged input below is the path the game actually reads.
-		var screen = await context.MemberRecipeAsync("screen-size", cancellationToken).ConfigureAwait(false);
-		context.Read("screen", screen);
-		var centerX = Number(screen, "centerX");
-		var centerY = Number(screen, "centerY");
-		Require(!double.IsNaN(centerX) && !double.IsNaN(centerY), "the client did not report its screen size: " + Raw(screen));
+		//
+		// The circle has to be centred on the MINIGAME, not on the screen: `BandageMinigame` reads the hand
+		// as `(pointer - screenPos) / uiScale` and the roll orbits at `Lerp(253, 390, condition)` from that
+		// centre (BandageMinigame.cs:90-94). A screen-centred circle put the hand at 183 degrees when the
+		// roll was at 0 (measured 2026-11-21: `circle at 8 degrees`, `handPos -535.979,-31.631`), so the
+		// press could never arm the wrap.
+		var live = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+		context.Read("minigame before the gesture", live);
+		Require(Boolean(live, "hasMain") && Text(live, "kind").Length > 0, "the bandage minigame is not open: " + Raw(live));
+		var scale = Number(live, "uiScale");
+		Require(scale > 0, "the minigame reported no uiScale, so the gesture cannot be mapped to the screen: " + Raw(live));
+		var centre = Text(live, "screenPos").Split(',');
+		Require(centre.Length == 2, "the minigame reported no screen position: " + Raw(live));
+		var centerX = double.Parse(centre[0], CultureInfo.InvariantCulture);
+		var centerY = double.Parse(centre[1], CultureInfo.InvariantCulture);
+		var radius = 300d * scale;
 
-		var pressed = await context.MemberRecipeAsync(
-			"virtual-input",
-			cancellationToken,
-			("mode", "press-key"),
-			("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-			("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-			("button", "0"))
-			.ConfigureAwait(false);
-		context.Read("attack key pressed", pressed);
-		Require(Boolean(pressed, "ok"), "the attack key could not be staged: " + Raw(pressed));
+		JsonElement? pressed = null;
 
 		var after = wounded;
 		JsonElement? minigameAtPress = null;
 		try
 		{
-			var circle = await context.MemberRecipeAsync(
-				"pointer-circle",
-				cancellationToken,
-				("mode", "start"),
-				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-				("radius", "320"),
-				("deg", "8"),
-				("frames", "900"))
-				.ConfigureAwait(false);
-			context.Read("pointer circle", circle);
-			Require(Boolean(circle, "ok"), "the pointer circle did not start: " + Raw(circle));
-
-			// The game performs one action per ~20 degrees and the minigame ends on its own; read the limb
-			// until the bleed stops, bounded by the measured treatment time rather than a fixed sleep.
-			// The press is REPEATED inside the loop: the game's started edge is a single-frame read, so one
-			// staged press can land after the minigame's own Update and never arm it (measured 2026-11-18:
-			// one press left `angle 0` for 40 s, a press every 400 ms advanced `lastActionAngle` 20 → 40).
+			// `MinigameBase.Update` integrates the hand toward `GetMousePos` with a clamp and a damping
+			// (`ClampMagnitude((mouse - hand) * 0.25 * consciousness, 75)`, MinigameBase.cs:145-154), so
+			// the hand LAGS the pointer: a circle at 8 degrees a frame leaves the hand at 183 degrees
+			// when the pointer is at 8 (measured 2026-11-21: `handPos -535.979,-31.631`, magnitude 635
+			// against a 300-unit orbit). The gesture is therefore stepped: put the pointer on the roll's
+			// orbit, let the hand settle, and move on one action (20 degrees) at a time — which is what a
+			// player does with a mouse.
 			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(40);
+			var step = 0;
 			while (DateTime.UtcNow < deadline)
 			{
-				// A held key produces one DOWN edge only: `press-key` again on an already-held key is not a new
-				// click-start frame, so `holdingBandage` (computed only on the started frame) never re-arms.
-				// The player taps, so each poll releases and presses again — one edge per pass.
+				var degrees = (step % 14) * 28d;
+				step++;
+				var radians = degrees * Math.PI / 180d;
+				var pointerX = centerX + (radius * Math.Cos(radians));
+				var pointerY = centerY + (radius * Math.Sin(radians));
 				await context.MemberRecipeAsync(
 					"virtual-input",
 					cancellationToken,
-					("mode", "release-key"),
-					("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-					("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+					("mode", "move"),
+					("x", pointerX.ToString("0.###", CultureInfo.InvariantCulture)),
+					("y", pointerY.ToString("0.###", CultureInfo.InvariantCulture)),
 					("button", "0")).ConfigureAwait(false);
-				await context.MemberRecipeAsync(
-					"virtual-input",
-					cancellationToken,
-					("mode", "press-key"),
-					("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-					("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-					("button", "0")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+
 				if (minigameAtPress is null)
 				{
-					// The ticket's next step: name the minigame's own state at the moment the row's press lands,
-					// so a failure says whether the view was open and whether the click-start edge armed handStarted
-					// (the hand experiment read handStarted true here; the row's own sessions have not).
+					// Arm the wrap where the roll starts (0 degrees): `Update` arms `holdingBandage` only
+					// on the click-start frame of the GAME's attack KEY and only when the hand's direction
+					// is within about 25 degrees of the roll (BandageMinigame.cs:79-82). A staged mouse
+					// button is not that key — measured 2026-11-21: `mode=press` read back
+					// `handStarted false, handClicking false`. `GetMousePos` also adds a pain shake
+					// (MinigameBase.cs:160), so the direction the press lands on wanders by up to ~16
+					// degrees at this body's pain; each pass re-stamps the DOWN edge, so a pass that lands
+					// inside the window arms the wrap and the following passes advance it.
+					await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "release-key"),
+						("x", pointerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", pointerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
+					pressed = await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "press-key"),
+						("x", pointerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", pointerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
+					context.Read("attack key pressed", pressed);
+					Require(Boolean(pressed, "ok"), "the attack key could not be staged: " + Raw(pressed));
 					minigameAtPress = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 					context.Read("minigame at the first press", minigameAtPress);
+				}
+				else
+				{
+					await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "release-key"),
+						("x", pointerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", pointerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
+					await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "press-key"),
+						("x", pointerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", pointerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
 				}
 
 				after = await ReadLimbAsync(context, limb, cancellationToken).ConfigureAwait(false);
@@ -215,21 +242,10 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				{
 					break;
 				}
-
-				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			}
 		}
 		finally
 		{
-			await context.MemberRecipeAsync(
-				"pointer-circle",
-				cancellationToken,
-				("mode", "stop"),
-				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-				("radius", "320"),
-				("deg", "8"),
-				("frames", "900")).ConfigureAwait(false);
 			await context.MemberRecipeAsync(
 				"virtual-input",
 				cancellationToken,
@@ -256,6 +272,39 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			("target", "0"));
 	}
 
+	/// <summary>
+	/// Waits until the staged circle is inside the roll's own window — within about 25 degrees of the
+	/// roll's angle, which starts at 0 and is the direction the wrap begins from — and returns the angle
+	/// the press landed on. Reading the angle before the press is the difference between arming the
+	/// gesture and pressing into a frame the game ignores.
+	/// </summary>
+	private static async Task<double> WaitForCircleAtRollAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var last = double.NaN;
+		for (var attempt = 0; attempt < 60; attempt++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var circle = await context.MemberRecipeAsync(
+				"pointer-circle",
+				cancellationToken,
+				("mode", "read"),
+				("cx", "0"),
+				("cy", "0"),
+				("radius", "0"),
+				("deg", "0"),
+				("frames", "0")).ConfigureAwait(false);
+			last = Number(circle, "angle");
+			if (!double.IsNaN(last) && (last <= 30d || last >= 330d))
+			{
+				return last;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken).ConfigureAwait(false);
+		}
+
+		return last;
+	}
+
 	private static bool Boolean(JsonElement? reading, string property)
 	{
 		return reading is { ValueKind: JsonValueKind.Object } value
@@ -274,6 +323,15 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
+
+	private static string Text(JsonElement? reading, string property)
+	{
+		return reading is { ValueKind: JsonValueKind.Object } value
+			&& value.TryGetProperty(property, out var field)
+			&& field.ValueKind == JsonValueKind.String
+				? field.GetString() ?? ""
+				: "";
+	}
 
 	private static void Require(bool condition, string message)
 	{

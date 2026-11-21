@@ -153,7 +153,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		}
 
 		var hostExe = Path.Combine(_options.GameDir, "CasualtiesUnknown.exe");
-		var existingHost = GameProcesses().FirstOrDefault(process => SamePath(process, hostExe));
+		var existingHost = HostCandidates(hostExe).FirstOrDefault();
 		if (!noReuse && existingHost is not null)
 		{
 			// A process that has existed longer than a launch can take but still has no endpoint is
@@ -318,13 +318,10 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		{
 			var hostExe = Path.GetFullPath(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"));
 			var stopped = false;
-			foreach (var process in GameProcesses())
+			foreach (var process in HostCandidates(hostExe))
 			{
-				if (SamePath(process, hostExe))
-				{
-					StopQuietly(process.Id);
-					stopped = true;
-				}
+				StopQuietly(process.Id);
+				stopped = true;
 			}
 
 			if (!stopped)
@@ -355,8 +352,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		}
 
 		var hostExe = Path.GetFullPath(Path.Combine(_options.GameDir, "CasualtiesUnknown.exe"));
-		var hostPid = GameProcesses()
-			.Where(process => SamePath(process, hostExe))
+		var hostPid = HostCandidates(hostExe)
 			.Select(process => (int?)process.Id)
 			.FirstOrDefault();
 		var payload = new
@@ -573,6 +569,37 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		}
 
 		return processes;
+	}
+
+	/// <summary>
+	/// The pid of every game process the configured boxes hold. A boxed game reports the host install's
+	/// image path — measured 2026-11-21: the member's <c>Path</c> was the host's own
+	/// <c>CasualtiesUnknown.exe</c>, so an image-path match cannot tell the member from the host.
+	/// </summary>
+	private HashSet<int> BoxedGameProcessIds()
+	{
+		var pids = new HashSet<int>();
+		foreach (var box in _clients.Where(candidate => candidate.Boxed).Select(candidate => candidate.Box!).Concat([_options.GuestBox, _options.AltBox]))
+		{
+			if (string.IsNullOrWhiteSpace(box))
+			{
+				continue;
+			}
+
+			foreach (var process in BoxGameProcesses(box))
+			{
+				pids.Add(process.Id);
+			}
+		}
+
+		return pids;
+	}
+
+	/// <summary>The game processes that can be the host: the host's image path, never a boxed member.</summary>
+	private List<Process> HostCandidates(string hostExe)
+	{
+		var boxed = BoxedGameProcessIds();
+		return [.. GameProcesses().Where(process => !boxed.Contains(process.Id) && SamePath(process, hostExe))];
 	}
 
 	private static bool SamePath(Process process, string path)

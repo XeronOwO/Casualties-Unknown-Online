@@ -211,6 +211,35 @@ internal sealed class SessionDriver(Options options)
 		return await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
 	}
 
+	/// <summary>
+	/// Starts a brand-new run for a row that reads a character's first entry into a world.
+	/// </summary>
+	/// <remarks>
+	/// The starting kit is granted once per character, so a row that reads it cannot run on a run an earlier row already
+	/// populated (measured 2026-11-22: `starting-supplies` passes alone and fails 15.6 s behind `world-fingerprint`,
+	/// `.acceptance/poison-1`). The member leaves its session first, which is what makes its next join a first entry; the
+	/// host leaves the world it holds and starts a new one, so the archive is not what the row reads.
+	/// </remarks>
+	public async Task<string> StartFreshRunAsync(CancellationToken cancellationToken)
+	{
+		await ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
+		var host = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (IsTrue(host, "inWorld"))
+		{
+			await TryActionAsync(_options.HostUrl, "leave-world-intent", cancellationToken).ConfigureAwait(false);
+			await WaitUntilAsync(
+				_options.HostUrl,
+				probe => !IsTrue(probe, "inWorld"),
+				TimeSpan.FromSeconds(10),
+				cancellationToken).ConfigureAwait(false);
+		}
+
+		_ = await EnsureHostSessionAsync(cancellationToken).ConfigureAwait(false);
+		var started = await StartHostRunAsync(cancellationToken).ConfigureAwait(false);
+		var joined = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
+		return "a fresh run was started for this row: " + started + "; " + joined;
+	}
+
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
 	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken, TimeSpan? budget = null) =>
 		MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true, budget));

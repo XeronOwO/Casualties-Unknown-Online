@@ -275,6 +275,10 @@ internal static partial class Program
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
 			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
+			if (acceptanceCase.NeedsFreshRun)
+			{
+				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
+			}
 
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
@@ -815,6 +819,13 @@ internal abstract class AcceptanceCase
 	/// Whether this row reads the game's starting kit, which the run's own pre-case sweep would otherwise drop.
 	/// </summary>
 	public virtual bool NeedsStartingKit => false;
+
+	/// <summary>
+	/// Whether this row reads a character's FIRST entry into a world, so the runner has to start a brand-new run
+	/// before it. A kit is granted once per character, so a run an earlier row already populated cannot answer it
+	/// (measured 2026-11-22: `starting-supplies` passes alone and fails behind `world-fingerprint`).
+	/// </summary>
+	public virtual bool NeedsFreshRun => false;
 
 	/// <summary>
 	/// What the case costs the suite. <see cref="CaseCost.InRun"/> cases verify inside one world and

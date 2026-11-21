@@ -86,6 +86,12 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 		{
 			return await EvalOnceAsync(code, label, cancellationToken, allowNoValue).ConfigureAwait(false);
 		}
+		catch (OperationCanceledException cancelled) when (!cancellationToken.IsCancellationRequested)
+		{
+			// The suite's own deadline, not the caller's cancel: the client's game thread never reached
+			// the eval. Name it so the row fails with a reading instead of hanging the batch.
+			throw NeverAnswered(label, cancelled);
+		}
 		catch (Exception exception) when (exception is WebSocketException or IOException)
 		{
 			_socket.Dispose();
@@ -95,6 +101,10 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 				await ConnectAsync(cancellationToken).ConfigureAwait(false);
 				return await EvalOnceAsync(code, label, cancellationToken, allowNoValue).ConfigureAwait(false);
 			}
+			catch (OperationCanceledException cancelled) when (!cancellationToken.IsCancellationRequested)
+			{
+				throw NeverAnswered(label, cancelled);
+			}
 			catch (Exception retry) when (retry is WebSocketException or IOException)
 			{
 				throw new DriverException($"the driver at {Url} dropped while answering '{label}': {retry.Message}", retry);
@@ -102,15 +112,27 @@ internal sealed partial class DriverClient(string url, int evalTimeoutMs = 60_00
 		}
 	}
 
+	/// <summary>The client was asked and never answered: its game thread is busy, or the socket stalled.</summary>
+	private DriverException NeverAnswered(string label, Exception inner) =>
+		new($"the driver at {Url} never answered '{label}' within {_evalTimeoutMs + 15_000} ms — its game thread is busy while the client keeps running", inner);
+
 	private async Task<JsonElement?> EvalOnceAsync(string code, string label, CancellationToken cancellationToken, bool allowNoValue)
 	{
 		var id = Guid.NewGuid().ToString("N");
 		var frame = JsonSerializer.Serialize(new { type = "eval", id, code, timeoutMs = _evalTimeoutMs });
 		await SendAsync(frame, cancellationToken).ConfigureAwait(false);
 
+		// The eval budget travels with the request, but a client whose game thread never gets to the
+		// eval cannot enforce it, and a suite that waits on the socket forever turns one spinning client
+		// into a batch with no result (2026-11-21: the full run sat inside `starting-supplies` for ten
+		// minutes while all three clients burned a core each and wrote nothing). The suite owns the
+		// deadline for both halves of the round trip.
+		using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		deadline.CancelAfter(TimeSpan.FromMilliseconds(_evalTimeoutMs + 15_000));
+
 		while (true)
 		{
-			var text = await ReceiveAsync(cancellationToken).ConfigureAwait(false);
+			var text = await ReceiveAsync(deadline.Token).ConfigureAwait(false);
 			using var document = JsonDocument.Parse(text);
 			var root = document.RootElement;
 			if (!root.TryGetProperty("id", out var idElement)

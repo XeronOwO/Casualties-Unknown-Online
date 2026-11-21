@@ -204,6 +204,20 @@ internal sealed class SessionDriver(Options options)
 		throw new InvalidOperationException("the suite could not start a world for the cases");
 	}
 
+	/// <summary>
+	/// The id the host's own roster shows for its single member, or null when the roster holds none or several.
+	/// </summary>
+	/// <remarks>
+	/// A member that rejoins gets a new transport id, and every probe that names the member by id has to name the id the
+	/// host uses now (measured 2026-11-22: `medical-open` answered `opened:false` three times because the row still held
+	/// the id from launch, while the host's log said `refused open … not in-world` for that stale id).
+	/// </remarks>
+	public async Task<string?> SingleMemberIdAsync(CancellationToken cancellationToken)
+	{
+		var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+		return members.Length == 1 ? members[0] : null;
+	}
+
 	/// <summary>Starts a run when no world is up and returns the note for the report.</summary>
 	public async Task<string> EnsureInWorldAsync(CancellationToken cancellationToken)
 	{

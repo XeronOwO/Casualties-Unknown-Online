@@ -280,6 +280,13 @@ internal static partial class Program
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
 			}
 
+			// The member's transport id is not stable across a rejoin, and every probe names the member by it: take the
+			// id the host's roster shows NOW, or the row opens a view for a player the host no longer has.
+			if (await caseSession.SingleMemberIdAsync(CancellationToken.None).ConfigureAwait(false) is { Length: > 0 } liveMember)
+			{
+				context.UseMember(liveMember);
+			}
+
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
 			// the member are separate processes, so both marks are requested before either is awaited:

@@ -534,3 +534,7 @@ Both `geyser-types` reads answered `total:0` before the host was in the world, s
 ## 2026-11-21 — An acceptance assembly's log lines never reach the client's log file
 
 The acceptance plug-in's `ManualLogSource` writes nowhere the case can read: CUO's sink forwards only its own categories and Unity warnings/errors, so `latest.log` held no `[RemoteViewTrace]` line and `log-tail` returns 200 lines at a time; a reading the case needs must be appended to a file the case can open, and not into `BepInEx/plugins/`, which `verify-deploy.ps1` counts, or the deploy reads as a mismatch.
+
+## 2026-11-21 — A boxed member reports the host's own image path
+
+Every running game process reported the host install's `CasualtiesUnknown.exe` as its path, so the launcher's host sweep killed the member whenever the crash row relaunched the host; a client is identified by the pids the box holds or by the port it owns, never by its image path.

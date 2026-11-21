@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -45,6 +46,20 @@ internal sealed class SaveCutSeam(
 	private readonly TrapDropPendingState _trapDrops = trapDrops;
 	private readonly ItemDropState _itemDrops = itemDrops;
 	private readonly ILogger<SaveCutSeam> _log = log;
+
+	/// <summary>One line per distinct deferral, so the log names the holder without flooding a frame loop.</summary>
+	private string? _lastDeferral;
+
+	private void LogDeferral(string? summary)
+	{
+		if (string.Equals(_lastDeferral, summary, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		_lastDeferral = summary;
+		_log.LogInformation("[SaveSeam] the cut is deferred: {Summary}", summary ?? "(no summary)");
+	}
 
 	/// <summary>
 	/// The host pump's frame-end point: every domain has finished this frame's
@@ -129,8 +144,8 @@ internal sealed class SaveCutSeam(
 				{
 					// In-flight state the policy resolves first is still there: the
 					// request stays pending and the leave happens on the frame that
-					// could take the cut. Debug: the policy already logged the wait once.
-					_log.LogDebug("[SaveSeam] the menu-return cut is deferred: {Summary}", report.Summary);
+					// could take the cut.
+					LogDeferral(report.Summary);
 					return true;
 				}
 
@@ -172,8 +187,13 @@ internal sealed class SaveCutSeam(
 		var report = _saves.TryCaptureArmedCut(_run.CaptureLocalCharacter(), frame, LiveTransients());
 		if (report is null or { Result: WorldCutResult.Deferred })
 		{
-			// A deferral is expected (a break's drops are still forming) and the
-			// request stays armed; the log line belongs to the policy, not here.
+			// A deferral is expected (a break's drops are still forming) and the request stays armed. The
+			// row that waits for the cut cannot name what held it up unless this line is at a level the
+			// client writes: the policy's own wait line is Debug and does not reach `latest.log`, which is
+			// why `player-deaths` and `save-continue-reentry` failed as "the cut did not commit" with no
+			// cause in the log (measured 2026-11-22, `every-12` and `every-16`). One line per distinct
+			// summary, so a deferral that lasts a second does not flood the log.
+			LogDeferral(report?.Summary);
 			return;
 		}
 

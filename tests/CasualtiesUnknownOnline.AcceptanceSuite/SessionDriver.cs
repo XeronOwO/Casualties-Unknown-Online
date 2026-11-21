@@ -1185,8 +1185,20 @@ internal sealed class SessionDriver(Options options)
 	/// </remarks>
 	private async Task<bool> HasCarrySlotAsync(CancellationToken cancellationToken)
 	{
-		var answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
-			new Dictionary<string, string> { ["mode"] = "slots" }, cancellationToken).ConfigureAwait(false);
+		JsonElement? answer;
+		try
+		{
+			answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
+				new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken)
+				.ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+		{
+			// A probe that cannot answer must not stop the row: the pair as it stands is what runs, and the row's own
+			// reading will say whether the body had room.
+			Timeline?.Invoke("the member's slots could not be read: " + exception.Message);
+			return true;
+		}
 		if (answer is not { } reading || !IsTrue(reading, "ok"))
 		{
 			return false;

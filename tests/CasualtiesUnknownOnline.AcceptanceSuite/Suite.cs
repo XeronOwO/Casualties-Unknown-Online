@@ -321,7 +321,19 @@ internal static partial class Program
 			}
 
 			run.Start();
-			await acceptanceCase.RunAsync(context, CancellationToken.None).ConfigureAwait(false);
+			// A case gets a hard budget of its own. Every wait inside a row has one, but a row can still leave the run
+			// parked — an await that never comes back costs the whole batch its report (measured 2026-11-22, `every-17`:
+			// `medical-bandage` started at 07:00:23 and the batch was still sitting there at 07:15 with both clients
+			// answering and no case line written). The runner reports the timeout as the row's failure instead of
+			// stalling the queue.
+			var caseBudget = TimeSpan.FromSeconds(240);
+			var caseWork = acceptanceCase.RunAsync(context, CancellationToken.None);
+			if (!ReferenceEquals(await Task.WhenAny(caseWork, Task.Delay(caseBudget)).ConfigureAwait(false), caseWork))
+			{
+				throw new TimeoutException($"the case did not finish within {caseBudget.TotalSeconds:F0} s and was abandoned");
+			}
+
+			await caseWork.ConfigureAwait(false);
 			run.Stop();
 			var setup = context.Session.SetupMilliseconds;
 			var caseMs = Math.Max(0, run.Elapsed.TotalMilliseconds - setup);

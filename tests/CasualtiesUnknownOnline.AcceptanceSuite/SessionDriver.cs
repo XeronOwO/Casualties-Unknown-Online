@@ -1751,6 +1751,39 @@ internal sealed class SessionDriver(Options options)
 	public Task<JsonElement> CloseWindowAsync(string url, CancellationToken cancellationToken) =>
 		ActionAsync(url, "close-window", cancellationToken);
 
+	/// <summary>
+	/// Takes OUR window down on both clients before a row runs. The runner owns this the way it owns the
+	/// world: a row that leaves the window up changes what the next row's pointer and keys reach, and the
+	/// failures that produced were read as row defects for a night (measured 2026-11-22: `every-14` and
+	/// `every-15` failed different rows on one build, and the rows that pass alone but fail in the batch
+	/// are the ones that drive the game's own pointer or keys).
+	/// </summary>
+	public async Task<string> CloseOurPanelsAsync(CancellationToken cancellationToken)
+	{
+		var closed = 0;
+		var asked = 0;
+		foreach (var url in new[] { _options.HostUrl, _options.MemberUrl })
+		{
+			asked++;
+			try
+			{
+				var answer = await CloseWindowAsync(url, cancellationToken).ConfigureAwait(false);
+				if (!IsTrue(answer, "visible"))
+				{
+					closed++;
+				}
+			}
+			catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+			{
+				Timeline?.Invoke("our window could not be closed on one client: " + exception.Message);
+			}
+		}
+
+		return asked == closed
+			? "our window was already down on both clients"
+			: $"our window was taken down on {closed} of {asked} client(s)";
+	}
+
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)
 	{
 		try

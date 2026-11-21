@@ -287,6 +287,12 @@ internal static partial class Program
 				context.UseMember(liveMember);
 			}
 
+			// Our window holds the game's own pointer and keys: a row that drives either one reads a
+			// failure that belongs to the row before it. The runner takes it down for every row, the same
+			// way it guarantees the world (measured 2026-11-22: the bandage roll never turned while the
+			// window was up, and the batch's failing set moved between two runs of one build).
+			context.Notes.Add(await caseSession.CloseOurPanelsAsync(CancellationToken.None).ConfigureAwait(false));
+
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
 			// the member are separate processes, so both marks are requested before either is awaited:

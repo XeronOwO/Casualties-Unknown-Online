@@ -274,7 +274,7 @@ internal static partial class Program
 			// own verdict and the nine rows after it waited out their join budgets against a host that
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
-			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None).ConfigureAwait(false));
+			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
 
 			// The log mark is the case's own boundary: every warning/error after it is caused by this
 			// case. A mark that cannot be read is a failed acceptance, not a zero count. The host and
@@ -810,6 +810,11 @@ internal abstract class AcceptanceCase
 	public abstract string Name { get; }
 
 	public virtual LaunchKind Launch => LaunchKind.Warm;
+
+	/// <summary>
+	/// Whether this row reads the game's starting kit, which the run's own pre-case sweep would otherwise drop.
+	/// </summary>
+	public virtual bool NeedsStartingKit => false;
 
 	/// <summary>
 	/// What the case costs the suite. <see cref="CaseCost.InRun"/> cases verify inside one world and

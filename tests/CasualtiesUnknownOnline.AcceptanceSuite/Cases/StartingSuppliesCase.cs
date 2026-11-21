@@ -13,6 +13,11 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 {
 	public override string Name => "starting-supplies";
 
+	/// <summary>
+	/// The kit this row reads is the game's own grant on a first entry, so the run's pre-case sweep leaves the bag alone.
+	/// </summary>
+	public override bool NeedsStartingKit => true;
+
 	// Restarts the run to get a character's first world entry; that restart is the case's declared cost.
 	public override CaseCost Cost => CaseCost.ClientRestart;
 

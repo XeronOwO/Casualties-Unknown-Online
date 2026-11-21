@@ -1070,7 +1070,7 @@ internal sealed class SessionDriver(Options options)
 	/// reads; a pair whose world is gone is rebuilt here, and the rebuild is charged to the case's
 	/// setup, never hidden.
 	/// </summary>
-	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken)
+	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken, bool keepCarried = false)
 	{
 		BeginSetup();
 		var clock = Stopwatch.StartNew();
@@ -1093,7 +1093,10 @@ internal sealed class SessionDriver(Options options)
 						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
 						&& await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
 					{
-						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false) + "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
+						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
+							+ (keepCarried
+								? "; the carried set was kept for this row"
+								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
 					}
 				}
 
@@ -1109,7 +1112,9 @@ internal sealed class SessionDriver(Options options)
 					{
 						return "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
-							+ "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
+							+ (keepCarried
+								? "; the carried set was kept for this row"
+								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
 					}
 				}
 				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
@@ -1122,7 +1127,9 @@ internal sealed class SessionDriver(Options options)
 			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
 			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
 				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
-				+ "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
+				+ (keepCarried
+					? "; the carried set was kept for this row"
+					: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
 		}
 		finally
 		{

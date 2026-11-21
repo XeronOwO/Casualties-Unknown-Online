@@ -42,11 +42,16 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		Require(Boolean(broken, "ok"), "the game refused to break limb " + Text(limb) + ": " + Raw(broken));
 		Require(Boolean(broken, "broken"), "the game did not record the limb as broken: " + Raw(broken));
 
-		// The created splint needs a slot, and a fresh member's kit fills them: take one out through the game's own drop.
-		Require(await TryFreeSlotAsync(context, cancellationToken).ConfigureAwait(false),
-			"the member's body has no slot to free for a splint (every slot occupied or unusable)");
-
+		// A created item needs a free slot, and the run may leave the bag either full or empty: ask for the item first,
+		// and free a slot only when the game says there is none (measured 2026-11-22, `.acceptance/slots-1`).
 		var provided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "create")).ConfigureAwait(false);
+		if (!Boolean(provided, "ok"))
+		{
+			Require(await TryFreeSlotAsync(context, cancellationToken).ConfigureAwait(false),
+				"the member's body has no slot to free for a splint: " + Raw(provided));
+			provided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "create")).ConfigureAwait(false);
+		}
+
 		Require(Boolean(provided, "ok"), "the member could not be given a splint: " + Raw(provided));
 
 		var selected = await context.MemberRecipeAsync("select-limb", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);

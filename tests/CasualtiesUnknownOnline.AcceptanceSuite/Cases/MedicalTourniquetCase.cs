@@ -51,12 +51,25 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 		Require(Number(seeded, "skinHealth") > 0.5,
 			"the seeded wound destroyed the limb instead of wounding it: " + Raw(seeded));
 
-		// A fresh member's six slots carry the starting supplies, and a created item needs one: drop
-		// the least interesting thing the kit holds (the game's own drop, read back by the answer).
-		Require(await TryFreeSlotAsync(context, cancellationToken).ConfigureAwait(false),
-			"the member's body has no slot to free for a tourniquet (every slot occupied or unusable)");
-
+		// A created item needs a free slot, and the run may leave the bag either full or empty: ask for the item first,
+		// and free a slot only when the game says there is none (measured 2026-11-22, `.acceptance/slots-1`: the bag was
+		// empty, so dropping "the least interesting thing" had nothing to drop and the row failed on a slot it had).
 		var provided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "tourniquet"), ("mode", "create")).ConfigureAwait(false);
+		if (!Boolean(provided, "ok"))
+		{
+			if (!await TryFreeSlotAsync(context, cancellationToken).ConfigureAwait(false))
+			{
+				// No item to drop and no slot to take one: the body's slots are unusable, which is what an earlier
+				// medical row leaves behind when it takes a limb. Healing restores what the game can restore, then the
+				// item is asked for once more (measured 2026-11-22, `.acceptance/slots-2`: filled 0, every slot unusable).
+				context.Note("no slot to free: healing the member's body natively and asking for the tourniquet again");
+				await context.MemberRecipeAsync("native-heal", cancellationToken).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			}
+
+			provided = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "tourniquet"), ("mode", "create")).ConfigureAwait(false);
+		}
+
 		Require(Boolean(provided, "ok"), "the member could not be given a tourniquet: " + Raw(provided));
 
 		var selected = await context.MemberRecipeAsync("select-limb", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);
@@ -140,6 +153,30 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 	/// <summary>Drops one carried item of a known starting kit through the game's own drop, to open a slot for the tourniquet.</summary>
 	private static async Task<bool> TryFreeSlotAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		// The row frees a slot from whatever the body actually holds: a fixed list of four starting-supply types was
+		// enough only while the bag was untouched (measured 2026-11-22, `.acceptance/every-11`: the bag held a
+		// trash bag and an emergency light, neither on the list, and the row read "every slot occupied or unusable").
+		var slots = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "slots"), ("type", string.Empty)).ConfigureAwait(false);
+		if (slots is { } slotReading && Boolean(slotReading, "ok")
+			&& slotReading.TryGetProperty("ids", out var ids) && ids.GetString() is { Length: > 0 } listing)
+		{
+			foreach (var entry in listing.Split('|', StringSplitOptions.RemoveEmptyEntries))
+			{
+				var separator = entry.IndexOf(':');
+				if (separator < 0 || separator + 1 >= entry.Length)
+				{
+					continue;
+				}
+
+				var type = entry[(separator + 1)..];
+				var dropped = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "drop"), ("type", type)).ConfigureAwait(false);
+				if (Boolean(dropped, "ok"))
+				{
+					return true;
+				}
+			}
+		}
+
 		foreach (var type in new[] { "trashbag", "dogfood", "waterbottle", "bandage" })
 		{
 			var dropped = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "drop"), ("type", type)).ConfigureAwait(false);

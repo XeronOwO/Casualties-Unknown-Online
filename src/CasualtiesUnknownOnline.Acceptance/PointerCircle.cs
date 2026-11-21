@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Reflection;
+using Convert = System.Convert;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
@@ -124,13 +126,78 @@ internal sealed class PointerCircle : MonoBehaviour
 
 	private void Step()
 	{
-		_angle += _degreesPerFrame;
+		// A circle with no degrees per frame is the hand-paced one: the pointer follows the roll the game itself is
+		// drawing and stays just ahead of it, so the gate `handAngle - bandageAngle < 20` stays open and every pass
+		// lands a step. A fixed speed outruns the hand physics (`UpdateHandPhysics` lerps at 0.25 a frame) and earned
+		// one step in a whole lap (measured 2026-11-22, `.acceptance/bandage-4`).
+		_angle += _degreesPerFrame <= 0f ? CrankStep() : _degreesPerFrame;
 		var radians = _angle * Mathf.Deg2Rad;
 		LastX = _centre.x + Mathf.Cos(radians) * _radius;
 		LastY = _centre.y + Mathf.Sin(radians) * _radius;
 		VirtualInput.MoveTo(LastX, LastY);
 		PressOnPass();
 		_framesLeft--;
+	}
+
+	/// <summary>
+	/// How far the pointer may move this frame: toward the roll itself while the hand is still flying in from the
+	/// centre, then toward a point just past it, capped so the hand can follow.
+	/// </summary>
+	private float CrankStep()
+	{
+		var roll = RollAngle();
+		if (float.IsNaN(roll))
+		{
+			return 1.5f;
+		}
+
+		var lead = HandMagnitude() < 240f ? 0f : 22f;
+		var behind = Mathf.DeltaAngle(_angle % 360f, (roll + lead) % 360f);
+		return behind <= 0f ? 0.5f : Mathf.Min(behind, 2.5f);
+	}
+
+	/// <summary>
+	/// The roll's angle as the game draws it, or NaN when no bandage minigame is open. The fields below are read
+	/// through the typed member `MinigameBase.main`; an earlier version looked the type up as `Minigame,
+	/// Assembly-CSharp`, which does not exist, so every reading was NaN and both the press gate and the lead did
+	/// nothing (`measured` 2026-11-22, `.acceptance/bandage-9`).
+	/// </summary>
+	private static float RollAngle()
+	{
+		var current = MinigameBase.main == null ? null : MinigameBase.main.currentMinigame;
+		if (current == null)
+		{
+			return float.NaN;
+		}
+
+		const BindingFlags any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+		var angle = current.GetType().GetField("bandageAngle", any)?.GetValue(current);
+		return angle is null ? float.NaN : Convert.ToSingle(angle, CultureInfo.InvariantCulture);
+	}
+
+	private static Vector2 HandPosition()
+	{
+		return MinigameBase.main == null || MinigameBase.main.currentMinigame == null
+			? new Vector2(float.NaN, float.NaN)
+			: MinigameBase.main.handPos;
+	}
+
+	private static float HandMagnitude()
+	{
+		var hand = HandPosition();
+		return float.IsNaN(hand.x) ? 0f : hand.magnitude;
+	}
+
+	private static float HandAngle()
+	{
+		var hand = HandPosition();
+		if (float.IsNaN(hand.x) || hand.sqrMagnitude < 1f)
+		{
+			return float.NaN;
+		}
+
+		var degrees = Mathf.Atan2(hand.y, hand.x) * Mathf.Rad2Deg;
+		return degrees < 0f ? degrees + 360f : degrees;
 	}
 
 	/// <summary>
@@ -148,12 +215,21 @@ internal sealed class PointerCircle : MonoBehaviour
 		var wrapped = _angle % 360f;
 		if (!_pressed)
 		{
-			if (wrapped <= 30f || wrapped >= 330f)
+			// The press has to land while the hand is already on the ring and pointing at the roll: the game stamps
+			// `holdingBandage` only on the click-start frame, and only while the hand's direction is within about 25
+			// degrees of the roll. Pressing on the pointer's pass while the hand was still flying in from the centre
+			// left `holding` false for the whole lap (`.acceptance/bandage-8`).
+			if ((wrapped <= 30f || wrapped >= 330f) && HandMagnitude() >= 240f)
 			{
-				VirtualInput.Press(0);
-				VirtualInput.PressKey(KeyCode.Mouse0);
-				_pressed = true;
-				_pressedAt = _angle;
+				var hand = HandAngle();
+				var roll = RollAngle();
+				if (!float.IsNaN(hand) && !float.IsNaN(roll) && Mathf.Abs(Mathf.DeltaAngle(hand, roll)) <= 25f)
+				{
+					VirtualInput.Press(0);
+					VirtualInput.PressKey(KeyCode.Mouse0);
+					_pressed = true;
+					_pressedAt = _angle;
+				}
 			}
 
 			return;

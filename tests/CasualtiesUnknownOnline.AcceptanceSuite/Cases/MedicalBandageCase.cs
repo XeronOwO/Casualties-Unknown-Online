@@ -207,8 +207,8 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("radius", radius.ToString("0.###", CultureInfo.InvariantCulture)),
-				("deg", "1.2"),
-				("frames", "1200")).ConfigureAwait(false);
+				("deg", "0"),
+				("frames", "1800")).ConfigureAwait(false);
 			context.Read("pointer circle started", circle);
 			Require(Boolean(circle, "ok"), "the pointer circle could not start: " + Raw(circle));
 

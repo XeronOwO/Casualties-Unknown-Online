@@ -22,9 +22,30 @@ internal sealed class MedicalChartCase : AcceptanceCase
 
 		// The chart only opens while the LOCAL body is alive (the game's own wound view refuses on a
 		// dead viewer). The host may carry a wound from an earlier case; the console's own heal puts
-		// the viewer back on its feet without touching the member.
+		// the viewer back on its feet without touching the member. Alive is not enough: a run's own
+		// character can come back asleep at zero consciousness (`alive true, conscious false,
+		// consciousness 1.5, animatorClip ExperimentIdleCrouch`, measured 2026-11-21 in the full run),
+		// and the game's wound view refuses on an unconscious viewer just the same, so the row wakes
+		// the viewer itself instead of assuming the restart left it standing.
 		var healed = await context.RecipeAsync("native-heal", cancellationToken);
 		context.Note("host heal: " + Raw(healed));
+		for (var wake = 0; wake < 20; wake++)
+		{
+			var viewer = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
+			context.Note($"viewer attempt {wake + 1}: {Raw(viewer)}");
+			if (Number(viewer, "consciousness") >= 60)
+			{
+				break;
+			}
+
+			// Every `body-force` argument is required; a negative value leaves that field untouched.
+			var woken = await context.RecipeAsync("body-force", cancellationToken,
+				("sleep", "0"), ("consciousness", "100"), ("energy", "-1"), ("brainHealth", "-1"),
+				("badSleepAmount", "-1"), ("idleTime", "-1"), ("intelligence", "-1"), ("heartRate", "-1"),
+				("bloodPressure", "-1"), ("bloodOxygen", "-1"), ("strength", "-1")).ConfigureAwait(false);
+			context.Note("viewer woken: " + Raw(woken));
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
 
 		// A member that joined a running world stands at its own pod; the game's own wound view opens
 		// on a body the viewer can see, so the member is placed on the host's own point first (the
@@ -98,6 +119,11 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
+
+	private static double Number(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.TryGetDouble(out var number) ? number : 0;
 
 	private static void Require(bool condition, string message)
 	{

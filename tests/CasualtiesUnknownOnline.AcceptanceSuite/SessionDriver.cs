@@ -1091,7 +1091,7 @@ internal sealed class SessionDriver(Options options)
 					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 					if (members.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 					{
-						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
+						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false) + "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -1104,7 +1104,8 @@ internal sealed class SessionDriver(Options options)
 					if (roster.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the host kept its run; the member rejoined it: " + memberNote
-							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
+							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
+							+ "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
@@ -1116,7 +1117,8 @@ internal sealed class SessionDriver(Options options)
 			Timeline?.Invoke("no live pair before the case; rebuilding it");
 			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
 			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
-				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
+				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
+				+ "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
@@ -1157,6 +1159,28 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return count.GetInt32() > 0;
+	}
+
+	/// <summary>
+	/// Empties the member's inventory so a row that stages an item into the bag has room for it.
+	/// </summary>
+	/// <remarks>
+	/// A run keeps what the rows before it left behind, and five rows stage an item into the member's bag (measured
+	/// 2026-11-22: give-item, give-container-sound, crafting-outcome, drop-mid-transfer and two-member-continue all read
+	/// "no-free-slot" late in the batch while each passed alone). The drop goes through the game's own
+	/// `Body.DropItem(int)`, so it is the path the player's own key runs.
+	/// </remarks>
+	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)
+	{
+		var reading = await RecipeAtAsync(_options.MemberUrl, "clear-carried",
+			new Dictionary<string, string> { ["slots"] = "6" }, cancellationToken).ConfigureAwait(false);
+		if (reading is not { } answer || !IsTrue(answer, "ok"))
+		{
+			return "the member's carried set could not be cleared";
+		}
+
+		return "the member's carried set was cleared"
+			+ (answer.TryGetProperty("dropped", out var dropped) ? " (" + dropped.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture) + " dropped)" : string.Empty);
 	}
 
 	public async Task<string> EnsureSingleMemberAsync(CancellationToken cancellationToken)

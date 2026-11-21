@@ -1,5 +1,5 @@
 // recipe: clear-carried
-// args: slots=n (how many inventory slots the body has; the game's own body carries six)
+// args: slots=n
 // returns: ok, dropped, slots
 //
 // Empties the local body's inventory through the game's own `Body.DropItem(int)` (reversing/Assembly-CSharp/Assembly-CSharp/Body.cs:1431),

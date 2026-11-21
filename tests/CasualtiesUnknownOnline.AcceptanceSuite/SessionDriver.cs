@@ -1180,7 +1180,7 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return "the member's carried set was cleared"
-			+ (answer.TryGetProperty("dropped", out var dropped) ? " (" + dropped.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture) + " dropped)" : string.Empty);
+			+ (answer.TryGetProperty("dropped", out var dropped) ? " (" + dropped.GetInt32().ToString(CultureInfo.InvariantCulture) + " dropped)" : string.Empty);
 	}
 
 	public async Task<string> EnsureSingleMemberAsync(CancellationToken cancellationToken)

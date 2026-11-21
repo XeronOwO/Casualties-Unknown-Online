@@ -1089,7 +1089,9 @@ internal sealed class SessionDriver(Options options)
 					// own account of who shares this run, and an empty one means the pair is not
 					// live however each client describes itself (measured 2026-11-12).
 					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (members.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+					if (members.Length > 0
+						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
+						&& await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false) + "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false);
 					}
@@ -1101,7 +1103,9 @@ internal sealed class SessionDriver(Options options)
 				{
 					var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (roster.Length > 0 && await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+					if (roster.Length > 0
+						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
+						&& await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
@@ -1170,6 +1174,40 @@ internal sealed class SessionDriver(Options options)
 	/// "no-free-slot" late in the batch while each passed alone). The drop goes through the game's own
 	/// `Body.DropItem(int)`, so it is the path the player's own key runs.
 	/// </remarks>
+	/// <summary>
+	/// Whether the member's own body can take an item: one slot that exists, accepts a pickup and is not holding.
+	/// </summary>
+	/// <remarks>
+	/// The medical rows amputate limbs, and an amputated slot answers `canPickUp` false, so five rows that stage an item
+	/// into the member's bag read "no-free-slot" later in the batch while each passed alone (measured 2026-11-22,
+	/// `.acceptance/every-9`: give-container-sound, crafting-outcome, two-member-continue, drop-mid-transfer and
+	/// medical-splint). A rebuilt pair starts from the archive's intact body, so that is the answer when none qualifies.
+	/// </remarks>
+	private async Task<bool> HasCarrySlotAsync(CancellationToken cancellationToken)
+	{
+		var answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
+			new Dictionary<string, string> { ["mode"] = "slots" }, cancellationToken).ConfigureAwait(false);
+		if (answer is not { } reading || !IsTrue(reading, "ok"))
+		{
+			return false;
+		}
+
+		if (!reading.TryGetProperty("slots", out var slots) || slots.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		foreach (var slot in slots.EnumerateArray())
+		{
+			if (IsTrue(slot, "canPickUp") && !IsTrue(slot, "holding"))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)
 	{
 		var reading = await RecipeAtAsync(_options.MemberUrl, "clear-carried",

@@ -13,10 +13,17 @@ public static class SwingProbePatch
 {
 	private static long _swings;
 	private static long _uses;
+	private static long _hurts;
 
 	public static long Swings => Interlocked.Read(ref _swings);
 
 	public static long Uses => Interlocked.Read(ref _uses);
+
+	/// <summary>
+	/// How many times the world took damage at all. It separates "the swing missed" from "the swing hit and the block under
+	/// the cursor was not the one it hit" — the ray starts at the hand and needs the `BlockGround` tag (Body.cs:2162-2168).
+	/// </summary>
+	public static long Hurts => Interlocked.Read(ref _hurts);
 
 	/// <summary>What the install did, in words: a row reads it to tell "the seam is missing" from "the game never swung".</summary>
 	public static string Seam { get; private set; } = "not installed";
@@ -54,10 +61,19 @@ public static class SwingProbePatch
 
 		harmony.Patch(use, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountUse)));
 		harmony.Patch(swing, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountSwing)));
-		Seam = "installed on " + body.FullName;
+		var world = AccessTools.TypeByName("WorldGeneration");
+		var damage = world is null ? null : AccessTools.Method(world, "DamageBlock");
+		if (damage is not null)
+		{
+			harmony.Patch(damage, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountHurt)));
+		}
+
+		Seam = "installed on " + body.FullName + (damage is null ? " (no DamageBlock seam)" : " and " + world!.FullName);
 	}
 
 	private static void CountUse() => Interlocked.Increment(ref _uses);
 
 	private static void CountSwing() => Interlocked.Increment(ref _swings);
+
+	private static void CountHurt() => Interlocked.Increment(ref _hurts);
 }

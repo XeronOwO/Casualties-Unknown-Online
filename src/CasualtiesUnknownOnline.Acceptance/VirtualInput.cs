@@ -305,6 +305,9 @@ internal static class VirtualInput
 	/// </summary>
 	internal static long Uses => SwingProbe.Uses;
 
+	/// <summary>How many times the world took damage at all: a swing that never hurt anything never reached a block.</summary>
+	internal static long Hurts => SwingProbe.Hurts;
+
 	/// <summary>What the swing counter's install did, so a row can tell a missing seam from a game that never swung.</summary>
 	internal static string SwingSeam => SwingProbe.Seam;
 

@@ -29,9 +29,11 @@
 				if (types[t].Name != "VirtualInput") { continue; }
 				var used = types[t].GetProperty("Uses", flags);
 				var swung = types[t].GetProperty("Swings", flags);
+				var hurt = types[t].GetProperty("Hurts", flags);
 				var usedValue = used == null ? -1L : System.Convert.ToInt64(used.GetValue(null, null), inv);
 				var swingValue = swung == null ? -1L : System.Convert.ToInt64(swung.GetValue(null, null), inv);
-				return "{\"uses\":" + usedValue.ToString(inv) + ",\"swings\":" + swingValue.ToString(inv) + "}";
+				var hurtValue = hurt == null ? -1L : System.Convert.ToInt64(hurt.GetValue(null, null), inv);
+				return "{\"uses\":" + usedValue.ToString(inv) + ",\"swings\":" + swingValue.ToString(inv) + ",\"hurts\":" + hurtValue.ToString(inv) + "}";
 			}
 		}
 		return "{\"uses\":-1,\"swings\":-1}";

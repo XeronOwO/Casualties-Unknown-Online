@@ -305,6 +305,9 @@ internal static class VirtualInput
 	/// </summary>
 	internal static long Uses => SwingProbe.Uses;
 
+	/// <summary>What the swing counter's install did, so a row can tell a missing seam from a game that never swung.</summary>
+	internal static string SwingSeam => SwingProbe.Seam;
+
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 

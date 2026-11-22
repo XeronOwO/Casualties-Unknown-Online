@@ -23,6 +23,7 @@
 	var mini = MinigameBase.main;
 	var swings = -1L;
 	var uses = -1L;
+	var seamText = "unknown";
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	for (var a = 0; a < assemblies.Length; a++)
 	{
@@ -41,6 +42,11 @@
 			{
 				uses = System.Convert.ToInt64(used.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
 			}
+			var seam = types[t].GetProperty("SwingSeam", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+			if (seam != null)
+			{
+				seamText = System.Convert.ToString(seam.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
+			}
 		}
 	}
 	return "{\"ok\":true"
@@ -58,5 +64,6 @@
 		+ ",\"woundView\":" + (camera.woundView != null && camera.woundView.activeSelf ? "true" : "false")
 		+ ",\"uiOverPointer\":" + (ui ? "true" : "false")
 		+ ",\"swings\":" + swings.ToString(inv)
-		+ ",\"uses\":" + uses.ToString(inv) + "}";
+		+ ",\"uses\":" + uses.ToString(inv)
+		+ ",\"seam\":\"" + seamText.Replace("\"", "'") + "\"}";
 }))()

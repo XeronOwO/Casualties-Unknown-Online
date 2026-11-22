@@ -18,6 +18,9 @@ public static class SwingProbePatch
 
 	public static long Uses => Interlocked.Read(ref _uses);
 
+	/// <summary>What the install did, in words: a row reads it to tell "the seam is missing" from "the game never swung".</summary>
+	public static string Seam { get; private set; } = "not installed";
+
 	public static void Reset()
 	{
 		Interlocked.Exchange(ref _swings, 0);
@@ -51,6 +54,7 @@ public static class SwingProbePatch
 
 		harmony.Patch(use, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountUse)));
 		harmony.Patch(swing, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountSwing)));
+		Seam = "installed on " + body.FullName;
 	}
 
 	private static void CountUse() => Interlocked.Increment(ref _uses);

@@ -159,6 +159,16 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
 		context.Read("the game's own gates", clock);
 		var framesAtPress = Integer(clock, "frame");
+		// The install report says whether the game's own attack method had its key reads rewritten at all; a zero there
+		// means the game reads the real mouse and no staged press can ever swing.
+		var install = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "install"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		context.Read("the input channel's install report", install);
 		// One swing through the game's own entry says whether the counter is live on this build at all; without it a zero
 		// cannot be told apart from a patch that never installed.
 		var swingProbe = await context.RecipeAsync("swing-once", cancellationToken).ConfigureAwait(false);
@@ -208,7 +218,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

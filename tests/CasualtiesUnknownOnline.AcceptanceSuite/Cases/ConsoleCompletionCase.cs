@@ -27,6 +27,40 @@ internal sealed class ConsoleCompletionCase : AcceptanceCase
 		context.Read("buffer", buffer);
 		Require(Boolean(buffer, "ok"), "the console buffer did not answer: " + Raw(buffer));
 		Require(Count(buffer, "count") >= 1, "the console buffer is empty: " + Raw(buffer));
+
+		// The player's rule, as the game itself frames it: a console command acts on the local client only (design page
+		// `docs/design/game/console-and-save.md`), and an unknown word is refused by the console rather than thrown. Our
+		// console is its own catalogue, not the game's table — read both so the report shows the difference — and the row
+		// judges what our console promises: its own answer for a word it knows, and a refusal (not a crash) for one it
+		// does not.
+		var game = await context.RecipeAsync("console-game", cancellationToken);
+		context.Read("game", game);
+		Require(Boolean(game, "ok"), "the game's own console table did not answer: " + Raw(game));
+		Require(Count(game, "commands") > 0, "the game's own console table is empty: " + Raw(game));
+
+		var beforeLines = Count(registry, "lines");
+		var unknown = await context.RecipeAsync("console-run", cancellationToken, ("line", "zzz-not-a-command"));
+		context.Read("unknown", unknown);
+		Require(Boolean(unknown, "ok"), "the console did not answer an unknown word: " + Raw(unknown));
+		Require(StringValue(unknown, "error").Length == 0, "the console threw on an unknown word: " + Raw(unknown));
+		// The line itself is echoed at once; the console's answer to it is written afterwards, so it is polled for rather
+		// than read on the same tick. A word no command owns must still get an answer line — silence would mean the console
+		// swallowed it.
+		var answered = false;
+		for (var attempt = 0; attempt < 8 && !answered; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			var after = await context.RecipeAsync("console-registry", cancellationToken).ConfigureAwait(false);
+			answered = Count(after, "lines") > beforeLines + 1;
+		}
+
+		Require(answered, "the console echoed the unknown word but never answered it");
+
+		var known = await context.RecipeAsync("console-run", cancellationToken, ("line", "help"));
+		context.Read("known", known);
+		Require(Boolean(known, "ok"), "the console did not answer its own help: " + Raw(known));
+		Require(Truthy(known, "accepted"), "the console refused its own help command: " + Raw(known));
+		Require(Count(known, "lines") > Count(unknown, "lines"), "the help command wrote nothing into the console's buffer: " + Raw(known));
 	}
 
 	private static int Count(JsonElement? reading, string property) =>
@@ -46,6 +80,11 @@ internal sealed class ConsoleCompletionCase : AcceptanceCase
 			: string.Empty;
 
 	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
+
+	private static bool Truthy(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;

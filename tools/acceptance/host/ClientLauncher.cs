@@ -208,17 +208,77 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	private void StartDetached(ProcessStartInfo start, string name)
 	{
 		DetachStandardHandles();
-		start.UseShellExecute = false;
-		start.CreateNoWindow = true;
-		start.RedirectStandardOutput = true;
-		start.RedirectStandardError = true;
-		var process = Process.Start(start) ?? throw new InvalidOperationException($"could not start the {name}");
-		// The launcher outlives the start call on purpose (the guest runs for the whole session), so the
-		// Process object is kept: a collected one closes the read ends and kills the drain.
+		// The window must never rise over the person's work, and the flash before the game's own code runs is created
+		// by this call, not by anything the game does later. The documented lever is the startup information a parent
+		// hands to `CreateProcess`: `STARTF_USESHOWWINDOW` with `SW_SHOWNOACTIVATE` shows the window without activating
+		// it, from the first frame. Nothing a later process does can undo a window that was created activated.
+		var commandLine = "\"" + start.FileName + "\"" + (string.IsNullOrWhiteSpace(start.Arguments) ? string.Empty : " " + start.Arguments);
+		var pid = CreateWithoutActivation(commandLine, start.WorkingDirectory, out var error);
+		if (pid == 0)
+		{
+			throw new InvalidOperationException($"could not start the {name}: {error}");
+		}
+
+		var process = Process.GetProcessById(pid);
 		_started.Add(process);
-		Drain(process.StandardOutput, name, "stdout");
-		Drain(process.StandardError, name, "stderr");
 	}
+
+	private static int CreateWithoutActivation(string commandLine, string workingDirectory, out string error)
+	{
+		var info = new StartupInfo { cb = System.Runtime.InteropServices.Marshal.SizeOf<StartupInfo>(), dwFlags = StartfUseShowWindow, wShowWindow = SwShowNoActivate };
+		var ok = CreateProcess(string.Empty, commandLine, nint.Zero, nint.Zero, false, 0, nint.Zero, workingDirectory, ref info, out var created);
+		if (!ok)
+		{
+			error = "CreateProcess failed with " + System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+			return 0;
+		}
+
+		CloseHandle(created.hThread);
+		CloseHandle(created.hProcess);
+		error = string.Empty;
+		return created.dwProcessId;
+	}
+
+	private const int StartfUseShowWindow = 0x1;
+	private const short SwShowNoActivate = 4;
+
+	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	private struct StartupInfo
+	{
+		public int cb;
+		public string reserved;
+		public string desktop;
+		public string title;
+		public int x;
+		public int y;
+		public int xSize;
+		public int ySize;
+		public int xCountChars;
+		public int yCountChars;
+		public int fillAttribute;
+		public int dwFlags;
+		public short wShowWindow;
+		public short cbReserved2;
+		public nint lpReserved2;
+		public nint stdInput;
+		public nint stdOutput;
+		public nint stdError;
+	}
+
+	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	private struct ProcessInformation
+	{
+		public nint hProcess;
+		public nint hThread;
+		public int dwProcessId;
+		public int dwThreadId;
+	}
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+	private static extern bool CreateProcess(string? applicationName, string commandLine, nint processAttributes, nint threadAttributes, bool inheritHandles, int creationFlags, nint environment, string currentDirectory, ref StartupInfo startupInfo, out ProcessInformation processInformation);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	private static extern bool CloseHandle(nint handle);
 
 	/// <summary>
 	/// Removes this process's own standard handles from what a child inherits. A redirected child still

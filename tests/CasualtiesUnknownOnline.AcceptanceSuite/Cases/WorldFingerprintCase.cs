@@ -70,6 +70,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var screenY = Integer(point, "screenY");
 
 		await UseTheGamePointerAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
+		var aimed = await AimAtTheCellAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
+		Require(aimed, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
+			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): the last reading is above");
 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes).
@@ -274,6 +277,53 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var after = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
 		return Double(after, "consciousness") >= 60;
 	}
+
+	// The cell's screen point and the game's own aim point are not the same thing: `PlayerCamera.cs:985` maps
+	// `Input.mousePosition` through `Camera.main.ScreenToWorldPoint`, and a projection taken from the cell can land a
+	// couple of units off (measured 2026-11-22: the pointer stood on (3,476) while the game aimed at (1,479), so the
+	// swing ray missed the block). The row closes that loop the way a person does — look where the aim sits, nudge the
+	// pointer — instead of trusting one projection.
+	private static async Task<bool> AimAtTheCellAsync(
+		CaseContext context,
+		(int X, int Y) cell,
+		int screenX,
+		int screenY,
+		CancellationToken cancellationToken)
+	{
+		var targetX = cell.X + 0.5;
+		var targetY = cell.Y + 0.5;
+		var first = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		var nudged = await MovePointerAsync(context, screenX + 40, screenY, cancellationToken).ConfigureAwait(false);
+		Require(Boolean(nudged, "ok"), "the row could not nudge the pointer to measure its scale: " + Raw(nudged));
+		var second = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		var worldDelta = Double(second, "lookX") - Double(first, "lookX");
+		var pixelsPerUnit = System.Math.Abs(worldDelta) > 0.01 ? 40 / worldDelta : 20;
+		var last = second;
+		for (var attempt = 0; attempt < 6; attempt++)
+		{
+			var errorX = targetX - Double(last, "lookX");
+			var errorY = targetY - Double(last, "lookY");
+			if (System.Math.Abs(errorX) <= 0.35 && System.Math.Abs(errorY) <= 0.35)
+			{
+				return true;
+			}
+
+			screenX = (int)System.Math.Round(screenX + (errorX * pixelsPerUnit));
+			screenY = (int)System.Math.Round(screenY - (errorY * pixelsPerUnit));
+			var again = await MovePointerAsync(context, screenX, screenY, cancellationToken).ConfigureAwait(false);
+			Require(Boolean(again, "ok"), "the row could not move the game's pointer while aiming: " + Raw(again));
+			last = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Read("aim-last", last);
+		return System.Math.Abs(targetX - Double(last, "lookX")) <= 0.35 && System.Math.Abs(targetY - Double(last, "lookY")) <= 0.35;
+	}
+
+	private static async Task<JsonElement?> MovePointerAsync(CaseContext context, int x, int y, CancellationToken cancellationToken) =>
+		await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "move"), ("x", x.ToString()), ("y", y.ToString()), ("button", "0")).ConfigureAwait(false);
+
+	private static async Task<JsonElement?> SwingProbeAsync(CaseContext context, (int X, int Y) cell, CancellationToken cancellationToken) =>
+		await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
 
 	private static async Task PressAsync(CaseContext context, string mode, CancellationToken cancellationToken)
 	{

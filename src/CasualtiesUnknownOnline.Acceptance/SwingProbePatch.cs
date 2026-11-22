@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using HarmonyLib;
+using UnityEngine;
 using UDebug = UnityEngine.Debug;
 
 namespace CasualtiesUnknownOnline.Acceptance;
@@ -62,7 +63,12 @@ public static class SwingProbePatch
 		harmony.Patch(use, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountUse)));
 		harmony.Patch(swing, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountSwing)));
 		var world = AccessTools.TypeByName("WorldGeneration");
-		var damage = world is null ? null : AccessTools.Method(world, "DamageBlock");
+		// The game carries two DamageBlock overloads (Vector2Int and Vector2), so a name-only lookup throws
+		// AmbiguousMatchException — and an exception here aborts the rest of the channel's install, which once cost the
+		// evaluator its game-assembly reference and turned every recipe into CS0103 (measured 2026-11-22).
+		var damage = world is null
+			? null
+			: AccessTools.Method(world, "DamageBlock", [typeof(Vector2), typeof(float), typeof(bool), typeof(bool)]);
 		if (damage is not null)
 		{
 			harmony.Patch(damage, prefix: new HarmonyMethod(typeof(SwingProbePatch), nameof(CountHurt)));

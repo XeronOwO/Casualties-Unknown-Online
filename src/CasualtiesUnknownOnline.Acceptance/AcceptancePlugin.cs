@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
@@ -35,14 +36,29 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two
 		// clients answered count=0 for every Sound.Play of the batch).
 		_harmony = new Harmony("CasualtiesUnknownOnline.Acceptance");
-		SoundPlayRecorder.Install(_harmony);
-		BlockWriteRecorder.Install(_harmony);
-		FacialBodyProbe.Install(_harmony);
-		RemoteViewRedPatch.Install(_harmony);
-		RemoteViewTracePatch.Install(_harmony);
-		SwingProbePatch.Install(_harmony);
-		HotReplRoslynGameReferencePatch.TryInstall(_harmony);
+		// One channel's patch failing must not blind the others: the evaluator's game-assembly reference is installed
+		// last here, so an exception in an earlier install once left every recipe unable to name a game type
+		// (measured 2026-11-22: an AmbiguousMatchException on a two-overload method produced CS0103 in every recipe).
+		Try("the sound recorder", () => SoundPlayRecorder.Install(_harmony!));
+		Try("the block writer", () => BlockWriteRecorder.Install(_harmony!));
+		Try("the facial probe", () => FacialBodyProbe.Install(_harmony!));
+		Try("the remote view seam", () => RemoteViewRedPatch.Install(_harmony!));
+		Try("the remote view trace", () => RemoteViewTracePatch.Install(_harmony!));
+		Try("the swing counter", () => SwingProbePatch.Install(_harmony!));
+		Try("the evaluator's game reference", () => HotReplRoslynGameReferencePatch.TryInstall(_harmony!));
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
+	}
+
+	private void Try(string what, Action install)
+	{
+		try
+		{
+			install();
+		}
+		catch (Exception error)
+		{
+			Logger.LogError($"[Acceptance] {what} did not install: {error.GetType().Name}: {error.Message}");
+		}
 	}
 
 	private void Update()

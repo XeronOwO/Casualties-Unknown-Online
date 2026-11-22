@@ -21,6 +21,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
+		candidates = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
 		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
 		// that finds nothing visible is repeated before it is called a failure (measured 2026-11-22: the same pairing
@@ -267,6 +268,44 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(
 			Integer(memberAfter, "block") <= 0,
 			$"the block the host dug out at ({Describe(cell)}) is still drawn on the member's client: {Raw(memberAfter)}");
+	}
+
+	// The scan works from the world grid, whose block numbers also cover walls and background tiles, while the game
+	// damages only colliders tagged BlockGround (Body.cs:2162-2168). Probing a dozen candidates here keeps the row from
+	// spending its budget walking to a cell no swing can hurt — the first cell this row aimed at carried nothing but a
+	// dropped item's collider, tag "Untagged", layer "Item" (measured 2026-11-22).
+	private static async Task<List<(int X, int Y)>> KeepOnlyCellsASwingCanHitAsync(
+		CaseContext context,
+		List<(int X, int Y)> candidates,
+		CancellationToken cancellationToken)
+	{
+		var grounded = new List<(int X, int Y)>();
+		var probed = 0;
+		foreach (var candidate in candidates)
+		{
+			if (probed >= 12)
+			{
+				break;
+			}
+
+			probed++;
+			var probe = await context.RecipeAsync(
+				"block-probe",
+				cancellationToken,
+				("x", candidate.X.ToString(CultureInfo.InvariantCulture)),
+				("y", candidate.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			if (probe is { } answer && Boolean(answer, "blockGround"))
+			{
+				grounded.Add(candidate);
+			}
+		}
+
+		context.Read(
+			"host-ground-probes",
+			JsonSerializer.SerializeToElement(new { probed, grounded = grounded.Count, offered = candidates.Count }));
+		// Falling back to the unfiltered list keeps the old failure message (and its probe reading) in place of a
+		// vaguer one, should a world ever carry no tagged collider within reach.
+		return grounded.Count > 0 ? grounded : candidates;
 	}
 
 	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken)

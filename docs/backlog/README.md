@@ -66,6 +66,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
   "queued" twice and never writes; two rows wait for it.
+- [The run change reaches the guest late](todo/1.0-the-run-change-arrives-after-its-batches.md) — **High** — a run-2 batch is dropped as foreign epoch.
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.
@@ -122,6 +123,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.
 - [Acceptance rows as C# cases](done/1.0-acceptance-rows-as-c-sharp-cases.md) — **High** — 39/39 in 276.1 s; the two clients' logs are read together.
 - [Same names must not merge characters](done/1.0-ip-direct-duplicate-names-mix-characters.md) — **High** — the key follows the client, not the name.

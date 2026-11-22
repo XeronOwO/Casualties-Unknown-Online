@@ -432,6 +432,37 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Host_SecondRangeRequestFromTheSameStart_SendsACheckpointInsteadOfTheHistory()
+	{
+		// A guest that cannot apply the revision a range starts at asks again on every later batch; the
+		// host re-sent the whole history each time and the pair wedged (measured 2026-11-22, both clients
+		// unresponsive with an 813 MB host log). The second ask is the proof the repair cannot work, so
+		// the host rebases the guest on a checkpoint instead.
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		hostAuthority.ObserveSpawn(HostId, 43, "water", 3f, 4f);
+
+		var received = new List<ProtocolFrame>();
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
+			{
+				received.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
+			}
+		};
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.HandleFrame(GuestId, RangeRequestFrame(1, 1));
+		received.Clear();
+		kernel.HandleFrame(GuestId, RangeRequestFrame(1, 2));
+
+		Assert.DoesNotContain(received, f => f.CommittedBatch is not null);
+		Assert.Contains(received, f => f.Checkpoint is not null);
+	}
+
+	[Fact]
 	public void Host_CheckpointAfterANewRun_DoesNotReplayTheOldRunsBatches()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();

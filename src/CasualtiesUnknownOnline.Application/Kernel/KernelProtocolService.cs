@@ -35,6 +35,19 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly HashSet<ulong> _staleStreamEpochWarned = [];
 	private long _nextMessageId;
 
+	/// <summary>
+	/// How many times each peer has asked for a journal range that starts at the same revision.
+	///
+	/// A range request is the guest's repair path, and the host honours it by re-sending the range. The
+	/// repair can only work while the first revision of it is applicable; when it is not, the guest asks
+	/// again on every later batch, the end of the range grows and the same history is re-sent forever
+	/// (measured 2026-11-22, `.acceptance/bisect-b`: `Sent 105 journal batch(es) 730..834` inside one
+	/// second, both clients unresponsive, the host log 813 MB in five minutes). A second request with the
+	/// same start is that proof: the pair needs a new baseline, and the checkpoint is the protocol's own
+	/// way to give it one.
+	/// </summary>
+	private readonly Dictionary<(ulong Sender, ulong Start), int> _rangeRepeats = [];
+
 	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
 
 	public event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;
@@ -469,6 +482,24 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 
 		PruneJournalToEpoch(_checkpointSource.CurrentRunEpoch);
+
+		// A peer that asks for the same start twice is not being repaired by re-sending that history: the
+		// revision where it starts cannot be applied, and every later batch adds a new end and another
+		// copy (measured 2026-11-22). Give it a baseline instead — the guest rebases on the checkpoint and
+		// the journal continues from there.
+		var key = (sender, start);
+		_rangeRepeats.TryGetValue(key, out var repeats);
+		repeats++;
+		_rangeRepeats[key] = repeats;
+		if (repeats > 1)
+		{
+			_rangeRepeats.Clear();
+			_log.LogWarning(
+				"Range from {Sender} starting at {Start} has been requested {Repeats} times; sending a checkpoint instead of the history.",
+				sender, start, repeats);
+			SendCheckpoint(sender);
+			return;
+		}
 
 		if (_journal.Count == 0)
 		{

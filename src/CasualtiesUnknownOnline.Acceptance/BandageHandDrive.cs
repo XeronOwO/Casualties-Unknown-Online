@@ -54,7 +54,7 @@ namespace CasualtiesUnknownOnline.Acceptance
 		public static void Start(float radius, float lead)
 		{
 			Radius = radius > 1f ? radius : 250f;
-			Lead = lead > 0f ? lead : 20f;
+			Lead = lead >= 0f ? lead : 20f;
 			Angle = 0f;
 			Frames = 0;
 			Active = true;

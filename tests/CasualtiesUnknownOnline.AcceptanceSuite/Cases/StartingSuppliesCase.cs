@@ -28,35 +28,63 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The kit is granted by the host's coordinator once the new character stands in the world;
-		// the member's own carried items are the marker. The count alone is not the row — the game's
-		// own decay can take a unit before the read — so the case asks for the kit's fixed contents.
-		var ids = string.Empty;
-		var carried = 0;
+		// The game's grant is decided by the run's own dropdown (`WorldGeneration.cs:2576-2589`, values
+		// `none`/`light`/`full` = 0/1/2 from `RunSettings.cs:78`), so the row reads that number first and
+		// then holds the member's inventory to exactly that plan — not to "some items with familiar names".
+		var setting = await context.RecipeAsync("run-setting-read", cancellationToken, ("key", "startingsupplies")).ConfigureAwait(false);
+		// A run that never carried the setting is `none` for both the game (`GetRunSettingInt` answers 0) and our
+		// policy (`StartingSupplyPolicy`: anything outside 0/1/2 is NONE), so a missing key is level 0, not a failure.
+		var value = string.Equals(Text(setting, "error"), "unknown-key", StringComparison.Ordinal) ? "0" : Text(setting, "value");
+		Require(Boolean(setting, "ok") || string.Equals(Text(setting, "error"), "unknown-key", StringComparison.Ordinal),
+			"the run's starting-supplies setting could not be read: " + Raw(setting));
+		Require(int.TryParse(value, out var level) && level is >= 0 and <= 2,
+			$"the run's starting-supplies setting is '{value}', which the game's own dropdown does not offer");
+
+		string[] expected = level switch
+		{
+			0 => [],
+			1 => ["emergencylight"],
+			_ => ["lantern", "dogfood", "waterbottle", "trashbag"],
+		};
+
+		var actual = string.Empty;
 		for (var wait = 0; wait < 40; wait++)
 		{
 			var items = await context.MemberRecipeAsync("container-read", cancellationToken, ("mode", "local"), ("guest", "")).ConfigureAwait(false);
 			context.Read("member-items", items);
-			carried = CountCarried(items);
-			ids = Ids(items);
-			if (carried >= 3 && IsStartingKit(ids))
+			actual = Ids(items);
+			if (SameKit(actual, expected))
 			{
-				break;
+				return;
 			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
-		Require(
-			carried >= 3 && IsStartingKit(ids),
-			$"the member carries {carried} item(s) [{ids}], not the game's starting kit");
+		throw new AssertionException(
+			$"the member carries [{actual}] on a '{value}' run ({SettingName(level)}), not the game's own plan [{string.Join(",", expected)}]");
 	}
 
-	/// <summary>The game's own starting-supply table (`StartingSupplyPolicy`, setting 1 "light").</summary>
-	private static readonly string[] StartingKit = ["emergencylight", "lantern", "dogfood", "waterbottle", "trashbag"];
+	private static string SettingName(int level) => level switch { 0 => "none", 1 => "light", _ => "full" };
 
-	private static bool IsStartingKit(string ids) =>
-		ids.Length > 0 && ids.Split(',', StringSplitOptions.RemoveEmptyEntries).All(StartingKit.Contains);
+	private static string[] Split(string ids) =>
+		ids.Split(',', StringSplitOptions.RemoveEmptyEntries).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+
+	private static bool SameKit(string actual, string[] expected) =>
+		Split(actual).SequenceEqual(Split(string.Join(",", expected)), StringComparer.Ordinal);
+
+	private static string Text(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.String
+			? value.GetString() ?? string.Empty
+			: string.Empty;
+
+	private static bool Boolean(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.True;
+
 
 	private static string Ids(JsonElement? reading)
 	{
@@ -79,24 +107,6 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 		}
 
 		return string.Join(",", types);
-	}
-
-	private static int CountCarried(JsonElement? reading)
-	{
-		if (reading is not { ValueKind: JsonValueKind.Object } element)
-		{
-			return 0;
-		}
-
-		foreach (var property in new[] { "localCount", "count" })
-		{
-			if (element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number)
-			{
-				return value.GetInt32();
-			}
-		}
-
-		return 0;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

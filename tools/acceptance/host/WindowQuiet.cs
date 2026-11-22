@@ -21,9 +21,35 @@ internal static class WindowQuiet
 	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 	private delegate void QuietRemoveDelegate();
 
+	[UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+	private delegate int QuietInstallImageDelegate(string image);
+
 	private static QuietInstallDelegate? _install;
+	private static QuietInstallImageDelegate? _installImage;
 	private static QuietRemoveDelegate? _remove;
 	private static bool _looked;
+
+	/// <summary>
+	/// Arms the hooks before any client exists, matching the game's image name.
+	/// </summary>
+	/// <remarks>
+	/// A global hook is injected into the processes that start after it is installed, so arming it first is what makes
+	/// the client's very first window visible to it. Installed after `CreateProcess`, the same hook arrived a moment too
+	/// late and the white startup window had already been created and raised (measured 2026-11-22).
+	/// </remarks>
+	internal static void InstallForImage(string image)
+	{
+		Load();
+		if (_installImage is null)
+		{
+			return;
+		}
+
+		if (_installImage(image) == 0)
+		{
+			Console.Error.WriteLine($"[window-quiet] the hooks could not be armed for '{image}'.");
+		}
+	}
 
 	private static void Load()
 	{
@@ -44,6 +70,7 @@ internal static class WindowQuiet
 		{
 			var library = NativeLibrary.Load(path);
 			_install = Marshal.GetDelegateForFunctionPointer<QuietInstallDelegate>(NativeLibrary.GetExport(library, "QuietInstall"));
+			_installImage = Marshal.GetDelegateForFunctionPointer<QuietInstallImageDelegate>(NativeLibrary.GetExport(library, "QuietInstallImage"));
 			_remove = Marshal.GetDelegateForFunctionPointer<QuietRemoveDelegate>(NativeLibrary.GetExport(library, "QuietRemove"));
 		}
 		catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)

@@ -48,6 +48,10 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 	public bool Launch()
 	{
+		// Arm the window hooks before any client process exists: a global hook is injected into the processes that start
+		// after it is installed, and only that gets the very first window (measured 2026-11-22: armed after
+		// `CreateProcess`, the white startup window was already created and raised).
+		WindowQuiet.InstallForImage("CasualtiesUnknown.exe");
 		BuildClientList();
 		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
 		if (needsSandbox && !EnsureSandboxService())

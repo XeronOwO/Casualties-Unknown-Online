@@ -956,18 +956,26 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			return "an unreadable ray (" + Raw(ray) + ")";
 		}
 
-		// The game's own unarmed branch walks EVERY hit along the ray and damages the first `BlockGround` one
-		// (`Body.cs:2162-2176`); a pod's pump or a button in front of it does not take the swing. Only a ray with no
-		// `BlockGround` on it at all is a ray that cannot hurt a block.
+		// The game's own unarmed swing walks the ray in ONE pass and only reaches the block branch while `flag` is
+		// still false: a building or an animal hit earlier on the same ray sets it (`Body.cs:2151`), and the
+		// `if (!flag)` block loop at `:2160-2176` then never runs. So the block has to be the FIRST thing the swing
+		// meets after the player's own body — a pod's pump in front of the wall swallows the damage without any
+		// error (measured 2026-11-22: 105 swings, `damage` stayed -1, and the ray read `Body 0` then
+		// `lifepodpump 1.843` before the `Chunk(BlockGround) 3.85`).
 		var nearest = "";
 		foreach (var hit in hits.EnumerateArray())
 		{
+			if (String(hit, "tag") == "Player" && String(hit, "distance") == "0")
+			{
+				continue;
+			}
+
 			if (String(hit, "tag") == "BlockGround")
 			{
 				return "";
 			}
 
-			if (nearest.Length == 0 && String(hit, "tag") != "Player")
+			if (nearest.Length == 0)
 			{
 				nearest = String(hit, "name") + " (" + String(hit, "tag") + ") at " + String(hit, "distance");
 			}

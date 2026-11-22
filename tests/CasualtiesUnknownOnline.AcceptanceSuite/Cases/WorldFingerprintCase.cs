@@ -135,9 +135,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			var entriesAfter = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "report"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
 			var framesDrawn = Integer(clockAfter, "frame") - framesAtPress;
 			var entriesGained = Integer(entriesAfter, "handleInputEntries") - entriesAtPress;
+			var aimRoundTrip = await context.RecipeAsync(
+				"pointer-target",
+				cancellationToken,
+				("x", cell.X.ToString()),
+				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

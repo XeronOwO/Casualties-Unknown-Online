@@ -23,8 +23,12 @@
 	if (!table.Contains(keyArg)) { return "{\"ok\":false,\"error\":\"unknown-key\"}"; }
 	var current = table[keyArg];
 	var kind = current == null ? "null" : current.GetType().Name;
-	if (current != null && !(current is System.Single)) { return "{\"ok\":false,\"error\":\"not-a-float-setting\",\"detail\":\"" + kind + "\"}"; }
-	table[keyArg] = System.Convert.ToSingle(valueArg);
-	var now = ((System.Single)table[keyArg]).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
-	return "{\"ok\":true,\"key\":\"" + keyArg + "\",\"value\":\"" + now + "\"}";
+	// The table holds floats (`RunSettingFloat`) and ints (`RunSettingDropdown`, e.g. `startingsupplies` 0/1/2);
+	// write back the same type the entry already has so the generator's own reader sees its expected shape.
+	if (current is System.Single) { table[keyArg] = System.Convert.ToSingle(valueArg); }
+	else if (current is System.Int32) { table[keyArg] = System.Convert.ToInt32(valueArg); }
+	else { return "{\"ok\":false,\"error\":\"not-a-numeric-setting\",\"detail\":\"" + kind + "\"}"; }
+	var stored = table[keyArg];
+	var now = System.Convert.ToString(stored, System.Globalization.CultureInfo.InvariantCulture) ?? "";
+	return "{\"ok\":true,\"key\":\"" + keyArg + "\",\"kind\":\"" + stored.GetType().Name + "\",\"value\":\"" + now + "\"}";
 }))()

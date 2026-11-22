@@ -88,7 +88,7 @@ internal static class VirtualInput
 		if (_harmony != null)
 		{
 			installed = true;
-			return "already installed";
+			return "already installed" + (InstallReport is null ? "" : " | " + InstallReport);
 		}
 
 		var harmony = new Harmony(HarmonyId);
@@ -99,6 +99,7 @@ internal static class VirtualInput
 		// target family, and each reports what it did so this report names every patched site in one place.
 		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + CueInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony);
 		installed = failures == 0;
+		InstallReport = report;
 		return report;
 	}
 
@@ -339,6 +340,13 @@ internal static class VirtualInput
 	internal static string? AttackGates => InputQueryPatches.AttackGates;
 
 	internal static string? ClickGates => InputQueryPatches.ClickGates;
+
+	/// <summary>
+	/// The report the first install produced, kept so a later reader can still see whether a target was patched, refused or
+	/// missing. `Install` answers "already installed" on every call after the first, and the acceptance assembly's own log
+	/// lines never reach `BepInEx/logs/latest.log`, so without this the answer is lost the moment the plugin finishes waking.
+	/// </summary>
+	internal static string? InstallReport { get; private set; }
 
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;

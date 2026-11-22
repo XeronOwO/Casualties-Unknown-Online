@@ -14,15 +14,10 @@
 	const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var property = vi.GetProperty("ClickGates", Flags);
 	var gates = property == null ? null : property.GetValue(null, null) as string;
-	// The install report says whether the click-path patch went in at all: a prefix that never ran is otherwise
-	// indistinguishable from a click the game ignored.
-	var install = vi.GetMethod("Install", Flags);
-	var report = "";
-	if (install != null && install.GetParameters().Length == 1)
-	{
-		var arguments = new object[] { false };
-		report = install.Invoke(null, arguments) as string ?? "";
-	}
+	// The report of the FIRST install, kept by the channel (`VirtualInput.InstallReport`): `Install` itself answers
+	// "already installed" on every later call, and the acceptance assembly's log lines never reach `latest.log`.
+	var stored = vi.GetProperty("InstallReport", Flags);
+	var report = stored == null ? null : stored.GetValue(null, null) as string;
 	return "{\"ok\":true,\"clickGates\":\"" + (gates ?? "none").Replace("\\", "/").Replace("\"", "''") + "\""
-		+ ",\"install\":\"" + report.Replace("\\", "/").Replace("\"", "''").Replace("\n", " | ").Replace("\r", "") + "\"}";
+		+ ",\"install\":\"" + (report ?? "none").Replace("\\", "/").Replace("\"", "''").Replace("\n", " | ").Replace("\r", "") + "\"}";
 }))()

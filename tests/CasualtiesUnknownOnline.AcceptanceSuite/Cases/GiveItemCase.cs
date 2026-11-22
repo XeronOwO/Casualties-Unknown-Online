@@ -96,6 +96,49 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 		context.Read("member-bag", memberBag);
 		Require(landed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
+
+		// The other half of the claim: a friend whose hands and bag are full cannot take the item, and the giver keeps
+		// it. Nothing here writes the receiver's bag; the row fills it the way a player's bag fills — with real items the
+		// game places — and then offers one more.
+		for (var fill = 0; fill < 8; fill++)
+		{
+			var carried = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "trashbag"), ("mode", "create")).ConfigureAwait(false);
+			if (!Boolean(carried, "ok"))
+			{
+				break;
+			}
+
+			slots = await context.MemberRecipeAsync("item-provide", cancellationToken, ("mode", "slots"), ("type", string.Empty)).ConfigureAwait(false);
+			if (!HasUsableSlot(slots))
+			{
+				break;
+			}
+		}
+
+		context.Read("member-slots-full", slots);
+		Require(!HasUsableSlot(slots), "the member's bag could not be filled, so the refusal has nothing to test: " + Raw(slots));
+
+		var groundTwo = await context.RecipeAsync("item-drop", cancellationToken, ("type", "bandage"), ("height", "1")).ConfigureAwait(false);
+		Require(Boolean(groundTwo, "ok"), "the second ground item was not created");
+		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", hostX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+
+		var refused = await context.RecipeAsync("give-probe", cancellationToken,
+			("mode", "give-world"),
+			("target", context.MemberId),
+			("slot", "0"),
+			("container", "0"),
+			("type", "bandage")).ConfigureAwait(false);
+		context.Read("give-to-a-full-bag", refused);
+
+		var fullBag = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		context.Read("member-bag-full", fullBag);
+		Require(
+			!Boolean(refused, "ok") || CountType(fullBag, "bandage") <= CountType(memberBag, "bandage"),
+			"the member took an item into a body with no free slot: answer " + Raw(refused) + ", bag " + Raw(fullBag));
 	}
 
 	/// <summary>
@@ -141,6 +184,28 @@ internal sealed class GiveItemCase : AcceptanceCase
 		}
 
 		return (x.GetDouble(), y.GetDouble());
+	}
+
+	private static int CountType(JsonElement? reading, string type)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("ids", out var ids)
+			|| ids.ValueKind != JsonValueKind.String)
+		{
+			return 0;
+		}
+
+		var count = 0;
+		foreach (var entry in (ids.GetString() ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries))
+		{
+			var parts = entry.Split(':', 2);
+			if (parts.Length == 2 && string.Equals(parts[1], type, StringComparison.Ordinal))
+			{
+				count++;
+			}
+		}
+
+		return count;
 	}
 
 	private static bool HasType(JsonElement? reading, string type)

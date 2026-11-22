@@ -308,6 +308,9 @@ internal static class VirtualInput
 	/// <summary>What the swing counter's install did, so a row can tell a missing seam from a game that never swung.</summary>
 	internal static string SwingSeam => SwingProbe.Seam;
 
+	/// <summary>The gate reading taken inside the game's own attack method at its first entry, or null before that.</summary>
+	internal static string? AttackGates => InputQueryPatches.AttackGates;
+
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 

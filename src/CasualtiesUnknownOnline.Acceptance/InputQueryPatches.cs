@@ -320,7 +320,31 @@ internal static class InputQueryPatches
 
 	private static void PrefixHandleInput() => HandleInputEntries++;
 
-	private static void PrefixHandleAttacks() => HandleAttacksEntries++;
+	/// <summary>
+	/// The first gate reading taken inside <c>PlayerCamera.HandleAttacks</c> itself, or null before it has run. A row that
+	/// reads this at entry tells "the method returned at a gate" apart from "the method ran and the branch refused".
+	/// </summary>
+	internal static string? AttackGates { get; private set; }
+
+	private static void PrefixHandleAttacks(PlayerCamera __instance)
+	{
+		HandleAttacksEntries++;
+		if (AttackGates is not null || __instance is null)
+		{
+			return;
+		}
+
+		var wound = __instance.woundView != null && __instance.woundView.activeSelf;
+		var overUi = UIUtil.IsPointerOverUIElement();
+		var minigame = MinigameBase.main != null && MinigameBase.main.currentMinigame != null;
+		var liquid = LiquidTransfer.instance != null;
+		var usage = __instance.blockItemUsage;
+		AttackGates = "woundView=" + (wound ? "true" : "false")
+			+ " uiOverPointer=" + (overUi ? "true" : "false")
+			+ " minigame=" + (minigame ? "true" : "false")
+			+ " liquid=" + (liquid ? "true" : "false")
+			+ " blockItemUsage=" + (usage ? "true" : "false");
+	}
 
 	/// <summary>The first method declared on <paramref name="type"/> with this name, whatever its signature (the fallback when the exact one is not found).</summary>
 	private static MethodInfo? FirstDeclaredMethod(Type type, string name)

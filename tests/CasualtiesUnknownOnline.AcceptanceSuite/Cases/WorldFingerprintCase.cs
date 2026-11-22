@@ -142,7 +142,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			$"the game kept its crosshair off {Describe(cell)} after three aims, so no swing could reach it: {Raw(looked)}");
 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
-		// until the cell is gone (the block's own health decides how long that takes).
+		// until the cell is gone (the block's own health decides how long that takes). A person holds the mouse button,
+		// and the game's own attack path reads it as a BUTTON as well as a key, so the row stages both (measured
+		// 2026-11-22: with only the key staged, `HandleAttacks` ran 706 times and the body was never asked to swing).
+		await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
 		await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
 		// The staging is only worth anything if the game actually asks it: the report carries how many of the
 		// game's own key queries the patch answered, so a row that never swings can say which side is missing.
@@ -177,6 +180,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		JsonElement? hostDuring = null;
 		JsonElement? hostAfter = null;
 		JsonElement? gatesDuring = null;
+		JsonElement? branchDuring = null;
 		try
 		{
 			var damageRose = false;
@@ -187,6 +191,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
 				// the channel drops it between frames (measured 2026-11-22: 703 frames asked the attack key and the game
 				// read "not held" while the row believed it was holding).
+				await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
 				await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
 				if (attempt == 4)
 				{
@@ -195,6 +200,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 					var gates = await context.RecipeAsync("swing-state", cancellationToken).ConfigureAwait(false);
 					gatesDuring = gates;
 					context.Read("the swing's own gates", gates);
+					var branch = await context.RecipeAsync("attack-branch", cancellationToken).ConfigureAwait(false);
+					branchDuring = branch;
+					context.Read("the attack branch's own gates", branch);
 				}
 				var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 				if (Integer(now, "damage") > Integer(hostBefore, "damage"))
@@ -218,7 +226,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

@@ -586,7 +586,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		_lastScan = Raw(found);
 		var bodyX = Integer(found, "bodyX");
 		var bodyY = Integer(found, "bodyY");
-		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 12 && Math.Abs(cell.Y - bodyY) <= 12).ToList();
+		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 20 && Math.Abs(cell.Y - bodyY) <= 20).ToList();
 		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within walking distance "
 			+ $"(body at {bodyX},{bodyY}; first cells " + string.Join(" ", cells.Take(6).Select(Describe)) + "): " + Raw(found));
 		// A person digs the wall in front of them, at the height they stand on: the body walks left and right (the
@@ -595,7 +595,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// sat five rows up, the walk pressed `up` for forty steps, and `afterMove` stayed `dir 0,0`). Cells on the
 		// body's own level come first; the rest stay as a fallback for worlds whose floor offers nothing level.
 		return reachable
-			.OrderBy(cell => Math.Abs(cell.Y - bodyY) <= 2 ? 0 : 1)
+			.OrderBy(cell => Math.Abs(cell.Y - bodyY))
 			.ThenBy(cell => Math.Abs(cell.X - bodyX) + Math.Abs(cell.Y - bodyY))
 			.ToList();
 	}
@@ -764,21 +764,43 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// `down` until the body has left the shell, and only then walk toward the block.
 		var podY = posY;
 		var leftThePod = new StringBuilder();
-		// How far the floor sits under the capsule is not the same in every world (measured 2026-11-22: nine units in
-		// one spawn, thirteen in the next), so the step descends until the body stops answering instead of counting
-		// units: hold `down` while the body keeps dropping, and stop after two steps that leave it where it was.
-		var idleSteps = 0;
-		var lastY = posY;
-		for (var step = 0; step < 40 && idleSteps < 2; step++)
+		// Where the capsule opens is not the same in every world, and guessing costs runs (measured 2026-11-22: `down`
+		// moved nine units in one spawn and nothing in the next, `up` only climbs, and the shell stopped `D` at x 4.085).
+		// A person finds the way out with their hands: hold each direction for a moment, keep the one that moves the
+		// body, and walk that way until it is clear of the shell.
+		var spawnX = posX;
+		var spawnY = posY;
+		var exitBind = "";
+		var exitMoved = 0.0;
+		foreach (var bind in new[] { "down", "right", "left", "up" })
 		{
-			await StageAsync(context, "down", "down", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(140, cancellationToken).ConfigureAwait(false);
-			var out2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
-			leftThePod.Append($" [{step}] y{String(out2, "posY")} x{String(out2, "posX")} m{Integer(out2, "moveY")}");
-			posX = Double(out2, "posX");
-			posY = Double(out2, "posY");
-			idleSteps = Math.Abs(posY - lastY) < 0.01 ? idleSteps + 1 : 0;
-			lastY = posY;
+			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(900, cancellationToken).ConfigureAwait(false);
+			var probe2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
+			var moved = Distance(spawnX, spawnY, Double(probe2, "posX"), Double(probe2, "posY"));
+			leftThePod.Append($" [{bind} {moved.ToString("0.00", CultureInfo.InvariantCulture)}]");
+			if (moved > exitMoved)
+			{
+				exitMoved = moved;
+				exitBind = bind;
+			}
+		}
+
+		if (exitBind.Length > 0)
+		{
+			for (var step = 0; step < 40; step++)
+			{
+				await StageAsync(context, exitBind, "down", cancellationToken).ConfigureAwait(false);
+				await Task.Delay(140, cancellationToken).ConfigureAwait(false);
+				var out2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+				posX = Double(out2, "posX");
+				posY = Double(out2, "posY");
+				if (Distance(spawnX, spawnY, posX, posY) > 3.5)
+				{
+					break;
+				}
+			}
 		}
 
 		trace.Append("; leave-pod" + leftThePod);
@@ -800,6 +822,25 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 			var distanceX = Math.Abs(cell.X + 0.5 - posX);
 			var distanceY = Math.Abs(cell.Y + 0.5 - posY);
+
+			// The ground in this game is slippery enough that a held key carries the body past the block: measured
+			// 2026-11-22, three 120 ms presses took the body from x 0 to x 30 with `velX 25`, and the row ended sixty
+			// units away. A person lifts their finger and lets the body coast to a stop, so the last few units are
+			// covered with every key released and the position re-read after the slide.
+			if (away <= 6.0)
+			{
+				foreach (var brake in new[] { "left", "right", "up", "down" })
+				{
+					await StageAsync(context, brake, "up", cancellationToken).ConfigureAwait(false);
+				}
+
+				await Task.Delay(320, cancellationToken).ConfigureAwait(false);
+				var coasted = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+				posX = Double(coasted, "posX");
+				posY = Double(coasted, "posY");
+				trace.Append($"; coast {posX:0.00},{posY:0.00} v{String(coasted, "velX")}");
+				continue;
+			}
 
 			var horizontal = distanceX >= distanceY;
 			var forward = horizontal ? cell.X + 0.5 > posX : cell.Y + 0.5 > posY;

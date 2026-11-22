@@ -37,11 +37,40 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		var (targetX, targetY, blockBefore) = target!.Value;
 		context.Read("target", JsonDocument.Parse("{\"x\":" + targetX + ",\"y\":" + targetY + ",\"block\":" + blockBefore + "}").RootElement.Clone());
 
+		// A player does not take a block out in one blow, and the block's damage is a fact the other client is supposed
+		// to see while the block still stands — not only after it is gone. Three real blows through the game's own
+		// damage entry, then both clients' own damage reading for that absolute cell must agree.
+		for (var blow = 0; blow < 3; blow++)
+		{
+			var hit = await context.RecipeAsync("block-break-at", cancellationToken,
+				("x", targetX.ToString(CultureInfo.InvariantCulture)),
+				("y", targetY.ToString(CultureInfo.InvariantCulture)),
+				("dmg", "25")).ConfigureAwait(false);
+			context.Read("host blow " + (blow + 1).ToString(CultureInfo.InvariantCulture), hit);
+			Require(Boolean(hit, "ok") == true, "the host's blow did not reach the block: " + Raw(hit));
+			var hostDamage = Number(await context.RecipeAsync("block-read-at", cancellationToken,
+				("x", targetX.ToString(CultureInfo.InvariantCulture)),
+				("y", targetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false), "damage");
+			var agreed = false;
+			for (var poll = 0; poll < 12 && !agreed; poll++)
+			{
+				var memberDamage = Number(await context.MemberRecipeAsync("block-read-at", cancellationToken,
+					("x", targetX.ToString(CultureInfo.InvariantCulture)),
+					("y", targetY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false), "damage");
+				agreed = memberDamage is not null && hostDamage is not null && Math.Abs(memberDamage.Value - hostDamage.Value) < 0.01;
+				if (!agreed)
+				{
+					await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			Require(agreed, "after blow " + (blow + 1).ToString(CultureInfo.InvariantCulture) + " the member reads a different damage for the same block: host " + hostDamage!.Value.ToString("0.###", CultureInfo.InvariantCulture));
+		}
+
 		var broken = await context.RecipeAsync("block-break-at", cancellationToken,
 			("x", targetX.ToString(CultureInfo.InvariantCulture)),
 			("y", targetY.ToString(CultureInfo.InvariantCulture)),
-			("dmg", "1000")).ConfigureAwait(false);
-		context.Read("host break", broken);
+			("dmg", "1000")).ConfigureAwait(false); context.Read("host break", broken);
 		Require(Boolean(broken, "ok") == true, "the host's block break failed: " + Raw(broken));
 		var blockAfter = Number(broken, "blockAfter");
 		Require(blockAfter is not null && blockAfter.Value != blockBefore, "the host's own world did not change the block: " + Raw(broken));

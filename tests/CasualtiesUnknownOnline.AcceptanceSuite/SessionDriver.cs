@@ -1233,12 +1233,12 @@ internal sealed class SessionDriver(Options options)
 	/// `.acceptance/every-9`: give-container-sound, crafting-outcome, two-member-continue, drop-mid-transfer and
 	/// medical-splint). A rebuilt pair starts from the archive's intact body, so that is the answer when none qualifies.
 	/// </remarks>
-	private async Task<bool> HasCarrySlotAsync(CancellationToken cancellationToken)
+	private async Task<bool> HasCarrySlotAsync(string url, string who, CancellationToken cancellationToken)
 	{
 		JsonElement? answer;
 		try
 		{
-			answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
+			answer = await RecipeAtAsync(url, "item-provide",
 				new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken)
 				.ConfigureAwait(false);
 		}
@@ -1248,16 +1248,16 @@ internal sealed class SessionDriver(Options options)
 			// claim the body has room when it never read it: the rows that need a slot went on to fail with
 			// "no-free-slot" while this returned true (measured 2026-11-22, the give-container-sound row). Ask
 			// once more, then say the slots are unknown, which rebuilds the pair.
-			Timeline?.Invoke("the member's slots could not be read: " + exception.Message);
+			Timeline?.Invoke($"{who}'s slots could not be read: " + exception.Message);
 			try
 			{
-				answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
+				answer = await RecipeAtAsync(url, "item-provide",
 					new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken)
 					.ConfigureAwait(false);
 			}
 			catch (Exception retry) when (retry is DriverException or InvalidOperationException or IOException)
 			{
-				Timeline?.Invoke("the member's slots could not be read on the second ask: " + retry.Message);
+				Timeline?.Invoke($"{who}'s slots could not be read on the second ask: " + retry.Message);
 				return false;
 			}
 		}
@@ -1284,28 +1284,37 @@ internal sealed class SessionDriver(Options options)
 
 	private async Task<bool> HasCarrySlotOrHealAsync(CancellationToken cancellationToken)
 	{
-		if (await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
+		// A slot that cannot take an item is a body that has lost the limb which owned it, and a character
+		// comes back from its own save with that loss: rebuilding the pair restores the same body. Each
+		// client's body is healed before the run is thrown away (measured 2026-11-22: the rows after the
+		// medical ones failed with "no-free-slot", and the host failed them too — "the host could not take
+		// a trashbag" — so both bodies are asked, not just the member's).
+		foreach (var (url, who) in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
 		{
-			return true;
+			if (await HasCarrySlotAsync(url, who, cancellationToken).ConfigureAwait(false))
+			{
+				continue;
+			}
+
+			Timeline?.Invoke("the " + who + " has no slot to take an item; healing its body before the pair is given up");
+			try
+			{
+				await RecipeAtAsync(url, "native-heal", new Dictionary<string, string>(), cancellationToken)
+					.ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+			{
+				Timeline?.Invoke("the " + who + "'s body could not be healed: " + exception.Message);
+				return false;
+			}
+
+			if (!await HasCarrySlotAsync(url, who, cancellationToken).ConfigureAwait(false))
+			{
+				return false;
+			}
 		}
 
-		// A slot that cannot take an item is a body that has lost the limb which owned it, and the member's
-		// character comes back from its own save with that loss: rebuilding the pair restores the same body.
-		// Heal it and ask again before the run is thrown away (measured 2026-11-22: every row after the medical
-		// ones failed with "no-free-slot" even though the pair had just been rebuilt).
-		Timeline?.Invoke("the member has no slot to take an item; healing its body before the pair is given up");
-		try
-		{
-			await RecipeAtAsync(_options.MemberUrl, "native-heal", new Dictionary<string, string>(), cancellationToken)
-				.ConfigureAwait(false);
-		}
-		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
-		{
-			Timeline?.Invoke("the member's body could not be healed: " + exception.Message);
-			return false;
-		}
-
-		return await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false);
+		return true;
 	}
 
 	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)

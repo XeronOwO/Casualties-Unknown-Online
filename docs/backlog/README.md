@@ -70,6 +70,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.
+- [Rebuild rows from the game](in-progress/1.0-rebuild-each-acceptance-row-from-the-game.md) — **High** — from the game, one row at a time.
 
 ### Review
 

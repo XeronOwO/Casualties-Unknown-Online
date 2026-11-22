@@ -39,24 +39,20 @@ internal sealed class ConsoleCompletionCase : AcceptanceCase
 		Require(Count(game, "commands") > 0, "the game's own console table is empty: " + Raw(game));
 
 		var beforeLines = Count(registry, "lines");
-		var unknown = await context.RecipeAsync("console-run", cancellationToken, ("line", "zzz-not-a-command"));
+		// A console command is typed with the leading slash the console itself documents (`/help`); a bare word is chat,
+		// which is why the row sends the line the player sends.
+		var unknown = await context.RecipeAsync("console-run", cancellationToken, ("line", "/zzz-not-a-command"));
 		context.Read("unknown", unknown);
 		Require(Boolean(unknown, "ok"), "the console did not answer an unknown word: " + Raw(unknown));
 		Require(StringValue(unknown, "error").Length == 0, "the console threw on an unknown word: " + Raw(unknown));
-		// The line itself is echoed at once; the console's answer to it is written afterwards, so it is polled for rather
-		// than read on the same tick. A word no command owns must still get an answer line — silence would mean the console
-		// swallowed it.
-		var answered = false;
-		for (var attempt = 0; attempt < 8 && !answered; attempt++)
-		{
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			var after = await context.RecipeAsync("console-registry", cancellationToken).ConfigureAwait(false);
-			answered = Count(after, "lines") > beforeLines + 1;
-		}
+		Require(!Truthy(unknown, "accepted"), "the console ran a word no command owns: " + Raw(unknown));
+		// The answer the player reads is the console's own line, not our recipe's opinion: the service writes
+		// `console.command.unknown` when no command owns the first word (`CommandConsoleService.cs:232`).
+		Require(Count(unknown, "lines") > beforeLines, "the console said nothing about an unknown word: " + Raw(unknown));
+		Require(StringValue(unknown, "last").Contains("Unknown command", StringComparison.Ordinal),
+			"the console did not answer the unknown word with its own refusal: " + Raw(unknown));
 
-		Require(answered, "the console echoed the unknown word but never answered it");
-
-		var known = await context.RecipeAsync("console-run", cancellationToken, ("line", "help"));
+		var known = await context.RecipeAsync("console-run", cancellationToken, ("line", "/help"));
 		context.Read("known", known);
 		Require(Boolean(known, "ok"), "the console did not answer its own help: " + Raw(known));
 		Require(Truthy(known, "accepted"), "the console refused its own help command: " + Raw(known));

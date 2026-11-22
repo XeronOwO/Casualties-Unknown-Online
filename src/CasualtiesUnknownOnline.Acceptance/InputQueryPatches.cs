@@ -165,6 +165,26 @@ internal static class InputQueryPatches
 			}
 		}
 
+		// The click path of the world (a crate, a door): `HandleStartDragging` is where a use actually happens, so the
+		// acceptance assembly counts its entries and the usable object it was handed (see `ClickGates`).
+		var startDragging = AccessTools.Method(typeof(PlayerCamera), "HandleStartDragging");
+		if (startDragging == null)
+		{
+			report.Add("PlayerCamera.HandleStartDragging: no method on this build");
+		}
+		else
+		{
+			try
+			{
+				harmony.Patch(startDragging, prefix: new HarmonyMethod(typeof(InputQueryPatches), nameof(PrefixHandleStartDragging)));
+				report.Add("PlayerCamera.HandleStartDragging: patched");
+			}
+			catch (Exception exception)
+			{
+				report.Add("PlayerCamera.HandleStartDragging: FAILED " + DescribeFailure(exception));
+			}
+		}
+
 		// The minigame's own hand read. `MinigameBase.UpdateHandVisuals` asks `Input.GetKey(attack)` DIRECTLY — outside
 		// `PlayerCamera.HandleInput`, so the replacement above never reaches it — and a detour on Input's own methods is never invoked on
 		// this build (see the type's header). The same call-site replacement therefore has to be applied to it as well: without this a
@@ -360,6 +380,29 @@ internal static class InputQueryPatches
 	/// reads this at entry tells "the method returned at a gate" apart from "the method ran and the branch refused".
 	/// </summary>
 	internal static string? AttackGates { get; private set; }
+
+	/// <summary>
+	/// How often <c>PlayerCamera.HandleStartDragging</c> ran and whether it received a usable object. The game fills that
+	/// argument in <c>HandleWorldHover</c> on the same frame (`PlayerCamera.cs:2184-2217`), so a click that lands on a usable
+	/// crate and starts no minigame is either "the method never ran" or "it ran with a null usable object" — and the row's
+	/// own hover reading cannot tell those apart (measured 2026-11-23: `hover` said usable, the click did nothing).
+	/// </summary>
+	internal static string? ClickGates { get; private set; }
+
+	internal static int HandleStartDraggingEntries { get; private set; }
+
+	private static void PrefixHandleStartDragging(PlayerCamera __instance, ref UsableObject? usableObject)
+	{
+		HandleStartDraggingEntries++;
+		var body = __instance != null ? __instance.body : null;
+		var conscious = body != null && body.conscious;
+		var allow = body != null && body.allowUseItem;
+		ClickGates = "draggingEntries=" + HandleStartDraggingEntries.ToString(CultureInfo.InvariantCulture)
+			+ " usable=" + (usableObject != null ? "true" : "false")
+			+ " name=" + (usableObject != null ? usableObject.name : "none")
+			+ " conscious=" + (conscious ? "true" : "false")
+			+ " allowUseItem=" + (allow ? "true" : "false");
+	}
 
 	private static void PrefixHandleAttacks(PlayerCamera __instance)
 	{

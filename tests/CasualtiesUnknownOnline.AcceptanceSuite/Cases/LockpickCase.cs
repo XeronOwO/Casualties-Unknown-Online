@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -45,7 +46,7 @@ internal sealed class LockpickCase : AcceptanceCase
 		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
 		JsonElement? state = null;
 		Door? chosen = null;
-		var rejected = new System.Text.StringBuilder();
+		var rejected = new StringBuilder();
 		foreach (var candidate in candidates.Take(3))
 		{
 			var standX = candidate.X - 2;
@@ -107,6 +108,8 @@ internal sealed class LockpickCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
 			context.Read("lockpick", state);
+			var clicked = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
+			context.Read("click", clicked);
 			if (Boolean(state, "active") == true)
 			{
 				chosen = candidate;

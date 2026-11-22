@@ -45,7 +45,7 @@
 		if (distance < bestDistance) { bestDistance = distance; best = openable; }
 	}
 	if (best == null) { return "{\"ok\":false,\"error\":\"no-locked-door\",\"seen\":" + all.Length.ToString(inv) + "}"; }
-	var spot = new UnityEngine.Vector3(here.x + 2f, here.y, best.transform.position.z);
+	var spot = new UnityEngine.Vector3(here.x + 3.5f, here.y, best.transform.position.z);
 	best.transform.position = spot;
 	var landed = best.transform.position;
 	var health2 = -1f;

@@ -338,6 +338,8 @@ internal static class VirtualInput
 	/// <summary>The gate reading taken inside the game's own attack method at its first entry, or null before that.</summary>
 	internal static string? AttackGates => InputQueryPatches.AttackGates;
 
+	internal static string? ClickGates => InputQueryPatches.ClickGates;
+
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 

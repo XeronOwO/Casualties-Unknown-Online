@@ -272,6 +272,11 @@ internal static class VirtualInput
 		}
 
 		value = AnswerFor(state, query);
+		if (query == ButtonQuery.Held && value)
+		{
+			RecordHeldAnswer(key);
+		}
+
 		return true;
 	}
 
@@ -293,7 +298,23 @@ internal static class VirtualInput
 	internal static int KeyHeldAnswers => InputQueryPatches.KeyHeldAnswers;
 
 	/// <summary>The last key names the seam answered "held" for (see <see cref="InputQueryPatches.HeldTrueLog"/>).</summary>
-	internal static string HeldTrueLog => InputQueryPatches.HeldTrueLog;
+	internal static string HeldTrueLog => HeldLog;
+
+	/// <summary>
+	/// The last key names the seam answered "held" for, recorded where the answer is made so both the public prefixes and
+	/// the replaced call sites inside the game's own methods report into the same list (measured 2026-11-22: the game's
+	/// movement line reads `GetKey(KeyBinds.GetBind("right"))` and the body still stands).
+	/// </summary>
+	internal static void RecordHeldAnswer(KeyCode key)
+	{
+		HeldLog = (HeldLog + " " + key.ToString()).TrimEnd();
+		if (HeldLog.Length > 160)
+		{
+			HeldLog = HeldLog.Substring(HeldLog.Length - 160);
+		}
+	}
+
+	private static string HeldLog = "";
 
 	/// <summary>
 	/// How many times the game actually swung an empty hand. It separates "the held key never reached the swing" from "the

@@ -129,6 +129,7 @@ internal static class InputQueryPatches
 				harmony.Patch(
 					handleInput,
 					prefix: new HarmonyMethod(typeof(InputQueryPatches), nameof(PrefixHandleInput)),
+					postfix: new HarmonyMethod(typeof(InputQueryPatches), nameof(PostfixHandleInput)),
 					transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(TranspileKeyReads)));
 				report.Add("PlayerCamera.HandleInput: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced, target "
 					+ handleInput.DeclaringType?.FullName + "#" + handleInput.MetadataToken.ToString(CultureInfo.InvariantCulture)
@@ -216,7 +217,7 @@ internal static class InputQueryPatches
 	/// about the staged key" from "the game asked and was answered, so the movement line had the key and still did not move
 	/// the body" (measured 2026-11-22: `stage-bind` reported the seam answering `S`, and every tick still read `moveX 0`).
 	/// </summary>
-	internal static string HeldTrueLog { get; private set; } = "";
+	internal static string HeldTrueLog => VirtualInput.HeldTrueLog;
 
 	/// <summary>
 	/// How many MOUSE-BUTTON questions the game asked, and how many were answered "down": the same census for the mouse internals,
@@ -291,11 +292,6 @@ internal static class InputQueryPatches
 			if (query == VirtualInput.ButtonQuery.Held && value)
 			{
 				KeyHeldAnswers++;
-				HeldTrueLog = (HeldTrueLog + " " + key.ToString()).TrimEnd();
-				if (HeldTrueLog.Length > 160)
-				{
-					HeldTrueLog = HeldTrueLog.Substring(HeldTrueLog.Length - 160);
-				}
 			}
 
 			__result = value;
@@ -331,6 +327,33 @@ internal static class InputQueryPatches
 	}
 
 	private static void PrefixHandleInput() => HandleInputEntries++;
+
+	/// <summary>
+	/// What the movement lines left on the body when the game's own input method returned: `dir x,y` and the body's
+	/// rigidbody velocity. It settles one question — the seam answers the movement key as held (measured 2026-11-22: 92
+	/// wrapper answers) and the body still stands — by saying whether the method ever wrote a direction.
+	/// </summary>
+	internal static string MovementAfter { get; private set; } = "";
+
+	private static void PostfixHandleInput(PlayerCamera __instance)
+	{
+		try
+		{
+			var body = __instance != null ? __instance.body : null;
+			if (body == null)
+			{
+				return;
+			}
+
+			var move = body.moveDir;
+			MovementAfter = "dir " + move.x.ToString("0.###", CultureInfo.InvariantCulture) + ","
+				+ move.y.ToString("0.###", CultureInfo.InvariantCulture);
+		}
+		catch (Exception)
+		{
+			// A reading, not a gate: a body without a rigidbody still answers the direction.
+		}
+	}
 
 	/// <summary>
 	/// The first gate reading taken inside <c>PlayerCamera.HandleAttacks</c> itself, or null before it has run. A row that

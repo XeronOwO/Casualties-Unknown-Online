@@ -34,23 +34,31 @@ internal sealed class LockpickCase : AcceptanceCase
 		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
 		JsonElement? state = null;
 		Door? chosen = null;
+		var rejected = new System.Text.StringBuilder();
 		foreach (var candidate in candidates.Take(3))
 		{
+			var standX = candidate.X - 2;
 			var walked = await context.RecipeAsync("teleport", cancellationToken,
-				("x", (candidate.X - 2).ToString("0.###", CultureInfo.InvariantCulture)),
+				("x", standX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", candidate.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("walked", walked);
 			if (Boolean(walked, "ok") != true)
 			{
+				rejected.Append(" put:").Append(Raw(walked)).Append(';');
 				continue;
 			}
 
 			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
 			var body = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 			context.Read("body", body);
-			if (Math.Abs(NumberOr(body, "posY", double.MaxValue) - candidate.Y) > 8
-				|| Math.Abs(NumberOr(body, "posX", double.MaxValue) - candidate.X) > 6)
+
+			// The request is "put the body beside the door"; the body lands within a couple of units of that point, so
+			// the check is against the point that was asked for, not against the door's own transform (the building's
+			// transform and its footprint differ by about a unit — measured 2026-11-23).
+			if (Math.Abs(NumberOr(body, "posY", double.MaxValue) - candidate.Y) > 6
+				|| Math.Abs(NumberOr(body, "posX", double.MaxValue) - standX) > 6)
 			{
+				rejected.Append(" body:").Append(Raw(body)).Append(';');
 				continue;
 			}
 
@@ -63,6 +71,7 @@ internal sealed class LockpickCase : AcceptanceCase
 			context.Read("door-aim", pointed);
 			if (Boolean(pointed, "ok") != true)
 			{
+				rejected.Append(" aim:").Append(Raw(pointed)).Append(';');
 				continue;
 			}
 
@@ -74,12 +83,14 @@ internal sealed class LockpickCase : AcceptanceCase
 			// A door is opened by the mouse: the game's own start-dragging path (`PlayerCamera.HandleStartDragging`,
 			// `PlayerCamera.cs:1521`) runs on the left button, finds the usable object under the pointer and sends it
 			// `OnUse` (`:1601-1606`). Pressing the use *key* never reaches it (measured 2026-11-23: three doors, key
-			// pressed, `lockpick-state.active` stayed false).
-			var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0")).ConfigureAwait(false);
+			// pressed, `lockpick-state.active` stayed false). The click is staged at the pointer the aim just set.
+			var atX = NumberOr(pointed, "screenX", 640).ToString("0.###", CultureInfo.InvariantCulture);
+			var atY = NumberOr(pointed, "screenY", 360).ToString("0.###", CultureInfo.InvariantCulture);
+			var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
 
 			Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0")).ConfigureAwait(false);
+			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
 			context.Read("lockpick", state);
@@ -90,7 +101,7 @@ internal sealed class LockpickCase : AcceptanceCase
 			}
 		}
 
-		Require(chosen.HasValue, "no reachable door started the lockpick minigame: " + Raw(state));
+		Require(chosen.HasValue, "no reachable door started the lockpick minigame: " + Raw(state) + " | tried: " + rejected);
 		context.Note($"door at {chosen!.Value.X:0.##},{chosen.Value.Y:0.##} opened the minigame");
 
 		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);

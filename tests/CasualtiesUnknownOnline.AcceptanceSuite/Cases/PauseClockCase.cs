@@ -5,11 +5,9 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
 /// A pause is the client's own: the host's own pause stops its clock (`Time.timeScale` 0) and the member's
-/// client keeps running, then the host's resume puts the clock back to 1. The row came from the
-/// world-acceleration rows. It drives the pause handler's own `isPaused` field (`pause-set`) rather than
-/// `PauseHandler.TogglePause`, because the toggle refuses when called from the evaluator's worker thread
-/// (measured 2026-11-13: every guard reads clear, the call returns without an exception and the field does
-/// not move), while the same field written directly is picked up by the pause container's own clock ramp.
+/// client keeps running, then the host's resume puts the clock back to 1. The row drives the game's own pause
+/// binding (the key the ESC handler reads) instead of writing the handler's `isPaused` field, so the two
+/// guards the game puts in front of a pause are exercised rather than bypassed.
 /// </summary>
 internal sealed class PauseClockCase : AcceptanceCase
 {
@@ -17,24 +15,31 @@ internal sealed class PauseClockCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var paused = await context.RecipeAsync("pause-set", cancellationToken, ("value", "on"));
-		context.Read("host pause", paused);
-		Require(Boolean(paused, "ok"), "the pause write did not answer: " + Raw(paused));
-		Require(Boolean(paused, "isPaused"), "the host's pause did not take: " + Raw(paused));
+		await PressPauseAsync(context, cancellationToken).ConfigureAwait(false);
 
 		var pausedScale = await WaitForScaleAsync(context, 0, cancellationToken).ConfigureAwait(false);
-		Require(pausedScale is not null, "the host's clock kept running while paused");
+		var state = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
+		context.Read("pause state after the key", state);
+		Require(pausedScale is not null, "the host's clock kept running after the pause key was pressed; the game's own pause gates were: " + Raw(state));
 
 		// A pause is the client's own; the member's clock is not stopped by the host's pause.
 		var member = await context.MemberRecipeAsync("time-scale-read", cancellationToken).ConfigureAwait(false);
 		context.Read("member while host paused", member);
 		Require(!Boolean(member, "paused"), "the member's own clock paused with the host: " + Raw(member));
 
-		var resumed = await context.RecipeAsync("pause-set", cancellationToken, ("value", "off"));
-		context.Read("host resume", resumed);
-		Require(Boolean(resumed, "ok"), "the resume did not answer: " + Raw(resumed));
+		await PressPauseAsync(context, cancellationToken).ConfigureAwait(false);
 		var resumedScale = await WaitForScaleAsync(context, 1, cancellationToken).ConfigureAwait(false);
-		Require(resumedScale is not null, "the host's clock did not resume");
+		Require(resumedScale is not null, "the host's clock did not resume after the pause key was pressed again");
+	}
+
+	// The game's own pause binding, pressed and released the way the player's key is.
+	private static async Task PressPauseAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var down = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "down")).ConfigureAwait(false);
+		Require(Boolean(down, "ok"), "the pause key could not be staged down: " + Raw(down));
+		await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+		var up = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "up")).ConfigureAwait(false);
+		Require(Boolean(up, "ok"), "the pause key could not be staged up: " + Raw(up));
 	}
 
 	private static async Task<double?> WaitForScaleAsync(CaseContext context, double expected, CancellationToken cancellationToken)

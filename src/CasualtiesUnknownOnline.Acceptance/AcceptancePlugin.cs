@@ -45,6 +45,7 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		Try("the remote view seam", () => RemoteViewRedPatch.Install(_harmony!));
 		Try("the remote view trace", () => RemoteViewTracePatch.Install(_harmony!));
 		Try("the swing counter", () => SwingProbePatch.Install(_harmony!));
+		Try("the bandage hand", () => BandageHandDrive.Install(_harmony!));
 		Try("the evaluator's game reference", () => HotReplRoslynGameReferencePatch.TryInstall(_harmony!));
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
 	}

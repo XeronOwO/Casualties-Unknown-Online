@@ -200,17 +200,30 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);
-			var circle = await context.MemberRecipeAsync(
-				"pointer-circle",
+			var drive = await context.MemberRecipeAsync(
+				"bandage-hand",
 				cancellationToken,
-				("mode", "start-press"),
-				("cx", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-				("cy", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-				("radius", radius.ToString("0.###", CultureInfo.InvariantCulture)),
-				("deg", "0"),
-				("frames", "1800")).ConfigureAwait(false);
-			context.Read("pointer circle started", circle);
-			Require(Boolean(circle, "ok"), "the pointer circle could not start: " + Raw(circle));
+				("mode", "start"),
+				("radius", "250"),
+				("step", "2")).ConfigureAwait(false);
+			context.Read("hand drive started", drive);
+			Require(
+				Boolean(drive, "ok"),
+				"the hand drive could not start: " + Raw(drive) + "; ring radius on screen " + radius.ToString("0.#", CultureInfo.InvariantCulture));
+			await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "press"),
+				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
+			await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "press-key"),
+				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
 
 			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
 			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand
@@ -247,14 +260,11 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		finally
 		{
 			await context.MemberRecipeAsync(
-				"pointer-circle",
+				"bandage-hand",
 				cancellationToken,
 				("mode", "stop"),
-				("cx", "0"),
-				("cy", "0"),
-				("radius", "0"),
-				("deg", "0"),
-				("frames", "0")).ConfigureAwait(false);
+				("radius", "250"),
+				("step", "2")).ConfigureAwait(false);
 			await context.MemberRecipeAsync(
 				"virtual-input",
 				cancellationToken,

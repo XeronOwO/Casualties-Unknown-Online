@@ -288,6 +288,9 @@ internal static class VirtualInput
 	/// <summary>How many of those KEY questions the staged state answered with "down".</summary>
 	internal static int KeyDownAnswers => InputQueryPatches.KeyDownAnswers;
 
+	/// <summary>How many of those KEY questions the staged state answered "held" (the split the down tally cannot give).</summary>
+	internal static int KeyHeldAnswers => InputQueryPatches.KeyHeldAnswers;
+
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 

@@ -22,8 +22,7 @@
 	var maxMethod = type.GetMethod("MaxTurnProgress", flags);
 	var max = maxMethod == null ? 0f : System.Convert.ToSingle(maxMethod.Invoke(current, null));
 
-	var name = "";
-	var health = -1f;
+	var name = "";	var health = -1f;
 	if (target != null) {
 		var behaviour = target as UnityEngine.Behaviour;
 		if (behaviour != null) { name = behaviour.name; }
@@ -33,7 +32,19 @@
 		if (raw != null) { health = System.Convert.ToSingle(raw); }
 	}
 
+	// The three branches that close a minigame, so one row run can name which one fired:
+	// `MinigameBase.ActiveMinigameUpdate` ends it on `(!currentItem && NeedsItem()) || !body.conscious`
+	// (`MinigameBase.cs:206-210`), and `LockpingMinigame.Update` ends it when `toDestroy` is falsy (`:108-110`).
+	var gameBody = Minigame.game != null ? Minigame.game.body : null;
+	var conscious = gameBody != null && gameBody.conscious;
+	var currentItem = Minigame.game != null && Minigame.game.currentItem != null;
+	var needsMethod = type.GetMethod("NeedsItem", flags, null, System.Type.EmptyTypes, null);
+	var needs = needsMethod != null && needsMethod.Invoke(current, null) is bool n && n;
+
 	return "{\"ok\":true,\"kind\":\"" + type.Name + "\""
+		+ ",\"conscious\":" + (conscious ? "true" : "false")
+		+ ",\"currentItem\":" + (currentItem ? "true" : "false")
+		+ ",\"needsItem\":" + (needs ? "true" : "false")
 		+ ",\"targetNull\":" + (target == null ? "true" : "false")
 		+ ",\"targetName\":\"" + name.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
 		+ ",\"targetHealth\":" + health.ToString("0.###", inv)

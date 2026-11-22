@@ -492,6 +492,19 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("x", candidate.X.ToString(CultureInfo.InvariantCulture)),
 				("y", candidate.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			lastProbe = probe;
+			var held = await context.RecipeAsync(
+				"block-read-at",
+				cancellationToken,
+				("x", candidate.X.ToString(CultureInfo.InvariantCulture)),
+				("y", candidate.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			// The scan can name a cell whose block is already gone: measured 2026-11-22, the row aimed at a cell that read
+			// `block 0`, the game's attack method never ran (`handleAttacksEntries 0`) and nothing could have been dug.
+			// A player cannot dig air, so a candidate must still hold its block.
+			if (held is not { } row || Integer(row, "block") < 1)
+			{
+				continue;
+			}
+
 			if (probe is { } answer && Boolean(answer, "blockGround"))
 			{
 				grounded.Add(candidate);
@@ -725,6 +738,23 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var firstMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 		var posX = Double(firstMotion, "posX");
 		var posY = Double(firstMotion, "posY");
+		// A run starts inside the capsule, and its shell stops the body at x 4.085 whatever the player pushes: the pod's
+		// own frame is not breakable ground, so the scan above answers with the rock outside it and every walk stalls on
+		// the wall (measured 2026-11-22, twelve runs). A person starts by stepping out through the capsule's mouth: hold
+		// `down` until the body has left the shell, and only then walk toward the block.
+		var podY = posY;
+		var leftThePod = new StringBuilder();
+		for (var step = 0; step < 24 && posY > podY - 9; step++)
+		{
+			await StageAsync(context, "down", "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(140, cancellationToken).ConfigureAwait(false);
+			var out2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			leftThePod.Append($" [{step}] y{String(out2, "posY")} x{String(out2, "posX")} m{Integer(out2, "moveY")}");
+			posX = Double(out2, "posX");
+			posY = Double(out2, "posY");
+		}
+
+		trace.Append("; leave-pod" + leftThePod);
 		var flippedX = false;
 		var flippedY = false;
 		var missesX = 0;

@@ -3,9 +3,15 @@ using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// Both clients' live block tables agree: the host and the member re-capture the product's own world
-/// fingerprint (the same diagnostic the runtime logs once per world entry) and their totals match.
-/// The row is the world-determinism family from the sweep — the worlds must be the same world.
+/// Row 1 — both clients see one world, and a block the host's player digs out by hand is gone on the
+/// member's screen too.
+///
+/// The row used to compare one product fingerprint hash against another. That proved neither half of the
+/// claim (the hash covers no drawn tile and no sound), and it passed while a client drew placeholders. So the
+/// row now does what the player does: it asks the game which cell beside the player can be broken, points the
+/// game's own pointer at that cell's screen point, holds the game's own attack there until the cell breaks,
+/// and then reads the same absolute cell on both clients — before the first hit, at the last crack stage, and
+/// after the block is gone.
 /// </summary>
 internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : AcceptanceCase
 {
@@ -13,218 +19,206 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The device writes the product's own log line on the client it runs on; the line is read
-		// back from that client's own log, so the comparison is between two files, not two answers.
-		// The count before the device call is what makes the read fresh: every world entry also writes
-		// a fingerprint line, and taking the last line without a count would compare an old entry line
-		// against the fresh one (measured 2026-11-15: the member's answer was its entry line and the
-		// case reported a false divergence).
-		var hostBefore = await TailCountAsync(context, false, cancellationToken).ConfigureAwait(false);
-		var memberBefore = await TailCountAsync(context, true, cancellationToken).ConfigureAwait(false);
-
-		var hostAnswer = await context.RecipeAsync("world-fingerprint", cancellationToken).ConfigureAwait(false);
-		context.Read("host-fingerprint-device", hostAnswer);
-		Require(Boolean(hostAnswer, "ok"), "the host's fingerprint device did not answer ok: " + Raw(hostAnswer));
-
-		var memberAnswer = await context.MemberRecipeAsync("world-fingerprint", cancellationToken).ConfigureAwait(false);
-		context.Read("member-fingerprint-device", memberAnswer);
-		Require(Boolean(memberAnswer, "ok"), "the member's fingerprint device did not answer ok: " + Raw(memberAnswer));
-
-		var hostTail = await PollTailAsync(context, false, hostBefore, cancellationToken).ConfigureAwait(false);
-		context.Read("host-fingerprint-line", hostTail);
-		var memberTail = await PollTailAsync(context, true, memberBefore, cancellationToken).ConfigureAwait(false);
-		context.Read("member-fingerprint-line", memberTail);
-
-		var hostLine = Line0(hostTail);
-		var memberLine = Line0(memberTail);
-		context.Note("host line: " + hostLine);
-		context.Note("member line: " + memberLine);
-
-		var hostTotal = Total(hostLine);
-		var memberTotal = Total(memberLine);
-		Require(hostTotal.Length > 0, "the host's fingerprint line carries no total: " + hostLine);
-		Require(memberTotal.Length > 0, "the member's fingerprint line carries no total: " + memberLine);
-		if (!string.Equals(hostTotal, memberTotal, StringComparison.OrdinalIgnoreCase))
+		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
+		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
+		// first candidate whose point lands inside the drawn area.
+		(int X, int Y) cell = default;
+		JsonElement? point = null;
+		foreach (var candidate in candidates)
 		{
-			await DiagnoseAsync(context, cancellationToken).ConfigureAwait(false);
-			throw new AssertionException($"the worlds differ: host total {hostTotal}, member total {memberTotal}");
+			var projected = await ProjectAsync(context, candidate, cancellationToken).ConfigureAwait(false);
+			if (IsOnScreen(projected))
+			{
+				cell = candidate;
+				point = projected;
+				break;
+			}
+		}
+		context.Read("host-cell-point", point);
+		Require(
+			point is not null,
+			$"none of the {candidates.Count} breakable cells beside the host's player is on the host's screen");
+
+		var hostBefore = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
+		var memberBefore = await ReadCellAsync(context, cell, true, cancellationToken).ConfigureAwait(false);
+		context.Read("host-cell-before", hostBefore);
+		context.Read("member-cell-before", memberBefore);
+		Require(
+			Integer(hostBefore, "block") > 0,
+			$"the host does not see a block at the cell the game called breakable ({Describe(cell)}): {Raw(hostBefore)}");
+		Require(
+			Integer(memberBefore, "block") == Integer(hostBefore, "block"),
+			$"the member does not draw the same block at ({Describe(cell)}): host block {Integer(hostBefore, "block")}, member block {Integer(memberBefore, "block")}");
+
+		var height = Integer(point, "screenHeight");
+		var screenX = Integer(point, "screenX");
+		var screenY = Integer(point, "screenY");
+
+		await UseTheGamePointerAsync(context, screenX, screenY, cancellationToken).ConfigureAwait(false);
+
+		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
+		// until the cell is gone (the block's own health decides how long that takes).
+		await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
+		JsonElement? hostDuring = null;
+		JsonElement? hostAfter = null;
+		try
+		{
+			var damageRose = false;
+			var broke = false;
+			for (var attempt = 0; attempt < 60 && !broke; attempt++)
+			{
+				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+				var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
+				if (Integer(now, "damage") > Integer(hostBefore, "damage"))
+				{
+					damageRose = true;
+					hostDuring ??= now;
+				}
+				broke = Integer(now, "block") <= 0;
+				hostAfter = now;
+			}
+			context.Read("host-cell-during", hostDuring);
+			context.Read("host-cell-after", hostAfter);
+			Require(
+				damageRose,
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}");
+			Require(
+				broke,
+				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
+		}
+		finally
+		{
+			await PressAsync(context, "release-key", cancellationToken).ConfigureAwait(false);
 		}
 
-		context.Note($"both clients' block tables read total {hostTotal}");
+		// The claim is about the member's screen: the same cell has to become the same empty cell there.
+		JsonElement? memberAfter = null;
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			memberAfter = await ReadCellAsync(context, cell, true, cancellationToken).ConfigureAwait(false);
+			if (Integer(memberAfter, "block") <= 0)
+			{
+				break;
+			}
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+		context.Read("member-cell-after", memberAfter);
+		Require(
+			Integer(memberAfter, "block") <= 0,
+			$"the block the host dug out at ({Describe(cell)}) is still drawn on the member's client: {Raw(memberAfter)}");
 	}
 
-	/// <summary>
-	/// A failing total must name the shape, not just the hash: walk the eight 128-row bands and count how many rows
-	/// differ in each, then for the first and the last differing row count the differing cells and how many of them the
-	/// member reads as 00. One side empty across a band means a band still filling in; a handful of cells means a
-	/// structural divergence. The readings are recorded before the assertion throws, so the ticket gets the extent even
-	/// though the case fails.
-	/// </summary>
-	private static async Task DiagnoseAsync(CaseContext context, CancellationToken cancellationToken)
+	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var walked = 0;
-		for (var y0 = 0; y0 < 1024; y0 += 128)
+		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24")).ConfigureAwait(false);
+		context.Read("host-breakable", found);
+		Require(Boolean(found, "ok"), "the game did not answer which cells beside the host's player can be broken: " + Raw(found));
+		var cells = new List<(int X, int Y)>();
+		if (found is { } answer && answer.TryGetProperty("cells", out var array) && array.ValueKind == JsonValueKind.Array)
 		{
-			var y1 = Math.Min(1024, y0 + 128);
-			var host = await context.RecipeAsync("block-band-digest", cancellationToken,
-				("y0", y0.ToString()), ("y1", y1.ToString()), ("width", "1024")).ConfigureAwait(false);
-			var member = await context.MemberRecipeAsync("block-band-digest", cancellationToken,
-				("y0", y0.ToString()), ("y1", y1.ToString()), ("width", "1024")).ConfigureAwait(false);
-			var hostRows = Rows(host, "host");
-			var memberRows = Rows(member, "member");
-			var differing = new List<int>();
-			for (var i = 0; i < Math.Min(hostRows.Length, memberRows.Length); i++)
+			foreach (var cell in array.EnumerateArray())
 			{
-				if (!string.Equals(hostRows[i], memberRows[i], StringComparison.Ordinal))
+				var x = Integer(cell, "x");
+				var y = Integer(cell, "y");
+				if (x != 0 || y != 0)
 				{
-					differing.Add(y0 + i);
+					cells.Add((x, y));
 				}
 			}
-
-			if (differing.Count == 0)
-			{
-				continue;
-			}
-
-			context.Note($"band {y0}..{y1}: {differing.Count} of {hostRows.Length} row(s) differ, first {differing[0]}, last {differing[^1]}");
-			if (walked++ > 0)
-			{
-				continue;
-			}
-
-			foreach (var y in new[] { differing[0], differing[^1] })
-			{
-				var hostRow = await context.RecipeAsync("block-row-dump", cancellationToken,
-					("y", y.ToString()), ("width", "1024")).ConfigureAwait(false);
-				var memberRow = await context.MemberRecipeAsync("block-row-dump", cancellationToken,
-					("y", y.ToString()), ("width", "1024")).ConfigureAwait(false);
-				var hostValues = StringValue(hostRow, "values");
-				var memberValues = StringValue(memberRow, "values");
-				var cells = Math.Min(hostValues.Length, memberValues.Length) / 2;
-				var differingCells = 0;
-				var memberZeros = 0;
-				var firstX = -1;
-				for (var x = 0; x < cells; x++)
-				{
-					if (hostValues[x * 2] == memberValues[x * 2] && hostValues[x * 2 + 1] == memberValues[x * 2 + 1])
-					{
-						continue;
-					}
-
-					differingCells++;
-					if (memberValues[x * 2] == '0' && memberValues[x * 2 + 1] == '0')
-					{
-						memberZeros++;
-					}
-
-					if (firstX < 0)
-					{
-						firstX = x;
-						context.Note($"row {y}: first differing cell x={x}, host={hostValues.Substring(x * 2, 2)}, member={memberValues.Substring(x * 2, 2)}");
-					}
-				}
-
-				context.Note($"row {y}: {differingCells} of {cells} cell(s) differ, member 00 in {memberZeros} of them, first x={firstX}");
-			}
 		}
+		Require(cells.Count > 0, "the game named no breakable cell beside the host's player: " + Raw(found));
+		return cells;
 	}
 
-	private static string[] Rows(JsonElement? answer, string side)
+	private static bool IsOnScreen(JsonElement? projected)
 	{
-		if (answer is not { ValueKind: JsonValueKind.Object } element
-			|| !element.TryGetProperty("rows", out var rows)
-			|| rows.ValueKind != JsonValueKind.Array)
+		if (!Boolean(projected, "ok"))
 		{
-			throw new AssertionException($"the {side} band digest answered no rows: " + Raw(answer));
+			return false;
 		}
-
-		var values = new string[rows.GetArrayLength()];
-		var index = 0;
-		foreach (var row in rows.EnumerateArray())
-		{
-			values[index++] = row.ValueKind == JsonValueKind.String ? row.GetString() ?? string.Empty : row.GetRawText();
-		}
-
-		return values;
+		var height = Integer(projected, "screenHeight");
+		var x = Integer(projected, "screenX");
+		var y = Integer(projected, "screenY");
+		return height > 0 && x > 0 && y > 0 && y < height;
 	}
 
-	private static string StringValue(JsonElement? answer, string property) =>
-		answer is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.ValueKind == JsonValueKind.String
-			? value.GetString() ?? string.Empty
-			: string.Empty;
+	private static Task<JsonElement?> ProjectAsync(CaseContext context, (int X, int Y) cell, CancellationToken cancellationToken) =>
+		context.RecipeAsync("screen-project", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString()));
 
-	/// <summary>
-	/// The device's own line lands in the client's file a moment after the answer (BepInEx flushes on
-	/// its own cadence), so the tail is polled until a line WITH a total appears; the last such line is
-	/// the freshest capture.
-	/// </summary>
-	private static async Task<JsonElement?> PollTailAsync(CaseContext context, bool member, int before, CancellationToken cancellationToken)
+	private static Task<JsonElement?> ReadCellAsync(CaseContext context, (int X, int Y) cell, bool member, CancellationToken cancellationToken)
 	{
-		JsonElement? last = null;
-		for (var wait = 0; wait < 20; wait++)
-		{
-			last = await TailAsync(context, member, cancellationToken).ConfigureAwait(false);
-			if (Count(last) > before && Total(Line0(last)).Length > 0)
-			{
-				return last;
-			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-		}
-
-		throw new AssertionException($"the {(member ? "member" : "host")} fingerprint device wrote no new line (count stayed {before}): " + Raw(last));
+		var args = new (string Key, string Value)[] { ("x", cell.X.ToString()), ("y", cell.Y.ToString()) };
+		return member
+			? context.MemberRecipeAsync("block-read-at", cancellationToken, args)
+			: context.RecipeAsync("block-read-at", cancellationToken, args);
 	}
 
-	private static async Task<int> TailCountAsync(CaseContext context, bool member, CancellationToken cancellationToken) =>
-		Count(await TailAsync(context, member, cancellationToken).ConfigureAwait(false));
-
-	private static int Count(JsonElement? answer) =>
-		answer is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty("count", out var value)
-		&& value.ValueKind is JsonValueKind.String or JsonValueKind.Number
-		&& int.TryParse(value.ToString(), out var count)
-			? count
-			: 0;
-
-	private static async Task<JsonElement?> TailAsync(CaseContext context, bool member, CancellationToken cancellationToken) =>
-		await context.Session
-			.ActionAsync(member ? context.Session.MemberUrl : context.Session.HostUrl, "log-tail", cancellationToken, ("-Argument", "[WorldFingerprint]"), ("-Text", "1"))
-			.ConfigureAwait(false);
-
-	private static string Line0(JsonElement? answer) =>
-		answer is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty("line0", out var line)
-		&& line.ValueKind == JsonValueKind.String
-			? line.GetString() ?? string.Empty
-			: string.Empty;
-
-	/// <summary>The `total &lt;hash&gt;` field of a fingerprint line, or empty.</summary>
-	private static string Total(string line)
+	// The game's own pointer: the acceptance channel stages the position the game reads through Input.mousePosition,
+	// so no window is activated and the OS input queue never sees a mouse (the host runs behind other windows).
+	private static async Task UseTheGamePointerAsync(CaseContext context, int x, int y, CancellationToken cancellationToken)
 	{
-		var at = line.LastIndexOf("total ", StringComparison.OrdinalIgnoreCase);
-		if (at < 0)
-		{
-			return string.Empty;
-		}
-
-		var start = at + "total ".Length;
-		var end = start;
-		while (end < line.Length && (char.IsLetterOrDigit(line[end]) || line[end] == '-' || line[end] == '_'))
-		{
-			end++;
-		}
-
-		return end > start ? line[start..end] : string.Empty;
+		var installed = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "install"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		Require(Boolean(installed, "ok"), "the acceptance channel could not install the game's pointer: " + Raw(installed));
+		var moved = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "move"),
+			("x", x.ToString()),
+			("y", y.ToString()),
+			("button", "0")).ConfigureAwait(false);
+		context.Read("host-pointer", moved);
+		Require(Boolean(moved, "ok"), $"the acceptance channel could not point the game at {x},{y}: {Raw(moved)}");
 	}
+
+	private static async Task PressAsync(CaseContext context, string mode, CancellationToken cancellationToken)
+	{
+		var answer = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", mode),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		Require(Boolean(answer, "ok"), $"the acceptance channel could not {mode} the game's attack button: {Raw(answer)}");
+	}
+
+	private static string Describe((int X, int Y) cell) => cell.X + "," + cell.Y;
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
-	private static bool Boolean(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.ValueKind == JsonValueKind.True;
+	private static bool Boolean(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element || !element.TryGetProperty(property, out var value))
+		{
+			return false;
+		}
+
+		return value.ValueKind == JsonValueKind.True;
+	}
+
+	private static int Integer(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element ? Integer(element, property) : 0;
+
+	private static int Integer(JsonElement element, string property)
+	{
+		if (!element.TryGetProperty(property, out var value))
+		{
+			return 0;
+		}
+
+		return value.ValueKind switch
+		{
+			JsonValueKind.Number when value.TryGetInt32(out var number) => number,
+			JsonValueKind.String when int.TryParse(value.GetString(), out var parsed) => parsed,
+			_ => 0,
+		};
+	}
 
 	private static void Require(bool condition, string message)
 	{

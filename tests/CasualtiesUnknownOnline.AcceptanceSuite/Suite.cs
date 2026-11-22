@@ -1265,7 +1265,9 @@ internal static class CaseRegistry
 		// sit right after the restart so a single pass still finds that state.
 		new CraftingCase(),
 		new LockpickCase(),
-		new CapabilityReportCase(),
+		// `capability-report` is not a row: the adapter's report is a boot log, and its text, verdict and refusal
+		// rule are covered by `AdapterCapabilityReportTests` in the unit suite. A case that reads our own log with no
+		// player action proves nothing a gate does not (ticket: 1.0-rebuild-each-acceptance-row-from-the-game).
 		new MedicalChartCase(),
 		// Re-registered 2026-11-18 for the ticket's next step: the row now records `minigame-live` at the
 		// first press, so its failure names the minigame's own state (holding, handStarted, angle, fill) at

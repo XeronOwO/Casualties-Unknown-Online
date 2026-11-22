@@ -176,7 +176,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// pump at 1.84 world units, with the block behind it at 3.85.
 		var ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
 		context.Read("host-swing-ray", ray);
-		var obstacle = ray is { } reading ? FirstObstacle(reading) : "nothing the client could read";
+		var obstacle = ray is { } reading ? FirstObstacle(reading, cell) : "nothing the client could read";
 		// A player who finds the pod's pump in the way turns to another patch of floor rather than pushing past it. The
 		// scan already named the cells a swing can reach, so the row aims at each of them in turn and keeps the first one
 		// whose own ray is clear (measured 2026-11-22: stepping around wandered 44 world units and left the aim on a cell
@@ -201,7 +201,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				}
 
 				var tryRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
-				var tryObstacle = tryRay is { } otherReading ? FirstObstacle(otherReading) : "nothing the client could read";
+				var tryObstacle = tryRay is { } otherReading ? FirstObstacle(otherReading, other) : "nothing the client could read";
 				context.Read($"host-swing-ray-at-{Describe(other)}", tryRay);
 				if (tryObstacle != "")
 				{
@@ -641,7 +641,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var flippedY = false;
 		var missesX = 0;
 		var missesY = 0;
-		for (var step = 0; step < 24; step++)
+		for (var step = 0; step < 40; step++)
 		{
 			var away = Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5);
 			// An empty hand reaches 4.5 world units from the attacking limb (`Body.cs:2036`), and the limb sits roughly
@@ -949,7 +949,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
 	}
 
-	private static string FirstObstacle(JsonElement ray)
+	private static string FirstObstacle(JsonElement ray, (int X, int Y) cell)
 	{
 		if (ray.ValueKind != JsonValueKind.Object || !ray.TryGetProperty("hits", out var hits) || hits.ValueKind != JsonValueKind.Array)
 		{
@@ -962,6 +962,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// meets after the player's own body — a pod's pump in front of the wall swallows the damage without any
 		// error (measured 2026-11-22: 105 swings, `damage` stayed -1, and the ray read `Body 0` then
 		// `lifepodpump 1.843` before the `Chunk(BlockGround) 3.85`).
+		//
+		// The first block on the ray also has to BE the cell the row means: the loop damages the first `BlockGround`
+		// it meets, so a closer chunk on the way takes the damage instead (measured 2026-11-22: the ray was clean,
+		// the game called its damage routine 27 times, and the chosen cell lost nothing).
 		var nearest = "";
 		foreach (var hit in hits.EnumerateArray())
 		{
@@ -972,7 +976,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 			if (String(hit, "tag") == "BlockGround")
 			{
-				return "";
+				var blockCell = BlockCellAt(ray, hit);
+				if (blockCell == cell)
+				{
+					return "";
+				}
+
+				return "the block at (" + blockCell.X + "," + blockCell.Y + ") at " + String(hit, "distance")
+					+ " instead of " + Describe(cell);
 			}
 
 			if (nearest.Length == 0)
@@ -982,6 +993,18 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		}
 
 		return nearest.Length == 0 ? "nothing at all" : nearest;
+	}
+
+	// Where a hit on the ray lands, in block coordinates: the ray's own origin and direction come back with it, so the
+	// point is `from + dir * distance` and the block is the cell that contains it.
+	private static (int X, int Y) BlockCellAt(JsonElement ray, JsonElement hit)
+	{
+		var fromX = Double(ray, "fromX");
+		var fromY = Double(ray, "fromY");
+		var dirX = Double(ray, "dirX");
+		var dirY = Double(ray, "dirY");
+		var distance = Double(hit, "distance");
+		return ((int)Math.Floor(fromX + (dirX * distance)), (int)Math.Floor(fromY + (dirY * distance)));
 	}
 
 	// Distance in world units: one cell is one unit, so this is the same number the game measures from the limb.

@@ -31,6 +31,17 @@ internal sealed class LockpickCase : AcceptanceCase
 		// that refuses the key (`.acceptance/lock-8`: the pointer named `containercrate(Clone)`). So each candidate is
 		// reached, pointed at, and read before the key goes down.
 		var candidates = LockableDoors(doors);
+
+		// A fresh world keeps its doors hundreds of units away and `teleport` clamps to a floor, so the door is brought to
+		// the host instead (`move-openable`: the game's own door object, moved onto the floor the body stands on).
+		var moved = await context.RecipeAsync("move-openable", cancellationToken).ConfigureAwait(false);
+		context.Read("moved-door", moved);
+		if (Boolean(moved, "ok") == true)
+		{
+			candidates.Insert(0, new Door(NumberOr(moved, "x", 0), NumberOr(moved, "y", 0), 0, StringValue(moved, "name")));
+			context.Note("brought " + StringValue(moved, "name") + " to " + NumberOr(moved, "x", 0).ToString("0.##", CultureInfo.InvariantCulture) + "," + NumberOr(moved, "y", 0).ToString("0.##", CultureInfo.InvariantCulture));
+		}
+
 		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
 		JsonElement? state = null;
 		Door? chosen = null;

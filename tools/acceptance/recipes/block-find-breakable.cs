@@ -50,6 +50,15 @@
 		// The callers damage the cell with 1,000; a tougher block keeps its sprite and
 		// cannot witness the damage path (measured 2026-11-16: block 6 survived 1,000).
 		if (world.GetBlockInfo(block).health > 1000f) { continue; }
+		// A block number in the world grid is not yet something a swing can hit: the game damages only colliders
+		// tagged `BlockGround` (Body.cs:2162-2168), and the grid also carries background and wall blocks whose
+		// collider either does not exist at that point or carries another tag (measured 2026-11-22: the first
+		// candidate held only a dropped item's collider, tag "Untagged", layer "Item").
+		var at = new Vector2(x + 0.5f, y + 0.5f);
+		var under = Physics2D.OverlapPointAll(at);
+		var ground = false;
+		for (var h = 0; h < under.Length; h++) { if (under[h].gameObject.CompareTag("BlockGround")) { ground = true; break; } }
+		if (!ground) { continue; }
 		rows.Add("{\"x\":" + x + ",\"y\":" + y + ",\"block\":" + block + "}");
 	}
 	return "{\"ok\":true,\"count\":" + rows.Count + ",\"bodyX\":" + startX + ",\"bodyY\":" + (startY + 1) + ",\"cells\":[" + string.Join(",", rows) + "]}";

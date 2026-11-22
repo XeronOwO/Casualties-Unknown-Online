@@ -31,8 +31,23 @@
 	var cellCentre = new Vector2(x + 0.5f, y + 0.5f);
 	var toCell = cellCentre - new Vector2(hand.x, hand.y);
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
-	var hit = Physics2D.Raycast(new Vector2(hand.x, hand.y), aim, 4.5f);
-	var hitName = hit.collider == null ? "" : hit.collider.gameObject.name;
+	// The swing's own walk: `Body.cs:2168` takes `Physics2D.RaycastAll` from `limbs[1]` along the aim, skips the
+	// player's own transform, and damages the first hit tagged `BlockGround`. A single `Physics2D.Raycast` stops on the
+	// player's own collider and says the swing missed when the game would have gone on to the block (measured
+	// 2026-11-22: the probe reported `hitName:"Body"` while the aim was already inside the cell).
+	var firstOther = "";
+	var blockHit = false;
+	var blockPoint = Vector2.zero;
+	var all = Physics2D.RaycastAll(new Vector2(hand.x, hand.y), aim, 4.5f);
+	for (var i = 0; i < all.Length; i++) {
+		var hitTransform = all[i].transform;
+		if (hitTransform == null || hitTransform == body.transform) { continue; }
+		if (firstOther.Length == 0) { firstOther = hitTransform.gameObject.name; }
+		if (hitTransform.CompareTag("BlockGround")) { blockHit = true; blockPoint = all[i].point; break; }
+	}
+	var hitName = firstOther;
+	var hit = default(RaycastHit2D);
+	hit.point = blockHit ? blockPoint : Vector2.zero;
 	var row = WorldGeneration.world.GetBlockDamage(new Vector2Int(x, y));
 	var damage = row != null ? row.damage : -1f;
 	return "{\"ok\":true,\"conscious\":" + (body.conscious ? "true" : "false")
@@ -44,6 +59,7 @@
 		+ ",\"aimDegrees\":" + (System.Math.Atan2(aim.y, aim.x) * 57.29578f).ToString("0.#", inv)
 		+ ",\"targetDistance\":" + toCell.magnitude.ToString("0.##", inv)
 		+ ",\"inRange\":" + (toCell.magnitude <= 4.5f ? "true" : "false")
+		+ ",\"blockHit\":" + (blockHit ? "true" : "false")
 		+ ",\"hitName\":\"" + hitName.Replace("\"", "") + "\""
 		+ ",\"hitPointX\":" + hit.point.x.ToString("0.##", inv) + ",\"hitPointY\":" + hit.point.y.ToString("0.##", inv)
 		+ ",\"damage\":" + damage.ToString("0.###", inv) + "}";

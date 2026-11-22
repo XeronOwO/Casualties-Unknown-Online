@@ -240,7 +240,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			+ "swing: " + Raw(under));
 		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
 		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")
-			&& String(swing, "hitName").Contains("Block", StringComparison.OrdinalIgnoreCase),
+			&& Boolean(swing, "blockHit"),
 			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body, a target inside its reach, "
 			+ "and a swing ray that lands on the block's collider: " + Raw(swing) + "; the scan that named the cell read "
 			+ _lastScan);

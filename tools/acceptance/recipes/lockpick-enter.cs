@@ -1,5 +1,5 @@
 // recipe: lockpick-enter
-// args: press=n
+// args: press=n radius=n
 // serves: 1.0-rebuild-each-acceptance-row-from-the-game (row 4, lockpick)
 // returns: ok, kind, correctAngle, uiScale, baseX, baseY, screenX, screenY, handX, handY, handDistance, handAngle, pressed
 //
@@ -30,7 +30,7 @@
 	if (screenRect == null) { return "{\"ok\":false,\"error\":\"no-screen-transform\"}"; }
 
 	var rad = angle * UnityEngine.Mathf.Deg2Rad;
-	var target = new UnityEngine.Vector2(UnityEngine.Mathf.Cos(rad), UnityEngine.Mathf.Sin(rad)) * 220f;
+	var target = new UnityEngine.Vector2(UnityEngine.Mathf.Cos(rad), UnityEngine.Mathf.Sin(rad)) * {{n:radius}};
 	var scale = PlayerCamera.uiScale;
 	var basePos = (UnityEngine.Vector2)screenRect.transform.position;
 	var screen = new UnityEngine.Vector2(basePos.x + target.x * scale, basePos.y + target.y * scale);

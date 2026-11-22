@@ -158,10 +158,23 @@ internal sealed class LockpickCase : AcceptanceCase
 		// never inside the ring: measured 2026-11-23, `lockpick-aim` answered `no-minigame` one round trip
 		// after `lock-25` had read `active: true`. `lockpick-enter` moves and presses in the same eval, so
 		// the first frame after the click already has a hand on the band and a key down.
-		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0")).ConfigureAwait(false);
+		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0"), ("radius", "245")).ConfigureAwait(false);
 		context.Read("enter", enter);
 		var target = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
 		context.Read("target", target);
+		// The press that starts the hand must not land on the crate: `HandleInput` returns while a minigame is
+		// open (`PlayerCamera.cs:1058-1065`), but the drag path still sees the button, and a press over the
+		// crate clicked it a second time and closed the lock (measured 2026-11-23, `lock-35`). The outer edge
+		// of the game's own band (247 hand units) is where the crate is no longer under the pointer.
+		var edge = await context.RecipeAsync("usable-hover", cancellationToken).ConfigureAwait(false);
+		context.Read("edge-hover", edge);
+		if (Boolean(edge, "usable") != true)
+		{
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "attack"), ("action", "down")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+			context.Read("after-edge-press", await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false));
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "attack"), ("action", "up")).ConfigureAwait(false);
+		}
 		var aim = Boolean(enter, "ok") == true
 			? enter
 			: await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);

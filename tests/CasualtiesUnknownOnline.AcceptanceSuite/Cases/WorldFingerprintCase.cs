@@ -113,6 +113,34 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(aim.Ok && Double(aimJson, "distance") < 0.5, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
 			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): " + aim.Reading);
 
+		// The game refreshes its own aim once a frame, so the row asks it in a later call what it thinks the crosshair
+		// sits on, and re-aims when the two disagree (measured 2026-11-22: they were two blocks apart).
+		JsonElement? looked = null;
+		var onTheCell = false;
+		for (var tryAim = 0; tryAim < 3 && !onTheCell; tryAim++)
+		{
+			await Task.Delay(120, cancellationToken).ConfigureAwait(false);
+			looked = await context.RecipeAsync("swing-state", cancellationToken).ConfigureAwait(false);
+			context.Read($"the game's aim, try {tryAim + 1}", looked);
+			var aimX = Double(looked, "lookX");
+			var aimY = Double(looked, "lookY");
+			var gapX = aimX - (cell.X + 0.5);
+			var gapY = aimY - (cell.Y + 0.5);
+			onTheCell = (gapX * gapX) + (gapY * gapY) < 0.25;
+			if (!onTheCell && tryAim < 2)
+			{
+				aimJson = await context.RecipeAsync(
+					"aim-at-cell",
+					cancellationToken,
+					("x", cell.X.ToString()),
+					("y", cell.Y.ToString())).ConfigureAwait(false);
+			}
+		}
+
+		Require(
+			onTheCell,
+			$"the game kept its crosshair off {Describe(cell)} after three aims, so no swing could reach it: {Raw(looked)}");
+
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes).
 		await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
@@ -134,6 +162,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var entriesAtPress = Integer(staged, "handleInputEntries");
 		JsonElement? hostDuring = null;
 		JsonElement? hostAfter = null;
+		JsonElement? gatesDuring = null;
 		try
 		{
 			var damageRose = false;
@@ -141,6 +170,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			for (var attempt = 0; attempt < 60 && !broke; attempt++)
 			{
 				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+				if (attempt == 4)
+				{
+					// Halfway through the hold, name every gate between the held key and a hurt block, so a failure
+					// can say which one said no instead of only that the damage stayed flat.
+					var gates = await context.RecipeAsync("swing-state", cancellationToken).ConfigureAwait(false);
+					gatesDuring = gates;
+					context.Read("the swing's own gates", gates);
+				}
 				var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 				if (Integer(now, "damage") > Integer(hostBefore, "damage"))
 				{
@@ -163,7 +200,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

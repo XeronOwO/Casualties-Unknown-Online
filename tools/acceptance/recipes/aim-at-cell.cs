@@ -35,6 +35,8 @@
 	for (; iterations < 6; iterations++)
 	{
 		moveTo.Invoke(null, new object[] { (float)stagedX, (float)stagedY });
+		// The game's aim (`body.targetLookPos`) is refreshed once per frame from this same pointer, so it is stale
+		// within a single evaluation; the row checks it in a later call (see `swing-state`) instead of here.
 		var back = cam.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
 		errorX = target.x - back.x;
 		errorY = target.y - back.y;

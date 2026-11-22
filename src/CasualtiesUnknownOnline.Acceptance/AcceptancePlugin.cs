@@ -40,6 +40,7 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		FacialBodyProbe.Install(_harmony);
 		RemoteViewRedPatch.Install(_harmony);
 		RemoteViewTracePatch.Install(_harmony);
+		SwingProbePatch.Install(_harmony);
 		HotReplRoslynGameReferencePatch.TryInstall(_harmony);
 		Logger.LogInfo("[Acceptance] channel plug-in loaded; the recorder is armed, input is staged only when a batch installs it.");
 	}

@@ -31,12 +31,16 @@
 	var errorX = 0f;
 	var errorY = 0f;
 	var iterations = 0;
+	var trace = new System.Text.StringBuilder();
 	for (; iterations < 6; iterations++)
 	{
 		moveTo.Invoke(null, new object[] { (float)stagedX, (float)stagedY });
 		var back = cam.ScreenToWorldPoint(UnityEngine.Input.mousePosition);
 		errorX = target.x - back.x;
 		errorY = target.y - back.y;
+		trace.Append(iterations).Append(':').Append(stagedX.ToString("0.#", inv)).Append(',').Append(stagedY.ToString("0.#", inv))
+			.Append('>').Append(back.x.ToString("0.###", inv)).Append(',').Append(back.y.ToString("0.###", inv))
+			.Append("e").Append(errorX.ToString("0.###", inv)).Append(';');
 		if ((errorX * errorX) + (errorY * errorY) < 0.25f) { break; }
 		var here = cam.WorldToScreenPoint(back);
 		var next = cam.WorldToScreenPoint(new Vector3(back.x + 1f, back.y + 1f, 0f));
@@ -58,5 +62,6 @@
 		+ ",\"screenY\":" + stagedY.ToString("0.#", inv)
 		+ ",\"pointerX\":" + UnityEngine.Input.mousePosition.x.ToString("0.#", inv)
 		+ ",\"pointerY\":" + UnityEngine.Input.mousePosition.y.ToString("0.#", inv)
-		+ ",\"note\":\"aimed by the camera's own projection\"}";
+		+ ",\"note\":\"aimed by the camera's own projection\""
+		+ ",\"trace\":\"" + trace.ToString() + "\"}";
 }))()

@@ -98,7 +98,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("x", cell.X.ToString()),
 			("y", cell.Y.ToString())).ConfigureAwait(false);
 		var aim = (Ok: Boolean(aimJson, "ok"), Reading: Raw(aimJson));
-		Require(aim.Ok, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
+		Require(aim.Ok && Double(aimJson, "distance") < 0.5, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
 			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): " + aim.Reading);
 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding

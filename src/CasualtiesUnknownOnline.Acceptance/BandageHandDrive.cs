@@ -70,6 +70,21 @@ namespace CasualtiesUnknownOnline.Acceptance
 				return;
 			}
 
+			try
+			{
+				Place();
+			}
+			catch (Exception exception)
+			{
+				// A throw inside a Harmony prefix is logged on every frame; the drive stops instead and the case's own
+				// reading reports the untouched hand.
+				Active = false;
+				UnityEngine.Debug.LogWarning("[Acceptance] the bandage hand drive stopped: " + exception.Message);
+			}
+		}
+
+		private static void Place()
+		{
 			// The hand lives on the shared minigame body (`MinigameBase.handPos`); the roll is the wrap's own field,
 			// reachable through the same body's `currentMinigame`.
 			var holder = AccessTools.TypeByName("MinigameBase");
@@ -86,8 +101,9 @@ namespace CasualtiesUnknownOnline.Acceptance
 			var roll = rollField == null ? 0f : Convert.ToSingle(rollField.GetValue(current));
 
 			Frames++;
-			// The hand sits just ahead of the roll while it turns, and comes back to the start once the roll is nearly
-			// done — that return is the game's own finish condition (`bandageAngle > 350 && angle < 90`).
+			// The hand sits just ahead of the roll while it turns — inside the wrap's own twenty-degree windows on
+			// both sides — and comes back to the start once the roll is nearly done, which is its finish condition
+			// (`bandageAngle > 350 && angle < 90`).
 			Angle = roll > 350f ? 0.5f : roll + Lead;
 
 			var radians = Angle * Mathf.Deg2Rad;

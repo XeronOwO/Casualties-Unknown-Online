@@ -200,16 +200,19 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);
-			var drive = await context.MemberRecipeAsync(
+			// The hand has to be on the roll before the key goes down: the game stamps `holdingBandage` only on
+			// the click-start frame, and only when the hand is within about twenty-five degrees of the roll
+			// (`BandageMinigame.cs:77-84`). So the drive first parks the hand at the roll, the key goes down
+			// there, and only then does the hand start walking the ring (measured 2026-11-23: pressing first
+			// read `holding: false` for the whole 26 s gesture).
+			var park = await context.MemberRecipeAsync(
 				"bandage-hand",
 				cancellationToken,
 				("mode", "start"),
 				("radius", "250"),
-				("step", "2")).ConfigureAwait(false);
-			context.Read("hand drive started", drive);
-			Require(
-				Boolean(drive, "ok"),
-				"the hand drive could not start: " + Raw(drive) + "; ring radius on screen " + radius.ToString("0.#", CultureInfo.InvariantCulture));
+				("step", "0")).ConfigureAwait(false);
+			context.Read("hand parked on the roll", park);
+			await Task.Delay(300, cancellationToken).ConfigureAwait(false);
 			await context.MemberRecipeAsync(
 				"virtual-input",
 				cancellationToken,
@@ -224,6 +227,17 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);
+			await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+			var drive = await context.MemberRecipeAsync(
+				"bandage-hand",
+				cancellationToken,
+				("mode", "start"),
+				("radius", "250"),
+				("step", "15")).ConfigureAwait(false);
+			context.Read("hand drive started", drive);
+			Require(
+				Boolean(drive, "ok"),
+				"the hand drive could not start: " + Raw(drive) + "; ring radius on screen " + radius.ToString("0.#", CultureInfo.InvariantCulture));
 
 			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
 			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand

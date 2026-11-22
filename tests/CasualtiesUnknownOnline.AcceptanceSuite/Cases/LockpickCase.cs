@@ -46,15 +46,37 @@ internal sealed class LockpickCase : AcceptanceCase
 		}
 
 		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
+		// The crate the row spawned is used through the game's own entry, `Openable.OnUse`. The pointer route stays
+		// closed to this row: the game reads the mouse natively (measured 2026-11-23: 152 drags answered
+		// `usable:false` while the staged pointer named the crate), and a real click would need OS-level input,
+		// which `AcceptanceDriverGateTests` forbids in the tools. The ticket names the shortcut.
+		var movedName = StringValue(moved, "name");
+		JsonElement? state = null;
+		Door? chosen = null;
+		if (Boolean(moved, "ok") == true && movedName.Length > 0)
+		{
+			var used = await context.RecipeAsync("openable-use", cancellationToken, ("name", movedName)).ConfigureAwait(false);
+			context.Read("openable-use", used);
+			if (Boolean(used, "ok") == true)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+				state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
+				context.Read("lockpick after use", state);
+				if (Boolean(state, "active") == true)
+				{
+					chosen = candidates[0];
+				}
+			}
+		}
 		// A lock needs a pick in hand only when the game decides so: `NeedsItem()` is `pickLevel >= 0` and
 		// `pickLevel` is -1 with an empty hand (`LockpingMinigame.cs:27-29`, `:97-102`), so an empty hand is a
 		// legal start. The item route is left out on purpose — `item-provide type=lockpick` answered
 		// "The Object you want to instantiate is null" (2026-11-23), and the row first needs to know why the
 		// minigame closes with an empty hand before adding a pick.
-		JsonElement? state = null;
-		Door? chosen = null;
 		var rejected = new StringBuilder();
-		foreach (var candidate in candidates.Take(3))
+		// The spawned crate is used first; the walk-and-point loop is the fallback for a world that refused to
+		// spawn one, and it keeps the readings that showed the pointer route closed.
+		foreach (var candidate in chosen.HasValue ? candidates.Take(0) : candidates.Take(3))
 		{
 			var standX = candidate.X - 2;
 			var walked = await context.RecipeAsync("teleport", cancellationToken,
@@ -101,7 +123,6 @@ internal sealed class LockpickCase : AcceptanceCase
 			context.Read("pointer-under", under);
 			var hover = await context.RecipeAsync("usable-hover", cancellationToken).ConfigureAwait(false);
 			context.Read("hover", hover);
-			var movedName = StringValue(moved, "name");
 			if (movedName.Length > 0
 				&& !string.Equals(StringValue(hover, "name"), movedName, StringComparison.Ordinal))
 			{
@@ -110,51 +131,23 @@ internal sealed class LockpickCase : AcceptanceCase
 			}
 
 			// The pointer's own hit is recorded, not gated: a crate in front of a door is a real situation, and whether
-			// the game starts the lock is the only fact that decides — the key press is harmless when it lands on nothing.
-			// A door is opened by the mouse: the game's own start-dragging path (`PlayerCamera.HandleStartDragging`,
-			// `PlayerCamera.cs:1521`) runs on the left button, finds the usable object under the pointer and sends it
-			// `OnUse` (`:1601-1606`). Pressing the use *key* never reaches it (measured 2026-11-23: three doors, key
-			// pressed, `lockpick-state.active` stayed false). The click is staged at the pointer the aim just set.
-			var atX = NumberOr(pointed, "screenX", 640).ToString("0.###", CultureInfo.InvariantCulture);
-			var atY = NumberOr(pointed, "screenY", 360).ToString("0.###", CultureInfo.InvariantCulture);
-			var before = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
-			context.Read("click-before", before);
-			// `HandleDragging` is gated by `Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))` (`PlayerCamera.cs:1509`), and
-			// that bind is a mouse button: the key table and the button table are separate, so both are staged here.
-			// Measured 2026-11-23: `buttonDownAnswers` rose 0 -> 3 while `HandleStartDragging` never ran, because only the
-			// button table was staged and the game asked the key table.
-			// The click is not reliable on its own: the drag only starts on the down edge, the game builds the
-			// minigame when the drag ends, and a click that lands a frame late leaves nothing behind (measured
-			// 2026-11-23: `lock-25` read `active:true`, `lock-27` read `active:false` for every candidate with
-			// the same code). A player clicks again, so the row does too, and records what the click path saw.
-			for (var click = 0; click < 3; click++)
+			// the game starts the lock is the only fact that decides.
+			// The crate is used through the game's own entry: the pointer route is closed to this row because the
+			// game reads the mouse natively (measured 2026-11-23: 152 drags read `usable:false` while the staged
+			// pointer named the crate), and the OS-level input a real click needs is gated by
+			// `AcceptanceDriverGateTests`. The shortcut is named in the ticket; what the row judges is still the
+			// game's own minigame state.
+			var used = await context.RecipeAsync("openable-use", cancellationToken, ("name", movedName)).ConfigureAwait(false);
+			context.Read("openable-use", used);
+			if (Boolean(used, "ok") != true)
 			{
-				var keyDown = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
-				Require(Boolean(keyDown, "ok"), "the harness could not press the use key: " + Raw(keyDown));
-				var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
-				Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
-				await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
-				// Released straight away: holding the press through the read left `active` false (2026-11-23).
-				await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
-				await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
-				await Task.Delay(TimeSpan.FromMilliseconds(350), cancellationToken).ConfigureAwait(false);
-				state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
-				context.Read($"lockpick {click + 1}", state);
-				if (Boolean(state, "active") == true)
-				{
-					// Read the minigame's own target straight away: `ActiveMinigameUpdate` ends the minigame
-					// when a needed item is missing or the body is not conscious (`MinigameBase.cs:206-210`),
-					// and `LockpingMinigame.Update` ends it when `toDestroy` is falsy (`:108-110`).
-					var fresh = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
-					context.Read($"target {click + 1}", fresh);
-				}
-				var clicked = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
-				context.Read($"click {click + 1}", clicked);
-				if (Boolean(state, "active") == true)
-				{
-					break;
-				}
+				rejected.Append(" use:").Append(Raw(used)).Append(';');
+				continue;
 			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
+			context.Read("lockpick after use", state);
 
 			if (Boolean(state, "active") == true)
 			{
@@ -170,7 +163,10 @@ internal sealed class LockpickCase : AcceptanceCase
 		// never inside the ring: measured 2026-11-23, `lockpick-aim` answered `no-minigame` one round trip
 		// after `lock-25` had read `active: true`. `lockpick-enter` moves and presses in the same eval, so
 		// the first frame after the click already has a hand on the band and a key down.
-		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0"), ("radius", "245")).ConfigureAwait(false);
+		// The game counts the hand as inside only between 195 and 247 units (`LockpingMinigame.cs:114-118`) and the
+		// hand clamps to the ring's 250 edge, so the pointer is aimed inside the band rather than at its outer edge:
+		// measured 2026-11-23, a pointer at 245 left the hand at the clamp, `max` read 0.509 and the turn broke.
+		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0"), ("radius", "215")).ConfigureAwait(false);
 		context.Read("enter", enter);
 		var target = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
 		context.Read("target", target);
@@ -250,9 +246,7 @@ internal sealed class LockpickCase : AcceptanceCase
 			// The minigame can close between the aim and the press (a stray click, a timeout): the player
 			// would use the door again, so the row does the same instead of constructing the minigame.
 			context.Note("the minigame closed during the aim; using the door again");
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
+			await context.RecipeAsync("openable-use", cancellationToken, ("name", movedName)).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 			var reopened = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
 			Require(Boolean(reopened, "ok"), "the door did not start the minigame again: " + Raw(reopened));
@@ -330,6 +324,24 @@ internal sealed class LockpickCase : AcceptanceCase
 		// The minigame closing is the game's own completion signal; the clips it plays are index-named
 		// and only some opens drop a crate (measured 2026-11-14), so the sound is recorded, not judged.
 		context.Note($"clips {line}");
+
+		// The lock's own answer: turning the lock takes the building's health to zero, and the scan stops listing a
+		// crate with no health left (`LockableDoors` drops `health <= 0`). A minigame that only closed — the player
+		// walking away, a stray press — leaves the crate standing, so the crate is read instead of the minigame.
+		var after = await context.RecipeAsync("openable-find", cancellationToken).ConfigureAwait(false);
+		context.Read("after-use", after);
+		// The scan lists every crate in the world and their names repeat, so the spawned crate is found by where it
+		// stands, not by its name (measured 2026-11-23: name matching found an untouched crate 400 units away).
+		var spawnedX = NumberOr(moved, "x", double.NaN);
+		var spawnedY = NumberOr(moved, "y", double.NaN);
+		var standing = LockableDoors(after).FirstOrDefault(door =>
+			string.Equals(door.Name, movedName, StringComparison.Ordinal)
+			&& Math.Abs(door.X - spawnedX) <= 2
+			&& Math.Abs(door.Y - spawnedY) <= 2);
+		Require(standing.Name is null,
+			"the lockpick minigame closed but its crate still stands at "
+			+ standing.X.ToString("0.##", CultureInfo.InvariantCulture) + ","
+			+ standing.Y.ToString("0.##", CultureInfo.InvariantCulture));
 	}
 
 	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)

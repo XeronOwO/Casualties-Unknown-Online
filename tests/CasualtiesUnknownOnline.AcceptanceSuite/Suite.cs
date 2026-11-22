@@ -84,9 +84,23 @@ internal static partial class Program
 		var suiteLogStart = await MarkSuiteLogsAsync(session, options).ConfigureAwait(false);
 		timeline.Begin("setup");
 		var pairStartedUtc = DateTimeOffset.UtcNow;
-		(var sessionNote, var memberNote) = tryReuse
-			? await TryReusePairAsync(session).ConfigureAwait(false)
-			: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+		// A client that draws placeholders makes every later reading meaningless, so the run refuses to
+		// start rather than spending twenty minutes proving nothing: the message names the client and the
+		// label count, and the exit stays a clean refusal (measured 2026-11-22: the guest's preference
+		// named a language file that was not on disk).
+		string sessionNote;
+		string memberNote;
+		try
+		{
+			(sessionNote, memberNote) = tryReuse
+				? await TryReusePairAsync(session).ConfigureAwait(false)
+				: await session.EnsurePairAsync(CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (DriverException refusal) when (refusal.Message.Contains("draws placeholders", StringComparison.Ordinal))
+		{
+			Console.WriteLine($"FAIL the run cannot start: {refusal.Message}");
+			return 2;
+		}
 		var pairReadyUtc = DateTimeOffset.UtcNow;
 		if (session.MemberRelaunches > 0)
 		{

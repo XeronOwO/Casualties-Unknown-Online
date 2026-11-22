@@ -949,8 +949,55 @@ internal sealed class SessionDriver(Options options)
 		return ("reused the running run", $"reused the member already in the host's world ({members[0]})");
 	}
 
+	// A client whose `locale` preference names a language file that is not on disk draws every label as its own key;
+	// every screen assertion then reads keys instead of words and the row proves nothing. The suite sets the language
+	// once per pairing and refuses to continue while a client carries no labels at all (measured 2026-11-22 on the
+	// sandboxed client: preference `v1.8.3`, no such file, 0 labels, every later reading meaningless).
+	async Task EnsureLanguageAsync(string url, string role, CancellationToken cancellationToken)
+	{
+		var english = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = "EN" };
+		JsonElement? set;
+		try
+		{
+			set = await RecipeAtAsync(url, "locale-set", english, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is not OperationCanceledException)
+		{
+			return; // A client that cannot answer yet is not a language failure; the join path reports it.
+		}
+		// The game fills its language lazily, so the first read can catch the load half-done: the file is on disk,
+		// the dictionary is not filled yet, and the count is zero. Read again for a moment before refusing
+		// (measured 2026-11-22: the same client reported 0 and 604 within the same second).
+		var labels = set is { } reading ? LabelCount(reading) : 0;
+		var empty = new Dictionary<string, string>(StringComparer.Ordinal);
+		for (var attempt = 0; attempt < 8 && labels <= 0; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			try
+			{
+				labels = (await RecipeAtAsync(url, "locale-state", empty, cancellationToken).ConfigureAwait(false)) is { } again
+					? LabelCount(again)
+					: 0;
+			}
+			catch (Exception exception) when (exception is not OperationCanceledException)
+			{
+				break;
+			}
+		}
+		if (labels <= 0)
+		{
+			throw new DriverException(
+				$"the {role} client draws placeholders: its language reports {labels} labels (the suite sets EN before every pairing)");
+		}
+	}
+
+	static int LabelCount(JsonElement reading) =>
+		reading.TryGetProperty("labels", out var labelCount) && labelCount.TryGetInt32(out var count) ? count : 0;
+
 	public async Task<(string HostNote, string MemberNote)> EnsurePairAsync(CancellationToken cancellationToken)
 	{
+		await EnsureLanguageAsync(_options.HostUrl, "host", cancellationToken).ConfigureAwait(false);
+		await EnsureLanguageAsync(_options.MemberUrl, "member", cancellationToken).ConfigureAwait(false);
 		// The member's client keeps the previous run (a Guest role and its own world) and a stale
 		// session answers "already in a world" while the host's new run knows nothing of it: every
 		// cross-player reading then comes back empty (measured 2026-11-12 — an empty bag, no clone,

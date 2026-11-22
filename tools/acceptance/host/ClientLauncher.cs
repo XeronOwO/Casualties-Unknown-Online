@@ -213,7 +213,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		// hands to `CreateProcess`: `STARTF_USESHOWWINDOW` with `SW_SHOWNOACTIVATE` shows the window without activating
 		// it, from the first frame. Nothing a later process does can undo a window that was created activated.
 		var commandLine = "\"" + start.FileName + "\"" + (string.IsNullOrWhiteSpace(start.Arguments) ? string.Empty : " " + start.Arguments);
-		var pid = CreateWithoutActivation(commandLine, start.WorkingDirectory, out var error);
+		var pid = CreateWithoutActivation(start.FileName, commandLine, start.WorkingDirectory, out var error);
 		if (pid == 0)
 		{
 			throw new InvalidOperationException($"could not start the {name}: {error}");
@@ -223,10 +223,10 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		_started.Add(process);
 	}
 
-	private static int CreateWithoutActivation(string commandLine, string workingDirectory, out string error)
+	private static int CreateWithoutActivation(string exe, string commandLine, string workingDirectory, out string error)
 	{
 		var info = new StartupInfo { cb = System.Runtime.InteropServices.Marshal.SizeOf<StartupInfo>(), dwFlags = StartfUseShowWindow, wShowWindow = SwShowNoActivate };
-		var ok = CreateProcess(string.Empty, commandLine, nint.Zero, nint.Zero, false, 0, nint.Zero, workingDirectory, ref info, out var created);
+		var ok = CreateProcess(exe, commandLine, nint.Zero, nint.Zero, false, 0, nint.Zero, workingDirectory, ref info, out var created);
 		if (!ok)
 		{
 			error = "CreateProcess failed with " + System.Runtime.InteropServices.Marshal.GetLastWin32Error();

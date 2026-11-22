@@ -105,7 +105,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
-		PruneJournalToEpoch(batch.RunEpoch);
+		var dropped = PruneJournalToEpoch(batch.RunEpoch);
 		_journal.Add(batch);
 		if (_journal.Count > JournalCapacity)
 		{
@@ -123,6 +123,24 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		};
 
 		SendToGuests(frame);
+
+		if (dropped > 0)
+		{
+			// The new run's first batch is the edge where the journal lost the previous run
+			// (PruneJournalToEpoch above). A peer that had not applied everything before it
+			// can never repair that hole from the history — the host would replay a range it
+			// no longer keeps, and the peer would ask again for as long as the run lasts (the
+			// 813 MB storm of 2026-11-22). Give every connected peer the baseline at the edge
+			// instead of a hole: SendCheckpoint is idempotent for a peer that is already there.
+			var peers = _session.HandshakenPeerIds.ToArray();
+			foreach (var peer in peers)
+			{
+				SendCheckpoint(peer);
+			}
+
+			_log.LogInformation("Re-baselined {Members} member(s) at run {Epoch} after dropping {Dropped} journal batch(es) of another run.",
+				peers.Length, batch.RunEpoch.Value, dropped);
+		}
 	}
 
 	public void SendCheckpoint(ulong targetSteamId)
@@ -254,7 +272,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
 
-	private void PruneJournalToEpoch(RunEpoch epoch)
+	private int PruneJournalToEpoch(RunEpoch epoch)
 	{
 		var removed = _journal.RemoveAll(batch => batch.RunEpoch != epoch);
 		if (removed > 0)
@@ -262,6 +280,8 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			_log.LogInformation("Dropped {Count} kernel journal batch(es) from another run at epoch {Epoch}.",
 				removed, epoch.Value);
 		}
+
+		return removed;
 	}
 
 	public void ResetSessionState()

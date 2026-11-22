@@ -515,6 +515,37 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Host_FirstBatchOfANewRun_RebaselinesEveryHandshakenPeer()
+	{
+		// The new run's first broadcast prunes the journal to its own epoch. A peer that had not
+		// applied everything before that edge can never repair the hole from the history — the host
+		// no longer keeps those revisions — and asked again for the rest of the run (the 813 MB
+		// storm of 2026-11-22). The edge re-baselines instead of leaving the hole.
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+
+		var received = new List<ProtocolFrame>();
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
+			{
+				received.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
+			}
+		};
+
+		hostAuthority.ResetSessionState();
+		hostAuthority.ObserveSpawn(HostId, 43, "water", 3f, 4f);
+
+		Assert.Contains(received, f => f.CommittedBatch is not null);
+		Assert.Contains(received, f => f.Checkpoint is not null);
+	}
+
+	[Fact]
 	public void Guest_BuffersOutOfOrderBatch_AndAppliesAfterMissingRange()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();

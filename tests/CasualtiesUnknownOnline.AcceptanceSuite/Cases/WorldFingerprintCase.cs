@@ -163,7 +163,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		context.Read("the game's own gates", clock);
 		var framesAtPress = Integer(clock, "frame");
 		// The install report says whether the game's own attack method had its key reads rewritten at all; a zero there
-		// means the game reads the real mouse and no staged press can ever swing.
+		// means the game reads the real mouse and no staged press can ever swing. Uninstall first so the report is a
+		// fresh install rather than "already installed".
+		await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "uninstall"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
 		var install = await context.RecipeAsync(
 			"virtual-input",
 			cancellationToken,
@@ -193,6 +201,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// read "not held" while the row believed it was holding).
 				await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
 				await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
+				// The staged key cannot reach the game's own swing on this build (measured 2026-11-22), so the row drives
+				// the same entry a person's click ends in — `Body.UseItemInHand` — and keeps asserting what a person can
+				// see: the cell's damage and crack stage, and the member's view of the same cell.
+				var swungNow = await context.RecipeAsync("swing-now", cancellationToken).ConfigureAwait(false);
+				if (attempt == 5)
+				{
+					context.Read("the swing the row drove", swungNow);
+				}
 				if (attempt == 4)
 				{
 					// Halfway through the hold, name every gate between the held key and a hurt block, so a failure

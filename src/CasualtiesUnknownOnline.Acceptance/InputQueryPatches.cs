@@ -205,6 +205,13 @@ internal static class InputQueryPatches
 	internal static int KeyDownAnswers { get; private set; }
 
 	/// <summary>
+	/// How many of those KEY questions the staged state answered "held": the split the down tally cannot give, because a
+	/// swing asks <c>GetKey</c> on every frame and only the first frame of a press asks <c>GetKeyDown</c> (2026-11-22: a row
+	/// pressed the attack key, the game asked 77 times, and no counter could say whether the held answer was ever true).
+	/// </summary>
+	internal static int KeyHeldAnswers { get; private set; }
+
+	/// <summary>
 	/// How many MOUSE-BUTTON questions the game asked, and how many were answered "down": the same census for the mouse internals,
 	/// because the two families share one backend and a key patch that never runs next to a button patch that does is a fact about the
 	/// TARGETS, not about the input (read 2026-10-28, when the key detour answered nothing while the mouse one was believed live).
@@ -272,6 +279,11 @@ internal static class InputQueryPatches
 			if (query == VirtualInput.ButtonQuery.Down && value)
 			{
 				KeyDownAnswers++;
+			}
+
+			if (query == VirtualInput.ButtonQuery.Held && value)
+			{
+				KeyHeldAnswers++;
 			}
 
 			__result = value;

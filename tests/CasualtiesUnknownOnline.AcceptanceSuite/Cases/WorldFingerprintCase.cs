@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -26,7 +27,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// offered 24 cells, none of them inside the drawn area, and a minute later several were).
 		(int X, int Y) cell = default;
 		JsonElement? point = null;
-		string lastReason = "";
+		var lastReason = "";
 		for (var scan = 0; scan < 10 && point is null; scan++)
 		{
 			if (scan > 0)
@@ -160,14 +161,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				}
 			}
 		}
-		Require(cells.Count > 0, "the game named no breakable cell beside the host's player: " + Raw(found));
-		// A cell the body cannot reach is not a cell a player could swing at: the scan reports where the body stood, and
-		// the swing reaches 4.5 world units with an empty hand (`Body.cs:2036`). Cells beyond that are dropped here
-		// rather than pressed at (measured 2026-11-22: a scan answered cells around x=672 while the body stood at x=0,
-		// and the row pressed at a cell 675 units away).
+		// The scan's own body position travels with the answer: a cell beyond the swing's reach (4.5 world units with an
+		// empty hand, `Body.cs:2036`) is not something a player could hit, so it never becomes a candidate. Keeping the
+		// raw answer also lets a later failure say which body the scan stood on (measured 2026-11-22: cells around
+		// x=672 were paired with a body the swing probe read at x=0, and nothing in the report could tell them apart).
+		_lastScan = Raw(found);
 		var bodyX = Integer(found, "bodyX");
 		var bodyY = Integer(found, "bodyY");
-		var reachable = cells.Where(cell => System.Math.Abs(cell.X - bodyX) <= 4 && System.Math.Abs(cell.Y - bodyY) <= 4).ToList();
+		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 4 && Math.Abs(cell.Y - bodyY) <= 4).ToList();
 		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within the body's reach "
 			+ $"(body at {bodyX},{bodyY}; first cells " + string.Join(" ", cells.Take(6).Select(Describe)) + "): " + Raw(found));
 		return reachable;
@@ -238,7 +239,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")
 			&& String(swing, "hitName").Contains("Block", StringComparison.OrdinalIgnoreCase),
 			$"the host's body cannot swing at {x},{y}: `Body.Attack` needs a conscious body, a target inside its reach, "
-			+ "and a swing ray that lands on the block's collider: " + Raw(swing));
+			+ "and a swing ray that lands on the block's collider: " + Raw(swing) + "; the scan that named the cell read "
+			+ _lastScan);
 		context.Read("host-swing", swing);
 	}
 
@@ -286,6 +288,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	}
 
 	private static string Describe((int X, int Y) cell) => cell.X + "," + cell.Y;
+
+	private static string _lastScan = "(no scan yet)";
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
@@ -343,7 +347,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		}
 
 		return value.ValueKind == JsonValueKind.String
-			&& double.TryParse(value.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+			&& double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
 				? parsed
 				: 0;
 	}

@@ -1,3 +1,4 @@
+using System;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
@@ -27,6 +28,11 @@ public sealed class AcceptancePlugin : BaseUnityPlugin
 		// pause ramp or a frozen clock. The acceptance channel is test-only, so keep its frames live while it is
 		// behind another client (measured 2026-11-15: pauseProgress 0.006 after three seconds).
 		Application.runInBackground = true;
+
+		// The client that comes up last raises its own window over the person's work; it belongs behind, and the client is
+		// the only place that knows about every start — a case restarts a client minutes into a run, after anything the
+		// launcher started is gone (measured 2026-11-22).
+		WindowLayer.SendBehindOnStartup(TimeSpan.FromSeconds(20));
 
 		// The recorder's patches are attributes on the type and nothing applies them unless something asks. Without this
 		// the ring buffer stays empty and a batch reads zero for a sound the game really played (measured 2026-11-02: two

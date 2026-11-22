@@ -29,7 +29,6 @@ internal static class Program
 				"capture" => WindowCaptureCommand.Run(rest),
 				"input" => InputCommand.Run(rest),
 				"launch" => LaunchCommand.Run(rest),
-		"pin" => PinCommand.Run(rest),
 				"run" => RunCommand.Run(rest),
 				"preflight" => PreflightCommand.Run(rest),
 				"replay" => ReplayCommand.Run(rest),

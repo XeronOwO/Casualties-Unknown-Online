@@ -49,9 +49,6 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	public bool Launch()
 	{
 		BuildClientList();
-		// The pin has to outlive this process: the launcher exits once the endpoints answer, and the startup window
-		// — the one that pops over whatever the person is doing — appears before that.
-		WindowPin.StartDetached(TimeSpan.FromMinutes(5));
 		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
 		if (needsSandbox && !EnsureSandboxService())
 		{

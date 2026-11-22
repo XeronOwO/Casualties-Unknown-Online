@@ -81,6 +81,18 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(
 			Integer(hostBefore, "block") > 0,
 			$"the host does not see a block at the cell the game called breakable ({Describe(cell)}): {Raw(hostBefore)}");
+		// A block number in the world grid is not the same thing as a collider a swing can hit: the game damages only
+		// colliders tagged `BlockGround` (`Body.cs:2162-2168`), and a wall or a background tile reads as a block while
+		// carrying another tag.
+		var probe = await context.RecipeAsync(
+			"block-probe",
+			cancellationToken,
+			("x", cell.X.ToString()),
+			("y", cell.Y.ToString())).ConfigureAwait(false);
+		context.Read("host-block-probe", probe);
+		Require(
+			Boolean(probe, "blockGround"),
+			$"nothing the game calls breakable carries the `BlockGround` tag at {Describe(cell)}, so no swing could hurt it: {Raw(probe)}");
 		Require(
 			Integer(memberBefore, "block") == Integer(hostBefore, "block"),
 			$"the member does not draw the same block at ({Describe(cell)}): host block {Integer(hostBefore, "block")}, member block {Integer(memberBefore, "block")}");

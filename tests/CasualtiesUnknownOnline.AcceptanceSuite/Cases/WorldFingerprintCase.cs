@@ -59,6 +59,16 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes).
 		await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
+		// The staging is only worth anything if the game actually asks it: the report carries how many of the
+		// game's own key queries the patch answered, so a row that never swings can say which side is missing.
+		var staged = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "report"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		context.Read("the input the game sees", staged);
 		JsonElement? hostDuring = null;
 		JsonElement? hostAfter = null;
 		try

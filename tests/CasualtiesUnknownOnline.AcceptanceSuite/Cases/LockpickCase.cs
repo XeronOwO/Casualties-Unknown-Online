@@ -44,6 +44,11 @@ internal sealed class LockpickCase : AcceptanceCase
 		}
 
 		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
+		// A lock needs a pick in hand only when the game decides so: `NeedsItem()` is `pickLevel >= 0` and
+		// `pickLevel` is -1 with an empty hand (`LockpingMinigame.cs:27-29`, `:97-102`), so an empty hand is a
+		// legal start. The item route is left out on purpose — `item-provide type=lockpick` answered
+		// "The Object you want to instantiate is null" (2026-11-23), and the row first needs to know why the
+		// minigame closes with an empty hand before adding a pick.
 		JsonElement? state = null;
 		Door? chosen = null;
 		var rejected = new StringBuilder();
@@ -106,22 +111,39 @@ internal sealed class LockpickCase : AcceptanceCase
 			// that bind is a mouse button: the key table and the button table are separate, so both are staged here.
 			// Measured 2026-11-23: `buttonDownAnswers` rose 0 -> 3 while `HandleStartDragging` never ran, because only the
 			// button table was staged and the game asked the key table.
-			var keyDown = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
-			Require(Boolean(keyDown, "ok"), "the harness could not press the use key: " + Raw(keyDown));
-			var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
+			// The click is not reliable on its own: the drag only starts on the down edge, the game builds the
+			// minigame when the drag ends, and a click that lands a frame late leaves nothing behind (measured
+			// 2026-11-23: `lock-25` read `active:true`, `lock-27` read `active:false` for every candidate with
+			// the same code). A player clicks again, so the row does too, and records what the click path saw.
+			for (var click = 0; click < 3; click++)
+			{
+				var keyDown = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
+				Require(Boolean(keyDown, "ok"), "the harness could not press the use key: " + Raw(keyDown));
+				var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
+				Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
+				await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+				// Released straight away: holding the press through the read left `active` false (2026-11-23).
+				await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
+				await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromMilliseconds(350), cancellationToken).ConfigureAwait(false);
+				state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
+				context.Read($"lockpick {click + 1}", state);
+				if (Boolean(state, "active") == true)
+				{
+					// Read the minigame's own target straight away: `ActiveMinigameUpdate` ends the minigame
+					// when a needed item is missing or the body is not conscious (`MinigameBase.cs:206-210`),
+					// and `LockpingMinigame.Update` ends it when `toDestroy` is falsy (`:108-110`).
+					var fresh = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
+					context.Read($"target {click + 1}", fresh);
+				}
+				var clicked = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
+				context.Read($"click {click + 1}", clicked);
+				if (Boolean(state, "active") == true)
+				{
+					break;
+				}
+			}
 
-			Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			// Released straight away: the game only builds the minigame on the down edge and the drag has to end, otherwise
-			// the next branch never sees it (measured 2026-11-23: holding the press through the read left `active` false,
-			// while press-then-release left it true).
-			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
-			context.Read("lockpick", state);
-			var clicked = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
-			context.Read("click", clicked);
 			if (Boolean(state, "active") == true)
 			{
 				chosen = candidate;
@@ -132,7 +154,17 @@ internal sealed class LockpickCase : AcceptanceCase
 		Require(chosen.HasValue, "no reachable door started the lockpick minigame: " + Raw(state) + " | tried: " + rejected);
 		context.Note($"door at {chosen!.Value.X:0.##},{chosen.Value.Y:0.##} opened the minigame");
 
-		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+		// The click that builds the minigame ends the drag, and the game closes a minigame whose hand is
+		// never inside the ring: measured 2026-11-23, `lockpick-aim` answered `no-minigame` one round trip
+		// after `lock-25` had read `active: true`. `lockpick-enter` moves and presses in the same eval, so
+		// the first frame after the click already has a hand on the band and a key down.
+		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0")).ConfigureAwait(false);
+		context.Read("enter", enter);
+		var target = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
+		context.Read("target", target);
+		var aim = Boolean(enter, "ok") == true
+			? enter
+			: await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
 
 		context.Read("aim", aim);
 		Require(Boolean(aim, "ok"), "the aim did not compute");

@@ -49,6 +49,9 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	public bool Launch()
 	{
 		BuildClientList();
+		// The pin has to outlive this process: the launcher exits once the endpoints answer, and the startup window
+		// — the one that pops over whatever the person is doing — appears before that.
+		WindowPin.StartDetached(TimeSpan.FromMinutes(5));
 		var needsSandbox = _clients.Any(candidate => candidate.Boxed);
 		if (needsSandbox && !EnsureSandboxService())
 		{
@@ -245,6 +248,22 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	private const int StdError = -12;
 	private const uint HandleFlagInherit = 0x1;
 	private static readonly nint InvalidHandle = -1;
+
+	/// <summary>
+	/// Pins every game window that appears to the bottom of the desktop, from the moment it is created,
+	/// without ever activating it. The game builds its own window a second or two after the process starts
+	/// and asks to be shown; pushing it down afterwards is a visible pop, which the user rejected
+	/// (2026-11-22: "放到桌面最下层" — it must never rise in the first place). Each handle is pinned for a
+	/// few seconds after it first shows, which covers the window's own "show" call and its first frames,
+	/// and then left alone so a person who raises it on purpose is not fought.
+	private const int GwlExStyle = -20;
+	private const long WsExNoActivate = 0x08000000;
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern long GetWindowLong(nint handle, int index);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern long SetWindowLong(nint handle, int index, long value);
 
 	[DllImport("kernel32.dll")]
 	private static extern nint GetStdHandle(int which);

@@ -1,5 +1,5 @@
 // recipe: block-find-breakable
-// args: count=n
+// args: count=n minOffset=n radius=n
 // returns: ok, count, cells (x, y, block), error
 //
 // Finds breakable terrain cells near the local body in ONE evaluator call. The
@@ -7,6 +7,15 @@
 // band (2,145 evals); the live table is local, so the scan belongs here.
 ((System.Func<string>)(() => {
 	var count = {{n:count}};
+	// A cell directly under the player projects just past the bottom of the drawn area on this camera; a scan that starts
+	// at `minOffset` 1 offers the ones beside them instead, which is where a player actually swings (measured 2026-11-22:
+	// twenty-four cells at the player's own column all landed on screen row 732 of 720).
+	// Cells are offered nearest-first and all around the player, so a caller can pick one that lands in the part of the
+	// drawn area a player can actually aim at. The first version walked the column above the player first, and on this
+	// camera those cells sit under the bottom bar where `PlayerCamera.HandleAttacks` refuses every swing
+	// (`PlayerCamera.cs:1997`, measured 2026-11-22: twenty-four candidates all at screen row 682–732 of 720).
+	var minOffset = {{n:minOffset}};
+	var radius = {{n:radius}};
 	var world = WorldGeneration.world;
 	var camera = PlayerCamera.main;
 	if (world == null) { return "{\"ok\":false,\"error\":\"no-world\"}"; }
@@ -23,21 +32,25 @@
 	var upperX = blocks.GetUpperBound(0);
 	var lowerY = blocks.GetLowerBound(1);
 	var upperY = blocks.GetUpperBound(1);
-	for (var y = startY + 24; y >= startY - 40 && rows.Count < count; y--) {
-		for (var offset = 0; offset <= 16 && rows.Count < count; offset++) {
-			var xs = offset == 0 ? new[] { startX } : new[] { startX - offset, startX + offset };
-			for (var xi = 0; xi < xs.Length && rows.Count < count; xi++) {
-				var x = xs[xi];
-				if (x < lowerX || x > upperX || y < lowerY || y > upperY) { continue; }
-				var block = System.Convert.ToUInt16(blocks.GetValue(x, y));
-				// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
-				if (block == 0 || block == 14) { continue; }
-				// The callers damage the cell with 1,000; a tougher block keeps its sprite and
-				// cannot witness the damage path (measured 2026-11-16: block 6 survived 1,000).
-				if (world.GetBlockInfo(block).health > 1000f) { continue; }
-				rows.Add("{\"x\":" + x + ",\"y\":" + y + ",\"block\":" + block + "}");
-			}
+	var candidates = new System.Collections.Generic.List<int[]>();
+	for (var dy = -radius; dy <= radius; dy++) {
+		for (var dx = -radius; dx <= radius; dx++) {
+			if (System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dy)) < minOffset) { continue; }
+			candidates.Add(new[] { dx, dy, dx * dx + dy * dy });
 		}
 	}
-	return "{\"ok\":true,\"count\":" + rows.Count + ",\"cells\":[" + string.Join(",", rows) + "]}";
+	candidates.Sort((a, b) => a[2].CompareTo(b[2]));
+	for (var i = 0; i < candidates.Count && rows.Count < count; i++) {
+		var x = startX + candidates[i][0];
+		var y = startY + candidates[i][1];
+		if (x < lowerX || x > upperX || y < lowerY || y > upperY) { continue; }
+		var block = System.Convert.ToUInt16(blocks.GetValue(x, y));
+		// 0 is air, 14 is the life pod shell whose BlockInfo row does not exist.
+		if (block == 0 || block == 14) { continue; }
+		// The callers damage the cell with 1,000; a tougher block keeps its sprite and
+		// cannot witness the damage path (measured 2026-11-16: block 6 survived 1,000).
+		if (world.GetBlockInfo(block).health > 1000f) { continue; }
+		rows.Add("{\"x\":" + x + ",\"y\":" + y + ",\"block\":" + block + "}");
+	}
+	return "{\"ok\":true,\"count\":" + rows.Count + ",\"bodyX\":" + startX + ",\"bodyY\":" + (startY + 1) + ",\"cells\":[" + string.Join(",", rows) + "]}";
 }))()

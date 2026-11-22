@@ -1251,7 +1251,7 @@ internal sealed class SessionDriver(Options options)
 	private async Task<bool> HasBreakableGroundAsync(CancellationToken cancellationToken)
 	{
 		var reading = await RecipeAtAsync(_options.HostUrl, "block-find-breakable",
-			new Dictionary<string, string> { ["count"] = "1" }, cancellationToken).ConfigureAwait(false);
+			new Dictionary<string, string> { ["count"] = "1", ["minOffset"] = "0", ["radius"] = "8" }, cancellationToken).ConfigureAwait(false);
 		if (reading is not { } answer
 			|| !answer.TryGetProperty("count", out var count)
 			|| count.ValueKind != JsonValueKind.Number)

@@ -21,23 +21,37 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	{
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
-		// first candidate whose point lands inside the drawn area.
+		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
+		// that finds nothing visible is repeated before it is called a failure (measured 2026-11-22: the same pairing
+		// offered 24 cells, none of them inside the drawn area, and a minute later several were).
 		(int X, int Y) cell = default;
 		JsonElement? point = null;
-		foreach (var candidate in candidates)
+		string lastReason = "";
+		for (var scan = 0; scan < 10 && point is null; scan++)
 		{
-			var projected = await ProjectAsync(context, candidate, cancellationToken).ConfigureAwait(false);
-			if (IsOnScreen(projected))
+			if (scan > 0)
 			{
-				cell = candidate;
-				point = projected;
-				break;
+				await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+				candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
+			}
+
+			foreach (var candidate in candidates)
+			{
+				var projected = await ProjectAsync(context, candidate, cancellationToken).ConfigureAwait(false);
+				if (IsOnScreen(projected))
+				{
+					cell = candidate;
+					point = projected;
+					break;
+				}
+
+				lastReason = Raw(projected);
 			}
 		}
 		context.Read("host-cell-point", point);
 		Require(
 			point is not null,
-			$"none of the {candidates.Count} breakable cells beside the host's player is on the host's screen");
+			$"none of the {candidates.Count} breakable cells beside the host's player came onto the host's screen in ten scans; the last projection read {lastReason}");
 
 		var hostBefore = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 		var memberBefore = await ReadCellAsync(context, cell, true, cancellationToken).ConfigureAwait(false);
@@ -69,6 +83,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("y", "0"),
 			("button", "0")).ConfigureAwait(false);
 		context.Read("the input the game sees", staged);
+		// The game's own input gates sit between the staged key and the swing: the console, its pause handler, and the
+		// crafting/trade panels each return from PlayerCamera.HandleInput before the attack code (measured 2026-11-22).
+		var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+		context.Read("the game's own gates", clock);
+		var framesAtPress = Integer(clock, "frame");
+		var entriesAtPress = Integer(staged, "handleInputEntries");
 		JsonElement? hostDuring = null;
 		JsonElement? hostAfter = null;
 		try
@@ -89,9 +109,13 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			}
 			context.Read("host-cell-during", hostDuring);
 			context.Read("host-cell-after", hostAfter);
+			var clockAfter = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+			var entriesAfter = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "report"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
+			var framesDrawn = Integer(clockAfter, "frame") - framesAtPress;
+			var entriesGained = Integer(entriesAfter, "handleInputEntries") - entriesAtPress;
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input the game saw was {Raw(staged)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
@@ -120,7 +144,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24")).ConfigureAwait(false);
+		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24"), ("minOffset", "1"), ("radius", "8")).ConfigureAwait(false);
 		context.Read("host-breakable", found);
 		Require(Boolean(found, "ok"), "the game did not answer which cells beside the host's player can be broken: " + Raw(found));
 		var cells = new List<(int X, int Y)>();
@@ -137,9 +161,22 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			}
 		}
 		Require(cells.Count > 0, "the game named no breakable cell beside the host's player: " + Raw(found));
-		return cells;
+		// A cell the body cannot reach is not a cell a player could swing at: the scan reports where the body stood, and
+		// the swing reaches 4.5 world units with an empty hand (`Body.cs:2036`). Cells beyond that are dropped here
+		// rather than pressed at (measured 2026-11-22: a scan answered cells around x=672 while the body stood at x=0,
+		// and the row pressed at a cell 675 units away).
+		var bodyX = Integer(found, "bodyX");
+		var bodyY = Integer(found, "bodyY");
+		var reachable = cells.Where(cell => System.Math.Abs(cell.X - bodyX) <= 4 && System.Math.Abs(cell.Y - bodyY) <= 4).ToList();
+		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within the body's reach "
+			+ $"(body at {bodyX},{bodyY}; first cells " + string.Join(" ", cells.Take(6).Select(Describe)) + "): " + Raw(found));
+		return reachable;
 	}
 
+	// A cell whose point lands under the game's own HUD cannot be attacked: `PlayerCamera.HandleAttacks` returns at once
+	// while the pointer is over a UI element (`PlayerCamera.cs:1997`), so a point at the bottom bar or the corner trays
+	// is not something a player could swing at (measured 2026-11-22: cells projected to row 710 of 720, the game asked
+	// 21,552 key questions with the attack held, and every swing was refused).
 	private static bool IsOnScreen(JsonElement? projected)
 	{
 		if (!Boolean(projected, "ok"))
@@ -147,9 +184,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			return false;
 		}
 		var height = Integer(projected, "screenHeight");
+		var width = Integer(projected, "screenWidth");
+		if (width <= 0)
+		{
+			width = 1280;
+		}
 		var x = Integer(projected, "screenX");
 		var y = Integer(projected, "screenY");
-		return height > 0 && x > 0 && y > 0 && y < height;
+		return height > 0 && x > 120 && x < width - 120 && y > 120 && y < height - 140;
 	}
 
 	private static Task<JsonElement?> ProjectAsync(CaseContext context, (int X, int Y) cell, CancellationToken cancellationToken) =>
@@ -167,6 +209,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	// so no window is activated and the OS input queue never sees a mouse (the host runs behind other windows).
 	private static async Task UseTheGamePointerAsync(CaseContext context, int x, int y, CancellationToken cancellationToken)
 	{
+		var awake = await WakeThePlayerAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(awake, "the host's body is not awake, so its swing would never start (`Body.Attack` runs only while "
+			+ "`this.conscious` and the attack cooldown is spent; `Body.cs:2036`)");
 		var installed = await context.RecipeAsync(
 			"virtual-input",
 			cancellationToken,
@@ -184,6 +229,48 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("button", "0")).ConfigureAwait(false);
 		context.Read("host-pointer", moved);
 		Require(Boolean(moved, "ok"), $"the acceptance channel could not point the game at {x},{y}: {Raw(moved)}");
+		// `HandleAttacks` returns before it reads the attack key while the pointer is over a UI element
+		// (`PlayerCamera.cs:1997`), so the row asks the same question the game asks and names what it found.
+		var under = await context.RecipeAsync("ui-raycast", cancellationToken).ConfigureAwait(false);
+		Require(!Boolean(under, "overUi"), $"the pointer at {x},{y} is over a UI element, so the game would refuse every "
+			+ "swing: " + Raw(under));
+		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", x.ToString()), ("y", y.ToString())).ConfigureAwait(false);
+		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")
+			&& String(swing, "hitName").Contains("Block", StringComparison.OrdinalIgnoreCase),
+			$"the host's body cannot swing at {x},{y}: `Body.Attack` needs a conscious body, a target inside its reach, "
+			+ "and a swing ray that lands on the block's collider: " + Raw(swing));
+		context.Read("host-swing", swing);
+	}
+
+	// A player who is awake is the precondition of every swing: `Body.Attack` returns at once unless `this.conscious`
+	// and the cooldown is spent (`Body.cs:2036`), and a body that has just been carried into a run can be unconscious.
+	// The row wakes it the way a player would be woken by the game's own agent — by setting consciousness, not by
+	// calling the swing from the outside.
+	private static async Task<bool> WakeThePlayerAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var effects = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
+		if (Double(effects, "consciousness") >= 60)
+		{
+			return true;
+		}
+
+		var woken = await context.RecipeAsync(
+			"body-force",
+			cancellationToken,
+			("sleep", "-1"),
+			("consciousness", "95"),
+			("energy", "-1"),
+			("brainHealth", "-1"),
+			("badSleepAmount", "-1"),
+			("idleTime", "-1"),
+			("intelligence", "-1"),
+			("heartRate", "-1"),
+			("bloodPressure", "-1"),
+			("bloodOxygen", "-1"),
+			("strength", "-1")).ConfigureAwait(false);
+		Require(Boolean(woken, "ok"), "the row could not wake the host's body: " + Raw(woken));
+		var after = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
+		return Double(after, "consciousness") >= 60;
 	}
 
 	private static async Task PressAsync(CaseContext context, string mode, CancellationToken cancellationToken)
@@ -236,5 +323,28 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		{
 			throw new AssertionException(message);
 		}
+	}
+
+	private static string String(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty(property, out var value)
+			? value.ValueKind == JsonValueKind.String ? (value.GetString() ?? string.Empty) : value.GetRawText()
+			: string.Empty;
+
+	private static double Double(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element || !element.TryGetProperty(property, out var value))
+		{
+			return 0;
+		}
+
+		if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number))
+		{
+			return number;
+		}
+
+		return value.ValueKind == JsonValueKind.String
+			&& double.TryParse(value.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+				? parsed
+				: 0;
 	}
 }

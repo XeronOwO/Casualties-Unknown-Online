@@ -23,7 +23,7 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		Require(members.Length == 1, "the run does not have exactly one member on the host: " + members.Length);
 		context.UseMember(members[0]);
 
-		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4")).ConfigureAwait(false);
+		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4"), ("minOffset", "0"), ("radius", "8")).ConfigureAwait(false);
 		context.Read("scan", scan);
 		JsonElement? cells = null;
 		if (scan is { ValueKind: JsonValueKind.Object } scanElement

@@ -216,35 +216,62 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		// An empty current directory is not "leave it alone": `CreateProcess` refuses the whole call with
 		// ERROR_INVALID_NAME (123). The boxed client passes no working directory, which is how its start failed.
 		var workingDirectory = string.IsNullOrWhiteSpace(start.WorkingDirectory) ? null : start.WorkingDirectory;
-		var pid = CreateWithoutActivation(start.FileName, commandLine, workingDirectory, out var error);
+		var pid = CreateWithoutActivation(start.FileName, commandLine, workingDirectory, out var thread, out var error);
 		if (pid == 0)
 		{
 			throw new InvalidOperationException($"could not start the {name}: {error}");
 		}
 
-		var process = Process.GetProcessById(pid);
-		// The startup information above only decides how the first frame is shown; the game then activates its own
-		// window. The native helper cancels those activations for this process only.
+		// The process is created suspended, so the hook is in place before it runs one instruction: created and then
+		// resumed, the first activation slipped through the gap between "the process exists" and "the hook is
+		// installed", and the white startup screen still came forward (measured 2026-11-22).
 		WindowQuiet.Install(pid);
+		ResumeThread(thread);
+		CloseHandle(thread);
+		var process = Process.GetProcessById(pid);
 		_started.Add(process);
+		// Sandboxie starts the boxed game itself, so the pid above can be the box's starter: the window the person sees
+		// belongs to a different process. Cover the game processes the boxes report as soon as they appear.
+		CoverBoxedGames();
 	}
 
-	private static int CreateWithoutActivation(string exe, string commandLine, string? workingDirectory, out string error)
+	private static int CreateWithoutActivation(string exe, string commandLine, string? workingDirectory, out nint thread, out string error)
 	{
 		var info = new StartupInfo { cb = Marshal.SizeOf<StartupInfo>(), dwFlags = StartfUseShowWindow, wShowWindow = SwShowNoActivate };
-		var ok = CreateProcess(exe, commandLine, nint.Zero, nint.Zero, false, 0, nint.Zero, workingDirectory, ref info, out var created);
+		// Created suspended: the hook has to be installed before the process can create and activate its window.
+		var ok = CreateProcess(exe, commandLine, nint.Zero, nint.Zero, false, CreateSuspended, nint.Zero, workingDirectory, ref info, out var created);
 		if (!ok)
 		{
+			thread = nint.Zero;
 			error = "CreateProcess failed with " + Marshal.GetLastWin32Error();
 			return 0;
 		}
 
-		CloseHandle(created.hThread);
+		thread = created.hThread;
+		// The process handle is not needed: `GetProcessById` opens its own after the resume below.
 		CloseHandle(created.hProcess);
 		error = string.Empty;
 		return created.dwProcessId;
 	}
 
+	/// <summary>Covers the game processes a box started, not just the starter this class created.</summary>
+	private void CoverBoxedGames()
+	{
+		foreach (var box in new[] { _options.GuestBox, _options.AltBox })
+		{
+			if (string.IsNullOrWhiteSpace(box))
+			{
+				continue;
+			}
+
+			foreach (var process in BoxGameProcesses(box))
+			{
+				WindowQuiet.Install(process.Id);
+			}
+		}
+	}
+
+	private const int CreateSuspended = 0x4;
 	private const int StartfUseShowWindow = 0x1;
 	private const short SwShowNoActivate = 4;
 
@@ -285,6 +312,9 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	private static extern bool CloseHandle(nint handle);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	private static extern uint ResumeThread(nint thread);
 
 	/// <summary>
 	/// Removes this process's own standard handles from what a child inherits. A redirected child still

@@ -3,13 +3,15 @@
  *
  * Why it exists: Unity creates and activates its window before the managed runtime (and so before
  * any BepInEx plugin) runs, so nothing managed can influence that first activation. The system does
- * call a CBT hook before a window is activated, and a nonzero answer cancels the activation; a global
- * CBT hook needs a native DLL, which is what this file is (ticket:
+ * call a CBT hook before a window is created and before it is activated; cancelling the activation is
+ * not enough on its own (measured 2026-11-22: the window stopped taking the *foreground* but still
+ * covered the screen, because a window can be raised without being activated). A global CBT hook needs
+ * a native DLL, which is what this file is (ticket:
  * docs/backlog/todo/1.0-the-game-window-never-takes-the-front.md).
  *
  * Contract with the caller: QuietInstall(pid) after CreateProcess, QuietRemove() when the client is
- * gone. Only windows owned by that pid are touched; the hook answers HCBT_ACTIVATE with 1 and lets
- * every other CBT event through.
+ * gone. Only windows owned by one of those pids are touched; the hook lets every other CBT event
+ * through untouched.
  */
 
 #include <windows.h>
@@ -35,15 +37,32 @@ static int QuietOwns(DWORD owner)
     return 0;
 }
 
+/* A global CBT hook runs inside the process whose event fired, so the current process id says whether
+   this event belongs to one of the clients we were asked to keep quiet. */
+static int QuietHere(void)
+{
+    return QuietOwns(GetCurrentProcessId());
+}
+
 static LRESULT CALLBACK QuietCbtProc(int code, WPARAM wParam, LPARAM lParam)
 {
-    if (code == HCBT_ACTIVATE) {
-        DWORD owner = 0;
-        GetWindowThreadProcessId((HWND)wParam, &owner);
-        if (QuietOwns(owner)) {
+    if (code == HCBT_CREATEWND) {
+        CREATESTRUCTW* create = (CREATESTRUCTW*)lParam;
+        if (create != NULL && QuietHere()) {
+            /* The window asks for activation the moment it exists; asking for a non-activating style at
+               creation is the only point where that request can be answered without a visible flicker. */
+            create->dwExStyle |= WS_EX_NOACTIVATE;
+        }
+    } else if (code == HCBT_ACTIVATE) {
+        if (QuietHere()) {
+            /* Cancelling the activation alone leaves the window raised: a window can cover the screen
+               without owning the foreground. Pushing it to the bottom here happens before the activation
+               completes, in the same frame, so nothing flickers. */
+            SetWindowPos((HWND)wParam, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             return 1;
         }
     }
+
     return CallNextHookEx(s_hook, code, wParam, lParam);
 }
 

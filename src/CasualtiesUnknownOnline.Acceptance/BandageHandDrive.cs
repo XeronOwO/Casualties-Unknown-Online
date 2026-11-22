@@ -67,9 +67,10 @@ namespace CasualtiesUnknownOnline.Acceptance
 			}
 
 			// The hand lives on the shared minigame body (`MinigameBase.handPos`), reached through the game's own
-			// static holder (`Minigame.game`); the wrap itself only reads it.
-			var holder = AccessTools.TypeByName("Minigame");
-			var shared = holder == null ? null : AccessTools.Field(holder, "game");
+			// static holder — `Minigame.game` is a property over `MinigameBase.main`, and the wrap itself only reads
+			// the hand (`BandageMinigame.cs:107`).
+			var holder = AccessTools.TypeByName("MinigameBase");
+			var shared = holder == null ? null : AccessTools.Field(holder, "main");
 			var body = shared == null ? null : shared.GetValue(null);
 			if (body == null)
 			{

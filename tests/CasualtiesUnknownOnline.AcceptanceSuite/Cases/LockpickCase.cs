@@ -33,9 +33,11 @@ internal sealed class LockpickCase : AcceptanceCase
 		// reached, pointed at, and read before the key goes down.
 		var candidates = LockableDoors(doors);
 
-		// A fresh world keeps its doors hundreds of units away and `teleport` clamps to a floor, so the door is brought to
-		// the host instead (`move-openable`: the game's own door object, moved onto the floor the body stands on).
-		var moved = await context.RecipeAsync("move-openable", cancellationToken).ConfigureAwait(false);
+		// A fresh world keeps its doors hundreds of units away and `teleport` clamps to a floor, so a locked crate of
+		// the game's own making is spawned at the body instead. Spawning beats moving a scene crate here: the pointer
+		// kept landing on a neighbouring instant-open `medcrate` that shared the point (measured 2026-11-23), and a
+		// freshly spawned crate has no neighbour to steal the ray.
+		var moved = await context.RecipeAsync("spawn-openable", cancellationToken, ("names", "containercrate")).ConfigureAwait(false);
 		context.Read("moved-door", moved);
 		if (Boolean(moved, "ok") == true)
 		{
@@ -79,12 +81,15 @@ internal sealed class LockpickCase : AcceptanceCase
 				continue;
 			}
 
-			// The door's usable collider sits at the door's own transform, not at the centre of the block under it
-			// (measured 2026-11-23: aiming at the block named `containercrate(Clone)` under the pointer, so the use key
-			// landed on nothing and no minigame started).
+			// Aim at the crate that `move-openable` brought, not at a grid point: crates are dense enough near the
+			// body that a grid point can belong to a neighbouring instant-open crate, and clicking that one opens
+			// it and starts no lock (measured 2026-11-23: `hover` named `medcrate(Clone)` while the moved object
+			// was a `containercrate`).
+			var movedX = NumberOr(moved, "x", candidate.X);
+			var movedY = NumberOr(moved, "y", candidate.Y);
 			var pointed = await context.RecipeAsync("aim-at-world", cancellationToken,
-				("x", candidate.X.ToString("0.###", CultureInfo.InvariantCulture)),
-				("y", candidate.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				("x", movedX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", movedY.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("door-aim", pointed);
 			if (Boolean(pointed, "ok") != true)
 			{
@@ -96,6 +101,13 @@ internal sealed class LockpickCase : AcceptanceCase
 			context.Read("pointer-under", under);
 			var hover = await context.RecipeAsync("usable-hover", cancellationToken).ConfigureAwait(false);
 			context.Read("hover", hover);
+			var movedName = StringValue(moved, "name");
+			if (movedName.Length > 0
+				&& !string.Equals(StringValue(hover, "name"), movedName, StringComparison.Ordinal))
+			{
+				rejected.Append(" hover:").Append(StringValue(hover, "name")).Append("!=").Append(movedName).Append(';');
+				continue;
+			}
 
 			// The pointer's own hit is recorded, not gated: a crate in front of a door is a real situation, and whether
 			// the game starts the lock is the only fact that decides — the key press is harmless when it lands on nothing.

@@ -369,7 +369,7 @@ internal static partial class Program
 				startedUtc,
 				DateTimeOffset.UtcNow);
 		}
-		catch (Exception exception) when (exception is DriverException or AssertionException or IOException or InvalidOperationException)
+		catch (Exception exception) when (exception is DriverException or AssertionException or IOException or InvalidOperationException or TimeoutException)
 		{
 			connect.Stop();
 			run.Stop();

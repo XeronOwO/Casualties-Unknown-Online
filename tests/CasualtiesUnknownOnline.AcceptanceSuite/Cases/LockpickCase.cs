@@ -88,6 +88,8 @@ internal sealed class LockpickCase : AcceptanceCase
 
 			var under = await context.RecipeAsync("pointer-hit", cancellationToken).ConfigureAwait(false);
 			context.Read("pointer-under", under);
+			var hover = await context.RecipeAsync("usable-hover", cancellationToken).ConfigureAwait(false);
+			context.Read("hover", hover);
 
 			// The pointer's own hit is recorded, not gated: a crate in front of a door is a real situation, and whether
 			// the game starts the lock is the only fact that decides — the key press is harmless when it lands on nothing.

@@ -283,6 +283,18 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				inFront = FirstBlockCell(second) is { } next ? next : cell;
 			}
 		}
+		// Whatever the crosshair sits on, the damage lands on the first block the hand's ray meets. A player standing on
+		// the floor and looking up at a wall digs the block the swing connects with, not the one under the crosshair, so
+		// the row adopts that block once the hops above are done: the swing it is about to hold is the one the game will
+		// score, and the damage reading follows the same cell on both clients (measured 2026-11-22: aim on (4,452) and
+		// the ray's first block was (4,451) at 2.24 — the row then refused a swing the game would have landed).
+		if (obstacle != "" && ray is { } rayReading && FirstBlockCell(rayReading) is { } landOn)
+		{
+			cell = landOn;
+			obstacle = "";
+			context.Read("host-swing-target", rayReading);
+		}
+
 		// A player who finds the pod's pump in the way turns to another patch of floor rather than pushing past it. The
 		// scan already named the cells a swing can reach, so the row aims at each of them in turn and keeps the first one
 		// whose own ray is clear (measured 2026-11-22: stepping around wandered 44 world units and left the aim on a cell
@@ -577,7 +589,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 12 && Math.Abs(cell.Y - bodyY) <= 12).ToList();
 		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within walking distance "
 			+ $"(body at {bodyX},{bodyY}; first cells " + string.Join(" ", cells.Take(6).Select(Describe)) + "): " + Raw(found));
-		return reachable;
+		// A person digs the wall in front of them, at the height they stand on: the body walks left and right (the
+		// game writes `moveDir.x` into the velocity, `Body.cs:2384`) and only climbs or jumps on `moveDir.y`, so a block
+		// several rows above or below is not something a walk can reach (measured 2026-11-22: the scan's nearest cell
+		// sat five rows up, the walk pressed `up` for forty steps, and `afterMove` stayed `dir 0,0`). Cells on the
+		// body's own level come first; the rest stay as a fallback for worlds whose floor offers nothing level.
+		return reachable
+			.OrderBy(cell => Math.Abs(cell.Y - bodyY) <= 2 ? 0 : 1)
+			.ThenBy(cell => Math.Abs(cell.X - bodyX) + Math.Abs(cell.Y - bodyY))
+			.ToList();
 	}
 
 	// A cell whose point lands under the game's own HUD cannot be attacked: `PlayerCamera.HandleAttacks` returns at once
@@ -744,7 +764,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// `down` until the body has left the shell, and only then walk toward the block.
 		var podY = posY;
 		var leftThePod = new StringBuilder();
-		for (var step = 0; step < 24 && posY > podY - 9; step++)
+		// How far the floor sits under the capsule is not the same in every world (measured 2026-11-22: nine units in
+		// one spawn, thirteen in the next), so the step descends until the body stops answering instead of counting
+		// units: hold `down` while the body keeps dropping, and stop after two steps that leave it where it was.
+		var idleSteps = 0;
+		var lastY = posY;
+		for (var step = 0; step < 40 && idleSteps < 2; step++)
 		{
 			await StageAsync(context, "down", "down", cancellationToken).ConfigureAwait(false);
 			await Task.Delay(140, cancellationToken).ConfigureAwait(false);
@@ -752,6 +777,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			leftThePod.Append($" [{step}] y{String(out2, "posY")} x{String(out2, "posX")} m{Integer(out2, "moveY")}");
 			posX = Double(out2, "posX");
 			posY = Double(out2, "posY");
+			idleSteps = Math.Abs(posY - lastY) < 0.01 ? idleSteps + 1 : 0;
+			lastY = posY;
 		}
 
 		trace.Append("; leave-pod" + leftThePod);

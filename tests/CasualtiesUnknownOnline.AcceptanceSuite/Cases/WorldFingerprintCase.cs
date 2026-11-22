@@ -69,7 +69,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var screenX = Integer(point, "screenX");
 		var screenY = Integer(point, "screenY");
 
-		await UseTheGamePointerAsync(context, screenX, screenY, cancellationToken).ConfigureAwait(false);
+		await UseTheGamePointerAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes).
@@ -208,7 +208,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 	// The game's own pointer: the acceptance channel stages the position the game reads through Input.mousePosition,
 	// so no window is activated and the OS input queue never sees a mouse (the host runs behind other windows).
-	private static async Task UseTheGamePointerAsync(CaseContext context, int x, int y, CancellationToken cancellationToken)
+	private static async Task UseTheGamePointerAsync(CaseContext context, (int X, int Y) cell, int x, int y, CancellationToken cancellationToken)
 	{
 		var awake = await WakeThePlayerAsync(context, cancellationToken).ConfigureAwait(false);
 		Require(awake, "the host's body is not awake, so its swing would never start (`Body.Attack` runs only while "
@@ -233,12 +233,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// `HandleAttacks` returns before it reads the attack key while the pointer is over a UI element
 		// (`PlayerCamera.cs:1997`), so the row asks the same question the game asks and names what it found.
 		var under = await context.RecipeAsync("ui-raycast", cancellationToken).ConfigureAwait(false);
-		Require(!Boolean(under, "overUi"), $"the pointer at {x},{y} is over a UI element, so the game would refuse every "
+		Require(!Boolean(under, "overUi"), $"the pointer at {x},{y} (cell {Describe(cell)}) is over a UI element, so the game would refuse every "
 			+ "swing: " + Raw(under));
-		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", x.ToString()), ("y", y.ToString())).ConfigureAwait(false);
+		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
 		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")
 			&& String(swing, "hitName").Contains("Block", StringComparison.OrdinalIgnoreCase),
-			$"the host's body cannot swing at {x},{y}: `Body.Attack` needs a conscious body, a target inside its reach, "
+			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body, a target inside its reach, "
 			+ "and a swing ray that lands on the block's collider: " + Raw(swing) + "; the scan that named the cell read "
 			+ _lastScan);
 		context.Read("host-swing", swing);

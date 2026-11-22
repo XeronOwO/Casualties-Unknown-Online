@@ -31,11 +31,26 @@ internal sealed class LockpickCase : AcceptanceCase
 		Require(door.HasValue, "no locked door stands near the host: " + Raw(doors));
 		context.Note($"door at {door!.Value.X:0.##},{door.Value.Y:0.##}, {door.Value.Distance:0.##} away");
 
+		// The capsules' doors all stand hundreds of units away, and a player reaches one by walking. Standing the host
+		// beside it is the same shortcut the medical rows already take (`teleport`), and it keeps the row about the lock
+		// rather than about a ten-minute trek the suite cannot afford.
+		if (door.Value.Distance > 3)
+		{
+			var walked = await context.RecipeAsync("teleport", cancellationToken,
+				("x", (door.Value.X - 2).ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", door.Value.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("walked", walked);
+			Require(Boolean(walked, "ok"), "the host could not be put beside the door: " + Raw(walked));
+			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		}
+
 		var cellX = Math.Round(door.Value.X - 0.5).ToString("0", CultureInfo.InvariantCulture);
 		var cellY = Math.Round(door.Value.Y - 0.5).ToString("0", CultureInfo.InvariantCulture);
 		var pointed = await context.RecipeAsync("aim-at-cell", cancellationToken, ("x", cellX), ("y", cellY)).ConfigureAwait(false);
 		context.Read("door-aim", pointed);
 		Require(Boolean(pointed, "ok"), "the harness could not point at the door: " + Raw(pointed));
+		var under = await context.RecipeAsync("pointer-hit", cancellationToken).ConfigureAwait(false);
+		context.Read("pointer-under", under);
 
 		var state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
 		for (var use = 0; use < 3 && Boolean(state, "active") != true; use++)

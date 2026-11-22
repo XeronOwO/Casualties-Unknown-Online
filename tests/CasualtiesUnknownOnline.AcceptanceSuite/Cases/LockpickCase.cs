@@ -27,44 +27,71 @@ internal sealed class LockpickCase : AcceptanceCase
 		var doors = await context.RecipeAsync("openable-find", cancellationToken).ConfigureAwait(false);
 		context.Read("doors", doors);
 		Require(Boolean(doors, "ok"), "the door scan failed: " + Raw(doors));
-		var door = NearestLockableDoor(doors);
-		Require(door.HasValue, "no locked door stands near the host: " + Raw(doors));
-		context.Note($"door at {door!.Value.X:0.##},{door.Value.Y:0.##}, {door.Value.Distance:0.##} away");
-
-		// The capsules' doors all stand hundreds of units away, and a player reaches one by walking. Standing the host
-		// beside it is the same shortcut the medical rows already take (`teleport`), and it keeps the row about the lock
-		// rather than about a ten-minute trek the suite cannot afford.
-		if (door.Value.Distance > 3)
+		// A door is only usable when the pointer's own raycast lands on it: a crate in front reads exactly like a door
+		// that refuses the key (`.acceptance/lock-8`: the pointer named `containercrate(Clone)`). So each candidate is
+		// reached, pointed at, and read before the key goes down.
+		var candidates = LockableDoors(doors);
+		Require(candidates.Count > 0, "no locked door stands in this world: " + Raw(doors));
+		JsonElement? state = null;
+		Door? chosen = null;
+		foreach (var candidate in candidates.Take(3))
 		{
 			var walked = await context.RecipeAsync("teleport", cancellationToken,
-				("x", (door.Value.X - 2).ToString("0.###", CultureInfo.InvariantCulture)),
-				("y", door.Value.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				("x", (candidate.X - 2).ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", candidate.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("walked", walked);
-			Require(Boolean(walked, "ok"), "the host could not be put beside the door: " + Raw(walked));
-			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-		}
+			if (Boolean(walked, "ok") != true)
+			{
+				continue;
+			}
 
-		var cellX = Math.Round(door.Value.X - 0.5).ToString("0", CultureInfo.InvariantCulture);
-		var cellY = Math.Round(door.Value.Y - 0.5).ToString("0", CultureInfo.InvariantCulture);
-		var pointed = await context.RecipeAsync("aim-at-cell", cancellationToken, ("x", cellX), ("y", cellY)).ConfigureAwait(false);
-		context.Read("door-aim", pointed);
-		Require(Boolean(pointed, "ok"), "the harness could not point at the door: " + Raw(pointed));
-		var under = await context.RecipeAsync("pointer-hit", cancellationToken).ConfigureAwait(false);
-		context.Read("pointer-under", under);
-
-		var state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
-		for (var use = 0; use < 3 && Boolean(state, "active") != true; use++)
-		{
-			var pressed = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
-			Require(Boolean(pressed, "ok"), "the harness could not press the use key: " + Raw(pressed));
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			var body = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			context.Read("body", body);
+			if (Math.Abs(NumberOr(body, "posY", double.MaxValue) - candidate.Y) > 8
+				|| Math.Abs(NumberOr(body, "posX", double.MaxValue) - candidate.X) > 6)
+			{
+				continue;
+			}
+
+			// The door's usable collider sits at the door's own transform, not at the centre of the block under it
+			// (measured 2026-11-23: aiming at the block named `containercrate(Clone)` under the pointer, so the use key
+			// landed on nothing and no minigame started).
+			var pointed = await context.RecipeAsync("aim-at-world", cancellationToken,
+				("x", candidate.X.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", candidate.Y.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("door-aim", pointed);
+			if (Boolean(pointed, "ok") != true)
+			{
+				continue;
+			}
+
+			var under = await context.RecipeAsync("pointer-hit", cancellationToken).ConfigureAwait(false);
+			context.Read("pointer-under", under);
+
+			// The pointer's own hit is recorded, not gated: a crate in front of a door is a real situation, and whether
+			// the game starts the lock is the only fact that decides — the key press is harmless when it lands on nothing.
+			// A door is opened by the mouse: the game's own start-dragging path (`PlayerCamera.HandleStartDragging`,
+			// `PlayerCamera.cs:1521`) runs on the left button, finds the usable object under the pointer and sends it
+			// `OnUse` (`:1601-1606`). Pressing the use *key* never reaches it (measured 2026-11-23: three doors, key
+			// pressed, `lockpick-state.active` stayed false).
+			var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0")).ConfigureAwait(false);
+
+			Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
-			context.Read("lockpick " + use.ToString(CultureInfo.InvariantCulture), state);
+			context.Read("lockpick", state);
+			if (Boolean(state, "active") == true)
+			{
+				chosen = candidate;
+				break;
+			}
 		}
 
-		Require(Boolean(state, "active") == true, "the door did not start the lockpick minigame: " + Raw(state));
+		Require(chosen.HasValue, "no reachable door started the lockpick minigame: " + Raw(state));
+		context.Note($"door at {chosen!.Value.X:0.##},{chosen.Value.Y:0.##} opened the minigame");
 
 		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
 
@@ -211,20 +238,20 @@ internal sealed class LockpickCase : AcceptanceCase
 		return (handX, handY);
 	}
 
-	private readonly record struct Door(double X, double Y, double Distance);
+	private readonly record struct Door(double X, double Y, double Distance, string Name);
 
-	// The nearest door that is a lock rather than a keypad or an unlocked opening, read from `openable-find`.
-	private static Door? NearestLockableDoor(JsonElement? reading)
+	// Every door that is a lock rather than a keypad or an open frame, nearest level first.
+	private static List<Door> LockableDoors(JsonElement? reading)
 	{
+		var doors = new List<Door>();
 		if (reading is not { ValueKind: JsonValueKind.Object } element
-			|| !element.TryGetProperty("doors", out var doors)
-			|| doors.ValueKind != JsonValueKind.Array)
+			|| !element.TryGetProperty("doors", out var list)
+			|| list.ValueKind != JsonValueKind.Array)
 		{
-			return null;
+			return doors;
 		}
 
-		Door? best = null;
-		foreach (var door in doors.EnumerateArray())
+		foreach (var door in list.EnumerateArray())
 		{
 			if (door.ValueKind != JsonValueKind.Object
 				|| (door.TryGetProperty("instant", out var instant) && instant.ValueKind == JsonValueKind.True)
@@ -241,13 +268,11 @@ internal sealed class LockpickCase : AcceptanceCase
 			}
 
 			var distance = door.TryGetProperty("distance", out var away) && away.ValueKind == JsonValueKind.Number ? away.GetDouble() : double.MaxValue;
-			if (best == null || distance < best.Value.Distance)
-			{
-				best = new Door(x.GetDouble(), y.GetDouble(), distance);
-			}
+			var name = door.TryGetProperty("name", out var label) && label.ValueKind == JsonValueKind.String ? label.GetString() ?? "" : "";
+			doors.Add(new Door(x.GetDouble(), y.GetDouble(), distance, name));
 		}
 
-		return best;
+		return [.. doors.OrderBy(candidate => candidate.Distance)];
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

@@ -44,7 +44,9 @@
 	}
 	if (vi == null) { return "{\"ok\":false,\"error\":\"no-VirtualInput\"}"; }
 	const System.Reflection.BindingFlags Statics = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-	vi.GetMethod("Install", Statics).Invoke(null, new object[] { false });
+	// No `Install` call here on purpose: installing re-runs the patch setup, which clears the staged key table,
+	// and the minigame reads that as the player letting go (`MinigameBase.handStoppedClicking`) — measured
+	// 2026-11-23, `lock-36`: the target was alive with health 1000, and `lockpick-enter`'s own eval closed it.
 	vi.GetMethod("MoveTo", Statics).Invoke(null, new object[] { screen.x, screen.y });
 	var press = {{n:press}} != 0;
 	// Pressing here cancels the minigame the crate click just started: the game reads the second click as another

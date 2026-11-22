@@ -61,7 +61,10 @@ internal sealed class WorldClockCase : AcceptanceCase
 		}
 
 		var memberBack = await WaitForUnityScaleAsync(context, "1", hostSide: false, cancellationToken).ConfigureAwait(false);
-		Require(hostBack, "the host's clock did not return to the game's normal scale of 1");
+		var hostEdges = await context.RecipeAsync("key-edges", cancellationToken).ConfigureAwait(false);
+		var memberEdges = await context.MemberRecipeAsync("key-edges", cancellationToken).ConfigureAwait(false);
+		context.Note($"staged key edges: host={hostEdges?.GetRawText() ?? "null"} member={memberEdges?.GetRawText() ?? "null"}");
+		Require(hostBack, "the host's clock did not return to the game's normal scale of 1; the batch's staged key edges were: " + (hostEdges?.GetRawText() ?? "null"));
 		Require(memberBack, "the member's clock did not return to the game's normal scale of 1");
 	}
 

@@ -190,6 +190,7 @@ internal static class VirtualInput
 		state.DownPending = true;
 		state.DownFrame = UnityTime.frameCount + 1;
 		state.UpFrame = -1;
+		RecordKey(key, "down");
 	}
 
 	/// <summary>Releases one staged key: UP on the frame the game reads next, then nothing.</summary>
@@ -205,6 +206,30 @@ internal static class VirtualInput
 		{
 			state.Held = false;
 			state.UpFrame = UnityTime.frameCount + 1;
+			RecordKey(key, "up");
+		}
+	}
+
+	/// <summary>
+	/// The last few key edges a batch staged, oldest first, as `Key:down@frame`. A row that saw one speed survive another's press needs to know
+	/// whether its own batch re-staged that key or never released it (measured 2026-11-23: the game issued Normal and SuperFast in one frame).
+	/// </summary>
+	internal static string KeyEdges
+	{
+		get { lock (_keyEdges) { return string.Join(" ", _keyEdges); } }
+	}
+
+	private static readonly Queue<string> _keyEdges = [];
+
+	private static void RecordKey(KeyCode key, string edge)
+	{
+		lock (_keyEdges)
+		{
+			_keyEdges.Enqueue($"{key}:{edge}@{UnityTime.frameCount}");
+			while (_keyEdges.Count > 24)
+			{
+				_keyEdges.Dequeue();
+			}
 		}
 	}
 

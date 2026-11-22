@@ -1,6 +1,6 @@
 # Dragging an item out of a displayed backpack to USE it dropped it on the ground instead
 
-- Status: Done — the use works on the machine (user, 2026-10-25); the ring-closed row is unjudged — opened 2026-10-25 from the user's report (translated): "I handed the emergency flashlight to the guest, dragged it in the guest's
+- Status: Done — the use works on the machine (user, 2026-10-25); the ring-closed row is unjudged — opened 2026-10-25 from the user's report: "I handed the emergency flashlight to the guest, dragged it in the guest's
   backpack to use it, and the flashlight fell out — the use did not succeed".
 - Priority: Critical — the player asks for a USE and the item leaves the inventory.
 - Category: Cross-player item use / drag release classification

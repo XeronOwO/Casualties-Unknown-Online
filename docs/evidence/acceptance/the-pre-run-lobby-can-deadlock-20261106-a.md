@@ -12,11 +12,11 @@
 
 | step | reading |
 |---|---|
-| 18:21:39 host `create-lobby` | lobby `109775243623135194`, role Host, `hostId=76561198281246659`, `inWorld=false`, gate text (translated) "waiting for the rest of the players to load ... (0 s) — the party departs together." |
-| 18:21:44 guest `join-lobby` | role Guest, the same lobby, `inWorld=false`, gate text (translated) "waiting for the host to load ... the host has not entered the world yet." |
+| 18:21:39 host `create-lobby` | lobby `109775243623135194`, role Host, `hostId=76561198281246659`, `inWorld=false`, gate text "waiting for the rest of the players to load ... (0 s) — the party departs together." |
+| 18:21:44 guest `join-lobby` | role Guest, the same lobby, `inWorld=false`, gate text "waiting for the host to load ... the host has not entered the world yet." |
 | 18:21:49 guest `click home.leave` | `applied=true`; the next state reads role None, lobby `0`, controls back to create/join |
 | 18:21:57 guest re-join | role Guest on the same lobby id |
-| 18:22:03 host `start-run` | `inWorld=true`, `gateWaiting=false`; gate text (translated) "waiting for Kaguya (alt) to load ... (0 s) — the party departs together." |
+| 18:22:03 host `start-run` | `inWorld=true`, `gateWaiting=false`; gate text "waiting for Kaguya (alt) to load ... (0 s) — the party departs together." |
 | 18:22:14 both states, same batch | host `inWorld=true gateWaiting=false`; guest `inWorld=true gateWaiting=false` |
 
 Host log on the same chain:
@@ -35,7 +35,7 @@ Verdict: PASS — the member re-joined a lobby whose run had not started, the ho
 |---|---|
 | 18:22:5x both `leave-world` | host `inWorld=false` role Host; guest `inWorld=false` role Guest; nobody in the world |
 | 18:22:58 guest `net-receive-blackout mode=on` | the guest's inbound traffic is dropped (subscribers 1→0, `parked=true`) |
-| 18:23:0x host `start-run` | returns `inWorld=true gateWaiting=false` (the snapshot at the click); a later `state` reads `gateWaiting=true` and gate text (translated) "waiting for Kaguya (alt) to load ... (23 s)." |
+| 18:23:0x host `start-run` | returns `inWorld=true gateWaiting=false` (the snapshot at the click); a later `state` reads `gateWaiting=true` and gate text "waiting for Kaguya (alt) to load ... (23 s)." |
 | 18:23:07.141 (host log) | `Start gate armed — waiting for 1 member(s) to finish loading.` |
 | 18:23:07.144 (host log) | `the wait line now owns the game's loading text` |
 | 18:23:37.165 (host log) | `Start gate forced after 30 s — still waiting for 1 member(s); they join when they finish loading.` |

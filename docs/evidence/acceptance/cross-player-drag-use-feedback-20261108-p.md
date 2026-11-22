@@ -12,7 +12,7 @@
 4. `virtual-input mode=move x=642 y=403 button=0` → the pointer on the centre; `remote-gesture mode=probe` read `radialMenuScale 1`, `radialOpen true`, `pointerDistanceOverScale 17.628` (inside the 135 radius), `uiScale 0.667`.
 5. `drag-start type=paincream` → the held item is a pain-cream bottle (an item the release would use; the item stays in its slot).
 6. `virtual-input mode=press-key button=1` → the `iteminteract` bind (`KeyCode.Mouse1`, 324) is held; the acceptance channel now transpiles the tracker's own read (`CueInputPatch`, committed in `9869d734`).
-7. `drag-cue` → `{"showing":true,"targetSteamId":"76561198863287957","text":"<the localized use-on sentence>","backpackOpen":"True"}` — the text field read "use on 76561198863287957" in the Chinese catalogue (translated).
+7. `drag-cue` → `{"showing":true,"targetSteamId":"76561198863287957","text":"<the localized use-on sentence>","backpackOpen":"True"}` — the text field read "use on 76561198863287957" in the Chinese catalogue.
 
 ## The two negative readings
 

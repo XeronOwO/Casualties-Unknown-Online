@@ -1,6 +1,6 @@
 # Giving an item into another player's backpack is not the native transfer
 
-- Status: Done — closed 2026-10-25 (the ruling and the ear) — opened 2026-10-25 from the user's report (translated): "why is there no sound when I move an item into another player's
+- Status: Done — closed 2026-10-25 (the ruling and the ear) — opened 2026-10-25 from the user's report: "why is there no sound when I move an item into another player's
   backpack? A normal item move has a cloth-rustle sound", followed by
   the standard it must be held to: "I want the native effect reproduced as far as possible, why are you cutting corners".
 - Priority: High
@@ -22,7 +22,7 @@ The change that let the native body run was **rejected by the run**, not by a te
   (`[PickUpResult] emergencylight → slot (slot 1)`) — but it resolved the **host's own inventory ring**, not the displayed clone, so
   the giver's item was moved into his own body slot and then, when the give's intent made it the guest's, destroyed and re-materialised
   as a **standing item on the ground**: `[ItemTrace] op=3 … OnItemDestroyed … committed` then
-  `[StandingItem] materialized emergencylight …`. The user's report of the same moment (translated): "I dragged the flashlight, dragged it a
+  `[StandingItem] materialized emergencylight …`. The user's report of the same moment: "I dragged the flashlight, dragged it a
   few times in a row, and the flashlight was gone".
 - So outcome 2 of the design is right and the one-line fall-through is not enough: the native body has to be pointed at the PROXY's
   container, which is what `InvButtonBodyPatch` does for a body — a `get_item`/`InvButton` answer for the displayed backpack's slots.

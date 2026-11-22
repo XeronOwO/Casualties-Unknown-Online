@@ -60,7 +60,7 @@
   restore ATTEMPT identity* below.
 - Priority: High
 - Category: Persistence / save system
-- Source: Stage 3 of `docs/backlog/done/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated" (translated)
+- Source: Stage 3 of `docs/backlog/done/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "the mid-run nature must be the focus, so content is not generated twice or under-generated"
 - Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `done/save-layer-end-save-and-restore.md` (S2), `done/save-multiplayer-restore-and-backups.md` (S4), `done/restore-account-arm-release.md` (the restore-account residuals this ticket records)
 
 ## Approved decisions (2026-09-10)

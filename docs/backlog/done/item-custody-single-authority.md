@@ -1,7 +1,7 @@
 # Item custody: the adapter projects the kernel's rows instead of keeping five copies
 
 - Status: Done — opened 2026-10-25 by the user's decision: "directly do the big change, root it out, overturn whatever needs overturning —
-  keeping it is only a hidden danger" (translated). **Where it stands on 2026-10-28:** stages 1-3 are done and judged (the projection runs in shadow mode
+  keeping it is only a hidden danger". **Where it stands on 2026-10-28:** stages 1-3 are done and judged (the projection runs in shadow mode
   on real sessions with `rows=N objects=N mismatches=0`; the readers are switched; the writes were already command-first), stage 4's three candidates are
   answered by reading (the transfer cache is a derived view, the clone fact table is payload plus a pre-judgement fallback, the suppressions are report
   filters), and of the five acceptance rows 1-4 pass while **row 5 (the eat flow's peel custody) FAILS**: the opened fruit lands `World` at (0,0) and is

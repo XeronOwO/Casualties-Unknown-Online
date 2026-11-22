@@ -1,7 +1,7 @@
 # The player context menu's name is not drawn (and its empty title bar is a grey strip)
 
 - Status: Done — code landed 2026-10-25 (`9300ee5f`, `e2910f78`, `4988c83a`, `a2091d33`); the user confirmed the result on the running build
-  (translated): "there is text, and there is no grey box".
+ : "there is text, and there is no grey box".
 - Priority: Medium
 - Category: Online UI / panel layout
 - Source: user reports (2026-10-25, translated): "there is no hard cut, it WRAPS — behind the medical button", "you did not adapt to player

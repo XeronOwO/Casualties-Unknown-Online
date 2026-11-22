@@ -1,6 +1,6 @@
 # The context menu does not block the pointer: a click on its blank area reaches the world
 
-- Status: Done — all four acceptance rows judged on the 2026-10-25 click batch; the bounded negative of row 1 is recorded as a residual below, and the acceptance channel's virtual pointer now makes its reproduction drivable without OS input — opened 2026-10-25 from the user's report (translated): "the right-click panel does not stop the pointer — clicking its blank
+- Status: Done — all four acceptance rows judged on the 2026-10-25 click batch; the bounded negative of row 1 is recorded as a residual below, and the acceptance channel's virtual pointer now makes its reproduction drivable without OS input — opened 2026-10-25 from the user's report: "the right-click panel does not stop the pointer — clicking its blank
   area goes through into the world and makes the character mine".
 - Priority: High
 - Category: Online UI / pointer authority

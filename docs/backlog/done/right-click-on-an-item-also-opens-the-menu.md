@@ -1,6 +1,6 @@
 # Right-clicking an item that overlaps a teammate opens the member menu as well as picking the item up
 
-- Status: Done — implemented and judged 2026-10-26 (all three rows confirmed by the user on a live three-client session) — opened 2026-10-25 from the user's report (translated): "when the item overlaps the guest, right-clicking to pick the item up also
+- Status: Done — implemented and judged 2026-10-26 (all three rows confirmed by the user on a live three-client session) — opened 2026-10-25 from the user's report: "when the item overlaps the guest, right-clicking to pick the item up also
   opened the guest's right-click menu".
 - Priority: High — one gesture fires two actions, and the menu then covers the world the player is working in.
 - Category: Online UI / pointer priority

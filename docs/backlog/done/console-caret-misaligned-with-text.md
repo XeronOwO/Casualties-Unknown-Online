@@ -1,7 +1,7 @@
 # The console input's caret does not line up with the text it edits
 
-- Status: Done — opened 2026-10-25 from the user's report (translated): "when I type, the text caret does not line up with the characters",
-  with the user's own guess (translated): "I can see you frame the characters with a rounded rectangle — could that be the cause?".
+- Status: Done — opened 2026-10-25 from the user's report: "when I type, the text caret does not line up with the characters",
+  with the user's own guess: "I can see you frame the characters with a rounded rectangle — could that be the cause?".
 - Priority: Medium
 - Category: Console / text input / Online UI
 - Source: user report (2026-10-25).

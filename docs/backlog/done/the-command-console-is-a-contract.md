@@ -435,8 +435,8 @@ What changed, deployed and gated:
 Read on the running game, three refusals, three reasons:
 
     /give nobody{not-a-state}        -> "The state is not SNBT: at 13: expected ':' after the key 'not-a-state'"
-    /give @p[limit=1] notarealitem   -> (translated) the game has no item definition named 'notarealitem' - the verb needs a definition from the game's own item table.
-    /summon notarealprefab player    -> (translated) cannot materialise prefab 'notarealprefab': it is neither an item definition this build knows nor a world-entity prefab of that name.
+    /give @p[limit=1] notarealitem   -> the game has no item definition named 'notarealitem' - the verb needs a definition from the game's own item table.
+    /summon notarealprefab player    -> cannot materialise prefab 'notarealprefab': it is neither an item definition this build knows nor a world-entity prefab of that name.
 
 So the row is PASS: the generic line does not exist, and what a player reads is the reason itself, in their own language where the catalogue owns the sentence.
 ## The suggestion surface answers NOTHING on the running build (2026-11-02, 21:15)
@@ -510,7 +510,7 @@ So the invocation ran on the HOST (the host's own log names the requester), and 
 
 **Row 5 — a member without the grant is refused locally, and the host sees no invocation.** The guest, not opped in this session, typed `/give @p[limit=1] notarealitem`:
 
-    guest console: (translated) locally refused: the host's broadcast cheat roster does not name you, so /give cannot take effect - the host grants it with /op. Nothing was done.
+    guest console: locally refused: the host's broadcast cheat roster does not name you, so /give cannot take effect - the host grants it with /op. Nothing was done.
     host console : (only its own earlier /give line — no invocation from the member)
 
 The refusal is local (no wire traffic, so the host has nothing to show), it names the reason in the member's own language, and it says what to do about it. Row 5 PASS.
@@ -527,7 +527,7 @@ So the keyed answer arrives and renders on the member that asked, and the text-o
 
 **Row 7 — the old flat `ModConsoleCommand` adapter still registers and runs.** The same guest typed `/whoami`, which the example mod registers through the OLD `new ModCommand(...)` form:
 
-    /whoami -> (translated) role=Guest SteamID=76561198863287957 host=76561198281246659 session active=true
+    /whoami -> role=Guest SteamID=76561198863287957 host=76561198281246659 session active=true
 
 The deprecation window is real: the old form runs next to the new definitions in the same session. Row 7 PASS.
 
@@ -581,8 +581,8 @@ Rows 2 and 15 needed a mod command with TWO parameters and one with a refusal wh
 
 **Row 15** — a mod's refusal uses its own catalogue entry, and a missing entry falls back to the command's text:
 
-    /exampledress red small   -> (translated) dressed the example in red (small)   (the declared key, in the client's language)
-    /exampledress purple small-> (translated) the example has no dressing colour 'purple' - it knows red, green and blue.   (declared key: the mod's own sentence)
+    /exampledress red small   -> dressed the example in red (small)   (the declared key, in the client's language)
+    /exampledress purple small-> the example has no dressing colour 'purple' - it knows red, green and blue.   (declared key: the mod's own sentence)
     /exampledress red huge    -> 'red' has no size 'huge'.          (UNDECLARED key: the command's text, not a key name)
 
 Both rows PASS. The deploy also learned something it should have known: the example mod was NOT in `deploy.ps1`'s satellite list, so the game kept a day-old copy of it — the list now carries `CuoExample` beside the other satellites, and the deploy log names its timestamp like theirs.
@@ -593,7 +593,7 @@ One command per family, on the deployed build, in one session:
     /give @a[limit=1] bandage   -> Gave ... (#1456314894275) in slot 0.        (keyed, Chinese)
     /summon shadecrawler player -> Summoned shadecrawler at (0.0, 505.6).      (keyed, Chinese; `player` is a position, not a selector)
     /heal @a                    -> three lines, one per player, each naming local or relayed (keyed, Chinese)
-    /data get @p[limit=1] ...   -> (translated) Items recorded for ... (N):     (WAS raw English)
+    /data get @p[limit=1] ...   -> Items recorded for ... (N):     (WAS raw English)
 
 The first three already travelled as keys. `/data` did not: its header was the one family member printing a raw English
 sentence around the reader's own data, in BOTH shapes (with a path and without). It now travels as

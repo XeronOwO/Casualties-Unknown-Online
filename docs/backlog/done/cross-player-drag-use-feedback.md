@@ -840,7 +840,7 @@ now patches the tracker's own `Update` with the same `InputQueryPatches.Transpil
 
 With the teammate teleported into view, its displayed backpack open (`backpackOpen` true, focus the teammate) and the pointer on that
 panel's centre (`pointerDistanceOverScale 17.628`, radius 135), an eligible item held (`drag-start type=paincream`) and the key held
-(`virtual-input mode=press-key button=1`), `drag-cue` answered `{"showing":true,"targetSteamId":"76561198863287957","text":"<the localized use-on sentence>","backpackOpen":"True"}` — the text field read "use on 76561198863287957" in the Chinese catalogue (translated).
+(`virtual-input mode=press-key button=1`), `drag-cue` answered `{"showing":true,"targetSteamId":"76561198863287957","text":"<the localized use-on sentence>","backpackOpen":"True"}` — the text field read "use on 76561198863287957" in the Chinese catalogue.
 A lantern held on the same centre answered `showing false` (the item's family is the cue's own gate), and after release the cue read
 `showing false`.
 

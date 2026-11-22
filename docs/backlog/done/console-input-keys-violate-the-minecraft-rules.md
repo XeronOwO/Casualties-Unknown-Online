@@ -5,7 +5,7 @@
   empty line's Enter closes the window (`emptyEnterClosed=true`).
 - Priority: Medium (an input habit the window claims to copy, broken in two places)
 - Category: UI / console input
-- Source: the user, 2026-11-08 (translated): "the console has more to polish; first, when the input box is empty,
+- Source: the user, 2026-11-08: "the console has more to polish; first, when the input box is empty,
   pressing Enter does not close it — in Minecraft that closes it normally and triggers nothing; second, after using the
   up arrow to jump to the previous history command, it triggers autocomplete, so pressing up again acts on the
   autocomplete instead of continuing through the history."

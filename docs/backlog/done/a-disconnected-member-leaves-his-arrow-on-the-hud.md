@@ -1,6 +1,6 @@
 # A disconnected member leaves his arrow on the HUD
 
-- Status: Done — opened 2026-10-28 from the user's report (translated): "why does the arrow marker of a teammate still show after the guest disconnected?".
+- Status: Done — opened 2026-10-28 from the user's report: "why does the arrow marker of a teammate still show after the guest disconnected?".
 - Priority: Medium — a wrong marker is a lie about who is in the session, and it sits on top of the world the player is playing in.
 - Category: Online UI / remote render clones / member lifecycle
 - Source: user report (2026-10-28), observed after both peers dropped out of the world in the acceptance session.

@@ -11,7 +11,7 @@ Before writing anything the user will read, run the five-form test: the item is 
 destructive step needs consent, a hand motion is needed, or the user just asked a question. If none of the five holds,
 the next output is a tool call, not words. A message ends the turn, so a mid-item report stops the work.
 
-When the reader says "reflect" (translated), everything in hand stops. Name what was actually done against the rule and
+When the reader says "reflect", everything in hand stops. Name what was actually done against the rule and
 why it happened,
 then make the change that prevents it — with every means available, not a promise — and only then resume. (2026-11-07:
 a status message mid-item, a step record reused across rounds, a tracked file written by shell — each had a rule that was
@@ -31,7 +31,8 @@ already printed.)
    for ceremony.
 8. A correction from the user preempts the step that is running: do the corrected thing first, then write the rule, in
    the same turn.
-9. Committed content is English. A Chinese quote is translated and marked "(translated)".
+9. Committed content is English. A quote from the reader becomes the project's own English prose: no marker, and
+   no Chinese text stays in the file.
 10. One work item, one chain: build → gates → suite → format → commit → deploy → verify on the real game. No report
     between the links, and no stopping on a red gate. The chain is the size of the work: a clear link runs; an
     uncertain one is split; it never expands into repeated evidence.

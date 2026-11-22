@@ -107,7 +107,7 @@ All three acceptance rows are therefore met: a re-joined member is counted again
 
 The batch restarted one client (`launch-clients.ps1 -Only guest`) while the host kept its world, then had it join the host's lobby. The handshake completed — the member's own log ends with `Handshake complete with host …` after three `Retrying handshake …` lines — and then nothing. The two clients' gates, read in the same session:
 
-| side | `inWorld` | gate text (translated) |
+| side | `inWorld` | gate text |
 |---|---|---|
 | host | true | "waiting for Kaguya to load… (0 s) the team departs together" |
 | member | false | "waiting for the host to load… the host has not entered the world" |

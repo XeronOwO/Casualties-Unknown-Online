@@ -40,7 +40,7 @@ run, and the development-period standard here is static and simulation evidence.
   the cached launcher style's normal/hover/active text colours from the theme palette, but only when
   the alpha changes: every `GUIStyleState` access allocates a wrapper, and the launcher holds one
   alpha for seconds at a time.
-- **`OnlineUiWindowState`** (95 lines): `LauncherLabel(translated)` caches both label variants and
+- **`OnlineUiWindowState`** (95 lines): `LauncherLabel` caches both label variants and
   rebuilds them only when the translation changes, so the draw pass builds no string. It adds three
   strings and no boolean — the class already sits at the source-shape gate's five-boolean ceiling.
 - **No wire, protocol, save or gameplay change**; the launcher keeps its rect and its click meaning.

@@ -21,8 +21,41 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		// The install report says whether the game's own attack method had its key reads rewritten at all; a zero there
+		// means the game reads the real mouse and no staged press can ever swing. It is taken HERE, before anything is
+		// staged: `mode=uninstall` drops the staged pointer and buttons with the patches, and the row used to run this
+		// between aiming and holding, which threw away the aim it had just closed (measured 2026-11-22: the game read
+		// `pointerX -1, pointerY -1` for the whole hold and the swing never met the block).
+		await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "uninstall"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		var install = await context.RecipeAsync(
+			"virtual-input",
+			cancellationToken,
+			("mode", "install"),
+			("x", "0"),
+			("y", "0"),
+			("button", "0")).ConfigureAwait(false);
+		context.Read("the input channel's install report", install);
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
-		candidates = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
+		// A collider on the cell is a preference, not a gate: the row walked into a world where the grid named
+		// twenty-four breakable cells and not one of them carried a `BlockGround` collider at its centre, three runs
+		// in a row (`.acceptance/row1-137`, `-139`, `-141`, 2026-11-22). A player does not stand still because the
+		// floor under the wall cannot name a collider — the player walks up and swings, and the damage reading says
+		// whether the block was there. So the grounded cells are tried first and the rest keep their place behind them.
+		var grounded = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
+		if (grounded.Count > 0)
+		{
+			candidates = grounded;
+		}
+		else
+		{
+			_lastScan += " [not one of the scanned cells carries a `BlockGround` collider; the row walks to the nearest one and lets the damage reading decide]";
+		}
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
 		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
 		// that finds nothing visible is repeated before it is called a failure (measured 2026-11-22: the same pairing
@@ -39,12 +72,19 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// seconds apart all came back empty, and the same pairing offered grounded cells once the world had
 				// settled). The row waits like a player watching the world load rather than calling it a defect.
 				await Task.Delay(1500, cancellationToken).ConfigureAwait(false);
-				candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
-				// A re-scan offers cells the world grid calls breakable; the swing only reaches a block that also has a
-				// collider tagged `BlockGround` (`Body.cs:2162-2168`). Measured 2026-11-22: the re-scan offered (2,502)
-				// and the probe there found nothing at all, so the row has to hold the re-scan to the same test the
-				// first pass already passed.
-				candidates = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
+				// Each retry reaches further out, the way a player walks to the nearest wall instead of giving up on the
+				// patch of floor it happens to stand on (measured 2026-11-22: two runs in a row offered twenty-four cells
+				// inside radius 16 and not one of them carried a `BlockGround` collider).
+				candidates = await FindBreakableCellsAsync(context, cancellationToken, 16 + (scan * 8), 24 + (scan * 24)).ConfigureAwait(false);
+				// A re-scan offers cells the world grid calls breakable; a collider tagged `BlockGround` is what a swing
+				// can hurt (`Body.cs:2162-2168`). Measured 2026-11-22: the re-scan offered (2,502) with nothing at the
+				// centre. The re-scan keeps a grounded order when it has one and keeps the rest behind it, the same way
+				// the first pass does — the damage reading, not the collider list, says whether the block was there.
+				var reGrounded = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
+				if (reGrounded.Count > 0)
+				{
+					candidates = reGrounded;
+				}
 			}
 
 			foreach (var candidate in candidates)
@@ -66,7 +106,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// named a point 736 px down a 720 px screen, and the game's pointer space is not that screen).
 		Require(
 			candidates.Count > 0,
-			$"no cell inside the scan carried a `BlockGround` collider for a swing to hurt: {_lastScan}");
+			$"the game's own scan found no breakable cell beside the host's player: {_lastScan}");
 		if (point is null && candidates.Count > 0)
 		{
 			cell = candidates[0];
@@ -83,11 +123,29 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		context.Read("host-hands-emptied", freed);
 
 		var stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		// A body that stops while the key is held has met something — the pod wall, a machine, a rock — and a player
+		// walks to another block rather than reporting the wall as a defect (measured 2026-11-22: the body moved four
+		// units, its velocity fell to zero with the key still staged, and the row failed the whole run there). The next
+		// block is the nearest one the body can now reach, and the row only walks again when it is a different cell.
+		if (Distance(stood.X, stood.Y, cell.X, cell.Y) > 4.4)
+		{
+			lastReason = $"the host could not walk within the game's own reach of {Describe(cell)}: it stood at "
+				+ $"({stood.X},{stood.Y}), {Distance(stood.X, stood.Y, cell.X, cell.Y):0.00} world units away, and an empty hand "
+				+ "reaches 4.5 from the attacking limb (`Body.cs:2036`); the walk read: " + stood.Trace;
+			var nearby = candidates
+				.Where(other => other != cell && Distance(stood.X, stood.Y, other.X, other.Y) <= 4.2)
+				.OrderBy(other => Distance(stood.X, stood.Y, other.X, other.Y))
+				.ToList();
+			if (nearby.Count > 0)
+			{
+				cell = nearby[0];
+				stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+				lastReason += $" [the row walked to the block now in reach, {Describe(cell)}]";
+			}
+		}
 		Require(
 			Distance(stood.X, stood.Y, cell.X, cell.Y) <= 4.4,
-			$"the host never got within the game's own reach of {Describe(cell)}: the body stood at ({stood.X},{stood.Y}), "
-			+ $"{Distance(stood.X, stood.Y, cell.X, cell.Y):0.00} world units away, and an empty hand reaches 4.5 from the attacking limb "
-			+ "(`Body.cs:2036`). The steps read: " + stood.Trace);
+			lastReason);
 
 		var walked = await ProjectAsync(context, cell, cancellationToken).ConfigureAwait(false);
 		context.Read("host-cell-point-after-walking", walked);
@@ -109,9 +167,13 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("x", cell.X.ToString()),
 			("y", cell.Y.ToString())).ConfigureAwait(false);
 		context.Read("host-block-probe", probe);
-		Require(
-			Boolean(probe, "blockGround"),
-			$"nothing the game calls breakable carries the `BlockGround` tag at {Describe(cell)}, so no swing could hurt it: {Raw(probe)}");
+		// The probe is a reading, not a gate: the grid called this cell breakable and the row is about to swing at it,
+		// so what matters is whether the block loses damage. Measured 2026-11-22: the grid named the cell, the probe
+		// found no `BlockGround` collider at its centre, and a player standing there would still swing.
+		if (!Boolean(probe, "blockGround"))
+		{
+			_lastScan += $" [the grid calls {Describe(cell)} breakable and no `BlockGround` collider sits at its centre; the swing decides: {Raw(probe)}]";
+		}
 		Require(
 			Integer(memberBefore, "block") == Integer(hostBefore, "block"),
 			$"the member does not draw the same block at ({Describe(cell)}): host block {Integer(hostBefore, "block")}, member block {Integer(memberBefore, "block")}");
@@ -284,24 +346,6 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
 		context.Read("the game's own gates", clock);
 		var framesAtPress = Integer(clock, "frame");
-		// The install report says whether the game's own attack method had its key reads rewritten at all; a zero there
-		// means the game reads the real mouse and no staged press can ever swing. Uninstall first so the report is a
-		// fresh install rather than "already installed".
-		await context.RecipeAsync(
-			"virtual-input",
-			cancellationToken,
-			("mode", "uninstall"),
-			("x", "0"),
-			("y", "0"),
-			("button", "0")).ConfigureAwait(false);
-		var install = await context.RecipeAsync(
-			"virtual-input",
-			cancellationToken,
-			("mode", "install"),
-			("x", "0"),
-			("y", "0"),
-			("button", "0")).ConfigureAwait(false);
-		context.Read("the input channel's install report", install);
 		// One swing through the game's own entry says whether the counter is live on this build at all; without it a zero
 		// cannot be told apart from a patch that never installed.
 		var swingProbe = await context.RecipeAsync("swing-once", cancellationToken).ConfigureAwait(false);
@@ -493,9 +537,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		return grounded;
 	}
 
-	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 16)
+	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 16, int count = 24)
 	{
-		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24"), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", count.ToString(CultureInfo.InvariantCulture)), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-breakable", found);
 		Require(Boolean(found, "ok"), "the game did not answer which cells beside the host's player can be broken: " + Raw(found));
 		var cells = new List<(int X, int Y)>();

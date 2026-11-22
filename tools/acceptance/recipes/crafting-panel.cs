@@ -76,7 +76,29 @@
 		return probeText;
 	}
 
-	if (mode == "close") {
+	if (mode == "state") {
+// The screen's own state, read without opening or closing anything: whether the game has the panel switched on,
+// which recipe it currently has selected, and the camera-side gates `OpenCraftScreen` refuses on
+// (`PlayerCamera.cs:192-203`). A row that presses the craft key has to be able to see this.
+var minigameType = findType("MinigameBase");
+var minigameMain = minigameType == null ? null : minigameType.GetField("main", F)?.GetValue(null);
+var minigameOpen = minigameMain == null ? false : (bool)(minigameMain.GetType().GetField("currentMinigame", F)?.GetValue(minigameMain) != null);
+var woundViewField = cameraType.GetField("woundView", F);
+var woundView = woundViewField == null ? null : woundViewField.GetValue(camera) as UnityEngine.GameObject;
+var selectedId = "";
+var recipesForState = findType("Recipes");
+var listForState = recipesForState == null ? null : recipesForState.GetField("recipes", F)?.GetValue(null) as System.Collections.IList;
+if (listForState != null && selected >= 0 && selected < listForState.Count) {
+var recipeAt = listForState[selected];
+var resultAt = recipeAt == null ? null : recipeAt.GetType().GetField("result", F)?.GetValue(recipeAt);
+selectedId = resultAt == null ? "" : (string)resultAt.GetType().GetField("id", F | System.Reflection.BindingFlags.Public)?.GetValue(resultAt);
+}
+return "{\"ok\":true,\"mode\":\"state\",\"panelActive\":" + (panel.activeSelf ? "true" : "false")
++ ",\"selectedIndex\":" + selected + ",\"selectedName\":\"" + selectedId + "\""
++ ",\"minigameOpen\":" + (minigameOpen ? "true" : "false")
++ ",\"woundViewOpen\":" + ((woundView != null && woundView.activeSelf) ? "true" : "false") + "}";
+}
+if (mode == "close") {
 		if (panel.activeSelf) {
 			cameraType.GetMethod("OpenCraftScreen", F).Invoke(camera, null);
 		}

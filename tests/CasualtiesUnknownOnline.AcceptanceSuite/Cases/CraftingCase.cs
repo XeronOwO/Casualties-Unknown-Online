@@ -36,6 +36,27 @@ internal sealed class CraftingCase : AcceptanceCase
 		Require(match.Success, "the craft list names no recipe index: " + Raw(list));
 		var index = match.Groups["value"].Value;
 
+		// The player opens the craft screen with the game's own key; the game refuses that open for its own reasons
+		// (`PlayerCamera.cs:192-203`), so the row presses the bind and then reads the panel the game switched on.
+		await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "press")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+		await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "release")).ConfigureAwait(false);
+
+		JsonElement? panel = null;
+		for (var wait = 0; wait < 40; wait++)
+		{
+			panel = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "state"), ("index", index)).ConfigureAwait(false);
+			if (Boolean(panel, "panelActive") == true)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Read("craft-panel", panel);
+		Require(Boolean(panel, "panelActive") == true, "the game did not open its craft screen: " + Raw(panel));
+
 		var made = await context.RecipeAsync("craft-drive", cancellationToken, ("mode", "make"), ("index", index)).ConfigureAwait(false);
 		context.Read("craft-make", made);
 		Require(Boolean(made, "ok") == true, $"the game refused the craft of recipe {index}: " + Raw(made));
@@ -43,6 +64,11 @@ internal sealed class CraftingCase : AcceptanceCase
 		var before = Integer(made, "beforeCount");
 		var after = Integer(made, "afterCount");
 		Require(after > before, $"the craft of recipe {index} left the product count at {after} (before {before}): " + Raw(made));
+
+		// Leave the screen the way the player found it: the game's own close entry, then the state read proves it shut.
+		await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "close"), ("index", index)).ConfigureAwait(false);
+		var shut = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "state"), ("index", index)).ConfigureAwait(false);
+		Require(Boolean(shut, "panelActive") == false, "the craft screen stayed open after the close: " + Raw(shut));
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

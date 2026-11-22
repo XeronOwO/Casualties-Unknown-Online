@@ -218,7 +218,8 @@ docs/backlog/done/1.0-acceptance-rows-as-c-sharp-cases.md | keep | claim | docs/
 docs/backlog/done/1.0-acceptance-failure-paths-and-update-replay.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-the-batch-compares-live-world-state.md | keep | claim | docs/backlog/README.md
 docs/backlog/in-progress/1.0-one-acceptance-run-covers-every-case.md | keep | claim | docs/backlog/README.md
-docs/backlog/in-progress/1.0-rebuild-each-acceptance-row-from-the-game.md | keep | claim | docs/backlog/README.md
+docs/backlog/in-progress/1.0-rebuild-each-acceptance-row-from-the-game.md | rework | none | docs/backlog/todo/1.0-split-the-row-rebuild-ledger.md
+docs/backlog/todo/1.0-split-the-row-rebuild-ledger.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-ip-direct-duplicate-names-mix-characters.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-restored-character-item-is-not-judged.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-regression-sweep.md | keep | claim | docs/backlog/README.md

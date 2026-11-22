@@ -64,6 +64,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Todo
 - [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
 - [The game window never takes the front](todo/1.0-the-game-window-never-takes-the-front.md) — **High** — a native hook waits to be measured.
+- [Split the row rebuild ledger](todo/1.0-split-the-row-rebuild-ledger.md) — **Low** — 115 KB, over budget.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
   "queued" twice and never writes; two rows wait for it.

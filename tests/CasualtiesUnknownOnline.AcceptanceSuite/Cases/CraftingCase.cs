@@ -38,24 +38,33 @@ internal sealed class CraftingCase : AcceptanceCase
 
 		// The player opens the craft screen with the game's own key; the game refuses that open for its own reasons
 		// (`PlayerCamera.cs:192-203`), so the row presses the bind and then reads the panel the game switched on.
-		await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "press")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
-		await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "release")).ConfigureAwait(false);
-
+		// A press is DOWN for one frame only, and the game's own Update does not run every frame of a loading world
+		// (measured 2026-11-23: 10 `HandleInput` entries across 28 s), so the key is held and re-pressed until the
+		// game's own panel answers — the way a player keeps holding the key until the screen appears.
 		JsonElement? panel = null;
-		for (var wait = 0; wait < 40; wait++)
+		JsonElement? gates = null;
+		for (var attempt = 0; attempt < 20 && Boolean(panel, "panelActive") != true; attempt++)
 		{
+			var pressed = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "down")).ConfigureAwait(false);
+			context.Read("craft-press", pressed);
+			Require(Boolean(pressed, "ok") == true, "the harness could not press the craft bind: " + Raw(pressed));
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			panel = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "state"), ("index", index)).ConfigureAwait(false);
 			if (Boolean(panel, "panelActive") == true)
 			{
 				break;
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			gates ??= await context.RecipeAsync("walk-truth", cancellationToken).ConfigureAwait(false);
 		}
 
-		context.Read("craft-panel", panel);
-		Require(Boolean(panel, "panelActive") == true, "the game did not open its craft screen: " + Raw(panel));
+		var released = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "up")).ConfigureAwait(false);
+		Require(Boolean(released, "ok") == true, "the harness could not release the craft bind: " + Raw(released));
+		gates ??= await context.RecipeAsync("walk-truth", cancellationToken).ConfigureAwait(false);
+		context.Read("craft-gates", gates);
+		var modal = await context.RecipeAsync("ui-modal", cancellationToken).ConfigureAwait(false);
+		context.Read("craft-modal", modal);
+		Require(Boolean(panel, "panelActive") == true, "the game did not open its craft screen: " + Raw(panel) + " after " + Raw(gates) + " modal " + Raw(modal));
 
 		var made = await context.RecipeAsync("craft-drive", cancellationToken, ("mode", "make"), ("index", index)).ConfigureAwait(false);
 		context.Read("craft-make", made);
@@ -65,9 +74,19 @@ internal sealed class CraftingCase : AcceptanceCase
 		var after = Integer(made, "afterCount");
 		Require(after > before, $"the craft of recipe {index} left the product count at {after} (before {before}): " + Raw(made));
 
-		// Leave the screen the way the player found it: the game's own close entry, then the state read proves it shut.
-		await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "close"), ("index", index)).ConfigureAwait(false);
-		var shut = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "state"), ("index", index)).ConfigureAwait(false);
+		// Leave the screen the way the player found it: the same key that opened it toggles it shut
+		// (`PlayerCamera.cs:1027-1030` → `OpenCraftScreen` flips `craftingPanel`), and the state read proves it.
+		JsonElement? shut = null;
+		for (var attempt = 0; attempt < 5 && Boolean(shut, "panelActive") != false; attempt++)
+		{
+			var closed = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "down")).ConfigureAwait(false);
+			Require(Boolean(closed, "ok") == true, "the harness could not press the craft bind to close: " + Raw(closed));
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			shut = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "state"), ("index", index)).ConfigureAwait(false);
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "up")).ConfigureAwait(false);
+		}
+
+		context.Read("craft-shut", shut);
 		Require(Boolean(shut, "panelActive") == false, "the craft screen stayed open after the close: " + Raw(shut));
 	}
 

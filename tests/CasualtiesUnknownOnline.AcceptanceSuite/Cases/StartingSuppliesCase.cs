@@ -68,7 +68,7 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 	private static string SettingName(int level) => level switch { 0 => "none", 1 => "light", _ => "full" };
 
 	private static string[] Split(string ids) =>
-		ids.Split(',', StringSplitOptions.RemoveEmptyEntries).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+		[.. ids.Split(',', StringSplitOptions.RemoveEmptyEntries).OrderBy(id => id, StringComparer.Ordinal)];
 
 	private static bool SameKit(string actual, string[] expected) =>
 		Split(actual).SequenceEqual(Split(string.Join(",", expected)), StringComparer.Ordinal);

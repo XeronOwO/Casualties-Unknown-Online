@@ -122,7 +122,30 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(freed is { } hands && Boolean(hands, "ok"), "the host could not empty its hands before the swing: " + Raw(freed));
 		context.Read("host-hands-emptied", freed);
 
-		var stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		// With empty hands, the question is whether the body needs to move at all: the game can already name the block
+		// the hand's ray meets where the body stands, and a player digs the wall beside them before walking anywhere
+		// (measured 2026-11-22: the walk overshot a slippery floor by ten units and the row then aimed at air, while the
+		// first run inside the capsule already had a `Chunk(BlockGround)` 2.3 units down the ray).
+		var here = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		var hereX = Double(here, "posX");
+		var hereY = Double(here, "posY");
+		var hereRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+		context.Read("host-swing-ray-where-it-stands", hereRay);
+		var stood = default((int X, int Y, string Trace));
+		var nearRayCarries = hereRay is { } nearRay && FirstBlockCell(nearRay) is not null;
+		var swingAlreadyInReach = nearRayCarries && FirstBlockCell(hereRay!.Value) is { } touching
+			&& Distance(hereX, hereY, touching.X + 0.5, touching.Y + 0.5) <= 4.4;
+		if (swingAlreadyInReach)
+		{
+			cell = FirstBlockCell(hereRay!.Value)!.Value;
+			stood = ((int)Math.Floor(hereX), (int)Math.Floor(hereY), $"the body stayed where it spawned ({hereX:0.00},{hereY:0.00}) "
+				+ $"and the hand's ray already met {Describe(cell)}");
+			context.Read("host-stayed-in-place", here);
+		}
+		else
+		{
+			stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		}
 		// A body that stops while the key is held has met something — the pod wall, a machine, a rock — and a player
 		// walks to another block rather than reporting the wall as a defect (measured 2026-11-22: the body moved four
 		// units, its velocity fell to zero with the key still staged, and the row failed the whole run there). The next
@@ -772,13 +795,34 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var spawnY = posY;
 		var exitBind = "";
 		var exitMoved = 0.0;
-		foreach (var bind in new[] { "down", "right", "left", "up" })
+		// A person starts by opening the capsule: its own hatch is an interactable, and a body that never presses the
+		// interact key stands in a closed pod while every direction reads zero (measured 2026-11-22: `[down 0.00]` and
+		// the walk never left the shell).
+		await StageAsync(context, "iteminteract", "down", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+		await StageAsync(context, "iteminteract", "up", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		leftThePod.Append(" [interact]");
+		// The probe must start from a body that has stopped: the pod's floor slides, so a direction tested while the
+		// body is still gliding from the previous one reads as if it moved (measured 2026-11-22: `right 2.31`,
+		// `left 4.08` and `up 4.08` in one spawn, all of it the same slide, and then the walk set off the wrong way).
+		foreach (var brake in new[] { "left", "right", "up", "down" })
 		{
+			await StageAsync(context, brake, "up", cancellationToken).ConfigureAwait(false);
+		}
+
+		await Task.Delay(600, cancellationToken).ConfigureAwait(false);
+		foreach (var bind in new[] { "up", "down", "right", "left" })
+		{
+			var settled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var fromX = Double(settled, "posX");
+			var fromY = Double(settled, "posY");
 			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(900, cancellationToken).ConfigureAwait(false);
+			await Task.Delay(1400, cancellationToken).ConfigureAwait(false);
 			var probe2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
-			var moved = Distance(spawnX, spawnY, Double(probe2, "posX"), Double(probe2, "posY"));
+			await Task.Delay(300, cancellationToken).ConfigureAwait(false);
+			var moved = Distance(fromX, fromY, Double(probe2, "posX"), Double(probe2, "posY"));
 			leftThePod.Append($" [{bind} {moved.ToString("0.00", CultureInfo.InvariantCulture)}]");
 			if (moved > exitMoved)
 			{
@@ -811,6 +855,22 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		for (var step = 0; step < 40; step++)
 		{
 			var away = Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5);
+			// A person does not walk to a coordinate; they stop when the wall is within reach of the swing. The scan's
+			// cell can sit behind the pod's shell while the rock the swing would really meet lies beside it (measured
+			// 2026-11-22: the body stalled at x -4.08, and the ray from there met a `BlockGround` at 2.4 units), so the
+			// walk asks the hand's own ray every few steps and stops at the first block it can actually hit.
+			if (step % 4 == 3)
+			{
+				var reachRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+				if (reachRay is { } reachReading && FirstBlockCell(reachReading) is { } hitNow
+					&& Distance(posX, posY, hitNow.X + 0.5, hitNow.Y + 0.5) <= 4.2)
+				{
+					cell = hitNow;
+					trace.Append($"; the swing reached {Describe(cell)} while walking");
+					break;
+				}
+			}
+
 			// An empty hand reaches 4.5 world units from the attacking limb (`Body.cs:2036`), and the limb sits roughly
 			// a unit in front of the body, so standing 3.2 units from the block's centre leaves the block well inside
 			// the swing instead of on its edge (measured 2026-11-22: from 4.2 units the ray met the block at 4.6 and the

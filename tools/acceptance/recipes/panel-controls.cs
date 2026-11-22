@@ -1,7 +1,7 @@
 // recipe: panel-controls
 // args: none
 // serves: the acceptance-suite case medical-chart (what the panel presents while a remote focus is open)
-// returns: ok, viewOpen, remoteFocus, napFound, napActive, sleepImageActive, workoutFound, workoutActive, handSwapFound, handSwapActive, error, detail
+// returns: ok, viewOpen, remoteFocus, displayBody, chartBody, limbRows, limbShown, title, napFound, napActive, sleepImageActive, workoutFound, workoutActive, handSwapFound, handSwapActive, error, detail
 //
 // Reads the three local-only surfaces the ticket hides - the nap control (`WoundView.napbutton`) with its sleep-state icon, the
 // workout list (`WoundView.workoutList`) and the HUD main/off-hand switch (`PlayerCamera.handSwapImage`) - as the game itself
@@ -42,10 +42,55 @@
 			if (displayValue != null) { displayBody = displayValue.name; }
 		}
 	}
+	var chartBody = view.body;
+	var chartName = chartBody == null ? "none" : chartBody.name;
+	var chartX = chartBody == null ? 0f : chartBody.transform.position.x;
+	var chartY = chartBody == null ? 0f : chartBody.transform.position.y;
+	var limbRows = 0;
+	var limbShown = 0;
+	var limbField = typeof(WoundView).GetField("limbImages", flags);
+	if (limbField != null && limbField.GetValue(view) is UnityEngine.UI.Image[] images)
+	{
+		limbRows = images.Length;
+		for (var i = 0; i < images.Length; i++)
+		{
+			if (images[i] != null && images[i].enabled) { limbShown++; }
+		}
+	}
+	var bleedSum = 0f;
+	if (chartBody != null && chartBody.limbs != null)
+	{
+		for (var i = 0; i < chartBody.limbs.Length; i++)
+		{
+			if (chartBody.limbs[i] != null) { bleedSum += chartBody.limbs[i].bleedAmount; }
+		}
+	}
+	var skin0 = -1f;
+	var skinMin = -1f;
+	if (chartBody != null && chartBody.limbs != null && chartBody.limbs.Length > 0 && chartBody.limbs[0] != null)
+	{
+		skin0 = chartBody.limbs[0].skinHealth;
+		skinMin = skin0;
+		for (var i = 1; i < chartBody.limbs.Length; i++)
+		{
+			if (chartBody.limbs[i] != null && chartBody.limbs[i].skinHealth < skinMin) { skinMin = chartBody.limbs[i].skinHealth; }
+		}
+	}
+	var titleField = typeof(WoundView).GetField("bigLimbTitle", flags);
+	var titleText = titleField != null && titleField.GetValue(view) is TMPro.TextMeshProUGUI title ? title.text : "none";
 	return "{\"ok\":true"
 		+ ",\"viewOpen\":" + (view.gameObject.activeInHierarchy ? "true" : "false")
 		+ ",\"remoteFocus\":" + (remoteFocus ? "true" : "false")
 		+ ",\"displayBody\":\"" + displayBody + "\""
+		+ ",\"chartBody\":\"" + chartName + "\""
+		+ ",\"chartX\":" + chartX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"chartY\":" + chartY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"bleedSum\":" + bleedSum.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"skin0\":" + skin0.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"skinMin\":" + skinMin.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"limbRows\":" + limbRows
+		+ ",\"limbShown\":" + limbShown
+		+ ",\"title\":\"" + titleText.Replace("\"", "'") + "\""
 		+ ",\"napFound\":" + (nap != null ? "true" : "false")
 		+ ",\"napActive\":" + (nap != null && nap.activeInHierarchy ? "true" : "false")
 		+ ",\"sleepImageActive\":" + (sleep != null && sleep.gameObject.activeInHierarchy ? "true" : "false")

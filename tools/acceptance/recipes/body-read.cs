@@ -50,6 +50,8 @@
 		+ ",\"localCarriedBy\":\"" + (carriedBy ? localCarrier.ToString() : "0") + "\""
 		+ ",\"localDriverCarrier\":\"" + localDriverCarrier.ToString() + "\""
 		+ ",\"localBody\":{"
+		+ "\"bodyName\":\"" + body.gameObject.name + "\""
+		+ ",\"limbs\":" + (body.limbs == null ? 0 : body.limbs.Length) + ","
 		+ "\"standing\":" + (body.standing ? "true" : "false")
 		+ ",\"sleeping\":" + (body.sleeping ? "true" : "false")
 		+ ",\"crouching\":" + (body.crouching ? "true" : "false")

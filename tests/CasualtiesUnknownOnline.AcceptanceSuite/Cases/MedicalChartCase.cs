@@ -20,46 +20,60 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		var closed = await context.RecipeAsync("wound-read", cancellationToken, ("toggle", "off"));
 		context.Note("pre-close: " + Raw(closed));
 
-		// The chart only opens while the LOCAL body is alive (the game's own wound view refuses on a
-		// dead viewer). The host may carry a wound from an earlier case; the console's own heal puts
-		// the viewer back on its feet without touching the member. Alive is not enough: a run's own
-		// character can come back asleep at zero consciousness (`alive true, conscious false,
-		// consciousness 1.5, animatorClip ExperimentIdleCrouch`, measured 2026-11-21 in the full run),
-		// and the game's wound view refuses on an unconscious viewer just the same, so the row wakes
-		// the viewer itself instead of assuming the restart left it standing.
-		var healed = await context.RecipeAsync("native-heal", cancellationToken);
-		context.Note("host heal: " + Raw(healed));
-		for (var wake = 0; wake < 20; wake++)
+		// The chart only opens while the LOCAL body is awake (the game's own wound view refuses on a
+		// sleeping or dead viewer). A run's own character can come back asleep after a restart, so the
+		// row waits for the game's own recovery instead of forcing the state: a viewer that is still
+		// asleep after the wait is a reading this row reports, not something it papers over
+		// (2026-11-23: `native-heal` and `body-force` used to write the state the row then judged).
+		for (var wait = 0; wait < 40; wait++)
 		{
 			var viewer = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
-			context.Note($"viewer attempt {wake + 1}: {Raw(viewer)}");
-			if (Number(viewer, "consciousness") >= 60)
+			if (Number(viewer, "consciousness") >= 60 && Boolean(viewer, "alive"))
 			{
 				break;
 			}
 
-			// Every `body-force` argument is required; a negative value leaves that field untouched.
-			var woken = await context.RecipeAsync("body-force", cancellationToken,
-				("sleep", "0"), ("consciousness", "100"), ("energy", "-1"), ("brainHealth", "-1"),
-				("badSleepAmount", "-1"), ("idleTime", "-1"), ("intelligence", "-1"), ("heartRate", "-1"),
-				("bloodPressure", "-1"), ("bloodOxygen", "-1"), ("strength", "-1")).ConfigureAwait(false);
-			context.Note("viewer woken: " + Raw(woken));
-			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			context.Note($"viewer asleep: {Raw(viewer)}");
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		}
 
-		// A member that joined a running world stands at its own pod; the game's own wound view opens
-		// on a body the viewer can see, so the member is placed on the host's own point first (the
-		// placement `GiveItemCase` proves).
-		var hostBody = await context.WaitForHostBodyAsync(cancellationToken);
-		context.Read("host-body", hostBody);
-		Require(hostBody is not null, "the host's body never reached a world position");
-		var (hostX, hostY) = Position(hostBody);
-		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(hostBody));
-		var placed = await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", hostX.ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture)));
-		context.Note("member placed: " + Raw(placed));
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		var awake = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
+		context.Read("viewer", awake);
+		Require(Boolean(awake, "alive"), "the host's body is not alive, so the game's wound view cannot open: " + Raw(awake));
+		Require(Number(awake, "consciousness") >= 60,
+			"the host's body stayed asleep, so the game's own wound view refuses to open: " + Raw(awake));
+
+		// The member is focused where the game itself put it: no teleport, because a member standing at
+		// its own pod is still a body the viewer can see and the chart is about that member either way.
+		var memberBody = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		context.Read("member-body", memberBody);
+		var memberName = DrawnBody(memberBody);
+		Require(memberName != "none", "the member's client could not name its own body: " + Raw(memberBody));
+
+		// A real wound on the member, through the game's own damage entry on the member's client, so the
+		// chart has a fact only the member carries: its bleed total. The game's own armour and limb
+		// reduction can swallow a light hit, so the force climbs until the member's skin actually gives
+		// way; a wound the game did not record proves nothing about the chart.
+		JsonElement? seeded = null;
+		foreach (var force in new[] { "60", "140", "260" })
+		{
+			seeded = await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", force), ("infection", "0")).ConfigureAwait(false);
+			context.Note($"member wound force {force}: {Raw(seeded)}");
+			if (Number(seeded, "skinHealth") < 100 || Number(seeded, "bleedAmount") > 0)
+			{
+				break;
+			}
+		}
+
+		context.Read("member-wound", seeded);
+		Require(Boolean(seeded, "ok"), "the member could not take a wound from the game's own damage entry: " + Raw(seeded));
+		Require(Number(seeded, "skinHealth") < 100 || Number(seeded, "bleedAmount") > 0,
+			"the game's own damage entry left the member unwounded, so there is nothing for the chart to draw: " + Raw(seeded));
+
+		// Our own panel is modal and would sit over the game's chart: a player reads the chart with the
+		// online panel closed, so the row closes it first (2026-11-23: the frames showed the panel over
+		// the whole screen while the row read the chart's objects underneath it).
+		await context.Session.CloseWindowAsync(context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
 
 		JsonElement? opened = null;
 		for (var attempt = 0; attempt < 3; attempt++)
@@ -91,8 +105,33 @@ internal sealed class MedicalChartCase : AcceptanceCase
 
 		var panel = await context.RecipeAsync("panel-controls", cancellationToken);
 		context.Read("panel-controls", panel);
+		// The chart is what the player looks at: our own online panel is modal and must not be sitting
+		// over it. The read is the window's own visible flag, closed again if something reopened it.
+		var window = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		context.Read("host-window", window);
+		if (Boolean(window, "windowVisible"))
+		{
+			await context.Session.CloseWindowAsync(context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
+			window = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			context.Read("host-window-closed", window);
+		}
+
+		Require(!Boolean(window, "windowVisible"), "our online panel is still over the game's chart: " + Raw(window));
 		Require(Boolean(panel, "viewOpen"), "the panel is not open");
 		Require(Boolean(panel, "remoteFocus"), "the panel is not focused on the member");
+		// The game's own chart is drawing the member. The adapter shows it a display copy of the remote
+		// body (named `MedicalDisplay_…`), so identity is read as the two facts a viewer can check: the
+		// copy stands where the member stands, and it carries the member's own number of limb rows. A
+		// chart still pointed at the viewer would fail both.
+		Require(DrawnBody(panel) != "none", "the chart holds no body: " + Raw(panel));
+		// The copy carries the member's own wound. The game's own chart draws the skin of the limb the
+		// damage entry hit, so the chart's first limb must read the member's wounded skin value; a chart
+		// still pointed at the viewer would read an untouched 100 here.
+		var memberSkin = Number(seeded, "skinHealth");
+		Require(Math.Abs(Number(panel, "skin0") - memberSkin) <= 0.5,
+			"the chart shows limb 0 at " + Raw(panel) + " skin, but the member's own limb reads " + memberSkin.ToString("0.###", CultureInfo.InvariantCulture));
+		Require(Number(panel, "limbRows") == Number(memberBody, "localBody", "limbs"),
+			"the chart's limb rows do not match the member's body: " + Raw(panel));
 		Require(!Boolean(panel, "napActive"), "the member's panel presents the local-only nap control");
 		Require(!Boolean(panel, "sleepImageActive"), "the member's panel presents the local-only sleep icon");
 		Require(!Boolean(panel, "workoutActive"), "the member's panel presents the local-only workout list");
@@ -100,6 +139,26 @@ internal sealed class MedicalChartCase : AcceptanceCase
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
+
+	private static string DrawnBody(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element)
+		{
+			return "none";
+		}
+
+		if (element.TryGetProperty("chartBody", out var chart) && chart.ValueKind == JsonValueKind.String)
+		{
+			return chart.GetString() ?? "none";
+		}
+
+		return element.TryGetProperty("localBody", out var body)
+			&& body.ValueKind == JsonValueKind.Object
+			&& body.TryGetProperty("bodyName", out var name)
+			&& name.ValueKind == JsonValueKind.String
+			? name.GetString() ?? "none"
+			: "none";
+	}
 
 	private static (double X, double Y) Position(JsonElement? reading)
 	{
@@ -120,10 +179,33 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
 
-	private static double Number(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.TryGetDouble(out var number) ? number : 0;
+	private static double Number(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty(property, out var value))
+		{
+			return 0;
+		}
+
+		return value.ValueKind switch
+		{
+			JsonValueKind.Number => value.TryGetDouble(out var number) ? number : 0,
+			JsonValueKind.True => 1,
+			_ => 0
+		};
+	}
+
+	private static double Number(JsonElement? reading, string outer, string inner)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty(outer, out var nested)
+			|| nested.ValueKind != JsonValueKind.Object)
+		{
+			return 0;
+		}
+
+		return Number(nested, inner);
+	}
 
 	private static void Require(bool condition, string message)
 	{

@@ -369,7 +369,7 @@ internal static partial class Program
 				startedUtc,
 				DateTimeOffset.UtcNow);
 		}
-		catch (Exception exception) when (exception is DriverException or AssertionException or IOException or InvalidOperationException or TimeoutException)
+		catch (Exception exception) when (exception is not OperationCanceledException)
 		{
 			connect.Stop();
 			run.Stop();
@@ -378,7 +378,10 @@ internal static partial class Program
 			var (hostLogs, memberLogs, logProblem) = context is null
 				? (null, null, (string?)null)
 				: await ReadLogsAsync(context.Session, options, hostMark, memberMark, markProblem).ConfigureAwait(false);
-			var note = exception.Message + (logProblem is null ? string.Empty : $" ({logProblem})");
+			var detail = exception is DriverException or AssertionException or TimeoutException
+				? exception.Message
+				: exception.GetType().Name + ": " + exception.Message;
+			var note = detail + (logProblem is null ? string.Empty : $" ({logProblem})");
 			timeline.End(acceptanceCase.Name, "fail");
 			return new CaseResult(
 				acceptanceCase.Name,

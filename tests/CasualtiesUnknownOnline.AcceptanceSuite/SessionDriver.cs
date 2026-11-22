@@ -1277,15 +1277,53 @@ internal sealed class SessionDriver(Options options)
 	private async Task<bool> HasBreakableGroundAsync(CancellationToken cancellationToken)
 	{
 		var reading = await RecipeAtAsync(_options.HostUrl, "block-find-breakable",
-			new Dictionary<string, string> { ["count"] = "1", ["minOffset"] = "0", ["radius"] = "8" }, cancellationToken).ConfigureAwait(false);
+			new Dictionary<string, string> { ["count"] = "3", ["minOffset"] = "0", ["radius"] = "16" }, cancellationToken).ConfigureAwait(false);
 		if (reading is not { } answer
 			|| !answer.TryGetProperty("count", out var count)
-			|| count.ValueKind != JsonValueKind.Number)
+			|| count.ValueKind != JsonValueKind.Number
+			|| count.GetInt32() <= 0)
 		{
 			return false;
 		}
 
-		return count.GetInt32() > 0;
+		// A cell the world grid calls breakable is not yet a cell a swing can hurt: the block also has to carry the
+		// `BlockGround` collider the game's damage branch looks for (`Body.cs:2166`), and a pod's own floor does not
+		// (measured 2026-11-22: twenty-four grid cells, every probe `blockGround:false`, so the row had nothing to dig
+		// in that world). The guarantee therefore probes the nearest few cells, and asks for another world when none of
+		// them can be hurt.
+		if (!answer.TryGetProperty("cells", out var cells) || cells.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		var probed = 0;
+		foreach (var cell in cells.EnumerateArray())
+		{
+			if (probed >= 3)
+			{
+				break;
+			}
+
+			if (cell.ValueKind != JsonValueKind.Object
+				|| !cell.TryGetProperty("x", out var x)
+				|| !cell.TryGetProperty("y", out var y))
+			{
+				continue;
+			}
+
+			probed++;
+			var probe = await RecipeAtAsync(_options.HostUrl, "block-probe", new Dictionary<string, string>
+			{
+				["x"] = x.GetInt32().ToString(CultureInfo.InvariantCulture),
+				["y"] = y.GetInt32().ToString(CultureInfo.InvariantCulture),
+			}, cancellationToken).ConfigureAwait(false);
+			if (probe is { } hit && hit.TryGetProperty("blockGround", out var grounded) && grounded.ValueKind == JsonValueKind.True)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>

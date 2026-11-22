@@ -22,17 +22,6 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
-		if (candidates.Count == 0)
-		{
-			// A pod's interior can honestly offer no breakable block at all, and then this row has nothing to measure
-			// rather than something broken (measured 2026-11-22: a spawn at (0,453) answered `count 0` at both radii).
-			// A player in that position would start a run outside the pod, so the row takes one fresh world before it
-			// calls the emptiness a fact.
-			var fresh = await context.Session.StartFreshRunAsync(cancellationToken).ConfigureAwait(false);
-			context.Read("fresh run for a world with something to dig", JsonSerializer.SerializeToElement(new { fresh }));
-			candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
-		}
-
 		candidates = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
 		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
@@ -188,6 +177,35 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
 		context.Read("host-swing-ray", ray);
 		var obstacle = ray is { } reading ? FirstObstacle(reading, cell) : "nothing the client could read";
+		// A player who sees the swing land on the block in front of the crosshair digs THAT block. When the ray's first
+		// `BlockGround` is a different cell than the one the camera points at (an up-slope block, or one whose collider
+		// sits half a cell over), the row aims at the block the swing would really hit and holds there instead of
+		// swinging into air (measured 2026-11-22: aim on (3,490) and the limb's 4.5-unit ray met nothing but the host's
+		// own body, while the cell's collider stood elsewhere on the slope).
+		if (obstacle != "" && ray is { } current && FirstBlockCell(current) is { } inFront && inFront != cell)
+		{
+			var retarget = await context.RecipeAsync(
+				"aim-at-cell",
+				cancellationToken,
+				("x", inFront.X.ToString(CultureInfo.InvariantCulture)),
+				("y", inFront.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			if (Boolean(retarget, "ok") && Double(retarget, "distance") < 0.5)
+			{
+				var retargetRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+				var retargetObstacle = retargetRay is { } second ? FirstObstacle(second, inFront) : "nothing the client could read";
+				if (retargetObstacle == "")
+				{
+					cell = inFront;
+					ray = retargetRay;
+					obstacle = "";
+				}
+				else
+				{
+					context.Read("host-swing-ray-at-the-block-in-front", retargetRay);
+					obstacle += "; the block in front (" + Describe(inFront) + ") is not clean either: " + retargetObstacle;
+				}
+			}
+		}
 		// A player who finds the pod's pump in the way turns to another patch of floor rather than pushing past it. The
 		// scan already named the cells a swing can reach, so the row aims at each of them in turn and keeps the first one
 		// whose own ray is clear (measured 2026-11-22: stepping around wandered 44 world units and left the aim on a cell
@@ -1016,6 +1034,26 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var dirY = Double(ray, "dirY");
 		var distance = Double(hit, "distance");
 		return ((int)Math.Floor(fromX + (dirX * distance)), (int)Math.Floor(fromY + (dirY * distance)));
+	}
+
+	// The block the swing would really hit first, in block coordinates: the row digs what stands in front of the hand,
+	// which is not always the cell the camera's crosshair is on.
+	private static (int X, int Y)? FirstBlockCell(JsonElement ray)
+	{
+		if (ray.ValueKind != JsonValueKind.Object || !ray.TryGetProperty("hits", out var hits) || hits.ValueKind != JsonValueKind.Array)
+		{
+			return null;
+		}
+
+		foreach (var hit in hits.EnumerateArray())
+		{
+			if (String(hit, "tag") == "BlockGround")
+			{
+				return BlockCellAt(ray, hit);
+			}
+		}
+
+		return null;
 	}
 
 	// Distance in world units: one cell is one unit, so this is the same number the game measures from the limb.

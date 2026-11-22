@@ -490,10 +490,15 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		var key = (sender, start);
 		_rangeRepeats.TryGetValue(key, out var repeats);
 		repeats++;
+		if (_rangeRepeats.Count > 64)
+		{
+			// A long session can accumulate starts; the map is a bound, not a ledger.
+			_rangeRepeats.Clear();
+		}
+
 		_rangeRepeats[key] = repeats;
 		if (repeats > 1)
 		{
-			_rangeRepeats.Clear();
 			_log.LogWarning(
 				"Range from {Sender} starting at {Start} has been requested {Repeats} times; sending a checkpoint instead of the history.",
 				sender, start, repeats);

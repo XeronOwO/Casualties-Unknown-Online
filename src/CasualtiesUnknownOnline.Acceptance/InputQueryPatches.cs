@@ -339,11 +339,21 @@ internal static class InputQueryPatches
 		var minigame = MinigameBase.main != null && MinigameBase.main.currentMinigame != null;
 		var liquid = LiquidTransfer.instance != null;
 		var usage = __instance.blockItemUsage;
+		// What the method's own `Input.GetKey*` call sites would answer, taken through the very probes the transpiler
+		// inserted: a row that sees the gate flags open and the hand empty still has to know whether the read inside the
+		// method is the staged one (measured 2026-11-22: `stagedHeld true` at the row, `Uses` 0 for the whole run).
+		var attackBind = KeyBinds.GetBind("attack");
+		var handItem = __instance.body != null ? __instance.body.GetItem(__instance.body.handSlot) : null;
 		AttackGates = "woundView=" + (wound ? "true" : "false")
 			+ " uiOverPointer=" + (overUi ? "true" : "false")
 			+ " minigame=" + (minigame ? "true" : "false")
 			+ " liquid=" + (liquid ? "true" : "false")
-			+ " blockItemUsage=" + (usage ? "true" : "false");
+			+ " blockItemUsage=" + (usage ? "true" : "false")
+			+ " probeHeld=" + (ProbeGetKey(attackBind) ? "true" : "false")
+			+ " probeDown=" + (ProbeGetKeyDown(attackBind) ? "true" : "false")
+			+ " item=" + (handItem == null ? "null" : handItem.name)
+			+ " usable=" + (handItem == null ? "null" : handItem.Stats.usableWithLMB ? "true" : "false")
+			+ " auto=" + (handItem == null ? "null" : handItem.Stats.autoAttack ? "true" : "false");
 	}
 
 	/// <summary>The first method declared on <paramref name="type"/> with this name, whatever its signature (the fallback when the exact one is not found).</summary>

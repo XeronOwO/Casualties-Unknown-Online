@@ -25,6 +25,26 @@
 		layers.Append(LayerMask.LayerToName(one.gameObject.layer));
 		if (one.gameObject.CompareTag("BlockGround")) { blockGround = true; }
 	}
+	// What the point misses by: the world grid and the colliders can disagree by a fraction of a block, and a miss of
+	// half a block looks exactly like "there is no ground here". The nearest `BlockGround` collider inside 1.5 blocks
+	// is named with its offset, so one reading says whether the cell is empty or the point is off.
+	var near = Physics2D.OverlapCircleAll(at, 1.5f);
+	var nearestName = "";
+	var nearestOffsetX = 0f;
+	var nearestOffsetY = 0f;
+	var nearestDistance = -1f;
+	for (var i = 0; i < near.Length; i++)
+	{
+		var one = near[i];
+		if (one == null || !one.gameObject.CompareTag("BlockGround")) { continue; }
+		var offset = (Vector2)one.transform.position - at;
+		var distance = offset.magnitude;
+		if (nearestDistance >= 0f && distance >= nearestDistance) { continue; }
+		nearestDistance = distance;
+		nearestOffsetX = offset.x;
+		nearestOffsetY = offset.y;
+		nearestName = one.gameObject.name + "@" + one.transform.position.x.ToString("0.##", inv) + "," + one.transform.position.y.ToString("0.##", inv);
+	}
 	return "{\"ok\":true"
 		+ ",\"cellX\":" + cellX.ToString(inv)
 		+ ",\"cellY\":" + cellY.ToString(inv)
@@ -34,5 +54,9 @@
 		+ ",\"tag\":\"" + tags.ToString() + "\""
 		+ ",\"layer\":\"" + layers.ToString() + "\""
 		+ ",\"blockGround\":" + (blockGround ? "true" : "false")
+		+ ",\"nearestName\":\"" + nearestName + "\""
+		+ ",\"nearestOffsetX\":" + nearestOffsetX.ToString("0.###", inv)
+		+ ",\"nearestOffsetY\":" + nearestOffsetY.ToString("0.###", inv)
+		+ ",\"nearestDistance\":" + nearestDistance.ToString("0.###", inv)
 		+ "}";
 }))()

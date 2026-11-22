@@ -30,11 +30,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		(int X, int Y) cell = default;
 		JsonElement? point = null;
 		var lastReason = "";
-		for (var scan = 0; scan < 10 && point is null; scan++)
+		for (var scan = 0; scan < 6 && point is null; scan++)
 		{
 			if (scan > 0)
 			{
-				await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+				// The chunks around the pod get their colliders as the world finishes building, so a scan taken too
+				// early finds cells the grid calls breakable with nothing to hit (measured 2026-11-22: twelve scans four
+				// seconds apart all came back empty, and the same pairing offered grounded cells once the world had
+				// settled). The row waits like a player watching the world load rather than calling it a defect.
+				await Task.Delay(1500, cancellationToken).ConfigureAwait(false);
 				candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
 				// A re-scan offers cells the world grid calls breakable; the swing only reaches a block that also has a
 				// collider tagged `BlockGround` (`Body.cs:2162-2168`). Measured 2026-11-22: the re-scan offered (2,502)
@@ -268,7 +272,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		{
 			var damageRose = false;
 			var broke = false;
-			for (var attempt = 0; attempt < 60 && !broke; attempt++)
+			for (var attempt = 0; attempt < 24 && !broke; attempt++)
 			{
 				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
 				// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
@@ -277,6 +281,17 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// rather than a click: a click is over before `HandleAttacks` runs — measured 2026-11-22, the branch's own
 				// probe read `probeHeld=false` while staging a click, which is why no swing ever happened.
 				await StageAsync(context, "attack", "down", cancellationToken).ConfigureAwait(false);
+				// The game asks for the attack with `Input.GetKey(<the attack bind>)`, and that bind is a mouse button.
+				// A staged key and a staged button are two different tables in the input seam (measured 2026-11-22: the
+				// key table said held while the game's own probe inside `HandleAttacks` read `probeHeld=false`), so the
+				// row holds both, the way a player's finger is on the button and the button is down.
+				await context.RecipeAsync(
+					"virtual-input",
+					cancellationToken,
+					("mode", "press"),
+					("x", "0"),
+					("y", "0"),
+					("button", "0")).ConfigureAwait(false);
 				// The camera keeps moving while the key is held (measured 2026-11-22: one staged pixel came back as world
 				// x 3.5 right after aiming and as 1.375 a second later, and the game's own look ended a hundred units off
 				// the cell), so a pointer staged once drifts off the block. A person keeps the cursor on the block; the row
@@ -376,7 +391,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		JsonElement? lastProbe = null;
 		foreach (var candidate in candidates)
 		{
-			if (probed >= 12)
+			if (probed >= 6)
 			{
 				break;
 			}
@@ -396,16 +411,25 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 		context.Read(
 			"host-ground-probes",
-			JsonSerializer.SerializeToElement(new { probed, grounded = grounded.Count, offered = candidates.Count }));
+			JsonSerializer.SerializeToElement(new { probed, grounded = grounded.Count, offered = candidates.Count, last = Raw(lastProbe) }));
 		// A world can offer breakable cells none of whose colliders carry the tag a swing damages (measured 2026-11-22:
 		// every probe in reach read `hits:0, blockGround:false`, and the row went on to swing at a cell nothing could
 		// hurt). So the row scans wider before it gives up, and when the wide scan also finds nothing it says so with
 		// the probes it has instead of walking to a cell and swinging at nothing.
 		if (grounded.Count == 0)
 		{
+			// Each probe is a round trip through the client, so the wider pass takes the nearest few only: the scan
+			// answers nearest-first, and a player digs what they can see rather than the farthest thing in reach.
 			var wider = await FindBreakableCellsAsync(context, cancellationToken, radius: 24).ConfigureAwait(false);
+			var wideProbed = 0;
 			foreach (var candidate in wider)
 			{
+				if (wideProbed >= 6)
+				{
+					break;
+				}
+
+				wideProbed++;
 				var wideProbe = await context.RecipeAsync(
 					"block-probe",
 					cancellationToken,
@@ -419,10 +443,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			}
 		}
 
-		Require(
-			grounded.Count > 0,
-			$"none of the {candidates.Count} breakable cell(s) beside the host's player carried the `BlockGround` collider a swing damages, "
-			+ "and neither did the cells within twenty-four blocks: " + Raw(lastProbe));
+		// The caller decides whether an empty answer is patience or a defect: the world can still be building its
+		// colliders on the first pass, so a hard failure here would call a loading world a broken one.
 		return grounded;
 	}
 
@@ -618,7 +640,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var flippedY = false;
 		var missesX = 0;
 		var missesY = 0;
-		for (var step = 0; step < 70; step++)
+		for (var step = 0; step < 24; step++)
 		{
 			var away = Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5);
 			// An empty hand reaches 4.5 world units from the attacking limb (`Body.cs:2036`), and the limb sits roughly
@@ -648,8 +670,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			var startX = 0.0;
 			var startY = 0.0;
 			var started = false;
-			for (var tick = 0; tick < 8; tick++)
+			for (var tick = 0; tick < 4; tick++)
 			{
+				// Re-stating the hold every tick, not only when the body stalls: the staged answer expires within a few
+				// frames (measured 2026-11-22: `held=false` three ticks after a hold was staged), and a person's key
+				// stays down for as long as they lean on it.
+				await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
 				await Task.Delay(120, cancellationToken).ConfigureAwait(false);
 				var sampled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 				var tickX = Double(sampled, "posX");

@@ -256,11 +256,13 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(!Boolean(under, "overUi"), $"the pointer at {x},{y} (cell {Describe(cell)}) is over a UI element, so the game would refuse every "
 			+ "swing: " + Raw(under));
 		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
-		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")
-			&& Boolean(swing, "blockHit"),
-			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body, a target inside its reach, "
-			+ "and a swing ray that lands on the block's collider: " + Raw(swing) + "; the scan that named the cell read "
-			+ _lastScan);
+		// The probe is an explanation, not a gate: its single ray stops at whatever 2D collider it meets first and the
+		// game's own swing walks the whole ray list (`Body.cs:2168` uses `RaycastAll` and skips its own body), so a probe
+		// that reports another collider first and still reads the block in reach is a swing that works. The row's real
+		// evidence is the damage and the crack stage the game records while the attack is held.
+		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange"),
+			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body and a target inside its "
+			+ "reach: " + Raw(swing) + "; the scan that named the cell read " + _lastScan);
 		context.Read("host-swing", swing);
 	}
 
@@ -333,6 +335,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
 			var after = await FindBreakableAsync(context, cancellationToken).ConfigureAwait(false);
 			last = after;
+			// What the body is doing while the key is staged: `moveDir` says whether the game read the key, and the
+			// velocity says whether the body is being held where it stands. Measured 2026-11-22: twenty-four 400 ms
+			// steps moved the body one unit, so the row has to say which of the two it was.
+			context.Read($"walk step {step} ({bind})", await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false));
 			var movedX = Integer(after, "bodyX");
 			var movedY = Integer(after, "bodyY");
 			var was = Math.Max(distanceX, distanceY);

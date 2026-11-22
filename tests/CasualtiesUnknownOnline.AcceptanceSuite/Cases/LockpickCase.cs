@@ -177,6 +177,18 @@ internal sealed class LockpickCase : AcceptanceCase
 		// scales 0.57 and 1.9, and the press landed at magnitude 328).
 		var aimX = Number(aim, "screenX");
 		var aimY = Number(aim, "screenY");
+		// The player's own order: the crate click opens the lockpick, then the hand goes to the ring and the
+		// player holds the attack button. The second press is the one the minigame can see (its
+		// `handStartedClicking` is `Input.GetKeyDown(attack)`, `MinigameBase.cs:167`), and the row reads the
+		// minigame straight after it to tell “the press started the turn” from “the press closed the minigame”
+		// (2026-11-23: the target was alive with `needsItem:false`, `conscious:true`, health 2000 right after
+		// the click, and the row's later press loop found nothing).
+		await context.RecipeAsync("lockpick-hold", cancellationToken,
+			("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
+			("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture)),
+			("mode", "press")).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+		context.Read("after-first-press", await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false));
 		var (handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
 		// The aim's scale is close, not exact, and the hand clamps past the ring's edge, so a fixed
 		// correction cannot be trusted (2026-11-14: one run landed on the band, the next at magnitude

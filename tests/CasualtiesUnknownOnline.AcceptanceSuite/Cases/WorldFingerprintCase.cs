@@ -54,6 +54,24 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			point is not null,
 			$"none of the {candidates.Count} breakable cells beside the host's player came onto the host's screen in ten scans; the last projection read {lastReason}");
 
+		// A swing's ray starts at the attacking limb and passes through whatever that hand holds, so a lantern a starting
+		// kit put there meets the wall first (measured 2026-11-22: the swing read `hitName: "lantern(Clone)"` while the
+		// cell never took damage). A person drops it before digging; the row does the same through the game's own drop
+		// entry, and it does so *before* walking so the pile stays behind the body instead of on the swing's ray
+		// (second measurement: with the drop after the walk, the ray read `hitName: "dogfood(Clone)"`).
+		var freed = await context.RecipeAsync("empty-hands", cancellationToken).ConfigureAwait(false);
+		Require(freed is { } hands && Boolean(hands, "ok"), "the host could not empty its hands before the swing: " + Raw(freed));
+		context.Read("host-hands-emptied", freed);
+
+		var stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+
+		var walked = await ProjectAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		context.Read("host-cell-point-after-walking", walked);
+		Require(
+			IsOnScreen(walked),
+			$"after walking to within two cells of {Describe(cell)} the host's body stood at ({stood.X},{stood.Y}) and the cell still did not come onto the screen: {Raw(walked)}");
+		point = walked;
+
 		var hostBefore = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 		var memberBefore = await ReadCellAsync(context, cell, true, cancellationToken).ConfigureAwait(false);
 		context.Read("host-cell-before", hostBefore);
@@ -70,9 +88,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var screenY = Integer(point, "screenY");
 
 		await UseTheGamePointerAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
-		var aimed = await AimAtTheCellAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
-		Require(aimed, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
-			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): the last reading is above");
+		var aim = await AimAtTheCellAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
+		Require(aim.Ok, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
+			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): " + aim.Reading);
 
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes).
@@ -164,15 +182,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				}
 			}
 		}
-		// The scan's own body position travels with the answer: a cell beyond the swing's reach (4.5 world units with an
-		// empty hand, `Body.cs:2036`) is not something a player could hit, so it never becomes a candidate. Keeping the
-		// raw answer also lets a later failure say which body the scan stood on (measured 2026-11-22: cells around
-		// x=672 were paired with a body the swing probe read at x=0, and nothing in the report could tell them apart).
+		// The scan's own body position travels with the answer. The swing reaches 4.5 world units with an empty hand
+		// (`Body.cs:2036`), and a person closes a short gap on foot, so a cell within a dozen units is a candidate and
+		// the row walks the rest of the way; only cells the body cannot walk to in one trip are dropped.
 		_lastScan = Raw(found);
 		var bodyX = Integer(found, "bodyX");
 		var bodyY = Integer(found, "bodyY");
-		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 4 && Math.Abs(cell.Y - bodyY) <= 4).ToList();
-		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within the body's reach "
+		var reachable = cells.Where(cell => Math.Abs(cell.X - bodyX) <= 12 && Math.Abs(cell.Y - bodyY) <= 12).ToList();
+		Require(reachable.Count > 0, $"the scan found {cells.Count} breakable cell(s) but none within walking distance "
 			+ $"(body at {bodyX},{bodyY}; first cells " + string.Join(" ", cells.Take(6).Select(Describe)) + "): " + Raw(found));
 		return reachable;
 	}
@@ -278,12 +295,112 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		return Double(after, "consciousness") >= 60;
 	}
 
+	// The scan offers the nearest breakable cells; the nearest still stood six units from the body, outside the
+	// swing's reach. A person closes that distance on foot, so the row presses the game's own movement binds
+	// (`up`/`down`/`left`/`right`, read by the game through `Input.GetKey(KeyBinds.GetBind(…))`) for short steps and
+	// reads the body back after each one. If a step takes the body further away, that direction is turned around.
+	private static async Task<(int X, int Y)> WalkBesideAsync(
+		CaseContext context,
+		(int X, int Y) cell,
+		CancellationToken cancellationToken)
+	{
+		var scan = await FindBreakableAsync(context, cancellationToken).ConfigureAwait(false);
+		var bodyX = Integer(scan, "bodyX");
+		var bodyY = Integer(scan, "bodyY");
+		var last = scan;
+		// The game refuses movement while it is paused, while its console is open, and while the body is under
+		// `forceNoMovement` (`PlayerCamera.cs:732,1039`); a row that stages `up` under those reads a body that never moves
+		// (measured 2026-11-22: twenty-four 400 ms steps moved the body one unit).
+		context.Read("host-movement-allowed", await WaitForMovementAsync(context, cancellationToken).ConfigureAwait(false));
+		var flippedX = false;
+		var flippedY = false;
+		for (var step = 0; step < 24; step++)
+		{
+			var distanceX = Math.Abs(cell.X - bodyX);
+			var distanceY = Math.Abs(cell.Y - bodyY);
+			if (Math.Max(distanceX, distanceY) <= 1)
+			{
+				break;
+			}
+
+			var horizontal = distanceX >= distanceY;
+			var forward = horizontal ? cell.X > bodyX : cell.Y > bodyY;
+			var bind = horizontal
+				? (forward ? (flippedX ? "left" : "right") : (flippedX ? "right" : "left"))
+				: (forward ? (flippedY ? "down" : "up") : (flippedY ? "up" : "down"));
+			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
+			var after = await FindBreakableAsync(context, cancellationToken).ConfigureAwait(false);
+			last = after;
+			var movedX = Integer(after, "bodyX");
+			var movedY = Integer(after, "bodyY");
+			var was = Math.Max(distanceX, distanceY);
+			var now = Math.Max(Math.Abs(cell.X - movedX), Math.Abs(cell.Y - movedY));
+			if (now >= was)
+			{
+				if (horizontal)
+				{
+					flippedX = !flippedX;
+				}
+				else
+				{
+					flippedY = !flippedY;
+				}
+			}
+
+			bodyX = movedX;
+			bodyY = movedY;
+		}
+
+		context.Read("host-body-after-walking", last);
+		return (bodyX, bodyY);
+	}
+
+	private static async Task<JsonElement?> WaitForMovementAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? clock = null;
+		for (var attempt = 0; attempt < 32; attempt++)
+		{
+			clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+			if (clock is { } state
+				&& !Boolean(state, "paused")
+				&& !Boolean(state, "console")
+				&& !Boolean(state, "forceNoMovement"))
+			{
+				return state;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		return clock;
+	}
+
+	private static Task<JsonElement?> FindBreakableAsync(CaseContext context, CancellationToken cancellationToken) =>
+		context.RecipeAsync(
+			"block-find-breakable",
+			cancellationToken,
+			("count", "1"),
+			("minOffset", "1"),
+			("radius", "8"));
+
+	private static async Task StageAsync(CaseContext context, string bind, string action, CancellationToken cancellationToken)
+	{
+		var staged = await context.RecipeAsync(
+			"stage-bind",
+			cancellationToken,
+			("bind", bind),
+			("action", action)).ConfigureAwait(false);
+		Require(Boolean(staged, "ok"), $"the row could not {action} the game's '{bind}' bind: " + Raw(staged));
+	}
+
 	// The cell's screen point and the game's own aim point are not the same thing: `PlayerCamera.cs:985` maps
 	// `Input.mousePosition` through `Camera.main.ScreenToWorldPoint`, and a projection taken from the cell can land a
 	// couple of units off (measured 2026-11-22: the pointer stood on (3,476) while the game aimed at (1,479), so the
 	// swing ray missed the block). The row closes that loop the way a person does — look where the aim sits, nudge the
 	// pointer — instead of trusting one projection.
-	private static async Task<bool> AimAtTheCellAsync(
+	private static async Task<(bool Ok, string Reading)> AimAtTheCellAsync(
 		CaseContext context,
 		(int X, int Y) cell,
 		int screenX,
@@ -292,31 +409,46 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	{
 		var targetX = cell.X + 0.5;
 		var targetY = cell.Y + 0.5;
-		var first = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
-		var nudged = await MovePointerAsync(context, screenX + 40, screenY, cancellationToken).ConfigureAwait(false);
-		Require(Boolean(nudged, "ok"), "the row could not nudge the pointer to measure its scale: " + Raw(nudged));
-		var second = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
-		var worldDelta = Double(second, "lookX") - Double(first, "lookX");
-		var pixelsPerUnit = System.Math.Abs(worldDelta) > 0.01 ? 40 / worldDelta : 20;
-		var last = second;
-		for (var attempt = 0; attempt < 6; attempt++)
+		async Task<JsonElement?> ProbeAt(int x, int y)
+		{
+			var moved = await MovePointerAsync(context, x, y, cancellationToken).ConfigureAwait(false);
+			Require(Boolean(moved, "ok"), "the row could not move the game's pointer while aiming: " + Raw(moved));
+			return await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		}
+
+		// Two probes answer the question the loop cannot guess: how many pixels move the game's aim by one unit, and
+		// in which direction. Measured 2026-11-22: a 40-pixel nudge moved the aim by less than the loop assumed, so six
+		// tries never closed a hop that one solve closes.
+		var here = await ProbeAt(screenX, screenY).ConfigureAwait(false);
+		var across = await ProbeAt(screenX + 60, screenY).ConfigureAwait(false);
+		var down = await ProbeAt(screenX, screenY + 60).ConfigureAwait(false);
+		var perUnitX = Math.Abs(Double(across, "lookX") - Double(here, "lookX")) > 0.01
+			? 60 / (Double(across, "lookX") - Double(here, "lookX"))
+			: 20;
+		var perUnitY = Math.Abs(Double(down, "lookY") - Double(here, "lookY")) > 0.01
+			? 60 / (Double(down, "lookY") - Double(here, "lookY"))
+			: -20;
+		var last = here;
+		var pointerX = (double)screenX;
+		var pointerY = (double)screenY;
+		for (var attempt = 0; attempt < 5; attempt++)
 		{
 			var errorX = targetX - Double(last, "lookX");
 			var errorY = targetY - Double(last, "lookY");
-			if (System.Math.Abs(errorX) <= 0.35 && System.Math.Abs(errorY) <= 0.35)
+			if (Math.Abs(errorX) <= 0.35 && Math.Abs(errorY) <= 0.35)
 			{
-				return true;
+				return (true, Raw(last));
 			}
 
-			screenX = (int)System.Math.Round(screenX + (errorX * pixelsPerUnit));
-			screenY = (int)System.Math.Round(screenY - (errorY * pixelsPerUnit));
-			var again = await MovePointerAsync(context, screenX, screenY, cancellationToken).ConfigureAwait(false);
-			Require(Boolean(again, "ok"), "the row could not move the game's pointer while aiming: " + Raw(again));
-			last = await SwingProbeAsync(context, cell, cancellationToken).ConfigureAwait(false);
+			pointerX += errorX * perUnitX;
+			pointerY += errorY * perUnitY;
+			last = await ProbeAt((int)Math.Round(pointerX), (int)Math.Round(pointerY)).ConfigureAwait(false);
 		}
 
 		context.Read("aim-last", last);
-		return System.Math.Abs(targetX - Double(last, "lookX")) <= 0.35 && System.Math.Abs(targetY - Double(last, "lookY")) <= 0.35;
+		var aimed = Math.Abs(targetX - Double(last, "lookX")) <= 0.35
+			&& Math.Abs(targetY - Double(last, "lookY")) <= 0.35;
+		return (aimed, Raw(last));
 	}
 
 	private static async Task<JsonElement?> MovePointerAsync(CaseContext context, int x, int y, CancellationToken cancellationToken) =>

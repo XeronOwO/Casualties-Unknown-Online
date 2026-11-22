@@ -41,6 +41,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("y", "0"),
 			("button", "0")).ConfigureAwait(false);
 		context.Read("the input channel's install report", install);
+		// The row leaves the capsule before it looks for rock: the world it can dig is the world outside the shell, and
+		// a scan taken inside it answers with cells on the far side that no walk can reach (measured 2026-11-22: the
+		// body exited leftward to x -8 while every candidate sat forty units to the right).
+		var podExit = await LeaveThePodAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("host-left-the-pod", await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false));
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
 		// A collider on the cell is a preference, not a gate: the row walked into a world where the grid named
 		// twenty-four breakable cells and not one of them carried a `BlockGround` collider at its centre, three runs
@@ -154,11 +159,35 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		{
 			lastReason = $"the host could not walk within the game's own reach of {Describe(cell)}: it stood at "
 				+ $"({stood.X},{stood.Y}), {Distance(stood.X, stood.Y, cell.X, cell.Y):0.00} world units away, and an empty hand "
-				+ "reaches 4.5 from the attacking limb (`Body.cs:2036`); the walk read: " + stood.Trace;
+				+ "reaches 4.5 from the attacking limb (`Body.cs:2036`); the walk read: " + stood.Trace
+				+ "; the pod exit read: " + podExit.Trace;
 			var nearby = candidates
 				.Where(other => other != cell && Distance(stood.X, stood.Y, other.X, other.Y) <= 4.2)
 				.OrderBy(other => Distance(stood.X, stood.Y, other.X, other.Y))
 				.ToList();
+			if (nearby.Count == 0)
+			{
+				// The cells the row started with were measured beside the spawn, inside the capsule; once the body has
+				// walked out they no longer describe what is next to it (measured 2026-11-22: the exit left the body at
+				// x -8 with every candidate forty units away on the other side of the pod). So when nothing on the old
+				// list is in reach, the row asks the world again from where the body now stands.
+				var again = await context.RecipeAsync(
+					"block-find-breakable",
+					cancellationToken,
+					("count", "12"),
+					("minOffset", "1"),
+					("radius", "14")).ConfigureAwait(false);
+				context.Read("host-breakable-after-the-exit", again);
+				if (again is { } fresh && fresh.TryGetProperty("cells", out var freshCells) && freshCells.ValueKind == JsonValueKind.Array)
+				{
+					nearby = [.. freshCells
+						.EnumerateArray()
+						.Select(entry => (X: Integer(entry, "x"), Y: Integer(entry, "y")))
+						.Where(other => (other.X != 0 || other.Y != 0) && other != cell)
+						.OrderBy(other => Distance(stood.X, stood.Y, other.X, other.Y))];
+					lastReason += $" [the world was asked again from ({stood.X},{stood.Y}) and named {nearby.Count} cell(s)]";
+				}
+			}
 			if (nearby.Count > 0)
 			{
 				cell = nearby[0];
@@ -589,6 +618,19 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	{
 		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", count.ToString(CultureInfo.InvariantCulture)), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-breakable", found);
+		// A body that has just left the capsule can stand in open ground with nothing breakable inside the first
+		// radius: the pod lands near the map's edge in some worlds (measured 2026-11-22: the scan answered `count 0`
+		// from (-16,481)). A player walks further and looks again, so the row widens the scan once before giving up.
+		if (found is { } empty && Integer(empty, "count") == 0)
+		{
+			found = await context.RecipeAsync(
+				"block-find-breakable",
+				cancellationToken,
+				("count", (count * 2).ToString(CultureInfo.InvariantCulture)),
+				("minOffset", "1"),
+				("radius", (radius * 2).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host-breakable-wider", found);
+		}
 		Require(Boolean(found, "ok"), "the game did not answer which cells beside the host's player can be broken: " + Raw(found));
 		var cells = new List<(int X, int Y)>();
 		if (found is { } answer && answer.TryGetProperty("cells", out var array) && array.ValueKind == JsonValueKind.Array)
@@ -617,10 +659,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// several rows above or below is not something a walk can reach (measured 2026-11-22: the scan's nearest cell
 		// sat five rows up, the walk pressed `up` for forty steps, and `afterMove` stayed `dir 0,0`). Cells on the
 		// body's own level come first; the rest stay as a fallback for worlds whose floor offers nothing level.
-		return reachable
+		return [.. reachable
 			.OrderBy(cell => Math.Abs(cell.Y - bodyY))
-			.ThenBy(cell => Math.Abs(cell.X - bodyX) + Math.Abs(cell.Y - bodyY))
-			.ToList();
+			.ThenBy(cell => Math.Abs(cell.X - bodyX) + Math.Abs(cell.Y - bodyY))];
 	}
 
 	// A cell whose point lands under the game's own HUD cannot be attacked: `PlayerCamera.HandleAttacks` returns at once
@@ -759,6 +800,86 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	// swing's reach. A person closes that distance on foot, so the row presses the game's own movement binds
 	// (`up`/`down`/`left`/`right`, read by the game through `Input.GetKey(KeyBinds.GetBind(…))`) for short steps and
 	// reads the body back after each one. If a step takes the body further away, that direction is turned around.
+	private static async Task<(double X, double Y, string Trace)> LeaveThePodAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var trace = new StringBuilder();
+		var motion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		var startX = Double(motion, "posX");
+		var startY = Double(motion, "posY");
+		// The world is not the player's to steer until the capsule lands: a body pressed at second one stands still no
+		// matter the direction (measured 2026-11-22: `[up 0.00] [down 0.00]` from a settled body, while the same keys
+		// walked thirty-six units in a later run). So the row waits until the body moves on its own, or twelve seconds.
+		for (var wait = 0; wait < 48; wait++)
+		{
+			var watching = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			if (Distance(startX, startY, Double(watching, "posX"), Double(watching, "posY")) > 1.0)
+			{
+				trace.Append($" [settled at step {wait}]");
+				break;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		// The hatch is an interactable of the capsule, and a body that never presses the interact key stays inside.
+		await StageAsync(context, "iteminteract", "down", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+		await StageAsync(context, "iteminteract", "up", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		// Each direction is tested from a body that has stopped: the floor slides, so a direction measured while the
+		// body is still gliding from the last one reads as if it moved (measured 2026-11-22: `right 2.31`, `left 4.08`
+		// and `up 4.08` in one spawn, all of it the same slide).
+		foreach (var brake in new[] { "left", "right", "up", "down" })
+		{
+			await StageAsync(context, brake, "up", cancellationToken).ConfigureAwait(false);
+		}
+
+		await Task.Delay(600, cancellationToken).ConfigureAwait(false);
+		var exitBind = "";
+		var exitMoved = 0.0;
+		foreach (var bind in new[] { "up", "down", "right", "left" })
+		{
+			var settled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var fromX = Double(settled, "posX");
+			var fromY = Double(settled, "posY");
+			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(1400, cancellationToken).ConfigureAwait(false);
+			var probe = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(300, cancellationToken).ConfigureAwait(false);
+			var moved = Distance(fromX, fromY, Double(probe, "posX"), Double(probe, "posY"));
+			trace.Append($" [{bind} {moved.ToString("0.00", CultureInfo.InvariantCulture)}]");
+			if (moved > exitMoved)
+			{
+				exitMoved = moved;
+				exitBind = bind;
+			}
+		}
+
+		if (exitBind.Length == 0)
+		{
+			return (startX, startY, trace.Append(" [the body answered no direction]").ToString());
+		}
+
+		var lastX = startX;
+		var lastY = startY;
+		for (var step = 0; step < 40; step++)
+		{
+			await StageAsync(context, exitBind, "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(140, cancellationToken).ConfigureAwait(false);
+			var out2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			lastX = Double(out2, "posX");
+			lastY = Double(out2, "posY");
+			if (Distance(startX, startY, lastX, lastY) > 3.5)
+			{
+				break;
+			}
+		}
+
+		trace.Append($" [out {lastX:0.00},{lastY:0.00} on {exitBind}]");
+		return (lastX, lastY, trace.ToString());
+	}
+
 	private static async Task<(int X, int Y, string Trace)> WalkBesideAsync(
 		CaseContext context,
 		(int X, int Y) cell,
@@ -781,78 +902,17 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var firstMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 		var posX = Double(firstMotion, "posX");
 		var posY = Double(firstMotion, "posY");
-		// A run starts inside the capsule, and its shell stops the body at x 4.085 whatever the player pushes: the pod's
-		// own frame is not breakable ground, so the scan above answers with the rock outside it and every walk stalls on
-		// the wall (measured 2026-11-22, twelve runs). A person starts by stepping out through the capsule's mouth: hold
-		// `down` until the body has left the shell, and only then walk toward the block.
-		var podY = posY;
-		var leftThePod = new StringBuilder();
-		// Where the capsule opens is not the same in every world, and guessing costs runs (measured 2026-11-22: `down`
-		// moved nine units in one spawn and nothing in the next, `up` only climbs, and the shell stopped `D` at x 4.085).
-		// A person finds the way out with their hands: hold each direction for a moment, keep the one that moves the
-		// body, and walk that way until it is clear of the shell.
-		var spawnX = posX;
-		var spawnY = posY;
-		var exitBind = "";
-		var exitMoved = 0.0;
-		// A person starts by opening the capsule: its own hatch is an interactable, and a body that never presses the
-		// interact key stands in a closed pod while every direction reads zero (measured 2026-11-22: `[down 0.00]` and
-		// the walk never left the shell).
-		await StageAsync(context, "iteminteract", "down", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(400, cancellationToken).ConfigureAwait(false);
-		await StageAsync(context, "iteminteract", "up", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(250, cancellationToken).ConfigureAwait(false);
-		leftThePod.Append(" [interact]");
-		// The probe must start from a body that has stopped: the pod's floor slides, so a direction tested while the
-		// body is still gliding from the previous one reads as if it moved (measured 2026-11-22: `right 2.31`,
-		// `left 4.08` and `up 4.08` in one spawn, all of it the same slide, and then the walk set off the wrong way).
-		foreach (var brake in new[] { "left", "right", "up", "down" })
-		{
-			await StageAsync(context, brake, "up", cancellationToken).ConfigureAwait(false);
-		}
-
-		await Task.Delay(600, cancellationToken).ConfigureAwait(false);
-		foreach (var bind in new[] { "up", "down", "right", "left" })
-		{
-			var settled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
-			var fromX = Double(settled, "posX");
-			var fromY = Double(settled, "posY");
-			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(1400, cancellationToken).ConfigureAwait(false);
-			var probe2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
-			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(300, cancellationToken).ConfigureAwait(false);
-			var moved = Distance(fromX, fromY, Double(probe2, "posX"), Double(probe2, "posY"));
-			leftThePod.Append($" [{bind} {moved.ToString("0.00", CultureInfo.InvariantCulture)}]");
-			if (moved > exitMoved)
-			{
-				exitMoved = moved;
-				exitBind = bind;
-			}
-		}
-
-		if (exitBind.Length > 0)
-		{
-			for (var step = 0; step < 40; step++)
-			{
-				await StageAsync(context, exitBind, "down", cancellationToken).ConfigureAwait(false);
-				await Task.Delay(140, cancellationToken).ConfigureAwait(false);
-				var out2 = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
-				posX = Double(out2, "posX");
-				posY = Double(out2, "posY");
-				if (Distance(spawnX, spawnY, posX, posY) > 3.5)
-				{
-					break;
-				}
-			}
-		}
-
-		trace.Append("; leave-pod" + leftThePod);
+		var exit = await LeaveThePodAsync(context, cancellationToken).ConfigureAwait(false);
+		posX = exit.X;
+		posY = exit.Y;
+		trace.Append("; leave-pod " + exit.Trace);
 		var flippedX = false;
 		var flippedY = false;
 		var missesX = 0;
 		var missesY = 0;
-		for (var step = 0; step < 40; step++)
+		// Sixteen steps of two ticks is enough to cross the room and keeps the case inside its budget: every tick is a
+		// websocket turn on the game thread, and forty steps of four ticks cost 238 s of a 240 s case (`row1-171`).
+		for (var step = 0; step < 16; step++)
 		{
 			var away = Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5);
 			// A person does not walk to a coordinate; they stop when the wall is within reach of the swing. The scan's
@@ -917,7 +977,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			var startX = 0.0;
 			var startY = 0.0;
 			var started = false;
-			for (var tick = 0; tick < 4; tick++)
+			for (var tick = 0; tick < 2; tick++)
 			{
 				// Re-stating the hold every tick, not only when the body stalls: the staged answer expires within a few
 				// frames (measured 2026-11-22: `held=false` three ticks after a hold was staged), and a person's key

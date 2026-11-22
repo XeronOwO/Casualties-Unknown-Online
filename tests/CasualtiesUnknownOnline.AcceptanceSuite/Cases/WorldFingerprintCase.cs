@@ -91,7 +91,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			context.Read("host-cell-after", hostAfter);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the input the game saw was {Raw(staged)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

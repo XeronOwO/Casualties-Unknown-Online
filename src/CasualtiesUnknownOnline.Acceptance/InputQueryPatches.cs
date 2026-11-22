@@ -416,6 +416,11 @@ internal static class InputQueryPatches
 				KeyDownAnswers++;
 			}
 
+			if (query == VirtualInput.ButtonQuery.Held && value)
+			{
+				KeyHeldAnswers++;
+			}
+
 			return value;
 		}
 

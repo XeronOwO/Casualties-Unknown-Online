@@ -22,6 +22,7 @@
 	var aim = Math.Atan2(dy, dx) * 180.0 / Math.PI;
 	var mini = MinigameBase.main;
 	var swings = -1L;
+	var uses = -1L;
 	var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 	for (var a = 0; a < assemblies.Length; a++)
 	{
@@ -34,6 +35,11 @@
 			if (counter != null)
 			{
 				swings = System.Convert.ToInt64(counter.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
+			}
+			var used = types[t].GetProperty("Uses", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+			if (used != null)
+			{
+				uses = System.Convert.ToInt64(used.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
 			}
 		}
 	}
@@ -51,5 +57,6 @@
 		+ ",\"minigame\":" + (mini != null && mini.currentMinigame != null ? "true" : "false")
 		+ ",\"woundView\":" + (camera.woundView != null && camera.woundView.activeSelf ? "true" : "false")
 		+ ",\"uiOverPointer\":" + (ui ? "true" : "false")
-		+ ",\"swings\":" + swings.ToString(inv) + "}";
+		+ ",\"swings\":" + swings.ToString(inv)
+		+ ",\"uses\":" + uses.ToString(inv) + "}";
 }))()

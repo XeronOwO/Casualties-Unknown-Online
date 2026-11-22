@@ -298,6 +298,13 @@ internal static class VirtualInput
 	/// </summary>
 	internal static long Swings => SwingProbe.Swings;
 
+	/// <summary>
+	/// How many times the game's own swing entry ran. It sits one step earlier than <see cref="Swings"/>: a row that reads
+	/// zero here knows the attack branch was never taken, while a row that reads a use but no swing knows the hand's path
+	/// ended before the swing.
+	/// </summary>
+	internal static long Uses => SwingProbe.Uses;
+
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;
 

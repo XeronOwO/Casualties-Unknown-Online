@@ -22,29 +22,36 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		// The CUO window covers the screen centre; open it first so Escape is deterministic, then
-		// let the game's own Escape close it.
-		await context.Session.ActionAsync(context.Session.HostUrl, "open-window", cancellationToken).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
-		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
-		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		// The player walks up to a locked door and uses it; the game's own entry (`Openable.OnUse`, `Openable.cs:8-31`)
+		// decides whether a minigame starts and which pick it hands the lock. Nothing here constructs the minigame.
+		var doors = await context.RecipeAsync("openable-find", cancellationToken).ConfigureAwait(false);
+		context.Read("doors", doors);
+		Require(Boolean(doors, "ok"), "the door scan failed: " + Raw(doors));
+		var door = NearestLockableDoor(doors);
+		Require(door.HasValue, "no locked door stands near the host: " + Raw(doors));
+		context.Note($"door at {door!.Value.X:0.##},{door.Value.Y:0.##}, {door.Value.Distance:0.##} away");
 
-		JsonElement? aim = null;
-		for (var attempt = 0; attempt < 3; attempt++)
+		var cellX = Math.Round(door.Value.X - 0.5).ToString("0", CultureInfo.InvariantCulture);
+		var cellY = Math.Round(door.Value.Y - 0.5).ToString("0", CultureInfo.InvariantCulture);
+		var pointed = await context.RecipeAsync("aim-at-cell", cancellationToken, ("x", cellX), ("y", cellY)).ConfigureAwait(false);
+		context.Read("door-aim", pointed);
+		Require(Boolean(pointed, "ok"), "the harness could not point at the door: " + Raw(pointed));
+
+		var state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
+		for (var use = 0; use < 3 && Boolean(state, "active") != true; use++)
 		{
-			var opened = await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
-			context.Read("open", opened);
-			Require(Boolean(opened, "ok"), "the lockpick minigame did not open");
-			await Task.Delay(TimeSpan.FromMilliseconds(800), cancellationToken).ConfigureAwait(false);
-			aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-			if (Boolean(aim, "ok"))
-			{
-				break;
-			}
-
-			context.Note($"open attempt {attempt}: the minigame closed before the aim; reopening");
+			var pressed = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
+			Require(Boolean(pressed, "ok"), "the harness could not press the use key: " + Raw(pressed));
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
+			context.Read("lockpick " + use.ToString(CultureInfo.InvariantCulture), state);
 		}
+
+		Require(Boolean(state, "active") == true, "the door did not start the lockpick minigame: " + Raw(state));
+
+		var aim = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
 
 		context.Read("aim", aim);
 		Require(Boolean(aim, "ok"), "the aim did not compute");
@@ -90,13 +97,15 @@ internal sealed class LockpickCase : AcceptanceCase
 		var liveCheck = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 		if (NumberOr(liveCheck, "uiScale", 0) <= 0)
 		{
-			// The minigame can close between the aim and the press (a stray click, a timeout): reopen
-			// it and aim again, because a press with no minigame only records a sound and no lock.
-			context.Note("the minigame closed during the aim; reopening once");
-			await context.RecipeAsync("lockpick-open", cancellationToken).ConfigureAwait(false);
+			// The minigame can close between the aim and the press (a stray click, a timeout): the player
+			// would use the door again, so the row does the same instead of constructing the minigame.
+			context.Note("the minigame closed during the aim; using the door again");
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
 			var reopened = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-			Require(Boolean(reopened, "ok"), "the lockpick minigame did not reopen: " + (reopened?.GetRawText() ?? "null"));
+			Require(Boolean(reopened, "ok"), "the door did not start the minigame again: " + Raw(reopened));
 			aimX = Number(reopened, "screenX");
 			aimY = Number(reopened, "screenY");
 			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
@@ -186,6 +195,47 @@ internal sealed class LockpickCase : AcceptanceCase
 		var handY = NumberOr(live, "handY", 0);
 		return (handX, handY);
 	}
+
+	private readonly record struct Door(double X, double Y, double Distance);
+
+	// The nearest door that is a lock rather than a keypad or an unlocked opening, read from `openable-find`.
+	private static Door? NearestLockableDoor(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("doors", out var doors)
+			|| doors.ValueKind != JsonValueKind.Array)
+		{
+			return null;
+		}
+
+		Door? best = null;
+		foreach (var door in doors.EnumerateArray())
+		{
+			if (door.ValueKind != JsonValueKind.Object
+				|| (door.TryGetProperty("instant", out var instant) && instant.ValueKind == JsonValueKind.True)
+				|| (door.TryGetProperty("keypad", out var keypad) && keypad.ValueKind == JsonValueKind.True)
+				|| (door.TryGetProperty("health", out var health) && health.ValueKind == JsonValueKind.Number && health.GetDouble() <= 0))
+			{
+				continue;
+			}
+
+			if (!door.TryGetProperty("x", out var x) || x.ValueKind != JsonValueKind.Number
+				|| !door.TryGetProperty("y", out var y) || y.ValueKind != JsonValueKind.Number)
+			{
+				continue;
+			}
+
+			var distance = door.TryGetProperty("distance", out var away) && away.ValueKind == JsonValueKind.Number ? away.GetDouble() : double.MaxValue;
+			if (best == null || distance < best.Value.Distance)
+			{
+				best = new Door(x.GetDouble(), y.GetDouble(), distance);
+			}
+		}
+
+		return best;
+	}
+
+	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
 	private static double Number(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

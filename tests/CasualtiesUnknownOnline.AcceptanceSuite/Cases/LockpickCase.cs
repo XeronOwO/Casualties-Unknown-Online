@@ -100,11 +100,20 @@ internal sealed class LockpickCase : AcceptanceCase
 			// pressed, `lockpick-state.active` stayed false). The click is staged at the pointer the aim just set.
 			var atX = NumberOr(pointed, "screenX", 640).ToString("0.###", CultureInfo.InvariantCulture);
 			var atY = NumberOr(pointed, "screenY", 360).ToString("0.###", CultureInfo.InvariantCulture);
+			var before = await context.RecipeAsync("click-state", cancellationToken).ConfigureAwait(false);
+			context.Read("click-before", before);
+			// `HandleDragging` is gated by `Input.GetKeyDown(KeyBinds.GetBind("iteminteract"))` (`PlayerCamera.cs:1509`), and
+			// that bind is a mouse button: the key table and the button table are separate, so both are staged here.
+			// Measured 2026-11-23: `buttonDownAnswers` rose 0 -> 3 while `HandleStartDragging` never ran, because only the
+			// button table was staged and the game asked the key table.
+			var keyDown = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "down")).ConfigureAwait(false);
+			Require(Boolean(keyDown, "ok"), "the harness could not press the use key: " + Raw(keyDown));
 			var pressed = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "press"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
 
 			Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 			state = await context.RecipeAsync("lockpick-state", cancellationToken).ConfigureAwait(false);
 			context.Read("lockpick", state);

@@ -50,9 +50,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			}
 		}
 		context.Read("host-cell-point", point);
-		Require(
-			point is not null,
-			$"none of the {candidates.Count} breakable cells beside the host's player came onto the host's screen in ten scans; the last projection read {lastReason}");
+		// The projection is only a preference. What decides whether the host can put its crosshair on a cell is the
+		// aim below, and that one closes its loop with the camera's own numbers (measured 2026-11-22: the projection
+		// named a point 736 px down a 720 px screen, and the game's pointer space is not that screen).
+		if (point is null && candidates.Count > 0)
+		{
+			cell = candidates[0];
+			_lastScan += $" [nothing projected; the row went with the nearest cell, {lastReason}]";
+		}
 
 		// A swing's ray starts at the attacking limb and passes through whatever that hand holds, so a lantern a starting
 		// kit put there meets the wall first (measured 2026-11-22: the swing read `hitName: "lantern(Clone)"` while the
@@ -67,9 +72,6 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 		var walked = await ProjectAsync(context, cell, cancellationToken).ConfigureAwait(false);
 		context.Read("host-cell-point-after-walking", walked);
-		Require(
-			IsOnScreen(walked),
-			$"after walking to within two cells of {Describe(cell)} the host's body stood at ({stood.X},{stood.Y}) and the cell still did not come onto the screen: {Raw(walked)}");
 		point = walked;
 
 		var hostBefore = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
@@ -87,8 +89,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var screenX = Integer(point, "screenX");
 		var screenY = Integer(point, "screenY");
 
-		await UseTheGamePointerAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
-		var aim = await AimAtTheCellAsync(context, cell, screenX, screenY, cancellationToken).ConfigureAwait(false);
+		// Aim with the game's own camera, closed loop: the row cannot say which pixel space it writes into (measured
+		// 2026-11-22: a staged (662, 384) came back as input (1728, -159)), so the client projects the block, reads back
+		// the world point of the pointer it just staged, and corrects until the crosshair is on the block's centre.
+		var aimJson = await context.RecipeAsync(
+			"aim-at-cell",
+			cancellationToken,
+			("x", cell.X.ToString()),
+			("y", cell.Y.ToString())).ConfigureAwait(false);
+		var aim = (Ok: Boolean(aimJson, "ok"), Reading: Raw(aimJson));
 		Require(aim.Ok, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
 			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): " + aim.Reading);
 

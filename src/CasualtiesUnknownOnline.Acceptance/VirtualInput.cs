@@ -206,6 +206,11 @@ internal static class VirtualInput
 		{
 			state.Held = false;
 			state.UpFrame = UnityTime.frameCount + 1;
+			// A released key cannot still owe the game a DOWN: the edge is only cleared when a reader asks about it in its own
+			// frame, and a modal that suppresses the game's input (our own panel, a minigame) can swallow every reader for
+			// that frame. Measured 2026-11-23: a speed key pressed and released in six frames stayed "down" for the rest of
+			// the run, so the game re-applied SuperFast 50 times a second while the fixture held nothing.
+			state.DownPending = false;
 			RecordKey(key, "up");
 		}
 	}

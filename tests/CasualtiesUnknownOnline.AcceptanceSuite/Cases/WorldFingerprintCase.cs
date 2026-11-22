@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -70,6 +71,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		context.Read("host-hands-emptied", freed);
 
 		var stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		Require(
+			Distance(stood.X, stood.Y, cell.X, cell.Y) <= 4.4,
+			$"the host never got within the game's own reach of {Describe(cell)}: the body stood at ({stood.X},{stood.Y}), "
+			+ $"{Distance(stood.X, stood.Y, cell.X, cell.Y):0.00} world units away, and an empty hand reaches 4.5 from the attacking limb "
+			+ "(`Body.cs:2036`). The steps read: " + stood.Trace);
 
 		var walked = await ProjectAsync(context, cell, cancellationToken).ConfigureAwait(false);
 		context.Read("host-cell-point-after-walking", walked);
@@ -113,6 +119,16 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var aim = (Ok: Boolean(aimJson, "ok"), Reading: Raw(aimJson));
 		Require(aim.Ok && Double(aimJson, "distance") < 0.5, $"the game's aim could not be put on {Describe(cell)} (a player's swing goes where the pointer "
 			+ "aims, `PlayerCamera.cs:985` sets `targetLookPos` from `Input.mousePosition`): " + aim.Reading);
+
+		// The row's own projection and the game's own look have disagreed in every measurement so far (2026-11-22:
+		// the staged point projected onto the cell while `body.targetLookPos` sat thirty world units away). One reading
+		// taken twice — right after the aim, and a second later — says whether the game is following the staged
+		// pointer at all or reading something else.
+		var truthAtAim = await context.RecipeAsync("aim-truth", cancellationToken).ConfigureAwait(false);
+		context.Read("host-aim-truth-at-aim", truthAtAim);
+		await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
+		var truthLater = await context.RecipeAsync("aim-truth", cancellationToken).ConfigureAwait(false);
+		context.Read("host-aim-truth-one-second-later", truthLater);
 
 		// The game refreshes its own aim once a frame, so the row asks it in a later call what it thinks the crosshair
 		// sits on, and re-aims when the two disagree (measured 2026-11-22: they were two blocks apart).
@@ -190,6 +206,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		JsonElement? hostAfter = null;
 		JsonElement? gatesDuring = null;
 		JsonElement? branchDuring = null;
+		JsonElement? swingHits = null;
 		try
 		{
 			var damageRose = false;
@@ -202,6 +219,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// read "not held" while the row believed it was holding).
 				await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
 				await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
+				// The camera keeps moving while the key is held (measured 2026-11-22: one staged pixel came back as world
+				// x 3.5 right after aiming and as 1.375 a second later, and the game's own look ended a hundred units off
+				// the cell), so a pointer staged once drifts off the block. A person keeps the cursor on the block; the row
+				// re-aims with the game's own camera every tick before it reads the damage.
+				await context.RecipeAsync(
+					"aim-at-cell",
+					cancellationToken,
+					("x", cell.X.ToString(CultureInfo.InvariantCulture)),
+					("y", cell.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 				// The staged key cannot reach the game's own swing on this build (measured 2026-11-22), so the row drives
 				// the same entry a person's click ends in — `Body.UseItemInHand` — and keeps asserting what a person can
 				// see: the cell's damage and crack stage, and the member's view of the same cell.
@@ -220,6 +246,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 					var branch = await context.RecipeAsync("attack-branch", cancellationToken).ConfigureAwait(false);
 					branchDuring = branch;
 					context.Read("the attack branch's own gates", branch);
+					// What the swing actually meets: the game's block branch runs only when no earlier hit took the
+					// swing (`Body.cs:2160`), so this list names the thing that swallows it.
+					var hits = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+					swingHits = hits;
+					context.Read("what the swing meets", hits);
 				}
 				var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 				if (Integer(now, "damage") > Integer(hostBefore, "damage"))
@@ -243,7 +274,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}; the pointer truth at aim was {Raw(truthAtAim)} and one second later {Raw(truthLater)}; what the swing meets is {Raw(swingHits)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
@@ -281,6 +312,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	{
 		var grounded = new List<(int X, int Y)>();
 		var probed = 0;
+		JsonElement? lastProbe = null;
 		foreach (var candidate in candidates)
 		{
 			if (probed >= 12)
@@ -294,6 +326,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				cancellationToken,
 				("x", candidate.X.ToString(CultureInfo.InvariantCulture)),
 				("y", candidate.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			lastProbe = probe;
 			if (probe is { } answer && Boolean(answer, "blockGround"))
 			{
 				grounded.Add(candidate);
@@ -303,14 +336,38 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		context.Read(
 			"host-ground-probes",
 			JsonSerializer.SerializeToElement(new { probed, grounded = grounded.Count, offered = candidates.Count }));
-		// Falling back to the unfiltered list keeps the old failure message (and its probe reading) in place of a
-		// vaguer one, should a world ever carry no tagged collider within reach.
-		return grounded.Count > 0 ? grounded : candidates;
+		// A world can offer breakable cells none of whose colliders carry the tag a swing damages (measured 2026-11-22:
+		// every probe in reach read `hits:0, blockGround:false`, and the row went on to swing at a cell nothing could
+		// hurt). So the row scans wider before it gives up, and when the wide scan also finds nothing it says so with
+		// the probes it has instead of walking to a cell and swinging at nothing.
+		if (grounded.Count == 0)
+		{
+			var wider = await FindBreakableCellsAsync(context, cancellationToken, radius: 24).ConfigureAwait(false);
+			foreach (var candidate in wider)
+			{
+				var wideProbe = await context.RecipeAsync(
+					"block-probe",
+					cancellationToken,
+					("x", candidate.X.ToString(CultureInfo.InvariantCulture)),
+					("y", candidate.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				if (wideProbe is { } answer && Boolean(answer, "blockGround"))
+				{
+					grounded.Add(candidate);
+					break;
+				}
+			}
+		}
+
+		Require(
+			grounded.Count > 0,
+			$"none of the {candidates.Count} breakable cell(s) beside the host's player carried the `BlockGround` collider a swing damages, "
+			+ "and neither did the cells within twenty-four blocks: " + Raw(lastProbe));
+		return grounded;
 	}
 
-	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken)
+	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 8)
 	{
-		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24"), ("minOffset", "1"), ("radius", "8")).ConfigureAwait(false);
+		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24"), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-breakable", found);
 		Require(Boolean(found, "ok"), "the game did not answer which cells beside the host's player can be broken: " + Raw(found));
 		var cells = new List<(int X, int Y)>();
@@ -474,7 +531,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	// swing's reach. A person closes that distance on foot, so the row presses the game's own movement binds
 	// (`up`/`down`/`left`/`right`, read by the game through `Input.GetKey(KeyBinds.GetBind(…))`) for short steps and
 	// reads the body back after each one. If a step takes the body further away, that direction is turned around.
-	private static async Task<(int X, int Y)> WalkBesideAsync(
+	private static async Task<(int X, int Y, string Trace)> WalkBesideAsync(
 		CaseContext context,
 		(int X, int Y) cell,
 		CancellationToken cancellationToken)
@@ -483,49 +540,112 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var bodyX = Integer(scan, "bodyX");
 		var bodyY = Integer(scan, "bodyY");
 		var last = scan;
+		var trace = new StringBuilder();
+		trace.Append($"start ({bodyX},{bodyY}) {Distance(bodyX, bodyY, cell.X, cell.Y):0.00}u");
 		// The game refuses movement while it is paused, while its console is open, and while the body is under
 		// `forceNoMovement` (`PlayerCamera.cs:732,1039`); a row that stages `up` under those reads a body that never moves
 		// (measured 2026-11-22: twenty-four 400 ms steps moved the body one unit).
 		context.Read("host-movement-allowed", await WaitForMovementAsync(context, cancellationToken).ConfigureAwait(false));
 		var flippedX = false;
 		var flippedY = false;
-		for (var step = 0; step < 24; step++)
+		var missesX = 0;
+		var missesY = 0;
+		for (var step = 0; step < 70; step++)
 		{
-			var distanceX = Math.Abs(cell.X - bodyX);
-			var distanceY = Math.Abs(cell.Y - bodyY);
-			if (Math.Max(distanceX, distanceY) <= 1)
+			var away = Distance(bodyX, bodyY, cell.X, cell.Y);
+			// An empty hand reaches 4.5 world units from the attacking limb (`Body.cs:2036`); two and a half leaves
+			// room for the limb's own offset, so a smaller distance is already inside the swing.
+			if (away <= 4.2)
 			{
 				break;
 			}
+
+			var distanceX = Math.Abs(cell.X - bodyX);
+			var distanceY = Math.Abs(cell.Y - bodyY);
 
 			var horizontal = distanceX >= distanceY;
 			var forward = horizontal ? cell.X > bodyX : cell.Y > bodyY;
 			var bind = horizontal
 				? (forward ? (flippedX ? "left" : "right") : (flippedX ? "right" : "left"))
 				: (forward ? (flippedY ? "down" : "up") : (flippedY ? "up" : "down"));
+			// A staged key answers for a short window and then stops (measured 2026-11-22: twenty-four 400 ms steps moved
+			// the body one unit, while `Input.GetKey` in the game answered "held" for the first frames only). A person holds
+			// the key down; the row re-states it every 40 ms for the length of the step.
+			// One press, then watch: a staged key stays "held" until it is released, so the body has to keep walking on its
+			// own. Re-stamping it every 40 ms (what this loop used to do) makes every tick a fresh PRESS, and a fresh press
+			// is not the same question as a held key (measured 2026-11-22: 40 ms re-stamps moved the body ~0.2 units a
+			// step, and the same budget sometimes stopped eight units short).
 			await StageAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
-			await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+			var held = new StringBuilder();
+			for (var tick = 0; tick < 4; tick++)
+			{
+				await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+				var sampled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+				held.Append($" [{tick}] x{String(sampled, "posX")} v{String(sampled, "velX")} m{Integer(sampled, "moveX")}");
+			}
+
+			trace.Append("; hold" + held);
+			if (step == 0)
+			{
+				// Which gate stops the game's own input method, and whether it ran at all: the key is staged and the bind
+				// resolves, so the missing fact is the gate (`PlayerCamera.cs:1023`, `:1039`, `:1058`), not the speed.
+				var walkTruth = await context.RecipeAsync("walk-truth", cancellationToken).ConfigureAwait(false);
+				context.Read("host-walk-truth", walkTruth);
+				trace.Append("; walktruth " + Raw(walkTruth));
+			}
+
 			await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
 			var after = await FindBreakableAsync(context, cancellationToken).ConfigureAwait(false);
 			last = after;
 			// What the body is doing while the key is staged: `moveDir` says whether the game read the key, and the
 			// velocity says whether the body is being held where it stands. Measured 2026-11-22: twenty-four 400 ms
 			// steps moved the body one unit, so the row has to say which of the two it was.
-			context.Read($"walk step {step} ({bind})", await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false));
+			var motion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			context.Read($"walk step {step} ({bind})", motion);
+			// How many times the game entered its own input method during that step: the body moves once per entry, so
+			// this is the constant that turns "the walk is slow" into "the walk needs N entries per unit".
+			var counters = await context.RecipeAsync("walk-truth", cancellationToken).ConfigureAwait(false);
+			trace.Append($"; E{String(counters, "handleInputEntries")}");
+			if (step == 0)
+			{
+				// Every path a movement key could travel, read once at the start of the walk: the game's own binding
+				// table, `Input.GetKey` for those codes and for WASD, the legacy axes, and `moveDir` itself. Without it a
+				// walk that never moves says only that the body stood still.
+				var truth = await context.RecipeAsync("move-truth", cancellationToken).ConfigureAwait(false);
+				context.Read("host-movement-truth", truth);
+				trace.Append("; truth " + Raw(truth));
+			}
 			var movedX = Integer(after, "bodyX");
 			var movedY = Integer(after, "bodyY");
-			var was = Math.Max(distanceX, distanceY);
-			var now = Math.Max(Math.Abs(cell.X - movedX), Math.Abs(cell.Y - movedY));
-			if (now >= was)
+			var now = Distance(movedX, movedY, cell.X, cell.Y);
+			trace.Append($"; {step} {bind} ({movedX},{movedY}) {now:0.00}u move {Integer(motion, "moveX")}/{Integer(motion, "moveY")} modal {String(motion, "modal")} spectator {String(motion, "spectator")}");
+			if (now >= away - 0.05)
 			{
+				// One step that does not close the distance can be the body's own momentum; three in a row mean this axis
+				// is being pushed the wrong way, so the row turns it around.
 				if (horizontal)
 				{
-					flippedX = !flippedX;
+					missesX++;
+					if (missesX >= 3)
+					{
+						flippedX = !flippedX;
+						missesX = 0;
+					}
 				}
 				else
 				{
-					flippedY = !flippedY;
+					missesY++;
+					if (missesY >= 3)
+					{
+						flippedY = !flippedY;
+						missesY = 0;
+					}
 				}
+			}
+			else
+			{
+				missesX = 0;
+				missesY = 0;
 			}
 
 			bodyX = movedX;
@@ -533,7 +653,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		}
 
 		context.Read("host-body-after-walking", last);
-		return (bodyX, bodyY);
+		return (bodyX, bodyY, trace.ToString());
 	}
 
 	private static async Task<JsonElement?> WaitForMovementAsync(CaseContext context, CancellationToken cancellationToken)
@@ -649,6 +769,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	}
 
 	private static string Describe((int X, int Y) cell) => cell.X + "," + cell.Y;
+
+	// Distance in world units: one cell is one unit, so this is the same number the game measures from the limb.
+	private static double Distance(int fromX, int fromY, int toX, int toY)
+		=> Math.Sqrt(((double)(toX - fromX) * (toX - fromX)) + ((double)(toY - fromY) * (toY - fromY)));
 
 	private static string _lastScan = "(no scan yet)";
 

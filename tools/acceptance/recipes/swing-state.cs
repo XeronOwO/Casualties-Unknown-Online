@@ -15,6 +15,13 @@
 	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
 	var hand = body.GetItem(body.handSlot);
 	var look = body.targetLookPos;
+	// Where the pointer came from, read in the same call as the game's look: the staged point, what
+	// `Input.mousePosition` answers, and what `Camera.main` makes of it. The game's look is the last of those
+	// (`PlayerCamera.cs:985`), so a look that disagrees with the projection means the game read another pointer.
+	var input = UnityEngine.Input.mousePosition;
+	var pointerWorld = Camera.main == null ? Vector3.zero : Camera.main.ScreenToWorldPoint(input);
+	var stagedX = "none";
+	var stagedY = "none";
 	var held = UnityEngine.Input.GetKey(KeyBinds.GetBind("attack"));
 	var ui = UIUtil.IsPointerOverUIElement();
 	var dx = look.x - body.transform.position.x;
@@ -47,6 +54,17 @@
 			{
 				seamText = System.Convert.ToString(seam.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
 			}
+			var tryGet = types[t].GetMethod("TryGetStaged", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+			if (tryGet != null)
+			{
+				var buffer = new object[] { null };
+				if ((bool)tryGet.Invoke(null, buffer))
+				{
+					var point = (UnityEngine.Vector3)buffer[0];
+					stagedX = point.x.ToString("0.###", inv);
+					stagedY = point.y.ToString("0.###", inv);
+				}
+			}
 		}
 	}
 	return "{\"ok\":true"
@@ -65,5 +83,8 @@
 		+ ",\"uiOverPointer\":" + (ui ? "true" : "false")
 		+ ",\"swings\":" + swings.ToString(inv)
 		+ ",\"uses\":" + uses.ToString(inv)
+		+ ",\"stagedX\":\"" + stagedX + "\",\"stagedY\":\"" + stagedY + "\""
+		+ ",\"pointerX\":\"" + input.x.ToString("0.###", inv) + "\",\"pointerY\":\"" + input.y.ToString("0.###", inv) + "\""
+		+ ",\"pointerWorldX\":\"" + pointerWorld.x.ToString("0.###", inv) + "\",\"pointerWorldY\":\"" + pointerWorld.y.ToString("0.###", inv) + "\""
 		+ ",\"seam\":\"" + seamText.Replace("\"", "'") + "\"}";
 }))()

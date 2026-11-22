@@ -1,0 +1,45 @@
+// recipe: swing-hits
+// args: none
+// returns: ok, bodyX, bodyY, lookX, lookY, dirX, dirY, fromX, fromY, count, hits
+//
+// Lists what an unarmed swing would meet, along the exact ray the game uses: from the attacking limb
+// (`limbs[1]`) through the aim direction for the attack's own reach (`Body.cs:2162`, `RaycastAll` then only
+// `BlockGround` takes damage at `:2166`). The game's block branch runs only when no earlier hit took the swing
+// (`Body.cs:2160`), so a list that names an item or an entity before the block says what absorbed it.
+//
+// ONE LINE ON PURPOSE: the client's evaluator takes one top-level expression.
+((System.Func<string>)(() => {
+	var inv = System.Globalization.CultureInfo.InvariantCulture;
+	var camera = PlayerCamera.main;
+	if (camera == null) { return "{\"ok\":false,\"error\":\"no-camera\"}"; }
+	var body = camera.body;
+	if (body == null) { return "{\"ok\":false,\"error\":\"no-body\"}"; }
+	var at = body.transform.position;
+	var look = body.targetLookPos;
+	var dx = look.x - at.x;
+	var dy = look.y - at.y;
+	var length = Math.Sqrt((dx * dx) + (dy * dy));
+	if (length < 0.0001) { return "{\"ok\":false,\"error\":\"aim-has-no-direction\"}"; }
+	var dir = new Vector2((float)(dx / length), (float)(dy / length));
+	var from = body.limbs[1].transform.position;
+	var reach = 4.5f;
+	var text = "";
+	var count = 0;
+	foreach (var hit in Physics2D.RaycastAll(from, dir, reach))
+	{
+		count++;
+		if (count > 12) { break; }
+		text = text + (count > 1 ? "," : "") + "{\"name\":\"" + hit.transform.name.Replace("\"", "''") + "\",\"tag\":\"" + hit.transform.tag + "\",\"layer\":\"" + LayerMask.LayerToName(hit.transform.gameObject.layer) + "\",\"distance\":" + hit.distance.ToString("0.###", inv) + "}";
+	}
+	return "{\"ok\":true"
+		+ ",\"bodyX\":" + at.x.ToString("0.###", inv)
+		+ ",\"bodyY\":" + at.y.ToString("0.###", inv)
+		+ ",\"lookX\":" + look.x.ToString("0.###", inv)
+		+ ",\"lookY\":" + look.y.ToString("0.###", inv)
+		+ ",\"dirX\":" + dir.x.ToString("0.###", inv)
+		+ ",\"dirY\":" + dir.y.ToString("0.###", inv)
+		+ ",\"fromX\":" + from.x.ToString("0.###", inv)
+		+ ",\"fromY\":" + from.y.ToString("0.###", inv)
+		+ ",\"count\":" + count.ToString(inv)
+		+ ",\"hits\":[" + text + "]}";
+}))()

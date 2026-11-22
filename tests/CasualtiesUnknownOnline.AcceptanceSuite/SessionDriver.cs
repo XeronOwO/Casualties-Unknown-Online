@@ -1134,7 +1134,7 @@ internal sealed class SessionDriver(Options options)
 					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 					if (members.Length > 0
 						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
-						&& await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
+						&& await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 							+ (keepCarried
@@ -1151,7 +1151,7 @@ internal sealed class SessionDriver(Options options)
 					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 					if (roster.Length > 0
 						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
-						&& await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
+						&& await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false))
 					{
 						return "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
@@ -1244,10 +1244,22 @@ internal sealed class SessionDriver(Options options)
 		}
 		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
 		{
-			// A probe that cannot answer must not stop the row: the pair as it stands is what runs, and the row's own
-			// reading will say whether the body had room.
+			// A probe that cannot answer must not decide the row either way on one bad attempt, but it must not
+			// claim the body has room when it never read it: the rows that need a slot went on to fail with
+			// "no-free-slot" while this returned true (measured 2026-11-22, the give-container-sound row). Ask
+			// once more, then say the slots are unknown, which rebuilds the pair.
 			Timeline?.Invoke("the member's slots could not be read: " + exception.Message);
-			return true;
+			try
+			{
+				answer = await RecipeAtAsync(_options.MemberUrl, "item-provide",
+					new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken)
+					.ConfigureAwait(false);
+			}
+			catch (Exception retry) when (retry is DriverException or InvalidOperationException or IOException)
+			{
+				Timeline?.Invoke("the member's slots could not be read on the second ask: " + retry.Message);
+				return false;
+			}
 		}
 		if (answer is not { } reading || !IsTrue(reading, "ok"))
 		{
@@ -1268,6 +1280,32 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return false;
+	}
+
+	private async Task<bool> HasCarrySlotOrHealAsync(CancellationToken cancellationToken)
+	{
+		if (await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false))
+		{
+			return true;
+		}
+
+		// A slot that cannot take an item is a body that has lost the limb which owned it, and the member's
+		// character comes back from its own save with that loss: rebuilding the pair restores the same body.
+		// Heal it and ask again before the run is thrown away (measured 2026-11-22: every row after the medical
+		// ones failed with "no-free-slot" even though the pair had just been rebuilt).
+		Timeline?.Invoke("the member has no slot to take an item; healing its body before the pair is given up");
+		try
+		{
+			await RecipeAtAsync(_options.MemberUrl, "native-heal", new Dictionary<string, string>(), cancellationToken)
+				.ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+		{
+			Timeline?.Invoke("the member's body could not be healed: " + exception.Message);
+			return false;
+		}
+
+		return await HasCarrySlotAsync(cancellationToken).ConfigureAwait(false);
 	}
 
 	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)

@@ -159,6 +159,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
 		context.Read("the game's own gates", clock);
 		var framesAtPress = Integer(clock, "frame");
+		// One swing through the game's own entry says whether the counter is live on this build at all; without it a zero
+		// cannot be told apart from a patch that never installed.
+		var swingProbe = await context.RecipeAsync("swing-once", cancellationToken).ConfigureAwait(false);
+		context.Read("one swing through the game's own entry", swingProbe);
 		var entriesAtPress = Integer(staged, "handleInputEntries");
 		JsonElement? hostDuring = null;
 		JsonElement? hostAfter = null;
@@ -170,6 +174,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			for (var attempt = 0; attempt < 60 && !broke; attempt++)
 			{
 				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+				// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
+				// the channel drops it between frames (measured 2026-11-22: 703 frames asked the attack key and the game
+				// read "not held" while the row believed it was holding).
+				await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
 				if (attempt == 4)
 				{
 					// Halfway through the hold, name every gate between the held key and a hurt block, so a failure
@@ -200,7 +208,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");

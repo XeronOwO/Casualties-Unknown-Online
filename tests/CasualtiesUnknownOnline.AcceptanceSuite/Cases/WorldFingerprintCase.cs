@@ -255,6 +255,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var under = await context.RecipeAsync("ui-raycast", cancellationToken).ConfigureAwait(false);
 		Require(!Boolean(under, "overUi"), $"the pointer at {x},{y} (cell {Describe(cell)}) is over a UI element, so the game would refuse every "
 			+ "swing: " + Raw(under));
+		var space = await context.RecipeAsync("pointer-space", cancellationToken).ConfigureAwait(false);
 		var swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
 		// The probe is an explanation, not a gate: its single ray stops at whatever 2D collider it meets first and the
 		// game's own swing walks the whole ray list (`Body.cs:2168` uses `RaycastAll` and skips its own body), so a probe
@@ -289,7 +290,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange"),
 			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body and a target inside its "
-			+ "reach: " + Raw(swing) + "; the scan that named the cell read " + _lastScan);
+			+ "reach: " + Raw(swing) + "; the pointer spaces read " + Raw(space)
+			+ "; the scan that named the cell read " + _lastScan);
 		context.Read("host-swing", swing);
 	}
 

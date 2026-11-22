@@ -212,6 +212,13 @@ internal static class InputQueryPatches
 	internal static int KeyHeldAnswers { get; private set; }
 
 	/// <summary>
+	/// The last few key names the selection seam answered "held" for, space separated. It separates "the game never asked
+	/// about the staged key" from "the game asked and was answered, so the movement line had the key and still did not move
+	/// the body" (measured 2026-11-22: `stage-bind` reported the seam answering `S`, and every tick still read `moveX 0`).
+	/// </summary>
+	internal static string HeldTrueLog { get; private set; } = "";
+
+	/// <summary>
 	/// How many MOUSE-BUTTON questions the game asked, and how many were answered "down": the same census for the mouse internals,
 	/// because the two families share one backend and a key patch that never runs next to a button patch that does is a fact about the
 	/// TARGETS, not about the input (read 2026-10-28, when the key detour answered nothing while the mouse one was believed live).
@@ -284,6 +291,11 @@ internal static class InputQueryPatches
 			if (query == VirtualInput.ButtonQuery.Held && value)
 			{
 				KeyHeldAnswers++;
+				HeldTrueLog = (HeldTrueLog + " " + key.ToString()).TrimEnd();
+				if (HeldTrueLog.Length > 160)
+				{
+					HeldTrueLog = HeldTrueLog.Substring(HeldTrueLog.Length - 160);
+				}
 			}
 
 			__result = value;

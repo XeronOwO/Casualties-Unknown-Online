@@ -184,26 +184,41 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// own body, while the cell's collider stood elsewhere on the slope).
 		if (obstacle != "" && ray is { } current && FirstBlockCell(current) is { } inFront && inFront != cell)
 		{
-			var retarget = await context.RecipeAsync(
-				"aim-at-cell",
-				cancellationToken,
-				("x", inFront.X.ToString(CultureInfo.InvariantCulture)),
-				("y", inFront.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-			if (Boolean(retarget, "ok") && Double(retarget, "distance") < 0.5)
+			// On a slope the ray's first block is the one the player is really facing, and the block behind it can sit
+			// one cell further up again. A player digs the block that is in front, then the next one appears; so the row
+			// follows the ray for a few hops instead of giving up after one (measured 2026-11-22: aiming at (3,481)
+			// reported (2,481) in front of it, which reported (3,481) again, a chain that ends only at the block the
+			// camera can point at without another block between).
+			for (var hop = 0; hop < 4 && obstacle != "" && inFront != cell; hop++)
 			{
+				var retarget = await context.RecipeAsync(
+					"aim-at-cell",
+					cancellationToken,
+					("x", inFront.X.ToString(CultureInfo.InvariantCulture)),
+					("y", inFront.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				if (!Boolean(retarget, "ok") || Double(retarget, "distance") >= 0.5)
+				{
+					break;
+				}
 				var retargetRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
-				var retargetObstacle = retargetRay is { } second ? FirstObstacle(second, inFront) : "nothing the client could read";
+				if (retargetRay is not { } second)
+				{
+					obstacle += "; nothing the client could read after aiming at the block in front (" + Describe(inFront) + ")";
+					break;
+				}
+				var retargetObstacle = FirstObstacle(second, inFront);
 				if (retargetObstacle == "")
 				{
 					cell = inFront;
-					ray = retargetRay;
+					ray = second;
 					obstacle = "";
+					break;
 				}
-				else
-				{
-					context.Read("host-swing-ray-at-the-block-in-front", retargetRay);
-					obstacle += "; the block in front (" + Describe(inFront) + ") is not clean either: " + retargetObstacle;
-				}
+				context.Read($"host-swing-ray-at-the-block-in-front-{hop}", retargetRay);
+				obstacle = retargetObstacle;
+				cell = inFront;
+				ray = second;
+				inFront = FirstBlockCell(second) is { } next ? next : cell;
 			}
 		}
 		// A player who finds the pod's pump in the way turns to another patch of floor rather than pushing past it. The
@@ -731,7 +746,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 						("y", "0"),
 						("button", "0")).ConfigureAwait(false);
 					var duringTruth = await context.RecipeAsync("walk-truth", cancellationToken).ConfigureAwait(false);
-					held.Append($"; stage held={String(stagedReport, "held")} keys={String(stagedReport, "stagedKeys")} K{String(duringTruth, "keyHeldAnswers")} Q{String(duringTruth, "keyQueries")}");
+					// Which key the seam answered for, and whether it answers at all: `stage held=false` is the real
+					// keyboard and proves nothing, while `answered` is the seam's own verdict on the same question the
+					// game's movement line asks (measured 2026-11-22: every gate read clear and the body still stood).
+					var again = await StageReadingAsync(context, bind, "down", cancellationToken).ConfigureAwait(false);
+					held.Append($"; stage held={String(stagedReport, "held")} keys={String(stagedReport, "stagedKeys")} ans={String(again, "answered")} key={String(again, "key")} K{String(duringTruth, "keyHeldAnswers")} Q{String(duringTruth, "keyQueries")}");
 				}
 				if (tick == 2 && (Math.Abs(tickX - startX) + Math.Abs(tickY - startY)) < 0.05)
 				{
@@ -1015,9 +1034,18 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 					+ " instead of " + Describe(cell);
 			}
 
-			if (nearest.Length == 0)
+			// Loosely held things do not stop the block branch: `Body.cs:2162-2176` walks the whole ray and damages the
+			// first `BlockGround` it contains, whatever sits between the hand and the wall. `flag` (which WOULD skip the
+			// loop) is set only by an animal-class building hit at `:2116-2156`. Measured 2026-11-22: the gate reported
+			// `lantern(Clone) (Untagged) at 3.184` in front of the block and refused a swing the game would have landed.
+			if (String(hit, "tag") != "BlockGround")
 			{
-				nearest = String(hit, "name") + " (" + String(hit, "tag") + ") at " + String(hit, "distance");
+				if (nearest.Length == 0 && String(hit, "tag") != "Untagged")
+				{
+					nearest = String(hit, "name") + " (" + String(hit, "tag") + ") at " + String(hit, "distance");
+				}
+
+				continue;
 			}
 		}
 

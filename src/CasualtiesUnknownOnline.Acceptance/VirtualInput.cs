@@ -292,6 +292,9 @@ internal static class VirtualInput
 	/// <summary>How many of those KEY questions the staged state answered "held" (the split the down tally cannot give).</summary>
 	internal static int KeyHeldAnswers => InputQueryPatches.KeyHeldAnswers;
 
+	/// <summary>The last key names the seam answered "held" for (see <see cref="InputQueryPatches.HeldTrueLog"/>).</summary>
+	internal static string HeldTrueLog => InputQueryPatches.HeldTrueLog;
+
 	/// <summary>
 	/// How many times the game actually swung an empty hand. It separates "the held key never reached the swing" from "the
 	/// swing happened and missed" — a distinction the damage reading alone cannot make.

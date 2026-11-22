@@ -20,6 +20,10 @@
 	sb.Append(",\"consciousness\":").Append(body.consciousness.ToString("0.###", inv));
 	sb.Append(",\"bloodVolume\":").Append(body.bloodVolume.ToString("0.###", inv));
 	sb.Append(",\"alive\":").Append(body.alive ? "true" : "false");
+	// The movement gate reads the body's own `conscious` flag (`PlayerCamera.cs:1023`), which is not the same fact as
+	// the `consciousness` number: a body can sit at 1.5 and still refuse to walk. A row that reads only the number
+	// cannot tell "the key was never read" from "the body is out cold" (measured 2026-11-22).
+	sb.Append(",\"conscious\":").Append(body.conscious ? "true" : "false");
 	sb.Append('}');
 	return sb.ToString();
 }))()

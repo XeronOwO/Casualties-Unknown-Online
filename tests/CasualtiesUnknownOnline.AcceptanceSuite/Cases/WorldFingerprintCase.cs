@@ -272,6 +272,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		{
 			var damageRose = false;
 			var broke = false;
+			JsonElement? holdStaged = null;
 			for (var attempt = 0; attempt < 24 && !broke; attempt++)
 			{
 				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
@@ -280,7 +281,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				// read "not held" while the row believed it was holding). It has to be the game's own bind staged *down*
 				// rather than a click: a click is over before `HandleAttacks` runs — measured 2026-11-22, the branch's own
 				// probe read `probeHeld=false` while staging a click, which is why no swing ever happened.
-				await StageAsync(context, "attack", "down", cancellationToken).ConfigureAwait(false);
+				holdStaged = await StageReadingAsync(context, "attack", "down", cancellationToken).ConfigureAwait(false);
 				// The game asks for the attack with `Input.GetKey(<the attack bind>)`, and that bind is a mouse button.
 				// A staged key and a staged button are two different tables in the input seam (measured 2026-11-22: the
 				// key table said held while the game's own probe inside `HandleAttacks` read `probeHeld=false`), so the
@@ -350,7 +351,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				("y", cell.Y.ToString())).ConfigureAwait(false);
 			Require(
 				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}; the pointer truth at aim was {Raw(truthAtAim)} and one second later {Raw(truthLater)}; what the swing meets is {Raw(swingHits)}");
+				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}; the pointer truth at aim was {Raw(truthAtAim)} and one second later {Raw(truthLater)}; what the swing meets is {Raw(swingHits)}; the row's own hold staged {Raw(holdStaged)}");
 			Require(
 				broke,
 				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
@@ -817,7 +818,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("minOffset", "1"),
 			("radius", "8"));
 
-	private static async Task StageAsync(CaseContext context, string bind, string action, CancellationToken cancellationToken)
+	private static async Task StageAsync(CaseContext context, string bind, string action, CancellationToken cancellationToken) =>
+		await StageReadingAsync(context, bind, action, cancellationToken).ConfigureAwait(false);
+
+	// The same staging, keeping the reading: `answered` says whether the selection seam would answer the game's own
+	// `GetKey` for that key at all, which is the difference between "the row staged nothing" and "the row staged a key
+	// the game never asks about" (measured 2026-11-22: the row reported held, and the probe inside `HandleAttacks`
+	// read not-held, so the two tables had to be told apart at the seam).
+	private static async Task<JsonElement> StageReadingAsync(CaseContext context, string bind, string action, CancellationToken cancellationToken)
 	{
 		var staged = await context.RecipeAsync(
 			"stage-bind",
@@ -825,6 +833,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("bind", bind),
 			("action", action)).ConfigureAwait(false);
 		Require(Boolean(staged, "ok"), $"the row could not {action} the game's '{bind}' bind: " + Raw(staged));
+		return staged ?? default;
 	}
 
 	// The cell's screen point and the game's own aim point are not the same thing: `PlayerCamera.cs:985` maps

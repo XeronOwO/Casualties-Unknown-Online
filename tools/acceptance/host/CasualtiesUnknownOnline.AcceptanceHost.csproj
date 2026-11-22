@@ -20,5 +20,14 @@
     <ProjectReference Include="..\..\..\tests\CasualtiesUnknownOnline.AcceptanceSuite\CasualtiesUnknownOnline.AcceptanceSuite.csproj" />
   </ItemGroup>
 
+  <!--
+    The native helper that cancels the game's own window activation (tools/build-native.ps1 builds it). It is optional:
+    without it the launcher logs one line and the clients may take the foreground, which is why the copy only happens
+    when the file exists.
+  -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\artifacts\native\window-quiet.dll')">
+    <None Include="$(MSBuildThisFileDirectory)..\..\..\artifacts\native\window-quiet.dll" Link="window-quiet.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
 

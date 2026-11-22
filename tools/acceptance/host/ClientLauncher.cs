@@ -213,23 +213,29 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		// hands to `CreateProcess`: `STARTF_USESHOWWINDOW` with `SW_SHOWNOACTIVATE` shows the window without activating
 		// it, from the first frame. Nothing a later process does can undo a window that was created activated.
 		var commandLine = "\"" + start.FileName + "\"" + (string.IsNullOrWhiteSpace(start.Arguments) ? string.Empty : " " + start.Arguments);
-		var pid = CreateWithoutActivation(start.FileName, commandLine, start.WorkingDirectory, out var error);
+		// An empty current directory is not "leave it alone": `CreateProcess` refuses the whole call with
+		// ERROR_INVALID_NAME (123). The boxed client passes no working directory, which is how its start failed.
+		var workingDirectory = string.IsNullOrWhiteSpace(start.WorkingDirectory) ? null : start.WorkingDirectory;
+		var pid = CreateWithoutActivation(start.FileName, commandLine, workingDirectory, out var error);
 		if (pid == 0)
 		{
 			throw new InvalidOperationException($"could not start the {name}: {error}");
 		}
 
 		var process = Process.GetProcessById(pid);
+		// The startup information above only decides how the first frame is shown; the game then activates its own
+		// window. The native helper cancels those activations for this process only.
+		WindowQuiet.Install(pid);
 		_started.Add(process);
 	}
 
-	private static int CreateWithoutActivation(string exe, string commandLine, string workingDirectory, out string error)
+	private static int CreateWithoutActivation(string exe, string commandLine, string? workingDirectory, out string error)
 	{
-		var info = new StartupInfo { cb = System.Runtime.InteropServices.Marshal.SizeOf<StartupInfo>(), dwFlags = StartfUseShowWindow, wShowWindow = SwShowNoActivate };
+		var info = new StartupInfo { cb = Marshal.SizeOf<StartupInfo>(), dwFlags = StartfUseShowWindow, wShowWindow = SwShowNoActivate };
 		var ok = CreateProcess(exe, commandLine, nint.Zero, nint.Zero, false, 0, nint.Zero, workingDirectory, ref info, out var created);
 		if (!ok)
 		{
-			error = "CreateProcess failed with " + System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+			error = "CreateProcess failed with " + Marshal.GetLastWin32Error();
 			return 0;
 		}
 
@@ -242,7 +248,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	private const int StartfUseShowWindow = 0x1;
 	private const short SwShowNoActivate = 4;
 
-	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	[StructLayout(LayoutKind.Sequential)]
 	private struct StartupInfo
 	{
 		public int cb;
@@ -265,7 +271,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		public nint stdError;
 	}
 
-	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	[StructLayout(LayoutKind.Sequential)]
 	private struct ProcessInformation
 	{
 		public nint hProcess;
@@ -275,7 +281,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	}
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-	private static extern bool CreateProcess(string? applicationName, string commandLine, nint processAttributes, nint threadAttributes, bool inheritHandles, int creationFlags, nint environment, string currentDirectory, ref StartupInfo startupInfo, out ProcessInformation processInformation);
+	private static extern bool CreateProcess(string? applicationName, string commandLine, nint processAttributes, nint threadAttributes, bool inheritHandles, int creationFlags, nint environment, string? currentDirectory, ref StartupInfo startupInfo, out ProcessInformation processInformation);
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	private static extern bool CloseHandle(nint handle);

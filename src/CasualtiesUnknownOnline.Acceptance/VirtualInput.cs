@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 using UnityTime = UnityEngine.Time;
+using SwingProbe = CasualtiesUnknownOnline.Acceptance.SwingProbePatch;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
 
@@ -295,7 +296,7 @@ internal static class VirtualInput
 	/// How many times the game actually swung an empty hand. It separates "the held key never reached the swing" from "the
 	/// swing happened and missed" — a distinction the damage reading alone cannot make.
 	/// </summary>
-	internal static long Swings => CasualtiesUnknownOnline.Acceptance.SwingProbePatch.Swings;
+	internal static long Swings => SwingProbe.Swings;
 
 	/// <summary>How many MOUSE-BUTTON questions the game asked.</summary>
 	internal static int ButtonQueries => InputQueryPatches.ButtonQueries;

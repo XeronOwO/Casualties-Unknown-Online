@@ -243,6 +243,16 @@ internal sealed class WorldTimeSync(
 			return; // Slowmo/Paused/unmapped speeds stay local-only
 		}
 
+		// Every host-side local change that reaches the standing request is named here, with the native flags and the call
+		// origin: the host's own game writing two speeds in turns is otherwise invisible (measured 2026-11-23: the policy
+		// log alternated Normal/SuperFast every ~20 ms with no request and no direct-write line between the two).
+		_log.LogInformation(
+			"[WorldTime] host local {Speed} switchSound={SwitchSound} force={Force} origin={Origin}.",
+			speed,
+			switchSound,
+			force,
+			CallContext.Current);
+
 		_requestedSpeed = ToWorldTimeSpeed(speed);
 		TryApplyPolicy();
 	}

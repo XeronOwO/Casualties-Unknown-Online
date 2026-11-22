@@ -112,6 +112,9 @@ internal sealed class LockpickCase : AcceptanceCase
 
 			Require(Boolean(pressed, "ok"), "the harness could not click the door: " + Raw(pressed));
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			// Released straight away: the game only builds the minigame on the down edge and the drag has to end, otherwise
+			// the next branch never sees it (measured 2026-11-23: holding the press through the read left `active` false,
+			// while press-then-release left it true).
 			await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "release"), ("button", "0"), ("x", atX), ("y", atY)).ConfigureAwait(false);
 			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "iteminteract"), ("action", "up")).ConfigureAwait(false);
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);

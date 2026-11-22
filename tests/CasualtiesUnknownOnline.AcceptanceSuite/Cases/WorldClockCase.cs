@@ -34,6 +34,69 @@ internal sealed class WorldClockCase : AcceptanceCase
 		Require(hostNormal, "the host's clock did not return to normal");
 		var memberNormal = await WaitForScaleAsync(context, "Normal", hostSide: false, cancellationToken).ConfigureAwait(false);
 		Require(memberNormal, "the member's own clock did not return to normal");
+
+		// The clock the claim is about is the one that moves the world: `Time.timeScale`, not the enum beside it. The host
+		// presses the game's own speed key (the game's Ultra setting is 20x, `PlayerCamera.cs:756`), and both clients must
+		// end up running at that scale — the host decides, so the member's own Unity clock follows the broadcast instead of
+		// keeping whatever it had.
+		var hostBefore = await ScaleAsync(context, hostSide: true, cancellationToken).ConfigureAwait(false);
+		var memberBefore = await ScaleAsync(context, hostSide: false, cancellationToken).ConfigureAwait(false);
+		context.Note($"before the host's speed key: host={hostBefore} member={memberBefore}");
+		await PressBindAsync(context, hostSide: true, "speed3", cancellationToken).ConfigureAwait(false);
+		var hostUltra = await WaitForUnityScaleAsync(context, "20", hostSide: true, cancellationToken).ConfigureAwait(false);
+		var memberUltra = await WaitForUnityScaleAsync(context, "20", hostSide: false, cancellationToken).ConfigureAwait(false);
+		context.Note($"after the host's speed key: host={hostUltra} member={memberUltra}");
+		Require(hostUltra, "the host's own Unity clock did not reach the game's Ultra scale of 20");
+		Require(memberUltra, "the member's Unity clock did not follow the host's Ultra scale — the world runs at two speeds");
+
+		// Slowing back down is pressed a few times with a recording, because the game applies a speed on the key's own
+		// down frame and a single missed frame would read as a product refusal.
+		var hostBack = false;
+		for (var attempt = 0; attempt < 3 && !hostBack; attempt++)
+		{
+			await PressBindAsync(context, hostSide: true, "speed1", cancellationToken).ConfigureAwait(false);
+			var reading = await ScaleAsync(context, hostSide: true, cancellationToken).ConfigureAwait(false);
+			context.Note($"slow-down attempt {attempt}: host={reading?.GetRawText() ?? "null"}");
+			hostBack = await WaitForUnityScaleAsync(context, "1", hostSide: true, cancellationToken).ConfigureAwait(false);
+		}
+
+		var memberBack = await WaitForUnityScaleAsync(context, "1", hostSide: false, cancellationToken).ConfigureAwait(false);
+		Require(hostBack, "the host's clock did not return to the game's normal scale of 1");
+		Require(memberBack, "the member's clock did not return to the game's normal scale of 1");
+	}
+
+	// The game's own speed key, pressed and released through the same binding the player uses.
+	private static async Task PressBindAsync(CaseContext context, bool hostSide, string bind, CancellationToken cancellationToken)
+	{
+		await BindAsync(context, hostSide, bind, "down", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+		await BindAsync(context, hostSide, bind, "up", cancellationToken).ConfigureAwait(false);
+	}
+
+	private static Task<JsonElement?> BindAsync(CaseContext context, bool hostSide, string bind, string action, CancellationToken cancellationToken) =>
+		hostSide
+			? context.RecipeAsync("stage-bind", cancellationToken, ("bind", bind), ("action", action))
+			: context.MemberRecipeAsync("stage-bind", cancellationToken, ("bind", bind), ("action", action));
+
+	private static Task<JsonElement?> ScaleAsync(CaseContext context, bool hostSide, CancellationToken cancellationToken) =>
+		hostSide
+			? context.RecipeAsync("time-scale-read", cancellationToken)
+			: context.MemberRecipeAsync("time-scale-read", cancellationToken);
+
+	private static async Task<bool> WaitForUnityScaleAsync(CaseContext context, string expected, bool hostSide, CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; attempt < 24; attempt++)
+		{
+			var reading = await ScaleAsync(context, hostSide, cancellationToken).ConfigureAwait(false);
+			if (StringValue(reading, "timeScale") == expected)
+			{
+				return true;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return false;
 	}
 
 	private static async Task<bool> WaitForScaleAsync(CaseContext context, string expected, bool hostSide, CancellationToken cancellationToken)

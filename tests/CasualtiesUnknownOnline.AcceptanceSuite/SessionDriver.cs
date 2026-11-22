@@ -1160,7 +1160,33 @@ internal sealed class SessionDriver(Options options)
 	/// reads; a pair whose world is gone is rebuilt here, and the rebuild is charged to the case's
 	/// setup, never hidden.
 	/// </summary>
+	/// <summary>
+	/// The world every row drives has to take the game's own input, and our Online panel eats it: while the modal is
+	/// open, <c>PlayerCamera.HandleInput</c> is skipped entirely (measured 2026-11-22:
+	/// <c>src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraHandleInputPatch.cs:42-46</c> returns false, so a
+	/// staged movement bind answers <c>Input.GetKey</c> and never reaches <c>body.moveDir</c>). Closing it is part of
+	/// preparing the world, not a per-row step — a row that reopens the panel for its own reading closes it again
+	/// before it drives the game.
+	/// </summary>
 	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken, bool keepCarried = false)
+	{
+		var note = await EnsureLiveWorldCoreAsync(cancellationToken, keepCarried).ConfigureAwait(false);
+		return note + "; " + await CloseOurPanelAsync(cancellationToken).ConfigureAwait(false);
+	}
+
+	public async Task<string> CloseOurPanelAsync(CancellationToken cancellationToken)
+	{
+		var closed = new List<string>(2);
+		foreach (var target in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
+		{
+			var answer = await CloseWindowAsync(target.Item1, cancellationToken).ConfigureAwait(false);
+			closed.Add(target.Item2 + (IsTrue(answer, "visible") ? " still shows its panel" : " panel closed"));
+		}
+
+		return string.Join(", ", closed);
+	}
+
+	private async Task<string> EnsureLiveWorldCoreAsync(CancellationToken cancellationToken, bool keepCarried)
 	{
 		BeginSetup();
 		var clock = Stopwatch.StartNew();

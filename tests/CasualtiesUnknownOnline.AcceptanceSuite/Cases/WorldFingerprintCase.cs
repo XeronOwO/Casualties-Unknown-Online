@@ -260,6 +260,33 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// game's own swing walks the whole ray list (`Body.cs:2168` uses `RaycastAll` and skips its own body), so a probe
 		// that reports another collider first and still reads the block in reach is a swing that works. The row's real
 		// evidence is the damage and the crack stage the game records while the attack is held.
+		//
+		// Reach is a number the game computes (`Body.cs:2036` measures from the attacking limb), and a cell four and a
+		// half blocks away is outside it by a hand's width (measured 2026-11-22: targetDistance 4.57 against a reach of
+		// 4.5). A player who is a step short takes the step, so the row does the same and looks again.
+		for (var step = 0; step < 3 && !(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange")); step++)
+		{
+			var stepped = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+			_lastScan += $" [step {step + 1} walked to {stepped.X},{stepped.Y}]";
+			var projected = await context.RecipeAsync(
+				"screen-project",
+				cancellationToken,
+				("x", cell.X.ToString()),
+				("y", cell.Y.ToString())).ConfigureAwait(false);
+			x = Integer(projected, "screenX");
+			y = Integer(projected, "screenY");
+			var repositioned = await context.RecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "move"),
+				("x", x.ToString()),
+				("y", y.ToString()),
+				("button", "0")).ConfigureAwait(false);
+			Require(Boolean(repositioned, "ok"), $"the acceptance channel could not point the game at {x},{y}: " + Raw(repositioned));
+			await AimAtTheCellAsync(context, cell, x, y, cancellationToken).ConfigureAwait(false);
+			swing = await context.RecipeAsync("attack-swing-probe", cancellationToken, ("x", cell.X.ToString()), ("y", cell.Y.ToString())).ConfigureAwait(false);
+		}
+
 		Require(Boolean(swing, "ok") && Boolean(swing, "conscious") && Boolean(swing, "inRange"),
 			$"the host's body cannot swing at {Describe(cell)}: `Body.Attack` needs a conscious body and a target inside its "
 			+ "reach: " + Raw(swing) + "; the scan that named the cell read " + _lastScan);

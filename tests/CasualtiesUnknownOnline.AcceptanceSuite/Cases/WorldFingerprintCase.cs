@@ -22,6 +22,17 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
+		if (candidates.Count == 0)
+		{
+			// A pod's interior can honestly offer no breakable block at all, and then this row has nothing to measure
+			// rather than something broken (measured 2026-11-22: a spawn at (0,453) answered `count 0` at both radii).
+			// A player in that position would start a run outside the pod, so the row takes one fresh world before it
+			// calls the emptiness a fact.
+			var fresh = await context.Session.StartFreshRunAsync(cancellationToken).ConfigureAwait(false);
+			context.Read("fresh run for a world with something to dig", JsonSerializer.SerializeToElement(new { fresh }));
+			candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
+		}
+
 		candidates = await KeepOnlyCellsASwingCanHitAsync(context, candidates, cancellationToken).ConfigureAwait(false);
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
 		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
@@ -449,7 +460,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		return grounded;
 	}
 
-	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 8)
+	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 16)
 	{
 		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "24"), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-breakable", found);

@@ -45,6 +45,13 @@ internal sealed class MineBlastCase : AcceptanceCase
 		var mineY = Number(staged, "mineY");
 		Require(mineX is not null && mineY is not null, "the staged mine names no position: " + Raw(staged));
 
+		// "And I hear it": the member's own machine must play something for the blast. The recorder is armed
+		// with an empty match, so it carries every one-shot the member's client plays; the read before the
+		// blast is the control that keeps an always-noisy machine from passing this on its own.
+		var memberArmed = await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "")).ConfigureAwait(false);
+		var memberSoundsBefore = Text(memberArmed, "line");
+		context.Read("member sounds before", JsonSerializer.SerializeToElement(new { line = memberSoundsBefore }));
+
 		var fired = await context.RecipeAsync("trap-trigger", cancellationToken,
 			("x", mineX!.Value.ToString("0.##", CultureInfo.InvariantCulture)),
 			("y", mineY!.Value.ToString("0.##", CultureInfo.InvariantCulture))).ConfigureAwait(false);
@@ -60,7 +67,18 @@ internal sealed class MineBlastCase : AcceptanceCase
 			"the host's own scene kept the staged crate after the blast: before=" + CrateCount(hostBefore) + " after=" + CrateCount(hostAfter));
 		Require(CrateCount(memberAfter) < CrateCount(memberBefore) + 1,
 			"the member's own scene kept the staged crate after the blast: before=" + CrateCount(memberBefore) + " after=" + CrateCount(memberAfter));
+
+		var memberSoundsAfter = Text(await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "")).ConfigureAwait(false), "line");
+		context.Read("member sounds after", JsonSerializer.SerializeToElement(new { line = memberSoundsAfter }));
+		Require(memberSoundsAfter.Length > memberSoundsBefore.Length,
+			"the member's own machine played nothing for the blast: before '" + memberSoundsBefore + "' after '" + memberSoundsAfter + "'");
 	}
+
+	/// <summary>One string field of a recipe answer, or the empty string.</summary>
+	private static string Text(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+			? value.GetString() ?? string.Empty
+			: string.Empty;
 
 	/// <summary>The crate's own count in a census answer, or -1 when the group is absent.</summary>
 	private static double CrateCount(JsonElement? census)

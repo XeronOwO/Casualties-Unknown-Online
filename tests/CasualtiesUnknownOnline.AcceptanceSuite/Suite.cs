@@ -784,7 +784,7 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 	/// </summary>
 	public async Task<(int X, int Y, int Block)?> FindBreakableCellAsync(int startX, int startY, CancellationToken cancellationToken)
 	{
-		var read = await RecipeAsync("block-find-breakable", cancellationToken, ("count", "1")).ConfigureAwait(false);
+		var read = await RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "1"), ("radius", "16")).ConfigureAwait(false);
 		if (read is not { ValueKind: JsonValueKind.Object } root
 			|| !root.TryGetProperty("cells", out var cells)
 			|| cells.ValueKind != JsonValueKind.Array

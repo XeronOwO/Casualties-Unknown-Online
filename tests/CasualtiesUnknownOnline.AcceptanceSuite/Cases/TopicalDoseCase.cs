@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
@@ -237,6 +238,17 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 			"the adapter did not measure the cream on the member's limb: " + measured);
 		Require(measured.Contains($"limb {limbIndex}", StringComparison.Ordinal),
 			"the adapter measured the cream on another limb: " + measured);
+
+		// The dose the game measured is the number the effect must follow: the native use path sets the limb's
+		// disinfection to 300 * clamp01(ml * 0.1), so a cream measured at 10 ml must leave ~300 on the member's
+		// limb. Without this the row is satisfied by any marker above the floor (2026-11-24).
+		var millilitres = Millilitres(measured);
+		Require(millilitres is > 0, "the adapter's measurement names no volume in millilitres: " + measured);
+		var expected = 300.0 * Math.Min(1.0, millilitres!.Value * 0.1);
+		var apart = Math.Abs(afterDisinfection - expected);
+		Require(
+			apart <= 40,
+			"the member's limb does not carry the dose the game measured: " + millilitres.Value.ToString("0.##", CultureInfo.InvariantCulture) + " ml should set " + expected.ToString("0.#", CultureInfo.InvariantCulture) + ", the limb reads " + afterDisinfection.ToString("0.#", CultureInfo.InvariantCulture));
 		// The treated client is the judge of a DELIVERY: its own log names the stack and the limb the
 		// dose arrived on. The marker is the effect's own value and is recorded, but a marker read that
 		// disagrees with the delivery line is not evidence the dose failed to arrive — the row is
@@ -268,6 +280,13 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 		}
 
 		return last;
+	}
+
+	/// <summary>The volume the adapter measured on the line, in millilitres.</summary>
+	private static double? Millilitres(string line)
+	{
+		var match = Regex.Match(line, @"(?<ml>\d+(?:\.\d+)?)\s*ml", RegexOptions.CultureInvariant);
+		return match.Success && double.TryParse(match.Groups["ml"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : null;
 	}
 
 	private static (double X, double Y) Position(JsonElement? reading)

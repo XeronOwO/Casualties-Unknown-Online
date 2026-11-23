@@ -16,6 +16,28 @@
 	var field = new System.Func<string, object>((name) => { var info = typeof(PlayerCamera).GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic); return info == null ? null : info.GetValue(main); });
 	var scrollable = false;
 	try { scrollable = ScrollableText.textExists; } catch { }
+	// What the seam holds for the pause bind right now: a pressed key the game never acts on has to be separated from a
+	// press the seam already dropped (measured 2026-11-23: every pause gate open, the clock still ran).
+	var bindDown = "?";
+	var bindHeld = "?";
+	var bindName = "?";
+	try
+	{
+		var pauseBind = KeyBinds.GetBind("pause");
+		bindName = pauseBind.ToString();
+		var seam = System.Type.GetType("CasualtiesUnknownOnline.Acceptance.VirtualInput, CasualtiesUnknownOnline.Acceptance");
+		var query = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.Acceptance.ButtonQuery, CasualtiesUnknownOnline.Acceptance");
+		var ask = seam == null || query == null ? null : seam.GetMethod("TryAnswerKey", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+		var answer = new System.Func<string, string>((name) => {
+			if (ask == null) { return "?"; }
+			var slot = new object[] { pauseBind, System.Enum.Parse(query, name), null };
+			var held = ask.Invoke(null, slot);
+			return (held is bool matched && matched ? "1" : "0") + ((slot[2] is bool value && value) ? "1" : "0");
+		});
+		bindDown = answer("Down");
+		bindHeld = answer("Held");
+	}
+	catch { }
 	return "{\"ok\":true"
 		+ ",\"paused\":" + (PauseHandler.paused ? "true" : "false")
 		+ ",\"minigame\":" + ((MinigameBase.main != null && MinigameBase.main.currentMinigame != null) ? "true" : "false")
@@ -32,5 +54,8 @@
 		+ ",\"generating\":" + (flagOf(() => WorldGeneration.world != null && WorldGeneration.world.generatingWorld) ? "true" : "false")
 		+ ",\"cutscene\":" + (flagOf(() => WorldGeneration.world != null && WorldGeneration.world.cutsceneActive) ? "true" : "false")
 		+ ",\"disallowed\":" + (flagOf(() => PauseHandler.main != null && PauseHandler.main.disallowPause) ? "true" : "false")
-		+ ",\"timeScale\":" + UnityEngine.Time.timeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}";
+		+ ",\"timeScale\":" + UnityEngine.Time.timeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"bind\":\"" + bindName + "\""
+		+ ",\"bindDown\":\"" + bindDown + "\""
+		+ ",\"bindHeld\":\"" + bindHeld + "\"}";
 }))()

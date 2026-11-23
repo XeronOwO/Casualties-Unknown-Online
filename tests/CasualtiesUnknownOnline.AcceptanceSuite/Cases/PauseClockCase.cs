@@ -21,12 +21,12 @@ internal sealed class PauseClockCase : AcceptanceCase
 		var ready = await WaitForPauseGateAsync(context, cancellationToken).ConfigureAwait(false);
 		Require(ready is not null, "the game's pause gates never opened: " + Raw(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false)));
 
-		await PressPauseAsync(context, expectPaused: !Boolean(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false), "paused"), cancellationToken).ConfigureAwait(false);
+		var duringPress = await PressPauseAsync(context, expectPaused: !Boolean(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false), "paused"), cancellationToken).ConfigureAwait(false);
 
 		var pausedScale = await WaitForScaleAsync(context, 0, cancellationToken).ConfigureAwait(false);
 		var state = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
 		context.Read("pause state after the key", state);
-		Require(pausedScale is not null, "the host's clock kept running after the pause key was pressed; the game's own pause gates were: " + Raw(state));
+		Require(pausedScale is not null, "the host's clock kept running after the pause key was pressed; the game's own pause gates were: " + Raw(state) + "; while the key was held: " + Raw(duringPress));
 
 		// A pause is the client's own; the member's clock is not stopped by the host's pause.
 		var member = await context.MemberRecipeAsync("time-scale-read", cancellationToken).ConfigureAwait(false);
@@ -40,14 +40,16 @@ internal sealed class PauseClockCase : AcceptanceCase
 
 	// The game's own pause binding, held until the game has acted on it the way a player's press is held for a moment.
 	// A fixed 120 ms was a race: one stutter while the world streams in and the whole press falls between two frames.
-	private static async Task PressPauseAsync(CaseContext context, bool expectPaused, CancellationToken cancellationToken)
+	private static async Task<JsonElement?> PressPauseAsync(CaseContext context, bool expectPaused, CancellationToken cancellationToken)
 	{
 		var down = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "down")).ConfigureAwait(false);
 		Require(Boolean(down, "ok"), "the pause key could not be staged down: " + Raw(down));
+		JsonElement? during = null;
 		for (var attempt = 0; attempt < 15; attempt += 1)
 		{
 			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
 			var state = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
+			during = state;
 			if (Boolean(state, "paused") == expectPaused)
 			{
 				break;
@@ -56,6 +58,7 @@ internal sealed class PauseClockCase : AcceptanceCase
 
 		var up = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "up")).ConfigureAwait(false);
 		Require(Boolean(up, "ok"), "the pause key could not be staged up: " + Raw(up));
+		return during;
 	}
 
 	// The game's pause gates: a handler that exists, no settings page, and nothing that disallows a pause (a world still

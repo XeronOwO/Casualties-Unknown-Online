@@ -287,6 +287,15 @@ internal static class VirtualInput
 		// and is cleared once the frame has passed.
 		if (query == ButtonQuery.Down)
 		{
+			// The pending edge is a one-frame event, so it is dropped the moment the frame it belongs to has passed — a
+			// batch that HOLDS a key (the pause row holds it until the game acts) would otherwise answer "just pressed"
+			// on every frame of the hold, and the game toggled the pause at frame rate (measured 2026-11-23: `paused` read
+			// true while held and false right after the release).
+			if (state.DownPending && UnityTime.frameCount > state.DownFrame)
+			{
+				state.DownPending = false;
+			}
+
 			if (state.DownPending || state.DownFrame == UnityTime.frameCount)
 			{
 				value = true;

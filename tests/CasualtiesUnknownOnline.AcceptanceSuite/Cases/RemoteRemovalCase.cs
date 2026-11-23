@@ -54,6 +54,15 @@ internal sealed class RemoteRemovalCase : AcceptanceCase
 		context.Read("host clone probe after", after);
 		Require(RemoteBodyCount(after) == 0, "the host still shows the member's copy after it left: " + Raw(after));
 
+		// The member's own screen must agree: the copy is gone from the host, and the member is out of the world
+		// on its own client too. Without this half, a host that dropped the row while the member still stood in
+		// the world would read as a clean removal (2026-11-24).
+		var memberLeft = await context.Session
+			.WaitUntilAsync(context.Session.MemberUrl, state => !SessionDriver.StateTrue(state, "inWorld"), TimeSpan.FromSeconds(10), cancellationToken)
+			.ConfigureAwait(false);
+		context.Read("member state after leave", memberLeft);
+		Require(!SessionDriver.StateTrue(memberLeft, "inWorld"), "the member's own client is still in the world after its leave: " + Raw(memberLeft));
+
 		var trace = await context.Session.LogTailAsync(context.Session.HostUrl, "Remote not in world", 80, cancellationToken).ConfigureAwait(false);
 		context.Read("host removal trace", trace);
 		var traceText = trace?.GetRawText() ?? string.Empty;

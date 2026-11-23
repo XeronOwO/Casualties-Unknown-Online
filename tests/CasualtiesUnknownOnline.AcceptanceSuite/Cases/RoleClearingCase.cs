@@ -112,6 +112,17 @@ internal sealed class RoleClearingCase : AcceptanceCase
 			"the member did not rejoin the host's second session without a restart: " + Raw(memberSecond));
 		Require(IsTrue(memberSecond, "inWorld"),
 			"the member joined the second session but never entered its world: " + Raw(memberSecond));
+
+		// Session two is a different run, not the first one resumed: the player's own state names the run it is in,
+		// and the pair must both be in the new one (2026-11-24).
+		var runBefore = Text(hostBefore, "runId");
+		var runSecond = Text(hostSecond, "runId");
+		var runMember = Text(memberSecond, "runId");
+		Require(runBefore.Length > 0 && runSecond.Length > 0 && runSecond != runBefore,
+			"the host's second session is the first run resumed instead of a new run: before '" + runBefore + "', after '" + runSecond + "'");
+		Require(runMember == runSecond,
+			"the member entered a different run than the host's second session: host '" + runSecond + "', member '" + runMember + "'");
+		context.Note("the pair moved from run " + runBefore + " to run " + runSecond);
 		context.Notes.Add("the member recreated by the fixture: " + context.Session.MemberRelaunches.ToString(CultureInfo.InvariantCulture));
 	}
 

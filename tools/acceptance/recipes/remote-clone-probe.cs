@@ -121,9 +121,13 @@
 		}
 	}
 
+	var whereX = clone.transform.position.x;
+	var whereY = clone.transform.position.y;
 	return "{\"ok\":true,\"mode\":\"" + mode + "\",\"cloneCount\":" + found.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"playerCount\":" + playerCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"cloneType\":\"" + cloneType.Name + "\",\"cloneCharType\":" + cloneCharType.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"componentCount\":" + components.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"x\":" + whereX.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"y\":" + whereY.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"components\":\"" + names + "\",\"facing\":\"" + facing + "\"}";
 }))()

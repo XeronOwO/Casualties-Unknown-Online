@@ -1,61 +1,104 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// The host's view of a teammate is CUO's own clone, not the game's body: the clone must be on the
-/// host's client with its marker and its components, and the facing probe must answer. The row is the
-/// sweep's "the third party sees the teammate" reading — a clone that is missing or carries no marker
-/// means the display surface broke.
+/// The host's view of a teammate. The game itself has no second player, so the body the host draws for the member is CUO's
+/// own clone; the player's claim is that the teammate is where they really are and that the picture follows them when they
+/// walk. The old row only asked whether a marker existed — it never compared the clone with the member's own position
+/// (fault sheet, 2026-11-23), so a clone frozen at the spawn point passed.
 /// </summary>
 internal sealed class CloneProbeCase : AcceptanceCase
 {
+	private const double PlacementTolerance = 1.5;
+
 	public override string Name => "clone-probe";
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		_ = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
-		// The clone is the host's display of the member's BODY; wait for that body to exist before
-		// asking the host's view for it. Without this the probe spent its whole 15 s window reading
-		// cloneCount 0 on a member that was still spawning (measured 2026-11-15: 16.4 s).
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		// The clone is what the host's client shows for the member; the member's display can be
-		// absent for a moment after a scene change or when the pair drifted apart, and the case reads
-		// it with a bounded wait instead of on one frame (measured: cloneCount 0 on a run whose
-		// previous case had just moved bodies).
-		JsonElement? probe = null;
-		for (var wait = 0; wait < 30; wait++)
-		{
-			probe = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "components"));
-			if (Integer(probe, "cloneCount") >= 1)
-			{
-				break;
-			}
+		var placed = await WaitForCloneAtMemberAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(placed is not null, "the host's copy of the teammate never stood where the teammate stands: " + Raw(placed));
 
-			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
-		}
+		var components = StringValue(placed, "components");
+		Require(components.Contains("RemoteCloneRender", StringComparison.Ordinal) || components.Contains("RemoteBodyDriver", StringComparison.Ordinal),
+			"the host's copy of the teammate does not carry CUO's own marker: " + Trim(components));
 
-		context.Read("remote-clone-probe", probe);
-		Require(Boolean(probe, "ok"), "the clone probe did not answer ok: " + Raw(probe));
-
-		var clones = Integer(probe, "cloneCount");
-		if (clones < 1)
-		{
-			throw new AssertionException($"the host's view carries no remote clone (cloneCount {clones})");
-		}
-
-		var components = StringValue(probe, "components");
-		if (!components.Contains("RemoteCloneRender", StringComparison.Ordinal))
-		{
-			throw new AssertionException("the remote clone does not carry CUO's marker: " + Trim(components));
-		}
-
-		var facing = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "facing"));
+		var facing = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "facing")).ConfigureAwait(false);
 		context.Read("remote-clone-probe-facing", facing);
 		Require(Boolean(facing, "ok"), "the clone's facing probe did not answer ok: " + Raw(facing));
 
-		context.Note($"clones {clones}; the clone carries RemoteCloneRender and answers the facing probe");
+		// The member walks; the host's picture has to follow. The member's own movement key is held for a moment, the way a
+		// player holds a direction, and the row waits for the picture instead of reading it on one frame.
+		var before = Number(placed, "x");
+		var walked = await WalkMemberAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("member after the walk", walked);
+		var moved = await WaitForCloneAwayAsync(context, before, cancellationToken).ConfigureAwait(false);
+		Require(moved is not null, "the host's copy of the teammate stayed put while the teammate walked: before x " + before + ", after " + Raw(moved));
+
+		var after = Number(moved, "x");
+		context.Note($"clone x {before} -> {after} while the member walked");
+	}
+
+	// The clone must stand where the member's own body says it stands; the row waits for the display to catch up rather
+	// than reading one frame of a scene that is still settling.
+	private static async Task<JsonElement?> WaitForCloneAtMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		for (var attempt = 0; attempt < 20; attempt += 1)
+		{
+			var member = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			last = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "where")).ConfigureAwait(false);
+			var memberX = Number(member, "posX");
+			var memberY = Number(member, "posY");
+			var cloneX = Number(last, "x");
+			var cloneY = Number(last, "y");
+			if (memberX is not null && memberY is not null && cloneX is not null && cloneY is not null
+				&& Math.Abs(cloneX.Value - memberX.Value) <= PlacementTolerance
+				&& Math.Abs(cloneY.Value - memberY.Value) <= PlacementTolerance)
+			{
+				return last;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return null;
+	}
+
+	private static async Task<JsonElement?> WalkMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var down = await context.MemberRecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "down")).ConfigureAwait(false);
+		Require(Boolean(down, "ok"), "the member's walk key could not be staged down: " + Raw(down));
+		await Task.Delay(TimeSpan.FromMilliseconds(900), cancellationToken).ConfigureAwait(false);
+		var up = await context.MemberRecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "up")).ConfigureAwait(false);
+		Require(Boolean(up, "ok"), "the member's walk key could not be staged up: " + Raw(up));
+		return await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+	}
+
+	private static async Task<JsonElement?> WaitForCloneAwayAsync(CaseContext context, double? before, CancellationToken cancellationToken)
+	{
+		if (before is null)
+		{
+			return null;
+		}
+
+		for (var attempt = 0; attempt < 20; attempt += 1)
+		{
+			var read = await context.RecipeAsync("remote-clone-probe", cancellationToken, ("mode", "where")).ConfigureAwait(false);
+			var x = Number(read, "x");
+			if (x is not null && Math.Abs(x.Value - before.Value) >= 2.0)
+			{
+				return read;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return null;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
@@ -69,18 +112,26 @@ internal sealed class CloneProbeCase : AcceptanceCase
 			? value.GetString() ?? string.Empty
 			: string.Empty;
 
-	private static int Integer(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty(property, out var value)
-		&& value.ValueKind == JsonValueKind.Number
-		&& value.TryGetInt32(out var number)
-			? number
-			: 0;
-
 	private static bool Boolean(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element
 		&& element.TryGetProperty(property, out var value)
 		&& value.ValueKind == JsonValueKind.True;
+
+	private static double? Number(JsonElement? reading, string property)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty(property, out var value))
+		{
+			return null;
+		}
+
+		return value.ValueKind switch
+		{
+			JsonValueKind.Number => value.GetDouble(),
+			JsonValueKind.String when double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) => parsed,
+			_ => null,
+		};
+	}
 
 	private static void Require(bool condition, string message)
 	{

@@ -34,13 +34,9 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 		await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
 
 		var limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
-		if (limb < 0)
-		{
-			await context.StartFreshBodyAsync(cancellationToken).ConfigureAwait(false);
-			limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
-		}
-
-		Require(limb >= 0, "no limb of the member's body can take an injection");
+		// A severed limb does not heal back, and restarting the run to grow the member a new one is not a player's
+		// operation: the row says what it needs, and the runner's world guarantee owns what body a row gets.
+		Require(limb >= 0, "the member's body has no limb an injection could go into; an earlier row took them and a player cannot regrow them");
 
 		// The doctor's kit is emptied through the player's own drop so the syringe is the item the
 		// release finds, and the member's own client names the value the injection will move.

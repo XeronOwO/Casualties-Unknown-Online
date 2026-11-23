@@ -22,6 +22,9 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	public CharacterDataMsg? HostData { get; private set; }
 
+	/// <summary>The fake holds no clock, so no member's snapshot can be called stale here.</summary>
+	public int StaleMemberSnapshots => 0;
+
 	public IReadOnlyDictionary<ulong, CharacterDataMsg> Saved => _saved;
 
 	public void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _saved[steamId] = msg;

@@ -63,6 +63,7 @@ public class WorldSaveCompositionTests
 				WorldTransientPolicy.ShrapnelSessionKey,
 				WorldTransientPolicy.OtherMedicalSessionKey,
 				WorldTransientPolicy.DeferredEntityReportKey,
+				WorldTransientPolicy.MemberCharacterReportKey,
 			],
 			rows.Select(row => row.Key));
 		Assert.All(rows, row => Assert.Equal(0, row.Pending));

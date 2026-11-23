@@ -71,6 +71,15 @@ public interface ICharacterDataControl
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	CharacterDataMsg? GetSavedCharacter(ulong steamId);
 
+	/// <summary>
+	/// Host: how many present members the store's snapshot for is older than their next report would
+	/// make it. A cut that writes such a row writes facts from before the member's last change (measured
+	/// 2026-11-24: a pickup younger than the 1 Hz report was missing from the archive), so the cut's
+	/// transient policy waits for a fresh glance. Members whose reports stopped long ago are not counted:
+	/// a stalled client must never hold the cut.
+	/// </summary>
+	int StaleMemberSnapshots { get; }
+
 	/// <summary>Host only: the host's own latest character snapshot (the cross-player interaction service's authority for host-owned carried items).</summary>
 	CharacterDataMsg? GetHostCharacterData();
 

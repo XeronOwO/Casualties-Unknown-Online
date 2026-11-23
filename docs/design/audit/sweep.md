@@ -76,7 +76,7 @@ cannot drift away from the tree.
 | `CasualtiesUnknownOnline.Runtime/Protocol/Messages` | 160 | read |
 | `CasualtiesUnknownOnline.Runtime/Session` | 52 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync` | 12 | read |
-| `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 41 | read |
+| `CasualtiesUnknownOnline.Runtime/Session/CharacterData` | 42 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Chat` | 4 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Commands` | 81 | read |
 | `CasualtiesUnknownOnline.Runtime/Session/Content` | 7 | read |

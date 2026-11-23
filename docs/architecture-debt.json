@@ -1,6 +1,6 @@
 {
 	"CasualtiesUnknownOnline.Runtime.Session.CharacterData.CharacterDataStore": {
-		"Lines": 687,
+		"Lines": 718,
 		"BoolFlags": 0,
 		"Ticket": "docs/backlog/review/1.0-transport-handover-identity.md"
 	},

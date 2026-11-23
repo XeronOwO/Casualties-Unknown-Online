@@ -67,6 +67,9 @@ public static class WorldTransientPolicy
 	/// <summary>The game's own earthquake countdown/intensity fields.</summary>
 	public const string EarthquakeTimersKey = "earthquake-timers";
 
+	/// <summary>A member's stored character snapshot is older than the report the cut would write from.</summary>
+	public const string MemberCharacterReportKey = "member-character-report";
+
 	/// <summary>
 	/// Every in-flight class the cut must decide about, in report order. The
 	/// owners are the ticket's table verbatim (an owner renamed by a refactor
@@ -110,6 +113,9 @@ public static class WorldTransientPolicy
 		new(EarthquakeTimersKey, "WorldGeneration countdown fields", WorldTransientVerdict.DropWithLog, WorldTransientDetection.Standing,
 			"earthquake timer(s)",
 			"The countdown and intensity are the game's own fields, re-derived when the layer regenerates. Carrying them would freeze a timer across a load the player cannot observe; the retimed quake is named instead."),
+		new(MemberCharacterReportKey, "CharacterDataStore", WorldTransientVerdict.ResolveBeforeSave, WorldTransientDetection.Observed,
+			"member character report(s) due",
+			"Every member row the cut writes comes from the store's snapshot, and that snapshot only moves when the member's own 1 Hz report arrives. A cut inside that second writes the row from before the member's last pickup (measured 2026-11-24: one item in hand, none in the archive, and the row went green once the cut waited). The wait is bounded and only counts members that reported recently, so a stalled client cannot hold the cut."),
 	];
 
 	private static readonly Dictionary<string, WorldTransientRow> ByKey =

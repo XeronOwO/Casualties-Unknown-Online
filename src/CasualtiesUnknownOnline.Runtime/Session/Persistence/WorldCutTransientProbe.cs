@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -20,10 +21,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// </summary>
 public sealed class WorldCutTransientProbe(
 	IMedicalOperationControl medical,
-	RuntimeEntityChannel entities) : IWorldCutTransientProbe
+	RuntimeEntityChannel entities,
+	ICharacterDataControl characters) : IWorldCutTransientProbe
 {
 	private readonly IMedicalOperationControl _medical = medical;
 	private readonly RuntimeEntityChannel _entities = entities;
+	private readonly ICharacterDataControl _characters = characters;
 
 	/// <summary>The Runtime-owned in-flight classes, zero-count rows included (the policy decides what a zero means).</summary>
 	public IReadOnlyList<WorldTransientCount> Capture()
@@ -35,6 +38,8 @@ public sealed class WorldCutTransientProbe(
 			new(WorldTransientPolicy.ShrapnelSessionKey, sessions.Shrapnel),
 			new(WorldTransientPolicy.OtherMedicalSessionKey, sessions.Other),
 			new(WorldTransientPolicy.DeferredEntityReportKey, _entities.PendingEntityReportCount),
+			new(WorldTransientPolicy.MemberCharacterReportKey, _characters.StaleMemberSnapshots),
 		];
 	}
 }
+

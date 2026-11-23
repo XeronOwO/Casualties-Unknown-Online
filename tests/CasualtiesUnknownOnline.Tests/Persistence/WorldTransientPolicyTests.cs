@@ -28,6 +28,7 @@ public class WorldTransientPolicyTests
 		"decided-native-values",
 		"world-clock",
 		"earthquake-timers",
+		"member-character-report",
 	];
 
 	[Fact]
@@ -67,6 +68,7 @@ public class WorldTransientPolicyTests
 			["decided-native-values"] = WorldTransientVerdict.Capture,
 			["world-clock"] = WorldTransientVerdict.DropWithLog,
 			["earthquake-timers"] = WorldTransientVerdict.DropWithLog,
+			["member-character-report"] = WorldTransientVerdict.ResolveBeforeSave,
 		};
 
 		Assert.Equal(expected, WorldTransientPolicy.Rows.ToDictionary(row => row.Key, row => row.Verdict));
@@ -124,3 +126,4 @@ public class WorldTransientPolicyTests
 		// The report must never swallow an owner bug into a generic "some state".
 		Assert.Equal("3 unknown transient class 'ghost-class'", WorldTransientPolicy.Describe(new WorldTransientCount("ghost-class", 3)));
 }
+

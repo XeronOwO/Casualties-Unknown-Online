@@ -52,7 +52,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// forward again — this is the only place that remembers what "forward" means.
 	/// </summary>
 	private readonly Dictionary<ulong, ulong> _adoptedFrom = [];
-	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
+	private readonly MemberSnapshotFreshness _freshness = new(); private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	/// <summary>Members whose latest report was refused for a non-finite physiological field; the warning is named once, not at 1 Hz.</summary>
 	private readonly HashSet<ulong> _refusedReports = [];
@@ -144,6 +144,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		}
 
 		_savedCharacters[steamId] = msg;
+		_freshness.NoteWritten(steamId);
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 		_appliedItems.SyncFromCharacterData(steamId, msg);
 		return true;
@@ -226,7 +227,13 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			_savedNames[steamId] = member.DisplayName;
 		}
 
-		return SaveCharacterData(steamId, CharacterDataClone.Of(msg)); // the store owns its copy: the presentation mutates its own (see CharacterDataClone)
+		var kept = SaveCharacterData(steamId, CharacterDataClone.Of(msg)); // the store owns its copy: the presentation mutates its own (see CharacterDataClone)
+		if (kept)
+		{
+			_freshness.NoteReported(steamId);
+		}
+
+		return kept;
 	}
 
 	/// <summary>Host side: merge an enemy bite's post-bite terminal state into the victim's saved snapshot immediately (the rules live in <see cref="CharacterEventMerges"/>).</summary>
@@ -343,6 +350,29 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
 		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
+
+	/// <summary>Host: present members whose stored snapshot is older than the next report would make it (see the interface).</summary>
+	public int StaleMemberSnapshots
+	{
+		get
+		{
+			if (_session.Role != SessionRole.Host)
+			{
+				return 0;
+			}
+
+			var stale = 0;
+			foreach (var member in _session.Members)
+			{
+				if (member.SteamId != _session.LocalSteamId && member.InWorld && _freshness.IsStale(member.SteamId))
+				{
+					++stale;
+				}
+			}
+
+			return stale;
+		}
+	}
 
 	private void OnKernelCheckpointRestored(GameCheckpoint checkpoint) => ReestablishAdoptions();
 
@@ -685,3 +715,4 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => SendCharacterRagdoll(msg);
 
 }
+

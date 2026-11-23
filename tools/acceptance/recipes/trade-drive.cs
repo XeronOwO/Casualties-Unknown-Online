@@ -108,7 +108,19 @@
 			}
 			sb.Append("]}");
 		}
+		var cheapestIndex = -1;
+		var cheapestPrice = -1;
+		if (trader.items != null) {
+			for (var p = 0; p < trader.items.Count; p++) {
+				var priced = trader.ItemPrice(trader.items[p]);
+				if (priced <= 0) { continue; }
+				if (cheapestIndex < 0 || priced < cheapestPrice) { cheapestIndex = p; cheapestPrice = priced; }
+			}
+		}
+		var menuOpen = (PlayerCamera.main != null && PlayerCamera.main.tradeMenu != null && PlayerCamera.main.tradeMenu.activeSelf) ? "true" : "false";
 		return "{\"ok\":true,\"mode\":\"list\",\"traderCount\":" + traders.ToString(inv)
+			+ ",\"cheapestIndex\":" + cheapestIndex.ToString(inv) + ",\"cheapestPrice\":" + cheapestPrice.ToString(inv)
+			+ ",\"menuOpen\":" + menuOpen
 			+ ",\"traderX\":" + positionX + ",\"traderY\":" + positionY
 			+ ",\"buildHealth\":" + buildHealth.ToString(inv)
 			+ ",\"valueGiven\":" + trader.valueGiven.ToString(inv)

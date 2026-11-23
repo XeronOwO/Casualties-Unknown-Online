@@ -1,22 +1,28 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// The radiation line: the host's world crosses its own layer-time limit, the game activates the line,
-/// and the member's own client shows the same line (the row `radiation-line-descent-rate-per-side`).
-/// The limit is a field written at world creation, so the fixture sets it before it sets the layer
-/// time; the line itself cannot be switched off, which is why this case sits late in the order.
+/// The radiation line: the host's world crosses its own layer-time limit, the game activates the line, and the
+/// member's own client shows the same line at the same rate.
+///
+/// The player cannot write a layer limit, so the fixture sets the world's own limit and layer time (declared as a
+/// shortcut below). What the row judges is the part a player sees: both clients draw the line, its clock runs, its
+/// height falls, and the two heights fall at the same rate — the older row compared one absolute height with
+/// <c>&lt; 40</c>, which two lines starting at different moments can satisfy while descending at different rates.
 /// </summary>
 internal sealed class RadiationLineCase : AcceptanceCase
 {
+	private const int GapMilliseconds = 1200;
+
 	public override string Name => "radiation-line";
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		// The line activates only past the world's own limit; the field is private and written once.
+		// Fixture shortcut: the limit is a private field written at world creation, and the line cannot be switched off.
 		var limit = await context.RecipeAsync("layer-limit-set", cancellationToken, ("seconds", "0.5")).ConfigureAwait(false);
 		context.Read("limit", limit);
 		Require(Boolean(limit, "ok"), "the layer limit could not be written: " + Raw(limit));
@@ -25,17 +31,16 @@ internal sealed class RadiationLineCase : AcceptanceCase
 		context.Read("layer-time", time);
 		Require(Boolean(time, "ok"), "the layer time could not be written: " + Raw(time));
 
-		var hostState = await WaitActiveAsync(context, false, cancellationToken).ConfigureAwait(false);
-		context.Read("host-line", hostState);
-		Require(Boolean(hostState, "active"), "the host's line never activated: " + Raw(hostState));
+		// The line starts when each side sees the world past its limit; read each side until it is up.
+		var hostFirst = await WaitActiveAsync(context, false, cancellationToken).ConfigureAwait(false);
+		context.Read("host-line", hostFirst);
+		Require(Boolean(hostFirst, "active"), "the host's line never activated: " + Raw(hostFirst));
 
-		// The member's own line starts its clock when its client sees the activation, so the first
-		// active read can still carry timeGone 0; the elapsed time is what the row proves.
-		JsonElement? memberState = null;
+		JsonElement? memberFirst = null;
 		for (var wait = 0; wait < 20; wait++)
 		{
-			memberState = await WaitActiveAsync(context, true, cancellationToken).ConfigureAwait(false);
-			if (Boolean(memberState, "active") && Number(memberState, "timeGone") > 0)
+			memberFirst = await context.MemberRecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+			if (Boolean(memberFirst, "active"))
 			{
 				break;
 			}
@@ -43,15 +48,39 @@ internal sealed class RadiationLineCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		}
 
-		context.Read("member-line", memberState);
-		Require(Boolean(memberState, "active"), "the member's own client never shows the line: " + Raw(memberState));
-		Require(Number(memberState, "timeGone") > 0, "the member's line has no elapsed time: " + Raw(memberState));
+		context.Read("member-line", memberFirst);
+		Require(Boolean(memberFirst, "active"), "the member's own client never shows the line: " + Raw(memberFirst));
 
-		// A line the host owns: the two views descend together, so their heights are within a few
-		// seconds of each other's rate rather than an exact match.
-		var hostY = Number(hostState, "lineY");
-		var memberY = Number(memberState, "lineY");
-		Require(Math.Abs(hostY - memberY) < 40, $"the two views' lines are {Math.Abs(hostY - memberY):0.#} apart: host {hostY:0.#}, member {memberY:0.#}");
+		// Two reads over one window: the clock must run and the height must fall on both sides.
+		var hostBefore = await context.RecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+		var memberBefore = await context.MemberRecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(GapMilliseconds), cancellationToken).ConfigureAwait(false);
+		var hostAfter = await context.RecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+		var memberAfter = await context.MemberRecipeAsync("radiation-line-state", cancellationToken).ConfigureAwait(false);
+
+		context.Read("host-before", hostBefore);
+		context.Read("host-after", hostAfter);
+		context.Read("member-before", memberBefore);
+		context.Read("member-after", memberAfter);
+
+		var hostClock = Number(hostAfter, "timeGone") - Number(hostBefore, "timeGone");
+		var memberClock = Number(memberAfter, "timeGone") - Number(memberBefore, "timeGone");
+		Require(hostClock > 0, $"the host's line clock did not run in {GapMilliseconds} ms: {Raw(hostBefore)} → {Raw(hostAfter)}");
+		Require(memberClock > 0, $"the member's line clock did not run in {GapMilliseconds} ms: {Raw(memberBefore)} → {Raw(memberAfter)}");
+
+		var hostFall = Number(hostBefore, "lineY") - Number(hostAfter, "lineY");
+		var memberFall = Number(memberBefore, "lineY") - Number(memberAfter, "lineY");
+		Require(hostFall > 0, $"the host's line did not come down in {GapMilliseconds} ms: {Raw(hostBefore)} → {Raw(hostAfter)}");
+		Require(memberFall > 0, $"the member's line did not come down in {GapMilliseconds} ms: {Raw(memberBefore)} → {Raw(memberAfter)}");
+
+		// The same line: the two falls are the same within a quarter of the larger one.
+		var larger = Math.Max(hostFall, memberFall);
+		var apart = Math.Abs(hostFall - memberFall);
+		Require(
+			apart <= Math.Max(2.0, larger * 0.25),
+			"the two views' lines fall at different rates over " + GapMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms: host " + hostFall.ToString("0.##", CultureInfo.InvariantCulture) + ", member " + memberFall.ToString("0.##", CultureInfo.InvariantCulture));
+
+		context.Note("host fell " + hostFall.ToString("0.##", CultureInfo.InvariantCulture) + " and member " + memberFall.ToString("0.##", CultureInfo.InvariantCulture) + " over " + GapMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms");
 
 		// The limit is restored so a later case is not surprised by a world that already crossed it.
 		await context.RecipeAsync("layer-limit-set", cancellationToken, ("seconds", "10800")).ConfigureAwait(false);

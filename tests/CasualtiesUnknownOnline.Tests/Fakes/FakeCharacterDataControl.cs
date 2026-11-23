@@ -57,6 +57,15 @@ internal sealed class FakeCharacterDataControl : ICharacterDataControl
 
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) => _saved.TryGetValue(steamId, out var data) ? data : null;
 
+	/// <summary>A save test never asks the archive for a missing peer; the store never raises it here.</summary>
+	public event Action<ulong>? CharacterDataMissing
+	{
+		add { }
+		remove { }
+	}
+
+	public void SeedSavedCharacter(ulong steamId, CharacterDataMsg msg, string? displayName) => _saved[steamId] = msg;
+
 	public CharacterDataMsg? GetHostCharacterData() => HostData;
 
 	void ICharacterDataControl.SendSavedCharacter(ulong steamId, bool runEntry) => throw new NotSupportedException("the save tests never send to a peer");

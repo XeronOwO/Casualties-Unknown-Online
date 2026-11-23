@@ -122,6 +122,7 @@ public interface IWorldSaveControl
 	/// <summary>The characters of the last continuation, by player key — the raw material of S4's guest claims.</summary>
 	IReadOnlyList<SavedCharacter> PendingCharacters { get; }
 
+
 	/// <summary>
 	/// The Continue attempt will never reach its world-entry seam (the restored run
 	/// baseline could not be published, so no generation runs): every handover that

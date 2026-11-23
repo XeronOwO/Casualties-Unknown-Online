@@ -161,6 +161,17 @@ internal sealed class WorldRestoreApplier(
 	/// no CUO world is openable at all, which is a refusal like any other (decision 165:
 	/// the native regenerate path is never the fallback).
 	/// </summary>
+	/// <summary>
+	/// A stored character that the cut could not bind, claimed by the peer that has just
+	/// arrived. The save service owns the unclaimed list; the rule itself is the binder's,
+	/// so both the cut and a later claim read the same identity rule.
+	/// </summary>
+	internal SavedCharacter? ClaimPendingFor(
+		IReadOnlyList<SavedCharacter> unclaimed,
+		ulong peerId,
+		ICollection<ulong> peersWithCharacter) =>
+		binder.ClaimAfterTheCut(unclaimed, peerId, peersWithCharacter);
+
 	internal Result TryApply(string? worldId)
 	{
 		// A new attempt SUPERSEDES the previous one, whose arms are all released below —

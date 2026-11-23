@@ -196,6 +196,69 @@ internal sealed class WorldCharacterBinder(
 		return new WorldCharacterClaimPlan(space, claimed, unclaimed, refusals);
 	}
 
+	/// <summary>
+	/// A stored character the cut could not bind, claimed now by the peer that has just
+	/// arrived. The cut binds against the peers present at the cut; a member who was out
+	/// of the session then (or whose file arrived under a key nobody held) is answered by
+	/// nothing until someone asks for it, and its rows were dropped from the checkpoint.
+	/// This applies the same two rules the cut uses — the stored key's own claimant, then
+	/// the transport handover by display name — against the peers present NOW, and answers
+	/// only for the peer that asked: a claim that would belong to someone else is left
+	/// alone so that peer can make it when it arrives.
+	/// </summary>
+	internal SavedCharacter? ClaimAfterTheCut(
+		IReadOnlyList<SavedCharacter> unclaimed,
+		ulong peerId,
+		ICollection<ulong> peersWithCharacter)
+	{
+		if (unclaimed.Count == 0)
+		{
+			return null;
+		}
+
+		var claimed = ClaimFor(unclaimed, peerId, PresentPeers(), LiveKeySpace(), peersWithCharacter);
+		if (claimed is not null)
+		{
+			log.LogInformation(
+				"Character {PlayerKey} is claimed by {Peer} after the cut — the key or the display name names them, and they are here now.",
+				claimed.PlayerKey,
+				peerId);
+		}
+
+		return claimed;
+	}
+
+	/// <summary>
+	/// The rule itself, free of the live session: the stored key's own claimant first, then
+	/// the transport handover by display name, and only ever an answer for the peer that asked.
+	/// </summary>
+	internal static SavedCharacter? ClaimFor(
+		IReadOnlyList<SavedCharacter> unclaimed,
+		ulong peerId,
+		IReadOnlyList<PlayerIdentity> peers,
+		PlayerKeySpace space,
+		ICollection<ulong> peersWithCharacter)
+	{
+		foreach (var character in unclaimed)
+		{
+			if (PlayerKeyResolution.Claim(character.PlayerKey, space, peers, out var owner) == PlayerKeyClaim.Claimed && owner == peerId)
+			{
+				return character;
+			}
+		}
+
+		var (adopted, _) = CharacterAdoption.Resolve(unclaimed, peers, peersWithCharacter);
+		foreach (var (character, adoptedBy) in adopted)
+		{
+			if (adoptedBy == peerId)
+			{
+				return character;
+			}
+		}
+
+		return null;
+	}
+
 	/// <summary>Binds a plan's claimed characters onto their peers (the host's own through the host slot, everyone else through the saved-character table the existing restore path reads).</summary>
 	internal WorldCharacterBindResult Bind(WorldCharacterClaimPlan plan)
 	{

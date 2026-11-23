@@ -341,6 +341,8 @@ public class CommandConsoleSaveTests
 
 		public IReadOnlyList<SavedCharacter> PendingCharacters => [];
 
+		public SavedCharacter? ClaimPendingFor(ulong peerId, ICollection<ulong> peersWithCharacter) => null;
+
 		/// <summary>Every abandon the console-adjacent code performed (a dead continue attempt).</summary>
 		internal List<string> Abandoned { get; } = [];
 

@@ -383,8 +383,32 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	}
 
 	/// <summary>The saved-snapshot lookup the event-merge seams read; the table itself never leaves this class.</summary>
-	private CharacterDataMsg? FindSaved(ulong steamId) =>
-		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
+	private CharacterDataMsg? FindSaved(ulong steamId)
+	{
+		if (_savedCharacters.TryGetValue(steamId, out var data))
+		{
+			return data;
+		}
+
+		CharacterDataMissing?.Invoke(steamId);
+		return _savedCharacters.TryGetValue(steamId, out data) ? data : null;
+	}
+
+	public event Action<ulong>? CharacterDataMissing;
+
+	/// <summary>Host: hold a character an archive still carried for this peer, under the id it uses now.</summary>
+	public void SeedSavedCharacter(ulong steamId, CharacterDataMsg msg, string? displayName)
+	{
+		_savedCharacters[steamId] = msg;
+		if (!string.IsNullOrWhiteSpace(displayName))
+		{
+			_savedNames[steamId] = displayName!;
+		}
+
+		_log.LogInformation(
+			"Character data for {Peer} was seeded from the archive (display name {Name}) — the cut could not bind it because that peer was not in the session then.",
+			steamId, displayName ?? "(none)");
+	}
 
 	/// <summary>Host only: the field the current report refusal names, or null when the store is not refusing this member.</summary>
 	public string? GetReportRefusal(ulong steamId) =>

@@ -57,6 +57,17 @@ public interface ICharacterDataControl
 	/// <summary>Host: a run entry is being announced — every entering member's hand-over is due again.</summary>
 	void BeginRunEntry();
 
+	/// <summary>
+	/// Host: a send found no character for this peer. Raised so an archive the restore could
+	/// not bind (the peer was out of the session at the cut) can be claimed and seeded before
+	/// the send answers — the store does not read the save layer itself, because the save
+	/// service already depends on this one (a cycle the container refuses).
+	/// </summary>
+	event Action<ulong>? CharacterDataMissing;
+
+	/// <summary>Host: seed a character an archive still held for this peer, under its current id.</summary>
+	void SeedSavedCharacter(ulong steamId, CharacterDataMsg msg, string? displayName);
+
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	CharacterDataMsg? GetSavedCharacter(ulong steamId);
 

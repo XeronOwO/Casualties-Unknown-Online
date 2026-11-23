@@ -52,6 +52,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 
 	private readonly WorldRepository? _repository;
 	private readonly ISessionControl _session;
+
 	private readonly ItemKernelAuthority _kernel;
 	private readonly ITransportIdentity _transport;
 	private readonly IWorldFactSource _worldFacts;
@@ -66,7 +67,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 
 	private string _worldId = string.Empty;
 	private string _displayName = string.Empty;
-	private IReadOnlyList<SavedCharacter> _pendingCharacters = [];
+	private readonly PendingCharacterClaims _claims;
 	private bool _disposed;
 
 	/// <summary>
@@ -109,6 +110,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 	{
 		_repository = repository;
 		_session = session;
+
 		_kernel = kernel;
 		_transport = transport;
 		_worldFacts = worldFacts;
@@ -137,6 +139,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 			worldEntities,
 			// The archive's ids, handed over at the click: every id-space counter resumes above them.
 			restoredIds);
+
+		_claims = new PendingCharacterClaims(_restore, characters, log);
+		characters.CharacterDataMissing += _claims.OnMissing;
 		var clock = utcNow ?? (() => DateTime.UtcNow);
 		var writer = repository is null
 			? null
@@ -219,7 +224,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		}
 	}
 
-	public IReadOnlyList<SavedCharacter> PendingCharacters => _pendingCharacters;
+	public IReadOnlyList<SavedCharacter> PendingCharacters => _claims.Pending;
 
 	/// <summary>The save policy in force right now — read at the instant of each decision, so a config edit hot-reloads without a restart (decision 25).</summary>
 	private SaveOptions Options => _options.CurrentValue;
@@ -337,7 +342,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		{
 			_worldId = string.Empty;
 			_displayName = string.Empty;
-			_pendingCharacters = [];
+			_claims.Reset();
 			_worldHasSnapshot = false;
 			_log.LogInformation("This entry is the tutorial — it gets no world archive, and the previous run's identity is released.");
 			return false;
@@ -361,7 +366,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 
 		_worldId = created.WorldId;
 		_displayName = displayName;
-		_pendingCharacters = [];
+		_claims.Reset();
 		_worldHasSnapshot = false;
 
 		// The interval autosave counts from HERE, not from the process start: the first
@@ -565,7 +570,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable, ISessionR
 		{
 			_worldId = restore.WorldId;
 			_displayName = restore.DisplayName;
-			_pendingCharacters = restore.Characters;
+			_claims.Keep(restore.Characters);
 
 			// The world comes back with the snapshot it was restored FROM, so it already
 			// carries one: the first-cut move never applies to it, and the restore itself

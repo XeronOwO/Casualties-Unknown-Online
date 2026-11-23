@@ -68,7 +68,17 @@ internal sealed class RunEndCase : AcceptanceCase
 		context.Read("member run-end line", memberLog);
 		var sawRunEnd = (memberLog?.GetRawText() ?? string.Empty).Contains("the host's world ended", StringComparison.Ordinal);
 		Require(sawRunEnd, "the member left the world without the run-end broadcast being delivered: " + (memberLog?.GetRawText() ?? "null"));
+
+		// The member answers through its own exit path, so its own screen must be back on the menu — a
+		// member whose client keeps drawing the dead world would pass the in-world flag check alone.
+		Require(IsHome(memberAfter), "the member left the world but its own screen is not on the menu: " + Raw(memberAfter));
 	}
+
+	private static bool IsHome(JsonElement? state) =>
+		state is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("page", out var page)
+			&& page.ValueKind == JsonValueKind.String
+			&& string.Equals(page.GetString(), "Home", StringComparison.Ordinal);
 
 	private static async Task<JsonElement?> WaitForPairedHostAsync(CaseContext context, CancellationToken cancellationToken)
 	{

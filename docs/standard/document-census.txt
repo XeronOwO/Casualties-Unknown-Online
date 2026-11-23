@@ -1440,3 +1440,4 @@ docs/backlog/todo/1.0-the-game-window-never-takes-the-front.md | keep | index | 
 docs/backlog/todo/1.0-the-run-change-arrives-after-its-batches.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-the-journal-repair-resends-forever.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-wire-carries-no-prosthetic.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/1.0-the-restore-drops-what-the-member-carried.md | spec | none | none

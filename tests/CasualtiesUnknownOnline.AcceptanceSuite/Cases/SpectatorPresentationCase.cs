@@ -59,6 +59,35 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			Require(Number(presentation, "woundPain") >= 10, "the watched body carries no pain to mirror: " + Raw(presentation));
 			Require(Number(presentation, "shaderPain") > 0.01, "the watched body's pain never reached the screen shader: " + Raw(presentation));
 
+			// Which body the camera holds is already discriminated by what the strip draws: every body in this game is
+			// called "Body", so a name comparison says nothing, while the prosthetic at limb 3 exists only on the member
+			// (the host's own control sits at limb 4) — that strip, the shaders and the ECG below all come from the
+			// watched body, so the camera is holding it.
+
+			// The spectator's own keys must not move the body being watched, and the screen must follow that body
+			// instead: the member walks a step, and the spectator's camera has to end up near the member's body
+			// (PlayerCamera follows the body it holds), while the host's own body stays where it was.
+			var hostBefore = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var watchedBefore = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var hostDown = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "down")).ConfigureAwait(false);
+			Require(Boolean(hostDown, "ok"), "the host's own walk key could not be staged down: " + Raw(hostDown));
+			await Task.Delay(TimeSpan.FromMilliseconds(700), cancellationToken).ConfigureAwait(false);
+			var hostUp = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "up")).ConfigureAwait(false);
+			Require(Boolean(hostUp, "ok"), "the host's own walk key could not be staged up: " + Raw(hostUp));
+			var watchedAfterHostKeys = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var watchedDrift = Math.Abs(Number(watchedAfterHostKeys, "posX") - Number(watchedBefore, "posX"));
+			Require(watchedDrift < 0.5, $"the watched body moved {watchedDrift:0.00} while only the spectator's key was held");
+			var hostAfter = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			context.Read("host while watching", hostAfter);
+
+			var walked = await WalkTheMemberAsync(context, cancellationToken).ConfigureAwait(false);
+			context.Read("watched after its own walk", walked);
+			var followed = await context.RecipeAsync("spectator-read", cancellationToken).ConfigureAwait(false);
+			context.Read("camera after the walk", followed);
+			var toBodyX = Math.Abs(Number(followed, "cameraX") - Number(followed, "bodyX"));
+			var toBodyY = Math.Abs(Number(followed, "cameraY") - Number(followed, "bodyY"));
+			Require(toBodyX <= 6 && toBodyY <= 6, $"the spectator's camera sits {toBodyX:0.00},{toBodyY:0.00} from the body it holds");
+
 			// Sound: the watched member eats while the host is spectating; the remote replay must be counted by the
 			// gate that silenced the local body's own audio family.
 			var beforeSounds = Integer(presentation, "worldSoundsTotal");
@@ -112,6 +141,19 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 			await ClearProstheticAsync(context, member, 3, cancellationToken).ConfigureAwait(false);
 			await SafeMemberBodyRestoreAsync(context, cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	private static async Task<JsonElement?> WalkTheMemberAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		// The member is watching nothing: it is a player walking its own body with its own key. The spectator's
+		// camera must follow that body, which is the player-visible statement this part of the row makes.
+		var down = await context.MemberRecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "down")).ConfigureAwait(false);
+		Require(Boolean(down, "ok"), "the member's walk key could not be staged down: " + Raw(down));
+		await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
+		var up = await context.MemberRecipeAsync("stage-bind", cancellationToken, ("bind", "right"), ("action", "up")).ConfigureAwait(false);
+		Require(Boolean(up, "ok"), "the member's walk key could not be staged up: " + Raw(up));
+		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+		return await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 	}
 
 	private static async Task SeedWatchedPainAsync(CaseContext context, CancellationToken cancellationToken)

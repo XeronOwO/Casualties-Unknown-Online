@@ -47,6 +47,10 @@
 	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	return "{\"ok\":true"
 		+ ",\"cameraBody\":\"" + (camera.body.name ?? "").Replace("\"", "'") + "\""
+		+ ",\"cameraX\":" + ((double)camera.transform.position.x).ToString("0.###", inv)
+		+ ",\"cameraY\":" + ((double)camera.transform.position.y).ToString("0.###", inv)
+		+ ",\"bodyX\":" + ((double)camera.body.transform.position.x).ToString("0.###", inv)
+		+ ",\"bodyY\":" + ((double)camera.body.transform.position.y).ToString("0.###", inv)
 		+ ",\"cameraPain\":" + camera.body.averagePain.ToString("0.###", inv)
 		+ ",\"woundBody\":\"" + (wound.name ?? "").Replace("\"", "'") + "\""
 		+ ",\"woundPain\":" + wound.averagePain.ToString("0.###", inv)

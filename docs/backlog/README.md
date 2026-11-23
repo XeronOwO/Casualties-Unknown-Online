@@ -66,7 +66,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The game window never takes the front](todo/1.0-the-game-window-never-takes-the-front.md) — **High** — a native hook waits to be measured.
 - [Split the row rebuild ledger](todo/1.0-split-the-row-rebuild-ledger.md) — **Low** — 115 KB, over budget.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
-- [The restore drops what the member carried](todo/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the archive has the colour, the member's body does not.
+- [The restore drops what the member carried](todo/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the archive has it, the body does not.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
   "queued" twice and never writes; two rows wait for it.
 - [The run change reaches the guest late](todo/1.0-the-run-change-arrives-after-its-batches.md) — **High** — a run-2 batch is dropped as foreign epoch.

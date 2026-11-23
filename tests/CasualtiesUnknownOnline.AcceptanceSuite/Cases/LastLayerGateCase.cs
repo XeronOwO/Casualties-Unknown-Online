@@ -25,7 +25,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 		context.Read("switch-before", switches);
 		if (Boolean(switches, "unchipped") != true)
 		{
-			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
+			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("preset", "unchipped")).ConfigureAwait(false);
 			context.Read("preset", preset);
 			Require(Boolean(preset, "ok") == true, "the host's run preset could not be selected: " + Raw(preset));
 			var restart = await context.Session.RestartRunAsync(cancellationToken).ConfigureAwait(false);
@@ -106,7 +106,7 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 
 			try
 			{
-				await context.RecipeAsync("run-preset", cancellationToken, ("name", "")).ConfigureAwait(false);
+				await context.RecipeAsync("run-preset", cancellationToken, ("preset", "")).ConfigureAwait(false);
 			}
 			catch (Exception exception)
 			{
@@ -139,7 +139,8 @@ internal sealed class LastLayerGateCase : AcceptanceCase
 				: await context.RecipeAsync("last-layer-read", cancellationToken).ConfigureAwait(false);
 			if (Boolean(last, "ok") == true
 				&& Int(last, "layer") == 11
-				&& Boolean(last, "endLab") == true)
+				&& Boolean(last, "endLab") == true
+				&& Boolean(last, "generating") == false)
 			{
 				return last;
 			}

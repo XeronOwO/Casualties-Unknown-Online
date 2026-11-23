@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -97,6 +98,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		// cut knew. The member keeps its current one, so the adopted row has to be put back after every
 		// restore or its carried items end up owned by a player the peers never hear about.
 		kernelAuthority.CheckpointRestored += OnKernelCheckpointRestored;
+		kernelAuthority.BatchCommitted += OnCarriedBatchCommitted;
 		_eventMerges = new CharacterEventMerges(FindSaved, playerLimbKernel, log);
 		_visuals = new CharacterVisualPublisher(session, sender);
 
@@ -377,6 +379,41 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	}
 
 	private void OnKernelCheckpointRestored(GameCheckpoint checkpoint) => ReestablishAdoptions();
+
+	/// <summary>
+	/// Host: a batch the kernel committed moved a member's carried set, so the snapshot the cut would
+	/// write is now older than the member's own bags. The cut defers on this mark until the member's next
+	/// character report clears it (see <see cref="MemberSnapshotFreshness"/>). The kernel is the signal
+	/// because it is the fact the host already judged — a pickup never sends the guest's own carried report,
+	/// which is why keying the wait on that report left the cut writing a row it knew was old.
+	/// </summary>
+	private void OnCarriedBatchCommitted(CommittedBatch batch)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		foreach (var committed in batch.Events)
+		{
+			if (CarriedOwner(committed) is { } owner)
+			{
+				_freshness.NoteChanged(owner);
+			}
+		}
+	}
+
+	private static ulong? CarriedOwner(GameEvent committed) => committed switch
+	{
+		ItemRelocatedEvent relocated => CarriedPeer(relocated.NewLocation),
+		ItemSpawnedEvent spawned => CarriedPeer(spawned.Location),
+		_ => null,
+	};
+
+	private static ulong? CarriedPeer(ItemLocation location) =>
+		location.Kind is ItemLocationKind.Carried or ItemLocationKind.Contained && location.Owner.Value != 0
+			? location.Owner.Value
+			: null;
 
 	/// <summary>
 	/// Host only: put the adopted rows back after the kernel has been replaced by a restore. The cut
@@ -717,6 +754,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => SendCharacterRagdoll(msg);
 
 }
+
+
+
+
 
 
 

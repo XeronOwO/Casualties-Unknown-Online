@@ -69,5 +69,8 @@
 		+ ",\"legSpeedMult\":" + num(body.legSpeedMult)
 		+ ",\"positionX\":" + num(body.transform.position.x)
 		+ ",\"positionY\":" + num(body.transform.position.y)
+		+ ",\"heartRate\":" + num(body.heartRate)
+		+ ",\"bloodPressure\":" + num(body.bloodPressure)
+		+ ",\"bloodOxygen\":" + num(body.bloodOxygen)
 		+ ",\"animatorClip\":\"" + clip + "\"}}";
 }))()

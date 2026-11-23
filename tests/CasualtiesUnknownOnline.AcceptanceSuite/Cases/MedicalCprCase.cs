@@ -87,7 +87,7 @@ internal sealed class MedicalCprCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
 		}
 
-		context.Read("patient-oxygen", JsonSerializer.SerializeToElement(new { before = oxygenStart, after = oxygenAfter }));
+		context.Read("patient-oxygen", JsonSerializer.SerializeToElement(new { before = oxygenStart.ToString("0.###", CultureInfo.InvariantCulture), after = oxygenAfter.ToString("0.###", CultureInfo.InvariantCulture) }));
 		Require(oxygenAfter > oxygenStart + 1f,
 			"the breaths did not raise the patient's oxygen: " + oxygenStart.ToString("0.###", CultureInfo.InvariantCulture) +
 			" -> " + oxygenAfter.ToString("0.###", CultureInfo.InvariantCulture));
@@ -96,7 +96,26 @@ internal sealed class MedicalCprCase : AcceptanceCase
 		// compression only inside the reference's own rhythm band (65–220 a minute, `CprRhythmPolicy`), so the presses go
 		// at 100 a minute from the client itself. Measured 2026-11-22: one round-trip press every 600 ms sent the client
 		// a near-zero interval and lifted nothing — fourteen presses, `heartRate 50.761`, pressure still short.
-		var pressure = 5f;
+		// A rhythm the game does not pay for must not buy the restart: the policy pays per compression only inside
+		// its own band (65–220 a minute, `CprRhythmPolicy`), so a burst of eight presses 20 ms apart moves the
+		// pressure far less than the forty-five the restart needs. Without this control the row would pass on a
+		// build that paid for every press whatever its timing.
+		var beforeRush = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);
+		var pressureBeforeRush = Number(beforeRush, "bloodPressure");
+		await context.RecipeAsync("cpr-press", cancellationToken, ("mode", "press"), ("control", "compress"), ("count", "8"), ("interval", "0.02")).ConfigureAwait(false);
+		var afterRush = await ReadBodyAsync(context, cancellationToken).ConfigureAwait(false);
+		var pressureAfterRush = Number(afterRush, "bloodPressure");
+		context.Read("patient-after-a-rushed-burst", JsonSerializer.SerializeToElement(new
+		{
+			before = pressureBeforeRush.ToString("0.###", CultureInfo.InvariantCulture),
+			after = pressureAfterRush.ToString("0.###", CultureInfo.InvariantCulture),
+		}));
+		Require(pressureAfterRush < 45f,
+			"a rushed burst restarted the heart the game's own rhythm does not pay for: pressure " +
+			pressureBeforeRush.ToString("0.###", CultureInfo.InvariantCulture) + " -> " +
+			pressureAfterRush.ToString("0.###", CultureInfo.InvariantCulture));
+
+		var pressure = pressureAfterRush;
 		var heartRate = 0f;
 		var pressed = 0;
 		for (var attempt = 0; attempt < 14 && pressure < 45f; attempt++)
@@ -114,8 +133,8 @@ internal sealed class MedicalCprCase : AcceptanceCase
 		context.Read("patient-after-compressions", JsonSerializer.SerializeToElement(new
 		{
 			presses = pressed,
-			heartRate,
-			bloodPressure = pressure,
+			heartRate = heartRate.ToString("0.###", CultureInfo.InvariantCulture),
+			bloodPressure = pressure.ToString("0.###", CultureInfo.InvariantCulture),
 			restarted = heartRate >= 20f && pressure >= 45f,
 		}));
 		Require(heartRate >= 20f && pressure >= 45f,
@@ -124,7 +143,11 @@ internal sealed class MedicalCprCase : AcceptanceCase
 			", bloodPressure " + pressure.ToString("0.###", CultureInfo.InvariantCulture));
 	}
 
-	/// <summary>The local body's own values on the patient's client (the CPR effect is applied there).</summary>
+	/// <summary>
+	/// The patient's own values on their client. Read through <c>body-force</c> with every argument -1 (the recipe
+	/// writes nothing when the value is negative); the plain <c>body-read</c> reports the patient's oxygen as NaN on
+	/// this client, measured 2026-11-24, so the row keeps the writer-as-reader until that read is explained.
+	/// </summary>
 	private static Task<JsonElement?> ReadBodyAsync(CaseContext context, CancellationToken cancellationToken) =>
 		context.MemberRecipeAsync("body-force", cancellationToken, BodyForce(-1f, -1f, -1f, -1f, -1f));
 

@@ -158,6 +158,21 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 
 	private static async Task<JsonElement?> WaitForPickerAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		// "Once the session is left" means the host's own window is back on the menu: the picker
+		// instance survives the leave, so reading it while the world is still up reads the session's
+		// own view of the characters rather than the solo one (2026-11-24: the row read
+		// interactable=true on every character while the host was still inside the world).
+		for (var attempt = 0; attempt < 30; attempt++)
+		{
+			var state = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+			if (StringValue(state, "page") == "Home")
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
 		JsonElement? picker = null;
 		for (var attempt = 0; attempt < 30; attempt++)
 		{

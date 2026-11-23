@@ -34,6 +34,15 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 		var coloured = await context.MemberRecipeAsync("item-customize-native", cancellationToken, ("slot", memberSlot), ("label", "MemberColor"), ("swatch", "5")).ConfigureAwait(false);
 		Require(Boolean(coloured, "ok"), "the member's colour did not apply: " + Raw(coloured));
 
+		// The host's own marker: natively the host's body comes back from the game's own save, so a
+		// host item must return. A different label proves the member's bag is read from the member's
+		// record, not from that same host save.
+		var hostItem = await FindHostItemAsync(context, cancellationToken).ConfigureAwait(false);
+		var hostSlot = Text(hostItem, "slot");
+		Require(hostSlot.Length > 0, "the host has no starting item to colour: " + Raw(hostItem));
+		var hostColoured = await context.RecipeAsync("item-customize-native", cancellationToken, ("slot", hostSlot), ("label", "HostColor"), ("swatch", "3")).ConfigureAwait(false);
+		Require(Boolean(hostColoured, "ok"), "the host's colour did not apply: " + Raw(hostColoured));
+
 		await SaveContinueCycle.SaveAsync(context, cancellationToken).ConfigureAwait(false);
 		var first = await SaveContinueCycle.ContinueAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("first restored line", TextElement(first));
@@ -45,6 +54,12 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 		context.Read("first entry member bag", firstBag);
 		Require(HasItem(firstStored, "MemberColor", 5), "the first entry lost the stored character: " + Raw(firstStored));
 		Require(GeyserSignature(firstGeysers).Length > 0, "the first entry's geyser table is empty: " + Raw(firstGeysers));
+		var firstHostBag = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		var firstCensus = await context.RecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
+		context.Read("first entry host bag", firstHostBag);
+		context.Read("first entry census", firstCensus);
+		Require(DetailsCopies(firstHostBag, "HostColor", 3) >= 1, "the continue did not restore the host's own body from the game's save: " + Raw(firstHostBag));
+		Require(DetailsCopies(firstBag, "HostColor", 3) == 0, "the member's bag carries the host's marker, so it was read from the host's save: " + Raw(firstBag));
 
 		var live = NewestLive(saveRoot!);
 		Require(live is not null, "no live archive was written under the batch's save root: " + saveRoot);
@@ -85,6 +100,14 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 
 			Require(HasItem(secondStored, "MemberColor", 5), "the second entry lost the stored character: " + Raw(secondStored));
 			Require(GeyserSignature(secondGeysers).Length > 0, "the second entry's geyser table is empty: " + Raw(secondGeysers));
+			var secondHostBag = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+			var secondCensus = await context.RecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
+			context.Read("second entry host bag", secondHostBag);
+			context.Read("second entry census", secondCensus);
+			Require(DetailsCopies(secondHostBag, "HostColor", 3) >= 1, "the second continue did not restore the host's own body from the game's save: " + Raw(secondHostBag));
+			Require(DetailsCopies(secondBag, "HostColor", 3) == 0, "the member's bag carries the host's marker after the second entry: " + Raw(secondBag)); Require(Integer(firstCensus, "total") > 0 && Integer(firstCensus, "total") == Integer(secondCensus, "total")
+				&& string.Equals(Text(firstCensus, "groups"), Text(secondCensus, "groups"), StringComparison.Ordinal),
+				"the second entry's world is not the run the first entry restored: " + Raw(firstCensus) + " then " + Raw(secondCensus));
 			Require(SameStoredItems(firstStored, secondStored), "the second entry's stored character differs from the first: " + Raw(firstStored) + " then " + Raw(secondStored));
 			Require(MarkerCopies(firstBag) == MarkerCopies(secondBag), "the second entry changed the member's stored marker copies: " + MarkerCopies(firstBag) + " then " + MarkerCopies(secondBag));
 			Require(GeyserSignature(firstGeysers) == GeyserSignature(secondGeysers), "the second entry's geyser type set differs from the first: " + Raw(firstGeysers) + " then " + Raw(secondGeysers));
@@ -197,6 +220,21 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 		return await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
 	}
 
+	/// <summary>The host's own starting item, read from the host's own body.</summary>
+	private static async Task<JsonElement?> FindHostItemAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		foreach (var type in new[] { "bandage", "lantern", "trashbag", "dogfood", "waterbottle" })
+		{
+			var reading = await context.RecipeAsync("item-provide", cancellationToken, ("type", type), ("mode", "find")).ConfigureAwait(false);
+			if (Boolean(reading, "found") && Text(reading, "slot").Length > 0)
+			{
+				return reading;
+			}
+		}
+
+		return await context.RecipeAsync("item-provide", cancellationToken, ("type", "bandage"), ("mode", "create")).ConfigureAwait(false);
+	}
+
 	private static string? NewestLive(string saveRoot)
 	{
 		var lives = Directory.EnumerateFiles(saveRoot, "live.cuoz", SearchOption.AllDirectories).ToArray();
@@ -223,6 +261,18 @@ internal sealed class SaveContinueReentryCase : AcceptanceCase
 	}
 
 	private static bool SameStoredItems(JsonElement? left, JsonElement? right) => string.Equals(StoredItems(left), StoredItems(right), StringComparison.Ordinal);
+
+	/// <summary>How many items in this body carry a given marker: label and swatch in the details string.</summary>
+	private static int DetailsCopies(JsonElement? reading, string label, int swatch) =>
+		Text(reading, "details").Split('|', StringSplitOptions.RemoveEmptyEntries)
+			.Count(entry =>
+			{
+				var parts = entry.Split(':', 4);
+				return parts.Length == 4
+					&& string.Equals(parts[2], label, StringComparison.Ordinal)
+					&& int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+					&& value == swatch;
+			});
 
 	/// <summary>How many items in this body carry the stored marker: label MemberColor, swatch 5.</summary>
 	private static int MarkerCopies(JsonElement? reading) =>

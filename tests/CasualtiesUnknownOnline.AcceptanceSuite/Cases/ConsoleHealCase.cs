@@ -157,6 +157,8 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 		// The host runs the console verb; its answer is the reading that the command was accepted.
 		var answer = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
 		context.Read("console-answer", answer);
+		Require(Boolean(answer, "applied") == true,
+			"the host's own console did not accept /heal: " + answer.GetRawText());
 
 		var resetLine = await resetWait.ConfigureAwait(false);
 		var resetSeen = resetLine is not null;

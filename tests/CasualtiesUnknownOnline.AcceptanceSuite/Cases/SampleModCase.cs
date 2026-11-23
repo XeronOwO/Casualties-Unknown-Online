@@ -39,11 +39,32 @@ internal sealed class SampleModCase : AcceptanceCase
 		context.Read("mod-second-item", trophy);
 		Require(Boolean(trophy, "ok"), "the mod's second item could not be created: " + Raw(trophy));
 
+		// The mod's action has to do something the player sees: the limb's own numbers move. Give the limb a
+		// wound first — the game's own damage entry does that — then read before the use and poll after it.
+		await context.RecipeAsync("wound-seed", cancellationToken, ("limb", "2"), ("force", "140"), ("infection", "0")).ConfigureAwait(false);
+		var before = await context.RecipeAsync("limb-bleeding", cancellationToken, ("limb", "2")).ConfigureAwait(false);
+		var (skinBefore, bleedBefore) = LimbFacts(before, 2);
 		await context.RecipeAsync("select-limb", cancellationToken, ("limb", "2")).ConfigureAwait(false);
 		var use = await context.RecipeAsync("limb-use", cancellationToken, ("type", "example.dressing"), ("mode", "use")).ConfigureAwait(false);
 		context.Read("mod-item-used", use);
 		Require(Boolean(use, "ok") && IsTrue(use, "actuallyUsable"),
 			"the game refused the mod item's limb action: " + Raw(use));
+
+		var (skinAfter, bleedAfter) = (skinBefore, bleedBefore);
+		for (var attempt = 0; attempt < 8; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			var after = await context.RecipeAsync("limb-bleeding", cancellationToken, ("limb", "2")).ConfigureAwait(false);
+			(skinAfter, bleedAfter) = LimbFacts(after, 2);
+			if (skinAfter >= skinBefore + 0.5f || bleedAfter <= bleedBefore - 0.5f)
+			{
+				break;
+			}
+		}
+
+		Require(skinAfter >= skinBefore + 0.5f || bleedAfter <= bleedBefore - 0.5f,
+			"the mod's dressing ran but moved nothing on the limb: skin " + skinBefore + " -> " + skinAfter
+				+ ", bleed " + bleedBefore + " -> " + bleedAfter);
 
 		var items = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 		var ids = Text(items, "ids");
@@ -52,6 +73,25 @@ internal sealed class SampleModCase : AcceptanceCase
 			"the mod's items are not in the body's bag after the grants: " + Raw(items));
 
 		context.Note("the example mod's item, its registry entry and its limb action are live inside a CUO session");
+	}
+
+	private static (float Skin, float Bleed) LimbFacts(JsonElement? reading, int index)
+	{
+		if (reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty("limbs", out var limbs)
+			&& limbs.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var limb in limbs.EnumerateArray())
+			{
+				if (limb.TryGetProperty("i", out var i) && i.TryGetInt32(out var n) && n == index)
+				{
+					var skin = limb.TryGetProperty("skin", out var s) && s.ValueKind == JsonValueKind.Number ? s.GetSingle() : -1f;
+					var bleed = limb.TryGetProperty("bleed", out var b) && b.ValueKind == JsonValueKind.Number ? b.GetSingle() : -1f;
+					return (skin, bleed);
+				}
+			}
+		}
+
+		return (-1f, -1f);
 	}
 
 	private static bool Boolean(JsonElement? reading, string property) =>

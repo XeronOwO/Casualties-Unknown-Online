@@ -29,6 +29,26 @@ internal sealed class EatSoundCase : AcceptanceCase
 		var memberArmed = await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "eatFlesh")).ConfigureAwait(false);
 		context.Read("member armed", memberArmed);
 
+		// Control first: the recorder must catch a clip the member's own client plays, or a pass below would
+		// only prove the recorder was dead. The member eats its own snack before the host's is judged.
+		var memberGiven = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "dogfood"), ("mode", "create")).ConfigureAwait(false);
+		Require(Boolean(memberGiven, "ok") == true, "the member could not be given its own snack: " + Raw(memberGiven));
+		var memberAte = await context.MemberRecipeAsync("item-use", cancellationToken, ("type", "dogfood"), ("aim-x", "0"), ("aim-y", "0")).ConfigureAwait(false);
+		context.Read("member ate", memberAte);
+		var controlLine = Text(await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "eatFlesh")).ConfigureAwait(false), "line");
+		var controlDeadline = Stopwatch.StartNew();
+		while (!controlLine.Contains("eatFlesh@", StringComparison.Ordinal) && controlDeadline.Elapsed < TimeSpan.FromSeconds(5))
+		{
+			await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+			controlLine = Text(await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "read"), ("match", "eatFlesh")).ConfigureAwait(false), "line");
+		}
+
+		context.Read("member heard its own eat", JsonSerializer.SerializeToElement(new { line = controlLine }));
+		Require(controlLine.Contains("eatFlesh@", StringComparison.Ordinal),
+			"the member's own client did not play the clip its recorder watches, so the row could not tell a lost relay from a silent machine: " + controlLine);
+
+		await context.MemberRecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "eatFlesh")).ConfigureAwait(false);
+
 		var used = await context.RecipeAsync("item-use", cancellationToken,
 			("type", "dogfood"),
 			("aim-x", "0"),

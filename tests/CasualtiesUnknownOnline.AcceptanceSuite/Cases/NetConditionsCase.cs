@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -46,9 +47,19 @@ internal sealed class NetConditionsCase : AcceptanceCase
 
 			// The reliable round trip: the member's own client observes the death edge and reports the
 			// character (reliable by default); the host's answer about that member reads the report.
+			var killedAt = Stopwatch.GetTimestamp();
 			await SetMemberAliveAsync(context, alive: false, cancellationToken).ConfigureAwait(false);
 			var hostCount = await HostDeathsAsync(context, memberId, 1, cancellationToken).ConfigureAwait(false);
+			var crossedMs = (long)Stopwatch.GetElapsedTime(killedAt).TotalMilliseconds;
 			Require(ShowsCount(hostCount, 1), "the host did not learn the member's death over the lossy link: " + hostCount);
+
+			// The link is slow, not instant: a death that landed before half the one-way latency never
+			// crossed the shaped link at all, and one that took longer than eight seconds did not
+			// survive it. Both numbers are the profile the row itself set.
+			Require(crossedMs >= LatencyMs / 2,
+				"the death crossed in " + crossedMs.ToString(CultureInfo.InvariantCulture) + " ms, faster than the shaped link: " + hostCount);
+			Require(crossedMs <= 8000,
+				"the death took " + crossedMs.ToString(CultureInfo.InvariantCulture) + " ms to cross the lossy link: " + hostCount);
 
 			await SetMemberAliveAsync(context, alive: true, cancellationToken).ConfigureAwait(false);
 

@@ -77,8 +77,12 @@ internal sealed class LateJoinCase : AcceptanceCase
 		var handshake = FindLine(context.HostLogPath, "Handshake confirmed end-to-end with " + lateId, hostLogStart);
 		var handover = FindLine(context.HostLogPath, "Sent saved character data to " + lateId, hostLogStart);
 		context.Read("host-entry-lines", JsonSerializer.SerializeToElement(new { handshake, handover }));
-		Require(handshake.Length > 0 || handover.Length > 0,
-			"the host's log names neither a handshake nor a character hand-over for the late-joined member " + lateId +
+		// The join itself is the handshake: the host must confirm this exact member end to end. The character
+		// hand-over is written only when a saved character exists for that member, so it stays a reading — an
+		// `||` over the two let a member that never completed the handshake pass on a hand-over line alone
+		// (2026-11-24).
+		Require(handshake.Length > 0,
+			"the host's log names no confirmed handshake for the late-joined member " + lateId +
 			": handshake '" + handshake + "', hand-over '" + handover + "'");
 
 		context.Note("the order (host in a running world, member joins after) is the late-join shape; the world never restarted");

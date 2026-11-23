@@ -44,17 +44,12 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 
 		if (limb < 0)
 		{
-			// A severed limb does not heal back: once an earlier medical row has taken the member's legs the
-			// run's body stays maimed and the chain this row asserts no longer exists. A row that needs a
-			// lower-limb chain therefore asks for a body that has one — a fresh run is a new character
-			// (measured 2026-11-22, `every-16`: this row spent 57.1 s on the fallbacks and then failed with
-			// "no limb of the member's body has a lower-limb chain and can take a tourniquet").
-			context.Note("no limb qualified even after a native heal; starting a fresh run so the member has a whole body");
-			await context.Session.StartFreshRunAsync(cancellationToken).ConfigureAwait(false);
-			memberId = await SingleMemberAsync(context, cancellationToken).ConfigureAwait(false);
-			context.UseMember(memberId);
-			await context.WaitForMemberBodyAsync(cancellationToken).ConfigureAwait(false);
-			(limb, chain) = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
+			// A severed limb does not heal back. Restarting the run to grow the member new legs is not something a
+			// player can do, so the row says what it needs instead of manufacturing it (measured 2026-11-22,
+			// `every-16`: the old fallback spent 57 s and then failed anyway; the runner's own world guarantee is
+			// the place that decides what body a row gets).
+			throw new AssertionException("the member's body has no lower-limb chain left to put a tourniquet on; "
+				+ "an earlier row took the legs and a player cannot regrow them");
 		}
 
 		Require(limb >= 0, "no limb of the member's body has a lower-limb chain and can take a tourniquet");
@@ -118,6 +113,24 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 
 			Require(!Boolean(row, "blocked"), "a limb outside the tourniquet's chain is blocked: " + row.GetRawText());
 		}
+
+		// What the player notices: the blood stops leaving. The body's own volume is read on the member's client
+		// before and after three seconds with the tourniquet on; the chain being blocked must show up as a volume
+		// that is no longer falling (the game keeps bleeding wounded limbs otherwise).
+		var volumeBefore = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
+		await Task.Delay(TimeSpan.FromMilliseconds(3000), cancellationToken).ConfigureAwait(false);
+		var volumeAfter = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
+		Require(volumeAfter >= volumeBefore - 0.05, $"the body kept losing blood with the tourniquet on: {volumeBefore:0.###} -> {volumeAfter:0.###}");
+
+		// And the way back: the wound view's own removal button takes the tourniquet off, and the blocked set must
+		// open again — a player who removes it gets the bleeding limb back.
+		var removed = await context.MemberRecipeAsync("limb-use", cancellationToken, ("type", "tourniquet"), ("mode", "special")).ConfigureAwait(false);
+		context.Read("removal", removed);
+		Require(Boolean(removed, "ok"), "the wound view refused to take the tourniquet off: " + Raw(removed));
+		var reopened = await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);
+		var reopenedRow = LimbRow(reopened, limb);
+		Require(reopenedRow.ValueKind == JsonValueKind.Object, "the treated limb is missing after the removal: " + Raw(reopened));
+		Require(!Boolean(reopenedRow, "blocked"), "the limb is still blocked after the tourniquet was taken off: " + reopenedRow.GetRawText());
 	}
 
 	/// <summary>Picks a treatable limb whose game chain reaches beyond itself, so the row proves the chain and not the item's own limb.</summary>

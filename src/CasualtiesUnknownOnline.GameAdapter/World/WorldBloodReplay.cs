@@ -31,7 +31,16 @@ internal static class WorldBloodReplay
 
 			if (msg.Ground)
 			{
-				decal.AddComponent<GroundBlood>();
+				// GroundBlood.Start listens on its chunk's ChunkUpdated event, so the component only
+				// belongs on a decal whose chunk this receiver already has: a decal replayed ahead of
+				// the receiver's generation throws inside the game's own Start (measured 2026-11-24,
+				// the member's log: NullReferenceException at GroundBlood.Start while a continue
+				// replayed decals). The decal itself still lands; only the chunk listener is skipped.
+				if (ChunkIsReady(msg.Position))
+				{
+					decal.AddComponent<GroundBlood>();
+				}
+
 				decal.transform.localScale = new Vector2(Random.Range(0.7f, 1.3f), Random.Range(0.94f, 1.06f));
 				var sprite = decal.GetComponent<SpriteRenderer>();
 				if (sprite != null) // Unity object — ==
@@ -53,4 +62,22 @@ internal static class WorldBloodReplay
 			Object.Destroy(decal, 120f);
 		}
 	}
+
+	/// <summary>Does this receiver's world already carry the chunk the decal sits in (its listener array entry)?</summary>
+	private static bool ChunkIsReady(NetVector2Msg position)
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var cell = world.WorldToBlockPos(new Vector2(position.X, position.Y)) / WorldGeneration.CHUNKSIZE;
+		var chunks = world.ChunkUpdated;
+		return chunks is not null
+			&& cell.x >= 0 && cell.y >= 0
+			&& cell.x < chunks.GetLength(0) && cell.y < chunks.GetLength(1)
+			&& chunks[cell.x, cell.y] is not null;
+	}
 }
+

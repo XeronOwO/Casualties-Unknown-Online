@@ -3,10 +3,10 @@ using System.Text.Json;
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 
 /// <summary>
-/// The crafting panel through the game's own entry (<c>PlayerCamera.OpenCraftScreen</c>): opening it
-/// makes the panel active and the selected row name a real recipe; closing it leaves the panel
-/// inactive. The mod's own extension (the recursive row's third state) renders inside this panel, so
-/// this row is the surface every crafting row is read on. A row of the crafting domain.
+/// The crafting screen through the player's own key: pressing the game's craft bind opens the screen with the recipe
+/// list the game draws (<c>PlayerCamera.RefreshRecipeList</c> fills one row per visible recipe, `PlayerCamera.cs:302`),
+/// and pressing it again closes the screen. The mod's own extension renders inside this panel, so this row is the
+/// surface every crafting row is read on. A row of the crafting domain.
 /// </summary>
 internal sealed class CraftPanelCase : AcceptanceCase
 {
@@ -16,26 +16,46 @@ internal sealed class CraftPanelCase : AcceptanceCase
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);
 
-		// The game's own Escape closes the CUO window; the craft screen's own open throws while that
-		// window is up (measured 2026-11-13), so the row closes it first and lets the game settle.
-		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "1")).ConfigureAwait(false);
-		await context.RecipeAsync("virtual-key", cancellationToken, ("key", "Escape"), ("down", "0")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		// Our own window swallows the game's keys while it is up (`PlayerCameraHandleInputPatch`), so the row closes it
+		// first — the same step every other row that drives the game's keys takes.
+		await context.Session.CloseWindowAsync(context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
 
-		var opened = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "open"), ("index", "0")).ConfigureAwait(false);
-		context.Read("panel-open", opened);
-		Require(Boolean(opened, "ok") == true, "the crafting panel could not be opened: " + Raw(opened));
-		Require(Boolean(opened, "panelActive") == true, "the crafting panel did not become active: " + Raw(opened));
-		// The recipe answers the panel's own name line as `detailName` (the 2026-11-13 case read
-		// `selectedName`, which the fixture never returned — a fixture defect, not a panel defect:
-		// the 2026-11-18 reading had panelActive true and `detailName` = "纤维绳" on index 0).
-		var selected = Text(opened, "detailName");
-		Require(!string.IsNullOrWhiteSpace(selected), "the crafting panel opened with no selected recipe: " + Raw(opened));
+		var panel = await PressAndReadAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("opened-by-key", panel);
+		Require(Boolean(panel, "ok") == true, "the crafting list could not be read: " + Raw(panel));
+		Require(Boolean(panel, "panelActive") == true, "the game did not open its craft screen when the craft key went down: " + Raw(panel));
+		var rows = Integer(panel, "rows");
+		Require(rows >= 1, "the craft screen opened with no recipe row the game drew: " + Raw(panel));
+		var firstName = Text(panel, "firstName");
+		Require(!string.IsNullOrWhiteSpace(firstName), "the first recipe row the game drew carries no name: " + Raw(panel));
 
-		var closed = await context.RecipeAsync("crafting-panel", cancellationToken, ("mode", "close"), ("index", "0")).ConfigureAwait(false);
-		context.Read("panel-close", closed);
-		Require(Boolean(closed, "ok") == true, "the crafting panel could not be closed: " + Raw(closed));
-		Require(Boolean(closed, "panelActive") == false, "the crafting panel stayed active after the close: " + Raw(closed));
+		var shut = await PressAndReadAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("closed-by-key", shut);
+		Require(Boolean(shut, "panelActive") == false, "the craft screen stayed open after the craft key went down again: " + Raw(shut));
+	}
+
+	/// <summary>
+	/// Puts the game's own craft bind down, waits for the screen's state to change out of the state the caller saw, then
+	/// releases the bind — the press-and-release a player makes. The wait is bounded and reads the game's own state.
+	/// </summary>
+	private static async Task<JsonElement?> PressAndReadAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var pressed = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "down")).ConfigureAwait(false);
+		Require(Boolean(pressed, "ok") == true, "the craft key could not be staged: " + Raw(pressed));
+
+		var panel = await context.RecipeAsync("craft-list", cancellationToken).ConfigureAwait(false);
+		for (var attempt = 0; attempt < 20 && Boolean(panel, "ok") != true; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
+			panel = await context.RecipeAsync("craft-list", cancellationToken).ConfigureAwait(false);
+		}
+
+		await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
+		panel = await context.RecipeAsync("craft-list", cancellationToken).ConfigureAwait(false);
+
+		var released = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "craft"), ("action", "up")).ConfigureAwait(false);
+		Require(Boolean(released, "ok") == true, "the craft key could not be released: " + Raw(released));
+		return panel;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
@@ -45,6 +65,12 @@ internal sealed class CraftPanelCase : AcceptanceCase
 		&& element.TryGetProperty(property, out var value)
 			? value.ValueKind == JsonValueKind.True
 			: null;
+
+	private static int Integer(JsonElement? reading, string property) =>
+		reading is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty(property, out var value)
+			? value.ValueKind == JsonValueKind.Number ? value.GetInt32() : -1
+			: -1;
 
 	private static string Text(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

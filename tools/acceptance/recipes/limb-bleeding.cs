@@ -36,6 +36,10 @@
 		sb.Append(",\"broken\":").Append(limb.broken ? "true" : "false");
 		sb.Append(",\"splinted\":").Append(limb.splinted ? "true" : "false");
 		sb.Append(",\"splint\":").Append(limb.GetComponent<SplintLimb>() != null ? "true" : "false");
+		// The splint's own heal effect is a faster bone timer (`SplintLimb.Update` subtracts
+		// `Limb.boneHealSpeed * 1.5` while worn and only the plain speed without it), so the number itself is
+		// what a row must read to tell "the game heals a splinted break faster" from "the flag was set".
+		sb.Append(",\"boneTimer\":").Append(limb.boneHealTimer.ToString("0.####", inv));
 		sb.Append(",\"head\":").Append(limb.isHead ? "true" : "false");
 		sb.Append(",\"vital\":").Append(limb.isVital ? "true" : "false");
 		sb.Append('}');

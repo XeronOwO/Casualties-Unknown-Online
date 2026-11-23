@@ -32,13 +32,9 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		context.UseMember(memberId);
 
 		var limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
-		if (limb < 0)
-		{
-			await context.StartFreshBodyAsync(cancellationToken).ConfigureAwait(false);
-			limb = await PickLimbAsync(context, cancellationToken).ConfigureAwait(false);
-		}
-
-		Require(limb >= 0, "no limb of the member's body can take a splint");
+		// A severed limb does not heal back, and restarting the run to grow the member a new one is not something a
+		// player can do. The row says what it needs instead (the runner's world guarantee owns what body a row gets).
+		Require(limb >= 0, "the member's body has no limb a splint could go on; an earlier row took them and a player cannot regrow them");
 
 		var before = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "find")).ConfigureAwait(false);
 		Require(!Boolean(before, "found"),
@@ -47,6 +43,16 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		var broken = await context.MemberRecipeAsync("limb-break", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false);
 		Require(Boolean(broken, "ok"), "the game refused to break limb " + Text(limb) + ": " + Raw(broken));
 		Require(Boolean(broken, "broken"), "the game did not record the limb as broken: " + Raw(broken));
+
+		// The splint's own effect is a faster bone timer (`SplintLimb.Update` subtracts
+		// `Limb.boneHealSpeed * 1.5` while worn): the row measures the break's own timer for two seconds
+		// before and after the splint, and requires the splinted rate to be visibly faster. A row that only read
+		// `splinted` would pass on a splint that set the flag and healed nothing.
+		var unsplintedTimer0 = Number(LimbRow(await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false), limb), "boneTimer");
+		await Task.Delay(TimeSpan.FromMilliseconds(2000), cancellationToken).ConfigureAwait(false);
+		var unsplintedTimer1 = Number(LimbRow(await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false), limb), "boneTimer");
+		var plainDecay = unsplintedTimer0 - unsplintedTimer1;
+		context.Read("the break's timer without a splint", JsonSerializer.SerializeToElement(new { from = unsplintedTimer0, to = unsplintedTimer1, decay = plainDecay }));
 
 		// A created item needs a free slot, and the run may leave the bag either full or empty: ask for the item first,
 		// and free a slot only when the game says there is none (measured 2026-11-22, `.acceptance/slots-1`).
@@ -73,6 +79,14 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		Require(Boolean(treated, "splint"), "the treated limb carries no splint: " + treated.GetRawText());
 		Require(Boolean(treated, "splinted"), "the game does not mark the treated limb as splinted: " + treated.GetRawText());
 
+		var splintedTimer0 = Number(treated, "boneTimer");
+		await Task.Delay(TimeSpan.FromMilliseconds(2000), cancellationToken).ConfigureAwait(false);
+		var splintedTimer1 = Number(LimbRow(await context.MemberRecipeAsync("limb-bleeding", cancellationToken, ("limb", Text(limb))).ConfigureAwait(false), limb), "boneTimer");
+		var splintedDecay = splintedTimer0 - splintedTimer1;
+		context.Read("the break's timer with a splint", JsonSerializer.SerializeToElement(new { from = splintedTimer0, to = splintedTimer1, decay = splintedDecay }));
+		Require(plainDecay > 0, $"the broken limb's own timer did not move without a splint ({plainDecay:0.####} over two seconds), so the splint's speeding up cannot be told apart");
+		Require(splintedDecay > plainDecay * 1.25, $"the splint did not speed the break's healing: {plainDecay:0.####} per two seconds without it, {splintedDecay:0.####} with it");
+
 		var consumed = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "find")).ConfigureAwait(false);
 		Require(!Boolean(consumed, "found"),
 			"the splint is still carried after it was applied, so the game did not consume it: " + Raw(consumed));
@@ -89,6 +103,12 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 		var returned = await context.MemberRecipeAsync("item-provide", cancellationToken, ("type", "splint"), ("mode", "find")).ConfigureAwait(false);
 		Require(Boolean(returned, "found"),
 			"the splint did not come back to the body after it was taken off: " + Raw(returned));
+		// `TakeOff` instantiates the item with the condition it was worn down to, not a fresh one: a returned
+		// splint that reads full condition would mean the game handed back a different item.
+		var returnedCondition = Number(returned, "condition");
+		var usedCondition = Number(used, "condition");
+		Require(returnedCondition > 0, $"the splint came back with no condition left: {returnedCondition:0.###}");
+		Require(returnedCondition <= usedCondition + 0.001, $"the splint came back with more condition ({returnedCondition:0.###}) than it was worn with ({usedCondition:0.###})");
 	}
 
 	/// <summary>Picks a limb the game's own splint action accepts: not head, not vital, not dismembered, healthy skin, no splint yet.</summary>

@@ -144,5 +144,6 @@
 		+ ",\"instanceId\":\"" + itemId + "\""
 		+ ",\"slot\":" + heldSlot.ToString(System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"picked\":" + (onBody ? "true" : "false") + ",\"parent\":\"" + parent + "\""
-		+ ",\"onBody\":" + (onBody ? "true" : "false") + "}";
+		+ ",\"onBody\":" + (onBody ? "true" : "false")
+		+ ",\"condition\":" + held.condition.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}";
 }))()

@@ -105,10 +105,13 @@ internal sealed class GiveContainerSoundCase : AcceptanceCase
 
 		context.Note("host heard the container give: " + hostLine);
 		context.Note("member heard the container give: " + memberLine);
+		// The clip belongs to the client whose container the item enters: the receiver loads it into its own bag
+		// (`Body.PickUpItem`), so "either client heard it" would pass a giver-only play that never reached the
+		// receiver (2026-11-24). The giver's line stays a reading, not the judgement.
 		Require(
-			HeardBackpackClip(hostLine) || HeardBackpackClip(memberLine),
-			"no client played the backpack clip for a give into a container: host '" + hostLine + "', member '" + memberLine
-			+ "'; the member's bag reads " + Raw(memberBag));
+			HeardBackpackClip(memberLine),
+			"the receiving client played no backpack clip for a give into its container: member '" + memberLine
+			+ "', host '" + hostLine + "'; the member's bag reads " + Raw(memberBag));
 	}
 
 	/// <summary>

@@ -25,5 +25,12 @@
 		+ ",\"trade\":" + (flagOf(() => field("tradeMenu") is UnityEngine.GameObject trade && trade.activeSelf) ? "true" : "false")
 		+ ",\"radial\":" + (flagOf(() => field("radialOpen")) ? "true" : "false")
 		+ ",\"scrollableText\":" + (scrollable ? "true" : "false")
+		+ ",\"handler\":" + (PauseHandler.main != null ? "true" : "false")
+		+ ",\"settings\":" + (SettingsMenu.instance != null ? "true" : "false")
+		+ ",\"deathScreen\":" + (flagOf(() => field("didDeathScreen")) ? "true" : "false")
+		+ ",\"selfDestruct\":" + (flagOf(() => field("selfDestructActive")) ? "true" : "false")
+		+ ",\"generating\":" + (flagOf(() => WorldGeneration.world != null && WorldGeneration.world.generatingWorld) ? "true" : "false")
+		+ ",\"cutscene\":" + (flagOf(() => WorldGeneration.world != null && WorldGeneration.world.cutsceneActive) ? "true" : "false")
+		+ ",\"disallowed\":" + (flagOf(() => PauseHandler.main != null && PauseHandler.main.disallowPause) ? "true" : "false")
 		+ ",\"timeScale\":" + UnityEngine.Time.timeScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}";
 }))()

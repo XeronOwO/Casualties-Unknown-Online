@@ -15,7 +15,13 @@ internal sealed class PauseClockCase : AcceptanceCase
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
-		await PressPauseAsync(context, cancellationToken).ConfigureAwait(false);
+		// The game refuses a pause while its world is still generating, a cutscene runs, or the death/self-destruct
+		// screens are up (`PauseHandler.disallowPause`, PauseHandler.cs:22-28) — a player presses the key once the world is
+		// theirs, so the row waits for that moment instead of pressing into a refusal and calling it a product fault.
+		var ready = await WaitForPauseGateAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(ready is not null, "the game's pause gates never opened: " + Raw(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false)));
+
+		await PressPauseAsync(context, expectPaused: !Boolean(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false), "paused"), cancellationToken).ConfigureAwait(false);
 
 		var pausedScale = await WaitForScaleAsync(context, 0, cancellationToken).ConfigureAwait(false);
 		var state = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
@@ -27,19 +33,52 @@ internal sealed class PauseClockCase : AcceptanceCase
 		context.Read("member while host paused", member);
 		Require(!Boolean(member, "paused"), "the member's own clock paused with the host: " + Raw(member));
 
-		await PressPauseAsync(context, cancellationToken).ConfigureAwait(false);
+		await PressPauseAsync(context, expectPaused: !Boolean(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false), "paused"), cancellationToken).ConfigureAwait(false);
 		var resumedScale = await WaitForScaleAsync(context, 1, cancellationToken).ConfigureAwait(false);
 		Require(resumedScale is not null, "the host's clock did not resume after the pause key was pressed again");
 	}
 
-	// The game's own pause binding, pressed and released the way the player's key is.
-	private static async Task PressPauseAsync(CaseContext context, CancellationToken cancellationToken)
+	// The game's own pause binding, held until the game has acted on it the way a player's press is held for a moment.
+	// A fixed 120 ms was a race: one stutter while the world streams in and the whole press falls between two frames.
+	private static async Task PressPauseAsync(CaseContext context, bool expectPaused, CancellationToken cancellationToken)
 	{
 		var down = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "down")).ConfigureAwait(false);
 		Require(Boolean(down, "ok"), "the pause key could not be staged down: " + Raw(down));
-		await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+		for (var attempt = 0; attempt < 15; attempt += 1)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
+			var state = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
+			if (Boolean(state, "paused") == expectPaused)
+			{
+				break;
+			}
+		}
+
 		var up = await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "pause"), ("action", "up")).ConfigureAwait(false);
 		Require(Boolean(up, "ok"), "the pause key could not be staged up: " + Raw(up));
+	}
+
+	// The game's pause gates: a handler that exists, no settings page, and nothing that disallows a pause (a world still
+	// generating, a cutscene, the death or self-destruct screens). A player presses the key once the world is theirs.
+	private static async Task<JsonElement?> WaitForPauseGateAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; attempt < 20; attempt += 1)
+		{
+			var read = await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false);
+			if (attempt == 0)
+			{
+				context.Read("pause gates before the key", read);
+			}
+
+			if (Boolean(read, "handler") && !Boolean(read, "settings") && !Boolean(read, "disallowed"))
+			{
+				return read;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return null;
 	}
 
 	private static async Task<double?> WaitForScaleAsync(CaseContext context, double expected, CancellationToken cancellationToken)

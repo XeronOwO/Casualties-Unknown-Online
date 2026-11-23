@@ -31,6 +31,16 @@ internal sealed class EnemyKillCase : AcceptanceCase
 		context.Read("member count before", memberBefore);
 		var before = Number(memberBefore, "count");
 
+		// The friend must be seeing the animal the host is about to kill. Instance ids are per client (a Unity
+		// instance id says nothing on the other machine — measured 2026-11-24: the member has 47 animals, none
+		// with the host's id), so the animal is matched by its prefab and by standing where the host saw it.
+		var targetX = target!.Value.X;
+		var targetY = target.Value.Y;
+		var memberSceneBefore = await context.MemberRecipeAsync("enemy-scene", cancellationToken).ConfigureAwait(false);
+		var seenBefore = HasAnimalNear(memberSceneBefore, target.Value.Id, targetX, targetY, 3.0);
+		context.Read("member saw the target", JsonSerializer.SerializeToElement(new { id = target.Value.Id, x = targetX, y = targetY, seen = seenBefore }));
+		Require(seenBefore, "the member's own scene never carried the animal the host kills (" + target.Value.Id + " at " + targetX + "," + targetY + "): " + Raw(memberSceneBefore));
+
 		// The game's own explosion rolls `structuralDamage * Random.Range(0f, 2f)` once per
 		// blast (WorldGeneration.cs:5449 in the 1.0.2 decompile), so a single 1000-damage blast
 		// leaves a healthy animal alive whenever the roll is low. The row repeats the game's
@@ -70,10 +80,31 @@ internal sealed class EnemyKillCase : AcceptanceCase
 
 		Require(before is not null && after is not null && after < before,
 			"the member's animal count did not fall after the host's kill: before=" + before + " after=" + after);
+
+		// The sharp half: the animal the host killed must leave the member's own scene — matched by prefab and
+		// place, since an instance id says nothing on the other machine. A count that fell while a despawn
+		// elsewhere paid for it would pass the range above and fail here.
+		var stillSeen = true;
+		for (var attempt = 0; attempt < 10 && stillSeen; attempt++)
+		{
+			var memberSceneAfter = await context.MemberRecipeAsync("enemy-scene", cancellationToken).ConfigureAwait(false);
+			stillSeen = HasAnimalNear(memberSceneAfter, target.Value.Id, targetX, targetY, 3.0);
+			if (!stillSeen)
+			{
+				context.Read("member scene after", memberSceneAfter);
+			}
+
+			if (stillSeen)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+			}
+		}
+
+		Require(!stillSeen, "the member's own scene still carries the animal the host killed (" + target.Value.Id + " at " + targetX + "," + targetY + ")");
 	}
 
 	/// <summary>The nearest animal that stands outside the blast's own body radius.</summary>
-	private static (string Id, int Iid, double Distance)? PickAnimal(JsonElement? scene)
+	private static (string Id, int Iid, double Distance, double X, double Y)? PickAnimal(JsonElement? scene)
 	{
 		if (scene is not { ValueKind: JsonValueKind.Object } root
 			|| !root.TryGetProperty("animals", out var animals)
@@ -82,12 +113,14 @@ internal sealed class EnemyKillCase : AcceptanceCase
 			return null;
 		}
 
-		(string Id, int Iid, double Distance)? best = null;
+		(string Id, int Iid, double Distance, double X, double Y)? best = null;
 		foreach (var animal in animals.EnumerateArray())
 		{
 			if (animal.ValueKind != JsonValueKind.Object
 				|| !animal.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String
 				|| !animal.TryGetProperty("iid", out var iid) || iid.ValueKind != JsonValueKind.Number
+				|| !animal.TryGetProperty("x", out var ax) || ax.ValueKind != JsonValueKind.Number
+				|| !animal.TryGetProperty("y", out var ay) || ay.ValueKind != JsonValueKind.Number
 				|| !animal.TryGetProperty("bodyDistance", out var distance) || distance.ValueKind != JsonValueKind.Number)
 			{
 				continue;
@@ -109,11 +142,41 @@ internal sealed class EnemyKillCase : AcceptanceCase
 
 			if (best is null || d < best.Value.Distance)
 			{
-				best = (idText, iid.GetInt32(), d);
+				best = (idText, iid.GetInt32(), d, ax.GetDouble(), ay.GetDouble());
 			}
 		}
 
 		return best;
+	}
+
+	/// <summary>Whether a scene answer lists an animal of this prefab standing within `tolerance` of the point.</summary>
+	private static bool HasAnimalNear(JsonElement? scene, string prefab, double x, double y, double tolerance)
+	{
+		if (scene is not { ValueKind: JsonValueKind.Object } root
+			|| !root.TryGetProperty("animals", out var animals)
+			|| animals.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		foreach (var animal in animals.EnumerateArray())
+		{
+			if (animal.ValueKind != JsonValueKind.Object
+				|| !animal.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String
+				|| !string.Equals(id.GetString(), prefab, StringComparison.Ordinal)
+				|| !animal.TryGetProperty("x", out var ax) || ax.ValueKind != JsonValueKind.Number
+				|| !animal.TryGetProperty("y", out var ay) || ay.ValueKind != JsonValueKind.Number)
+			{
+				continue;
+			}
+
+			if (Math.Abs(ax.GetDouble() - x) <= tolerance && Math.Abs(ay.GetDouble() - y) <= tolerance)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -27,6 +28,25 @@ internal sealed class BlockIdleDriftCase : AcceptanceCase
 		Require(first.Host.Length == first.Member.Length, "the two digests answer different row counts");
 		Require(first.Host.Length == BandEnd - BandStart, $"the digest answered {first.Host.Length} rows for a {BandEnd - BandStart}-row band");
 		context.Note($"the band read {first.Host.Length} rows on both clients");
+
+		// Agreeing on a band of pure air would prove nothing, so the row first shows the band carries real
+		// ground on both clients: three spot cells through the game's own table, one of which must be solid.
+		var solid = 0;
+		foreach (var sample in new[] { 950, 980, 1000 })
+		{
+			var hostCell = await context.RecipeAsync("block-read-at", cancellationToken, ("x", "0"), ("y", sample.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			var memberCell = await context.MemberRecipeAsync("block-read-at", cancellationToken, ("x", "0"), ("y", sample.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			var hostBlock = Block(hostCell);
+			var memberBlock = Block(memberCell);
+			Require(hostBlock == memberBlock,
+				"the spot cell (0," + sample + ") already differs before the wait: host block " + hostBlock + ", member block " + memberBlock);
+			if (hostBlock > 0)
+			{
+				solid++;
+			}
+		}
+
+		Require(solid > 0, "the band's spot cells are all air on both clients, so agreeing over them proves nothing");
 
 		var atEntryHost = first.Host;
 		var atEntryMember = first.Member;
@@ -134,6 +154,11 @@ internal sealed class BlockIdleDriftCase : AcceptanceCase
 
 		return firstRow;
 	}
+
+	private static int Block(JsonElement? reading) =>
+		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("block", out var value) && value.ValueKind == JsonValueKind.Number
+			? value.GetInt32()
+			: throw new AssertionException($"the reading has no block number: {reading?.GetRawText()}");
 
 	private static void Require(bool condition, string message)
 	{

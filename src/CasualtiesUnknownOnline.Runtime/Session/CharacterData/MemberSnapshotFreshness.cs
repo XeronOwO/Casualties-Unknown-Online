@@ -26,38 +26,37 @@ public sealed class MemberSnapshotFreshness(Func<int>? clock = null)
 
 	private readonly Func<int> _now = clock ?? (() => Environment.TickCount);
 	private readonly Dictionary<ulong, int> _reported = [];
-	private readonly Dictionary<ulong, int> _written = [];
+	private readonly Dictionary<ulong, int> _changed = [];
+
+	/// <summary>Host: the member's carried set moved (its own carried-inventory report arrived), so the character snapshot no longer matches what the member holds.</summary>
+	public void NoteChanged(ulong steamId) => _changed[steamId] = _now();
 
 	/// <summary>Host: the member's report arrived at this instant (the store kept it as the snapshot).</summary>
 	public void NoteReported(ulong steamId)
 	{
-		var now = _now();
-		_reported[steamId] = now;
-		_written[steamId] = now;
+		_reported[steamId] = _now();
+		_changed.Remove(steamId);
 	}
-
-	/// <summary>Host: an authoritative write replaced the snapshot at this instant (the applier's own writes).</summary>
-	public void NoteWritten(ulong steamId) => _written[steamId] = _now();
 
 	/// <summary>The peer left: its age is no longer the cut's business.</summary>
 	public void Forget(ulong steamId)
 	{
 		_reported.Remove(steamId);
-		_written.Remove(steamId);
+		_changed.Remove(steamId);
 	}
 
 	/// <summary>
-	/// True when the peer's report is recent enough to expect another (so waiting is not a stall)
-	/// and the snapshot it produced is older than <see cref="FreshMs"/>.
+	/// True when the member's carried set moved after the snapshot that the cut would write, and the
+	/// member is still reporting (so waiting for the next report is a wait, not a stall).
 	/// </summary>
 	public bool IsStale(ulong steamId)
 	{
-		var now = _now();
-		if (!_reported.TryGetValue(steamId, out var reported) || now - reported is < 0 or > AliveMs)
+		if (!_changed.ContainsKey(steamId))
 		{
 			return false;
 		}
 
-		return !_written.TryGetValue(steamId, out var written) || now - written > FreshMs;
+		var now = _now();
+		return _reported.TryGetValue(steamId, out var reported) && now - reported is >= 0 and <= AliveMs;
 	}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Application.Kernel;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -46,6 +47,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset, ICarriedRegi
 	private readonly ItemArbitration _arbitration;
 	private readonly ITimeSource _time;
 	private readonly ILogger<ItemIdCoordinator> _log;
+	private readonly MemberSnapshotFreshness _freshness;
 
 	/// <summary>Guest side: the carried-registration cadence (row I8) — the dense window that heals a swallowed registration, then the steady re-assertion.</summary>
 	private readonly CarriedInventoryReportSchedule _carriedRegistration = new();
@@ -82,13 +84,14 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset, ICarriedRegi
 	/// has one consumer for it (<c>ItemIdAllocator.SetWatermark</c>, raise-only).</summary>
 	public event Action<ulong>? ItemIdWatermarkReceived;
 
-	public ItemIdCoordinator(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemIdCoordinator> log)
+	public ItemIdCoordinator(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemIdCoordinator> log, MemberSnapshotFreshness freshness)
 	{
 		_session = session;
 		_sender = sender;
 		_arbitration = arbitration;
 		_time = time;
 		_log = log;
+		_freshness = freshness;
 		// The handshake-completion event — grant the watermark on join and on
 		// reconnect (the presence table is stable across reconnects, so the
 		// event re-fires; the recorded watermark is the resume point).
@@ -366,6 +369,7 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset, ICarriedRegi
 		}
 
 		_arbitration.RegisterCarried(sender, items);
+		_freshness.NoteChanged(sender);
 		_judgedCarriedSets.Add(sender);
 		CarriedInventoryReceived?.Invoke(sender, items);
 	}
@@ -376,3 +380,6 @@ public sealed class ItemIdCoordinator : IDisposable, ISessionReset, ICarriedRegi
 	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table (clone render + snapshot divergence baseline).</summary>
 	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived;
 }
+
+
+

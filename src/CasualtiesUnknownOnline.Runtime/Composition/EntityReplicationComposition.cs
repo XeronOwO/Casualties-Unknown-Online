@@ -53,6 +53,7 @@ internal static class EntityReplicationComposition
 		// The reconnect restore's write order: the player row before the item re-key, because a
 		// guest applies journal batches in commit order (the A2 journal loop).
 		services.AddSingleton<CharacterReconnectRestore>();
+		services.AddSingleton<MemberSnapshotFreshness>();
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 		// The host's continuous-vitals wire pump (2026-10-18 ruling): the model itself runs on the

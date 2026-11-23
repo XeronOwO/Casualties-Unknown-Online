@@ -52,7 +52,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	/// forward again — this is the only place that remembers what "forward" means.
 	/// </summary>
 	private readonly Dictionary<ulong, ulong> _adoptedFrom = [];
-	private readonly MemberSnapshotFreshness _freshness = new(); private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
+	private readonly MemberSnapshotFreshness _freshness;
+	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	/// <summary>Members whose latest report was refused for a non-finite physiological field; the warning is named once, not at 1 Hz.</summary>
 	private readonly HashSet<ulong> _refusedReports = [];
@@ -80,7 +81,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		PlayerKernelLimbProjection playerLimbKernel,
 		CharacterReconnectRestore restore,
 		AppliedItemConditionProjection appliedItems,
-		ItemKernelAuthority kernelAuthority)
+		ItemKernelAuthority kernelAuthority,
+		MemberSnapshotFreshness freshness)
 	{
 		_session = session;
 		_sender = sender;
@@ -88,6 +90,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		_playerLimbKernel = playerLimbKernel;
 		_restore = restore;
 		_appliedItems = appliedItems;
+		_freshness = freshness;
 		_savedCharacters = [];
 
 		// A restore replaces the kernel with the cut's rows — including the player row under the id the
@@ -144,7 +147,6 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		}
 
 		_savedCharacters[steamId] = msg;
-		_freshness.NoteWritten(steamId);
 		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 		_appliedItems.SyncFromCharacterData(steamId, msg);
 		return true;
@@ -715,4 +717,6 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => SendCharacterRagdoll(msg);
 
 }
+
+
 

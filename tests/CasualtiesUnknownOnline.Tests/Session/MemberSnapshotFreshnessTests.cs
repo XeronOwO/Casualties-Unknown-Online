@@ -4,30 +4,52 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The cut waits for a member's next report only while that member is actually reporting: the age
-/// rule has to say "fresh", "stale" and "silent" apart, or the wait turns into a stall.
+/// The cut waits for a member's next report only while that member's carried set actually moved and the
+/// member is still reporting: the rule has to say "unchanged", "changed" and "silent" apart, or the wait
+/// turns into a stall.
 /// </summary>
 public sealed class MemberSnapshotFreshnessTests
 {
 	private int _now = 1000;
 
 	[Fact]
-	public void AReport_CountsAsFreshUntilTheNextSecondIsDue()
+	public void AMemberWhoseCarriedSetNeverMoved_IsNotWaitedFor()
 	{
 		var freshness = new MemberSnapshotFreshness(() => _now);
 		freshness.NoteReported(7);
 
 		Assert.False(freshness.IsStale(7));
+	}
 
-		_now += MemberSnapshotFreshness.FreshMs + 1;
+	[Fact]
+	public void ACarriedSetThatMovedAfterTheReport_IsStale()
+	{
+		var freshness = new MemberSnapshotFreshness(() => _now);
+		freshness.NoteReported(7);
+		freshness.NoteChanged(7);
+
 		Assert.True(freshness.IsStale(7));
 	}
 
 	[Fact]
-	public void ASilentMember_IsNeverStale()
+	public void TheNextReport_ClearsTheStaleness()
 	{
 		var freshness = new MemberSnapshotFreshness(() => _now);
 		freshness.NoteReported(7);
+		freshness.NoteChanged(7);
+		_now += 150;
+
+		freshness.NoteReported(7);
+
+		Assert.False(freshness.IsStale(7));
+	}
+
+	[Fact]
+	public void ASilentMember_IsNeverWaitedFor()
+	{
+		var freshness = new MemberSnapshotFreshness(() => _now);
+		freshness.NoteReported(7);
+		freshness.NoteChanged(7);
 
 		_now += MemberSnapshotFreshness.AliveMs + 1;
 
@@ -35,34 +57,21 @@ public sealed class MemberSnapshotFreshnessTests
 	}
 
 	[Fact]
-	public void AnAuthoritativeWrite_RefreshesTheAge()
+	public void APeerThatNeverReported_IsNeverWaitedFor()
 	{
 		var freshness = new MemberSnapshotFreshness(() => _now);
-		freshness.NoteReported(7);
-		_now += MemberSnapshotFreshness.FreshMs + 1;
-		Assert.True(freshness.IsStale(7));
-
-		freshness.NoteWritten(7);
+		freshness.NoteChanged(7);
 
 		Assert.False(freshness.IsStale(7));
 	}
 
 	[Fact]
-	public void APeerThatNeverReported_IsNotWaitedFor()
-	{
-		var freshness = new MemberSnapshotFreshness(() => _now);
-
-		Assert.False(freshness.IsStale(7));
-	}
-
-	[Fact]
-	public void AForgottenPeer_IsNotWaitedFor()
+	public void AForgottenPeer_IsNeverWaitedFor()
 	{
 		var freshness = new MemberSnapshotFreshness(() => _now);
 		freshness.NoteReported(7);
+		freshness.NoteChanged(7);
 		freshness.Forget(7);
-
-		_now += MemberSnapshotFreshness.FreshMs + 1;
 
 		Assert.False(freshness.IsStale(7));
 	}

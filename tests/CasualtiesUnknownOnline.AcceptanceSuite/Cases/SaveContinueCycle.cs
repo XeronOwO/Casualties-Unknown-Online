@@ -19,11 +19,20 @@ internal static class SaveContinueCycle
 {
 	public static async Task SaveAsync(CaseContext context, CancellationToken cancellationToken)
 	{
+		var committed = await SaveAndNameAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(committed.Length > 0, "the save cut did not commit");
+	}
+
+	/// <summary>
+	/// The same save, but the caller gets the cut's own committed line: a row that later has to say
+	/// WHICH archive came back needs the line the cut wrote, not the newest file on disk.
+	/// </summary>
+	public static async Task<string> SaveAndNameAsync(CaseContext context, CancellationToken cancellationToken)
+	{
 		var mark = LogMark(context.HostLogPath);
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
-		var committed = await WaitForLogAsync(context.HostLogPath, mark, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
-		Require(committed.Length > 0, "the save cut did not commit");
+		return await WaitForLogAsync(context.HostLogPath, mark, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
 	}
 
 	/// <summary>

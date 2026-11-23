@@ -51,7 +51,11 @@ internal sealed class SaveWriteInterruptedCase : AcceptanceCase
 
 		var second = await context.MemberRecipeAsync("item-customize-native", cancellationToken, ("slot", memberSlot), ("label", "MemberColor"), ("swatch", "7")).ConfigureAwait(false);
 		Require(Boolean(second, "ok"), "the member's second colour did not apply: " + Raw(second));
-		await SaveContinueCycle.SaveAsync(context, cancellationToken).ConfigureAwait(false);
+		var secondCut = await SaveContinueCycle.SaveAndNameAsync(context, cancellationToken).ConfigureAwait(false);
+		Require(secondCut.Length > 0, "the second save cut did not commit");
+		var secondBackup = BackupPathOf(secondCut);
+		Require(secondBackup.Length > 0, "the second save cut did not name the archive it wrote: " + secondCut);
+		Require(File.Exists(secondBackup), "the second save named an archive that is not on disk: " + secondBackup);
 		var storedSecond = await SaveContinueCycle.ReadStoredAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("stored after second save", storedSecond);
 		Require(HasItem(storedSecond, "MemberColor", 7), "the second save did not store the member's colour 7: " + Raw(storedSecond));
@@ -102,6 +106,10 @@ internal sealed class SaveWriteInterruptedCase : AcceptanceCase
 			var recovered = await SaveContinueCycle.WaitForLogAsync(context.HostLogPath, mark, "from backup", TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
 			context.Read("backup recovery line", JsonDocument.Parse("\"" + Escape(recovered) + "\"").RootElement.Clone());
 			Require(recovered.Length > 0, "the continue never logged a backup recovery after the live archive was truncated");
+
+			// Which archive came back is the whole point: the recovery must name the SECOND save's
+			// cut, not an older backup that happens to carry a colour as well.
+			Require(recovered.Contains(Path.GetFileName(secondBackup), StringComparison.Ordinal), "the continue recovered from a different archive than the last completed save: expected " + Path.GetFileName(secondBackup) + ", the line says: " + recovered);
 
 			await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
 			var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);

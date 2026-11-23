@@ -67,7 +67,7 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			context.Read("member:pick", memberPick);
 			Require(Int(memberPick, "selected") == memberChoice, "the member's picker did not take index " + memberChoice + ": " + Raw(memberPick));
 
-			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("name", "unchipped")).ConfigureAwait(false);
+			var preset = await context.RecipeAsync("run-preset", cancellationToken, ("preset", "unchipped")).ConfigureAwait(false);
 			context.Read("run preset", preset);
 			Require(Boolean(preset, "ok") == true, "the host's unchipped preset could not be selected: " + Raw(preset));
 

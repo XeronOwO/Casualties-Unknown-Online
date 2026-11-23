@@ -56,6 +56,8 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		var refused = await WaitForLogAsync(
 			context.HostLogPath, pushOffset, "the host's allow_push rule is off", TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
 		Require(refused is not null, "the refused push was not named on the pusher's own client");
+		Require(refused is not null && refused.Contains("refusal.push_disabled_by_rule", StringComparison.Ordinal),
+			"the refusal did not name the rule it came from: " + refused);
 		await Task.Delay(TimeSpan.FromMilliseconds(1500), cancellationToken).ConfigureAwait(false);
 		var memberAfter = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
 		var (afterX, afterY) = Position(memberAfter);

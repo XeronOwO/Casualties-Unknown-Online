@@ -1,6 +1,6 @@
 // recipe: body-effects
 // args: none
-// returns: ok, opiate, consciousness, bloodVolume, alive, error
+// returns: ok, opiate, consciousness, bloodVolume, alive, conscious, thirst, sickness, temperature, error
 //
 // Reads the LOCAL body's own effect values: the `Painkillers` component's `opiateAmount`
 // (what fentanyl's `onHealthUse` raises — Liquids.cs:392-399, `ml * 0.1 * 420`) plus the
@@ -24,6 +24,10 @@
 	// the `consciousness` number: a body can sit at 1.5 and still refuse to walk. A row that reads only the number
 	// cannot tell "the key was never read" from "the body is out cold" (measured 2026-11-22).
 	sb.Append(",\"conscious\":").Append(body.conscious ? "true" : "false");
+	sb.Append(",\"thirst\":").Append(body.thirst.ToString("0.###", inv));
+	sb.Append(",\"sickness\":").Append(body.sicknessAmount.ToString("0.###", inv));
+	sb.Append(",\"temperature\":").Append(body.temperature.ToString("0.###", inv));
 	sb.Append('}');
 	return sb.ToString();
 }))()
+

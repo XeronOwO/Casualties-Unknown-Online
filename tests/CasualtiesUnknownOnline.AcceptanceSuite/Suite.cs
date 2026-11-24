@@ -159,6 +159,10 @@ internal static partial class Program
 			// row did not start in: the runner starts a fresh run before that next row.
 			runChangedByTheLastRow = acceptanceCase.LeavesTheRunChanged;
 			WriteProgress(outputDirectory, $"case\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{acceptanceCase.Name}\t{results[^1].TotalMs / 1000:F1}s");
+			if (!results[^1].Passed)
+			{
+				await TrySaveHostTailAsync(session, options, outputDirectory, acceptanceCase.Name).ConfigureAwait(false);
+			}
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Cost}\tsetup {results[^1].SetupMs / 1000:F1}s\tcase {results[^1].CaseMs / 1000:F1}s\ttotal {results[^1].TotalMs / 1000:F1}s\t{results[^1].Note}");
 			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
 			{
@@ -207,6 +211,39 @@ internal static partial class Program
 		catch (IOException)
 		{
 			// Progress is a courtesy for whoever watches the run; a locked file must not stop the suite.
+		}
+	}
+
+	/// <summary>
+	/// A failed row takes the host's own log with it: <c>latest.log</c> rotates on every client
+	/// restart, so a reading taken after the run has lost the lines that explain the failure — the
+	/// save rows failed with "the cut did not commit" and the cause was already gone when the run
+	/// ended. Names are kept apart per row so a later row cannot overwrite the first failure's log.
+	/// </summary>
+	private static async Task TrySaveHostTailAsync(
+		SessionDriver session,
+		Options options,
+		string outputDirectory,
+		string caseName)
+	{
+		try
+		{
+			var tail = await session.LogTailAsync(options.HostUrl, string.Empty, 6000, CancellationToken.None).ConfigureAwait(false);
+			var path = Path.Combine(outputDirectory, $"host-log-{caseName}.json");
+			await File.WriteAllTextAsync(path, tail?.ToString() ?? "(the host answered no log lines)").ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+		{
+			try
+			{
+				await File.WriteAllTextAsync(
+					Path.Combine(outputDirectory, $"host-log-{caseName}.json"),
+					"the host log could not be copied: " + exception.Message).ConfigureAwait(false);
+			}
+			catch (IOException)
+			{
+				// Nothing more to do: the row's own reading is still in the report.
+			}
 		}
 	}
 

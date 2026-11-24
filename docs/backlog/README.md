@@ -69,6 +69,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
   "queued" twice and never writes; two rows wait for it.
 - [The run change reaches the guest late](todo/1.0-the-run-change-arrives-after-its-batches.md) — **High** — a run-2 batch is dropped as foreign epoch.
+- [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
 
 ### In progress

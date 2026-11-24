@@ -657,6 +657,17 @@ internal sealed class CaseContext(Options options, string outputDirectory, Drive
 			? Path.Combine(gameDir, "BepInEx", "LogOutput.log")
 			: throw new InvalidOperationException("the case needs --game-dir (the release install) to read the host log");
 
+	/// <summary>
+	/// The host's dated log (<c>latest.log</c>), which — unlike <see cref="HostLogPath"/> — carries a
+	/// <c>[yyyy-MM-dd HH:mm:ss.fff]</c> stamp on every line. A row that has to prove a line was written
+	/// after its own gesture needs that stamp, because the undated file cannot tell a fresh line from one a
+	/// previous run left behind (measured 2026-11-25: the refusal was on disk and the row could not date it).
+	/// </summary>
+	public string HostDatedLogPath =>
+		_options.GameDir is { } datedGameDir
+			? Path.Combine(datedGameDir, "BepInEx", "logs", "latest.log")
+			: throw new InvalidOperationException("the case needs --game-dir (the release install) to read the host log");
+
 	public Task<JsonElement?> RecipeAsync(string name, CancellationToken cancellationToken, params (string Key, string Value)[] args)
 	{
 		var dictionary = args.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);

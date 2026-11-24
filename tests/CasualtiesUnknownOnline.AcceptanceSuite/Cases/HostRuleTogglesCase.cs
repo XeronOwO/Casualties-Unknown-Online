@@ -47,14 +47,36 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		var pushed = await WaitForMemberRuleAsync(context, "allowPush", expected: false, cancellationToken).ConfigureAwait(false);
 		Require(!Boolean(pushed, "allowPush"), "the member did not read the host's allow_push=false: " + Raw(pushed));
 
+		// The host's own gate has to see the same write: it is the one that refuses the gesture, and a
+		// console write that only reaches the announcement would leave the host reading its old value.
+		var hostRules = await context.RecipeAsync("host-rules-read", cancellationToken).ConfigureAwait(false);
+		context.Read("host-rules-read", hostRules);
+		Require(!Boolean(hostRules, "allowPush"),
+			"the host's own push gate still reads allow_push=true after the console write: " + Raw(hostRules));
+
+		// The push is only offered to a pusher that can see the target: the game's own visibility gate
+		// ("no-line-of-sight") drops the request before the rule is read. Put the two bodies in sight of
+		// each other the way the other rows do, then read the member's own position as the before value.
+		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		var (hostX, hostY) = Position(hostBody);
+		await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", (hostX + 1.5).ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+
+		// A body dropped on a tile keeps falling for a moment: the "the target did not move" half needs the
+		// member to be standing still first, or the fall is read as a push (measured 2026-11-25: 2.6 units).
+		var settled = await SettleAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Read("member settled", settled);
+
 		var memberBefore = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
 		var (beforeX, beforeY) = Position(memberBefore);
-		var pushOffset = LogLength(context.HostLogPath);
+		var pushStarted = DateTime.Now;
 		var push = await context.RecipeAsync("push-player", cancellationToken, ("target", memberId)).ConfigureAwait(false);
 		context.Read("push-player", push);
 		Require(Boolean(push, "ok"), "the push gesture did not leave the host's client: " + Raw(push));
-		var refused = await WaitForLogAsync(
-			context.HostLogPath, pushOffset, "the host's allow_push rule is off", TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+		var refused = await WaitForFreshLogLineAsync(
+			context.HostDatedLogPath, "the host's allow_push rule is off", pushStarted, TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
 		Require(refused is not null, "the refused push was not named on the pusher's own client");
 		Require(refused is not null && refused.Contains("refusal.push_disabled_by_rule", StringComparison.Ordinal),
 			"the refusal did not name the rule it came from: " + refused);
@@ -148,6 +170,27 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		context.MemberRecipeAsync("host-rules-read", cancellationToken);
 
 	/// <summary>The member's roster and one id, from the host's own member list (the same source the UI renders).</summary>
+	/// <summary>Waits until the member's body stops moving, and answers the last reading it took.</summary>
+	private static async Task<JsonElement?> SettleAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		var (lastX, lastY) = (double.NaN, double.NaN);
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			last = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+			var (x, y) = Position(last);
+			if (!double.IsNaN(lastX) && Math.Abs(x - lastX) < 0.1 && Math.Abs(y - lastY) < 0.1)
+			{
+				return last;
+			}
+
+			(lastX, lastY) = (x, y);
+		}
+
+		return last;
+	}
+
 	private static async Task<string> SingleMemberAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		for (var wait = 0; wait < 20; wait++)
@@ -181,6 +224,53 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 	}
 
 	private static string Raw(JsonElement? reading) => reading is { } value ? value.GetRawText() : string.Empty;
+
+	/// <summary>
+	/// Waits for a line that carries <paramref name="needle"/> and was written at or after
+	/// <paramref name="since"/>. The file offset a caller took before the gesture cannot be trusted: the host's
+	/// log rotates under a long batch, and a rotated file makes the old offset point past the end (measured
+	/// 2026-11-25, the refused push was on disk but the offset never matched it).
+	/// </summary>
+	private static async Task<string?> WaitForFreshLogLineAsync(string path, string needle, DateTime since, TimeSpan budget, CancellationToken cancellationToken)
+	{
+		var deadline = DateTime.UtcNow + budget;
+		while (DateTime.UtcNow < deadline)
+		{
+			var log = ReadLog(path);
+			var index = log.IndexOf(needle, StringComparison.Ordinal);
+			while (index >= 0)
+			{
+				var lineStart = log.LastIndexOf('\n', index) + 1;
+				var lineEnd = log.IndexOf('\n', index);
+				var line = log[lineStart..(lineEnd < 0 ? log.Length : lineEnd)];
+				if (LineWasWrittenSince(line, since))
+				{
+					return line;
+				}
+
+				index = log.IndexOf(needle, index + needle.Length, StringComparison.Ordinal);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return null;
+	}
+
+	/// <summary>True when a log line's own <c>[yyyy-MM-dd HH:mm:ss.fff]</c> stamp is not older than the gesture.</summary>
+	private static bool LineWasWrittenSince(string line, DateTime since)
+	{
+		var open = line.IndexOf('[', StringComparison.Ordinal);
+		var close = open < 0 ? -1 : line.IndexOf(']', open + 1);
+		if (open < 0 || close < 0)
+		{
+			return false;
+		}
+
+		var stamp = line[(open + 1)..close];
+		return DateTime.TryParseExact(stamp, "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture, DateTimeStyles.None, out var written)
+			&& written >= since.AddSeconds(-2);
+	}
 
 	private static async Task<string?> WaitForLogAsync(string path, long offset, string needle, TimeSpan budget, CancellationToken cancellationToken)
 	{

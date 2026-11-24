@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -41,6 +42,17 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 		context.Read("stored before the crash", stored);
 		Require(HasItem(stored, "MemberColor", 5), "the save before the crash did not store the member's colour: " + Raw(stored));
 
+		// The native half: the world the save holds. Rock cells away from the spawn pod are read
+		// before the kill and must come back identical after the continue, or the restart landed
+		// in another world. (Cells right beside the pod are the pod's own dynamic hull, measured
+		// 2026-11-24: they read a block before the crash and air after the rebuild.)
+		var cells = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "3"), ("minOffset", "6"), ("radius", "20")).ConfigureAwait(false);
+		var goldenCells = await ReadCellsAsync(context, cells, cancellationToken).ConfigureAwait(false);
+		context.Note("cells before the crash: " + goldenCells);
+		Require(goldenCells.Length > 0, "no rock cell could be read before the crash: " + Raw(cells));
+		var censusBefore = await context.RecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
+		context.Read("object census before the crash", censusBefore);
+
 		await KillHostAsync(pid, context, cancellationToken).ConfigureAwait(false);
 
 		// The member's own watchdog is the product's answer to a silent host (the session's 15 s
@@ -62,6 +74,27 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 		// red run) there is no process to answer, and this call is where the row fails.
 		var restored = await SaveContinueCycle.ContinueAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
+
+		// Same world, or the restart lost it: the saved rock cells and the object census must come back.
+		// Chunks stream in after the continue, so the cells are polled (a not-yet-generated chunk reads
+		// zero, measured 2026-11-24) rather than demanded in the frame the world returns.
+		var cellsAfter = string.Empty;
+		for (var wait = 0; wait < 20; wait++)
+		{
+			cellsAfter = await ReadCellsAsync(context, cells, cancellationToken).ConfigureAwait(false);
+			if (string.Equals(cellsAfter, goldenCells, StringComparison.Ordinal))
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Note("cells after the restart: " + cellsAfter);
+		Require(string.Equals(cellsAfter, goldenCells, StringComparison.Ordinal),
+			"the restarted world does not hold the cells the save held: " + goldenCells + " then " + cellsAfter);
+		var censusAfter = await context.RecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
+		context.Read("object census after the restart", censusAfter);
 
 		// The continue restores the world with no session (the host process is new). Open the
 		// session over the running world through the driver's own transport sequence — the Home
@@ -215,10 +248,40 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 
 	private static bool IsTrue(JsonElement? state, string property) => state is { } value && IsTrue(value, property);
 
+	/// <summary>The block value at each of the cells the scan named, host side, as one comparable string.</summary>
+	private static async Task<string> ReadCellsAsync(CaseContext context, JsonElement? scan, CancellationToken cancellationToken)
+	{
+		var cells = scan is { } reading && reading.TryGetProperty("cells", out var list) ? list : default;
+		if (cells.ValueKind != JsonValueKind.Array)
+		{
+			return string.Empty;
+		}
+
+		var text = new StringBuilder();
+		foreach (var cell in cells.EnumerateArray())
+		{
+			var at = await context.RecipeAsync(
+				"block-read-at",
+				cancellationToken,
+				("x", Text(cell, "x")),
+				("y", Text(cell, "y"))).ConfigureAwait(false);
+			if (text.Length > 0)
+			{
+				text.Append(';');
+			}
+
+			text.Append(Text(cell, "x")).Append(',').Append(Text(cell, "y")).Append('=').Append(Text(at, "block"));
+		}
+
+		return text.ToString();
+	}
+
 	private static string Text(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty(property, out var value)
 			? value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString()
 			: string.Empty;
+
+	private static string Text(JsonElement element, string property) => Text((JsonElement?)element, property);
 
 	private static bool Boolean(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element

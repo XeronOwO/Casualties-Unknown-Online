@@ -8,21 +8,25 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// nine seconds in — a fixed window either refuses rows the world is about to have or
 /// parks a genuinely short cut forever.
 ///
-/// The rule is the SHAPE of the fill, not a number: hold while the count grows, release
-/// once it has stood still for <see cref="SettleSeconds"/>, and never hold past
-/// <see cref="CeilingSeconds"/> — a set that flatlines must be reported, not awaited.
+/// The rule is the COUNT, not the shape: the restore holds while the live set is short of the
+/// archive's rows and releases at <see cref="CeilingSeconds"/> — a set that flatlines must be
+/// reported, not awaited, and a short set is still worth waiting for while the layer fills in.
 /// </summary>
 internal static class GeyserFillWait
 {
-	/// <summary>How long the live count may stand still before the set counts as complete.</summary>
-	internal const double SettleSeconds = 3;
-
 	/// <summary>The longest a still-growing set may keep the restore open.</summary>
 	internal const double CeilingSeconds = 30;
 
-	/// <summary>True while the restore should wait for more geysers to appear.</summary>
+	/// <summary>
+	/// True while the restore should wait for more geysers to appear.
+	///
+	/// A set that stands still SHORT of the archive keeps the restore open until the ceiling:
+	/// measured 2026-11-25 in a long acceptance run, the live count paused for three seconds
+	/// between chunk bursts with 96 of 115 objects in place, the old rule read that pause as
+	/// completion, and the restore then refused 111 rows — the run's world was complete and the
+	/// restore was not. A short set is bounded by <see cref="CeilingSeconds"/> instead, and what
+	/// it could not take is named in the audit line either way.
+	/// </summary>
 	internal static bool Holds(int live, int saved, double stableSeconds, double elapsedSeconds) =>
-		live < saved
-		&& stableSeconds < SettleSeconds
-		&& elapsedSeconds < CeilingSeconds;
+		live < saved && elapsedSeconds < CeilingSeconds;
 }

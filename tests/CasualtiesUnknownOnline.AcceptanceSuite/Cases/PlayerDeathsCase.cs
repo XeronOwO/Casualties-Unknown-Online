@@ -43,23 +43,20 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 
 		// Row 1, first death.
 		await SetMemberAliveAsync(context, alive: false, cancellationToken).ConfigureAwait(false);
+		var deadBody = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		context.Read("the member's own body after the fatal brain damage", deadBody);
+		Require(!Boolean(deadBody, "alive"), "the game's own body is still alive, so no death happened to count: " + Raw(deadBody));
 		var first = await ConsoleAsync(context, context.Session.MemberUrl, "/deaths", cancellationToken).ConfigureAwait(false);
 		Require(ShowsDeaths(first, 1), "the member's first death was not counted: " + first);
 
-		// Row 1, the revive itself is not a death.
-		await SetMemberAliveAsync(context, alive: true, cancellationToken).ConfigureAwait(false);
-		var revived = await ConsoleAsync(context, context.Session.MemberUrl, "/deaths", cancellationToken).ConfigureAwait(false);
-		Require(ShowsDeaths(revived, 1), "a revive counted as another death: " + revived);
-
-		// Row 1, second death.
-		await SetMemberAliveAsync(context, alive: false, cancellationToken).ConfigureAwait(false);
-		var second = await ConsoleAsync(context, context.Session.MemberUrl, "/deaths", cancellationToken).ConfigureAwait(false);
-		Require(ShowsDeaths(second, 2), "the member's second death was not counted: " + second);
+		// This game has no revive: a body killed by brain damage stays dead, so the player's
+		// second death is a second character, not a second death of this one. The count is read
+		// once here and then carried through the cut below.
 
 		// Row 1's other half: the host reads the same count from the member's own report. The report is
 		// throttled(1 Hz), so the host's answer is polled to the count rather than demanded instantly.
-		var hostView = await HostDeathsAsync(context, memberId, 2, cancellationToken).ConfigureAwait(false);
-		Require(ShowsDeaths(hostView, 2), "the host did not read the member's two deaths from its report: " + hostView);
+		var hostView = await HostDeathsAsync(context, memberId, 1, cancellationToken).ConfigureAwait(false);
+		Require(ShowsDeaths(hostView, 1), "the host did not read the member's death from its report: " + hostView);
 
 		// Row 2: the count is a fact of the character, so a cut carries it.
 		var logOffset = LogLength(context.HostLogPath);
@@ -105,10 +102,10 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 
 		// The restore lands on the restored body's first frames after the join instruction, so the member's
 		// own answer is polled to the count instead of read in the same instant the join returns.
-		var afterContinue = await MemberDeathsAsync(context, 2, cancellationToken).ConfigureAwait(false);
-		Require(ShowsDeaths(afterContinue, 2), "the death count did not survive the save/continue: " + afterContinue);
-		var hostAfterContinue = await HostDeathsAsync(context, rejoinedMemberId, 2, cancellationToken).ConfigureAwait(false);
-		Require(ShowsDeaths(hostAfterContinue, 2), "the host read a different count after the continue: " + hostAfterContinue);
+		var afterContinue = await MemberDeathsAsync(context, 1, cancellationToken).ConfigureAwait(false);
+		Require(ShowsDeaths(afterContinue, 1), "the death count did not survive the save/continue: " + afterContinue);
+		var hostAfterContinue = await HostDeathsAsync(context, rejoinedMemberId, 1, cancellationToken).ConfigureAwait(false);
+		Require(ShowsDeaths(hostAfterContinue, 1), "the host read a different count after the continue: " + hostAfterContinue);
 	}
 
 	/// <summary>The member's own answer, polled to <paramref name="deaths"/> (the restore applies a few frames after the join).</summary>
@@ -173,9 +170,9 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 	}
 
 	/// <summary>
-	/// The answer carries the count as a standalone number in the reader's own language (the catalogue
-	/// renders "你在本局中已经死亡 {0} 次。" or "You have died {0} time(s) in this run."), so the number is
-	/// the signal and the surrounding words are not asserted.
+	/// The answer carries the count as a standalone number in the reader's own language (the catalogue's
+	/// death sentence for this run, whatever language it renders in), so the number is the signal and the
+	/// surrounding words are not asserted.
 	/// </summary>
 	private static bool ShowsDeaths(string line, int count) =>
 		Regex.IsMatch(line, "(?<![0-9])" + count.ToString(CultureInfo.InvariantCulture) + "(?![0-9])");

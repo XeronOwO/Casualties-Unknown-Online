@@ -25,7 +25,13 @@ namespace CasualtiesUnknownOnline.Acceptance;
 /// </summary>
 internal static class SoundPlayRecorder
 {
-	private const int Capacity = 256;
+	/// <summary>
+	/// 4096 entries, not 256: the newest last and the oldest fall off the front, and a busy batch client
+	/// plays thousands of sounds between two driver round trips (measured 2026-11-25: the member's raw
+	/// counter passed 37 000 in one run, and the clip a row waited for was pushed out of a 256-entry ring
+	/// before the next read).
+	/// </summary>
+	private const int Capacity = 4096;
 
 	/// <summary>Newest last. A plain list with a cap: 256 entries is small and the oldest fall off the front.</summary>
 	private static readonly List<Entry> Entries = [];

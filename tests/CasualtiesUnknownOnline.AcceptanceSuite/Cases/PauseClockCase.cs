@@ -18,6 +18,7 @@ internal sealed class PauseClockCase : AcceptanceCase
 		// The game refuses a pause while its world is still generating, a cutscene runs, or the death/self-destruct
 		// screens are up (`PauseHandler.disallowPause`, PauseHandler.cs:22-28) — a player presses the key once the world is
 		// theirs, so the row waits for that moment instead of pressing into a refusal and calling it a product fault.
+		await CloseTheConsoleAsync(context, cancellationToken).ConfigureAwait(false);
 		var ready = await WaitForPauseGateAsync(context, cancellationToken).ConfigureAwait(false);
 		Require(ready is not null, "the game's pause gates never opened: " + Raw(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false)));
 
@@ -86,7 +87,10 @@ internal sealed class PauseClockCase : AcceptanceCase
 
 	private static async Task<double?> WaitForScaleAsync(CaseContext context, double expected, CancellationToken cancellationToken)
 	{
-		for (var attempt = 0; attempt < 10; attempt += 1)
+		// The game ramps its own pause in (`PauseHandler.pauseProgress`) before timeScale reaches 0, and a client whose
+		// world is still streaming can take seconds; the row waits for the number instead of a fixed press window
+		// (measured 2026-11-25: the state read after a 3 s wait already said paused, the scale arrived after it).
+		for (var attempt = 0; attempt < 30; attempt += 1)
 		{
 			var read = await context.RecipeAsync("time-scale-read", cancellationToken).ConfigureAwait(false);
 			var scale = Number(read, "timeScale");
@@ -122,6 +126,28 @@ internal sealed class PauseClockCase : AcceptanceCase
 			JsonValueKind.String when double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) => parsed,
 			_ => null,
 		};
+	}
+
+	/// <summary>
+	/// The game's own console owns the keyboard while it is open (`PlayerCamera.HandleInput` returns early on it), so a
+	/// pause pressed with the console up is swallowed. A row before this one can leave it up (measured 2026-11-25: the
+	/// batch read `handler:true` and nothing else, while `pause-7` alone passed); the player closes it with its own key.
+	/// </summary>
+	private static async Task CloseTheConsoleAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		for (var attempt = 0; attempt < 10; attempt += 1)
+		{
+			var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+			if (!Boolean(clock, "console"))
+			{
+				return;
+			}
+
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "console"), ("action", "down")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "console"), ("action", "up")).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	private static bool Boolean(JsonElement? reading, string property) =>

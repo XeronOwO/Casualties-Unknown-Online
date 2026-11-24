@@ -46,12 +46,41 @@ internal sealed class WorldCensusCase : AcceptanceCase
 			+ "; host groups " + Trim(Groups(host)) + ", member groups " + Trim(Groups(member)));
 	}
 
-	private static string Groups(JsonElement? reading) =>
-		reading is { ValueKind: JsonValueKind.Object } element
-		&& element.TryGetProperty("groups", out var value)
-		&& value.ValueKind == JsonValueKind.String
-			? value.GetString() ?? string.Empty
-			: string.Empty;
+	private static string Groups(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("groups", out var value))
+		{
+			return string.Empty;
+		}
+
+		if (value.ValueKind == JsonValueKind.String)
+		{
+			return value.GetString() ?? string.Empty;
+		}
+
+		if (value.ValueKind != JsonValueKind.Array)
+		{
+			return string.Empty;
+		}
+
+		// The census reports groups as an array of { id, count }: the earlier string-only reader returned an
+		// empty string for both clients, so this half of the comparison never ran (measured 2026-11-25).
+		var text = new System.Text.StringBuilder();
+		foreach (var group in value.EnumerateArray())
+		{
+			if (text.Length > 0)
+			{
+				text.Append(';');
+			}
+
+			text.Append(group.TryGetProperty("id", out var id) ? id.GetString() : "?")
+				.Append(':')
+				.Append(group.TryGetProperty("count", out var count) && count.TryGetInt32(out var number) ? number : 0);
+		}
+
+		return text.ToString();
+	}
 
 	private static string Trim(string text) => text.Length <= 300 ? text : text[..300] + "…";
 

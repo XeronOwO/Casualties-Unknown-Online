@@ -75,6 +75,16 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 		Require(arrivalId != warmId, "the two gives named the same item instance: " + arrivalId);
 		var arrivalWindow = await WaitForWindowAsync(context, hostId, arrivalId, true, cancellationToken).ConfigureAwait(false);
 		context.Read("window after the arriving give", arrivalWindow);
+
+		// The copy must agree with the owner's own body, not with our expectation: the host's
+		// slots are the native source and the member's rendered list must hold as many items.
+		var hostAfterArrival = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		context.Read("host's own slots after the arrival", hostAfterArrival);
+		var hostFilled = Integer(hostAfterArrival, "filled");
+		Require(hostFilled > 0, "the host's own body lists no filled slot after the arrival: " + Raw(hostAfterArrival));
+		Require(CountIds(Text(arrivalWindow, "items")) == hostFilled,
+			"the member's copy draws " + CountIds(Text(arrivalWindow, "items")).ToString(CultureInfo.InvariantCulture)
+			+ " item(s) while the host's own body holds " + hostFilled.ToString(CultureInfo.InvariantCulture) + ": " + Raw(arrivalWindow));
 		var popAfter = PopCount(await context.Session.LogTailAsync(context.Session.MemberUrl, "[SlotPop] popped", 20, cancellationToken).ConfigureAwait(false));
 		context.Note("slot-pop lines before the arrival: " + popBefore.ToString(CultureInfo.InvariantCulture));
 		context.Note("slot-pop lines after the arrival: " + popAfter.ToString(CultureInfo.InvariantCulture));
@@ -94,6 +104,11 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 		Require(IsTrue(dropped, "ok") && IsTrue(dropped, "dropped"), "the host could not drop item " + arrivalId + ": " + Raw(dropped));
 		var afterDrop = await WaitForWindowAsync(context, hostId, arrivalId, false, cancellationToken).ConfigureAwait(false);
 		context.Read("window after the host dropped the item", afterDrop);
+		var hostAfterDrop = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		context.Read("host's own slots after the drop", hostAfterDrop);
+		Require(CountIds(Text(afterDrop, "items")) == Integer(hostAfterDrop, "filled"),
+			"after the drop the member's copy draws " + CountIds(Text(afterDrop, "items")).ToString(CultureInfo.InvariantCulture)
+			+ " item(s) while the host's own body holds " + Integer(hostAfterDrop, "filled").ToString(CultureInfo.InvariantCulture) + ": " + Raw(afterDrop));
 
 		var closed = await context.MemberRecipeAsync("remote-view-items", cancellationToken, ("mode", "close"), ("target", hostId), ("name", "")).ConfigureAwait(false);
 		Require(IsTrue(closed, "ok"), "the member could not close the backpack view: " + Raw(closed));
@@ -149,6 +164,12 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 	}
 
 	private static int PopCount(JsonElement? tail) => ReadInt(tail, "count");
+
+	/// <summary>How many item ids a rendered list carries: the pipe-separated id list the view reports.</summary>
+	private static int CountIds(string items) =>
+		items.Split('|', StringSplitOptions.RemoveEmptyEntries).Count(id => id.Trim().Length > 0);
+
+	private static int Integer(JsonElement? reading, string property) => ReadInt(reading, property);
 
 	private static string Text(JsonElement? reading, string property) =>
 		reading is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty(property, out var value)

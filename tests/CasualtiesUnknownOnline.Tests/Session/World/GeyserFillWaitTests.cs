@@ -21,9 +21,21 @@ public sealed class GeyserFillWaitTests
 	public void Holds_ThroughAPauseThatIsShortOfTheArchive() =>
 		Assert.True(GeyserFillWait.Holds(live: 96, saved: 115, stableSeconds: 3.5, elapsedSeconds: 8));
 
+	// The ceiling scales with the archive's own size (a 115-row archive needs longer than a 20-row
+	// one), so the release point is asked of the rule rather than written here twice.
 	[Fact]
 	public void Releases_AtTheCeilingWhileTheSetStillGrows() =>
-		Assert.False(GeyserFillWait.Holds(live: 94, saved: 114, stableSeconds: 0.1, elapsedSeconds: 31));
+		Assert.False(GeyserFillWait.Holds(
+			live: 94,
+			saved: 114,
+			stableSeconds: 0.1,
+			elapsedSeconds: GeyserFillWait.CeilingFor(114) + 1));
+
+	// The 2026-11-25 reading: 115 archive rows, the live set two thirds full at 30 s. The old flat
+	// 30 s ceiling cut the restore off there; the scaled one keeps it waiting.
+	[Fact]
+	public void CeilingFor_GrowsWithTheArchive() =>
+		Assert.True(GeyserFillWait.CeilingFor(115) > 30);
 
 	[Fact]
 	public void DoesNotHold_ACompleteSet() =>

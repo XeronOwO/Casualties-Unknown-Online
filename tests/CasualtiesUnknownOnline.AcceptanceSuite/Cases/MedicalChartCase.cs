@@ -126,8 +126,11 @@ internal sealed class MedicalChartCase : AcceptanceCase
 		Require(DrawnBody(panel) != "none", "the chart holds no body: " + Raw(panel));
 		// The copy carries the member's own wound. The game's own chart draws the skin of the limb the
 		// damage entry hit, so the chart's first limb must read the member's wounded skin value; a chart
-		// still pointed at the viewer would read an untouched 100 here.
-		var memberSkin = Number(seeded, "skinHealth");
+		// still pointed at the viewer would read an untouched 100 here. The game's chart clamps the skin
+		// it draws at zero (a limb hurt past zero reads a hair above 0 on screen), so the member's own
+		// negative reading is clamped the same way before the two are compared — measured 2026-11-25:
+		// the member's limb read -19.96 and the panel read 0.008.
+		var memberSkin = Math.Max(0, Number(seeded, "skinHealth"));
 		Require(Math.Abs(Number(panel, "skin0") - memberSkin) <= 0.5,
 			"the chart shows limb 0 at " + Raw(panel) + " skin, but the member's own limb reads " + memberSkin.ToString("0.###", CultureInfo.InvariantCulture));
 		Require(Number(panel, "limbRows") == Number(memberBody, "localBody", "limbs"),

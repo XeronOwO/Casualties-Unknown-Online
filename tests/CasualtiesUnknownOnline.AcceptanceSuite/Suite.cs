@@ -891,7 +891,19 @@ internal abstract class AcceptanceCase
 	/// before it. A kit is granted once per character, so a run an earlier row already populated cannot answer it
 	/// (measured 2026-11-22: `starting-supplies` passes alone and fails behind `world-fingerprint`).
 	/// </summary>
-	public virtual bool NeedsFreshRun => false;
+	public virtual bool NeedsFreshRun => RowsThatStartFresh.Contains(Name);
+
+	/// <summary>
+	/// Rows that read where the player stands: they need the run's own start, not whatever spot the row
+	/// before them left the body on. Measured 2026-11-24: `world-fingerprint` found breakable cells at
+	/// x 1..3 with the body at -21,482, and `clone-probe` lost the host's copy mid-walk.
+	/// </summary>
+	private static readonly HashSet<string> RowsThatStartFresh = new(StringComparer.Ordinal)
+	{
+		"world-fingerprint",
+		"world-fingerprint-after-mutation",
+		"clone-probe",
+	};
 
 	/// <summary>
 	/// True when the row leaves the run itself changed — it continued a save, restarted the host, ended

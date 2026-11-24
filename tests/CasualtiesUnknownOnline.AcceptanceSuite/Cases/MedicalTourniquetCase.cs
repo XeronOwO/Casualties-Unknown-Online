@@ -114,13 +114,16 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 			Require(!Boolean(row, "blocked"), "a limb outside the tourniquet's chain is blocked: " + row.GetRawText());
 		}
 
-		// What the player notices: the blood stops leaving. The body's own volume is read on the member's client
-		// before and after three seconds with the tourniquet on; the chain being blocked must show up as a volume
-		// that is no longer falling (the game keeps bleeding wounded limbs otherwise).
+		// What the player notices: the blood stops leaving. The limb's own `bleed` value is not the witness
+		// (the wound keeps its number while the drain is off — measured 2026-11-25), and the body's volume is
+		// not clean on its own either, because the game keeps bleeding every other wounded limb (a batch leaves
+		// several: 99.915 -> 99.747 over three seconds with this limb blocked). So the row compares the body's
+		// own loss with the tourniquet on against the same loss once it is off: the chain being blocked has to
+		// show up as a body that loses measurably less while the tourniquet is worn.
 		var volumeBefore = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
 		await Task.Delay(TimeSpan.FromMilliseconds(3000), cancellationToken).ConfigureAwait(false);
 		var volumeAfter = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
-		Require(volumeAfter >= volumeBefore - 0.05, $"the body kept losing blood with the tourniquet on: {volumeBefore:0.###} -> {volumeAfter:0.###}");
+		var lossOn = volumeBefore - volumeAfter;
 
 		// And the way back: the wound view's own removal button takes the tourniquet off, and the blocked set must
 		// open again — a player who removes it gets the bleeding limb back.
@@ -131,6 +134,15 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 		var reopenedRow = LimbRow(reopened, limb);
 		Require(reopenedRow.ValueKind == JsonValueKind.Object, "the treated limb is missing after the removal: " + Raw(reopened));
 		Require(!Boolean(reopenedRow, "blocked"), "the limb is still blocked after the tourniquet was taken off: " + reopenedRow.GetRawText());
+
+		var volumeOff = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
+		await Task.Delay(TimeSpan.FromMilliseconds(3000), cancellationToken).ConfigureAwait(false);
+		var volumeOffAfter = Number(await context.MemberRecipeAsync("body-effects", cancellationToken).ConfigureAwait(false), "bloodVolume");
+		var lossOff = volumeOff - volumeOffAfter;
+		context.Note($"blood loss: {lossOn:0.###} with the tourniquet, {lossOff:0.###} without it");
+
+		Require(lossOff < 0.02 || lossOn <= (lossOff * 0.75) + 0.02,
+			$"the body lost as much blood with the tourniquet on as off it: {lossOn:0.###} on, {lossOff:0.###} off");
 	}
 
 	/// <summary>Picks a treatable limb whose game chain reaches beyond itself, so the row proves the chain and not the item's own limb.</summary>
@@ -257,8 +269,36 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 		return [.. array.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.Number ? item.GetInt32() : -1).Where(index => index >= 0)];
 	}
 
-	private static double Number(JsonElement? reading, string property) =>
-		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.Number
+	/// <summary>
+	/// The limb's own bleed channel out of a <c>limb-bleeding</c> answer, which lists every limb in a
+	/// <c>limbs</c> array rather than answering for the one asked about.
+	/// </summary>
+	private static double BleedOf(JsonElement? reading, int limb)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } value
+			|| !value.TryGetProperty("limbs", out var limbs)
+			|| limbs.ValueKind != JsonValueKind.Array)
+		{
+			return double.NaN;
+		}
+
+		foreach (var row in limbs.EnumerateArray())
+		{
+			if (row.ValueKind == JsonValueKind.Object
+				&& row.TryGetProperty("i", out var i)
+				&& i.ValueKind == JsonValueKind.Number
+				&& i.GetInt32() == limb
+				&& row.TryGetProperty("bleed", out var bleed)
+				&& bleed.ValueKind == JsonValueKind.Number)
+			{
+				return bleed.GetDouble();
+			}
+		}
+
+		return double.NaN;
+	}
+
+	private static double Number(JsonElement? reading, string property) =>		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.Number
 			? propertyValue.GetDouble()
 			: double.NaN;
 

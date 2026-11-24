@@ -254,6 +254,45 @@ internal sealed class SessionDriver(Options options)
 		return "a fresh run was started for this row: " + started + "; " + joined;
 	}
 
+	/// <summary>
+	/// A row that killed or wounded a body leaves the next row reading a corpse or a sleeper: the runner
+	/// puts both bodies back to a whole, awake state through the game's own fields before every row.
+	/// Measured 2026-11-24: a batch run failed eleven rows that pass alone, and the rows before them had
+	/// killed the member's brain or left it unconscious.
+	/// </summary>
+	public async Task<string> EnsureBodiesSaneAsync(CancellationToken cancellationToken)
+	{
+		var notes = new List<string>(2);
+		foreach (var (role, url) in new[] { ("host", _options.HostUrl), ("member", _options.MemberUrl) })
+		{
+			try
+			{
+				_ = await RecipeAtAsync(url, "native-heal", args: null, cancellationToken).ConfigureAwait(false);
+				var forced = await RecipeAtAsync(url, "body-force", new Dictionary<string, string>(StringComparer.Ordinal)
+				{
+					["sleep"] = "-1",
+					["consciousness"] = "100",
+					["energy"] = "-1",
+					["brainHealth"] = "100",
+					["badSleepAmount"] = "-1",
+					["idleTime"] = "-1",
+					["intelligence"] = "-1",
+					["heartRate"] = "-1",
+					["bloodPressure"] = "-1",
+					["bloodOxygen"] = "-1",
+					["strength"] = "-1",
+				}, cancellationToken).ConfigureAwait(false);
+				notes.Add(role + ":" + (forced is { } answer && IsTrue(answer, "alive") ? "whole" : "still not alive"));
+			}
+			catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+			{
+				notes.Add(role + ": could not be made whole: " + exception.Message);
+			}
+		}
+
+		return "both bodies were put back to a whole state: " + string.Join("; ", notes);
+	}
+
 	/// <summary>Joins the member to the host's IP session when it is not in the world.</summary>
 	public Task<string> EnsureMemberAsync(CancellationToken cancellationToken, TimeSpan? budget = null) =>
 		MeasureSetupAsync(() => JoinMemberAsync(cancellationToken, allowRelaunch: true, budget));

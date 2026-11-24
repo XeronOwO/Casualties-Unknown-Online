@@ -138,6 +138,7 @@ internal static partial class Program
 		Console.WriteLine($"member\t{memberNote}");
 		Console.WriteLine($"setup\t{sharedSetup.Elapsed.TotalSeconds:F1}s (shared pair)");
 		WriteProgress(outputDirectory, $"suite\tstart\t{selected.Count} case(s)");
+		var runChangedByTheLastRow = false;
 		foreach (var acceptanceCase in selected)
 		{
 			// The member's id is the HOST's view of it, and that view exists only once the handshake
@@ -153,7 +154,10 @@ internal static partial class Program
 			}
 
 			WriteProgress(outputDirectory, $"case\tstart\t{acceptanceCase.Name}");
-			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline).ConfigureAwait(false));
+			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline, runChangedByTheLastRow).ConfigureAwait(false));
+			// A row that continued a save, restarted the host or changed the run leaves a world the next
+			// row did not start in: the runner starts a fresh run before that next row.
+			runChangedByTheLastRow = acceptanceCase.LeavesTheRunChanged;
 			WriteProgress(outputDirectory, $"case\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{acceptanceCase.Name}\t{results[^1].TotalMs / 1000:F1}s");
 			Console.WriteLine($"{acceptanceCase.Name}\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{results[^1].Cost}\tsetup {results[^1].SetupMs / 1000:F1}s\tcase {results[^1].CaseMs / 1000:F1}s\ttotal {results[^1].TotalMs / 1000:F1}s\t{results[^1].Note}");
 			if (string.Equals(Environment.GetEnvironmentVariable("CUO_SUITE_PROBE"), "1", StringComparison.Ordinal))
@@ -266,7 +270,7 @@ internal static partial class Program
 		return end > start ? line[start..end] : "-";
 	}
 
-	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory, Timeline timeline)
+	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory, Timeline timeline, bool runChangedByTheLastRow)
 	{
 		var startedUtc = DateTimeOffset.UtcNow;
 		timeline.Begin(acceptanceCase.Name);
@@ -289,9 +293,10 @@ internal static partial class Program
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
 			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
-			if (acceptanceCase.NeedsFreshRun)
+			if (acceptanceCase.NeedsFreshRun || runChangedByTheLastRow)
 			{
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
+				runChangedByTheLastRow = false;
 			}
 
 			// The member's transport id is not stable across a rejoin, and every probe names the member by it: take the
@@ -887,6 +892,33 @@ internal abstract class AcceptanceCase
 	/// (measured 2026-11-22: `starting-supplies` passes alone and fails behind `world-fingerprint`).
 	/// </summary>
 	public virtual bool NeedsFreshRun => false;
+
+	/// <summary>
+	/// True when the row leaves the run itself changed — it continued a save, restarted the host, ended
+	/// the run or descended a layer — so the world the next row finds is not the one it would start in.
+	/// The runner starts a fresh run before that next row (measured 2026-11-24: eleven rows that pass
+	/// alone failed in one batch, and the rows before them had continued or killed the run).
+	/// </summary>
+	public virtual bool LeavesTheRunChanged => RunChangingRows.Contains(Name);
+
+	/// <summary>
+	/// The rows that continue a save, restart the host, end the run or descend a layer. Kept by name in
+	/// one place so the list is auditable; a row overrides <see cref="LeavesTheRunChanged"/> when it
+	/// changes the run for a different reason.
+	/// </summary>
+	private static readonly HashSet<string> RunChangingRows = new(StringComparer.Ordinal)
+	{
+		"save-continue",
+		"save-write-interrupted",
+		"save-continue-reentry",
+		"player-deaths",
+		"host-after-continue",
+		"host-crash-restart",
+		"two-member-continue",
+		"run-end",
+		"last-layer-gate",
+		"layer-panel",
+	};
 
 	/// <summary>
 	/// What the case costs the suite. <see cref="CaseCost.InRun"/> cases verify inside one world and

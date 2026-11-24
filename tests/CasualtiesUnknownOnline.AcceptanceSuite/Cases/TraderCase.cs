@@ -64,7 +64,17 @@ internal sealed class TraderCase : AcceptanceCase
 		var bought = await context.RecipeAsync("trade-drive", cancellationToken, ("mode", "buy"), ("index", target.ToString(CultureInfo.InvariantCulture)), ("type", "")).ConfigureAwait(false);
 		context.Read("purchase", bought);
 		Require(Boolean(bought, "bought"), $"the trader refused a purchase its own credit covered (credit {creditAfterGive:0}, price {targetPrice:0}): {Raw(bought)}");
-		Require(Number(bought, "afterCount") == Number(bought, "beforeCount") + 1, $"the purchase did not put one item in the bag: {Number(bought, "beforeCount"):0} -> {Number(bought, "afterCount"):0}");
+		// The bag fills on the game's own next tick: poll it instead of reading the purchase reply once
+		// (measured 2026-11-25: a run read 2 -> 2 straight after a purchase that did land).
+		var bagAfter = Number(bought, "afterCount");
+		for (var poll = 0; poll < 5 && bagAfter != Number(bought, "beforeCount") + 1; poll++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+			var bag = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+			bagAfter = Number(bag, "filled");
+		}
+
+		Require(bagAfter == Number(bought, "beforeCount") + 1, $"the purchase did not put one item in the bag: {Number(bought, "beforeCount"):0} -> {bagAfter:0}: " + Raw(bought));
 		Require(Number(bought, "stockAfter") == stockBefore - 1, $"the purchase did not take the entry out of the trader's stock: {stockBefore:0} -> {Number(bought, "stockAfter"):0}");
 		// `valueGiven` on the reply is the credit the trade spent from, and `valueBefore` is what it was before the
 		// purchase; the difference must be exactly the price the trader's own ItemPrice named.

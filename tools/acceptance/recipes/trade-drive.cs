@@ -155,6 +155,11 @@
 			var candidate = worldItems[i] as Item;
 			if (candidate == null || candidate.id != type) { continue; }
 			if (idOf(candidate) == 0UL) { continue; }
+			// The game refuses a container that still holds something (TraderScript.GiveItem reads
+			// Container.GetHoldingWeight). Skip those here: the member's own bag keeps its contents between
+			// rows, and the bag mode=create left on the ground is empty (measured 2026-11-25).
+			var contents = candidate.GetComponent<Container>();
+			if (contents != null && contents.GetHoldingWeight() > 0f) { continue; }
 			var candidateDistance = UnityEngine.Vector2.Distance(candidate.transform.position, body.transform.position);
 			if (candidateDistance > 8f) { continue; }
 			if (given == null || candidateDistance < givenDistance) { given = candidate; givenDistance = candidateDistance; }

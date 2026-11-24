@@ -87,16 +87,20 @@ internal sealed class RunSettingsCase : AcceptanceCase
 		CancellationToken cancellationToken)
 	{
 		const int wounded = 200;
+		// A row before this one may have taken the member's first limb: wound the first limb the member
+		// still has, and read that same limb (measured 2026-11-25: behind `medical-cpr` the row healed
+		// nothing because limb 0 was gone).
+		var limb = await FirstWholeLimbAsync(context, cancellationToken).ConfigureAwait(false);
 		await SetAsync(context, "healingrate", "0.1", cancellationToken).ConfigureAwait(false);
-		await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", "0"), ("force", wounded.ToString(CultureInfo.InvariantCulture)), ("infection", "0")).ConfigureAwait(false);
-		var skin = await SkinAsync(context, cancellationToken).ConfigureAwait(false);
+		await context.MemberRecipeAsync("wound-seed", cancellationToken, ("limb", limb.ToString(CultureInfo.InvariantCulture)), ("force", wounded.ToString(CultureInfo.InvariantCulture)), ("infection", "0")).ConfigureAwait(false);
+		var skin = await SkinAsync(context, limb, cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
-		var slowAfter = await SkinAsync(context, cancellationToken).ConfigureAwait(false);
+		var slowAfter = await SkinAsync(context, limb, cancellationToken).ConfigureAwait(false);
 
 		await SetAsync(context, "healingrate", "20", cancellationToken).ConfigureAwait(false);
-		var high = await SkinAsync(context, cancellationToken).ConfigureAwait(false);
+		var high = await SkinAsync(context, limb, cancellationToken).ConfigureAwait(false);
 		await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
-		var fastAfter = await SkinAsync(context, cancellationToken).ConfigureAwait(false);
+		var fastAfter = await SkinAsync(context, limb, cancellationToken).ConfigureAwait(false);
 
 		var presetHeal = presetValues.TryGetValue("healingrate", out var value) ? value : "1";
 		await SetAsync(context, "healingrate", presetHeal, cancellationToken).ConfigureAwait(false);
@@ -115,14 +119,39 @@ internal sealed class RunSettingsCase : AcceptanceCase
 		Require(written is { ValueKind: JsonValueKind.Object } element && element.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True, $"the run setting {key} was not written: " + (written?.GetRawText() ?? "null"));
 	}
 
-	private static async Task<double> SkinAsync(CaseContext context, CancellationToken cancellationToken)
+	private static async Task<double> SkinAsync(CaseContext context, int limb, CancellationToken cancellationToken)
 	{
-		var read = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", "0"), ("target", context.MemberId)).ConfigureAwait(false);
+		var read = await context.MemberRecipeAsync("limb-read", cancellationToken, ("source", "local"), ("limb", limb.ToString(CultureInfo.InvariantCulture)), ("target", context.MemberId)).ConfigureAwait(false);
 		return read is { ValueKind: JsonValueKind.Object } element
 			&& element.TryGetProperty("skinHealth", out var value)
 			&& value.TryGetDouble(out var skin)
 				? skin
 				: 0;
+	}
+
+	/// <summary>
+	/// The index of the member's first limb that is still whole: a row before this one may have taken a
+	/// limb, and a wound on a stump never heals (measured 2026-11-25 behind `medical-cpr`).
+	/// </summary>
+	private static async Task<int> FirstWholeLimbAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var body = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		if (body is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("localBody", out var local)
+			&& local.TryGetProperty("limbs", out var limbs)
+			&& limbs.ValueKind == JsonValueKind.Array)
+		{
+			foreach (var limb in limbs.EnumerateArray())
+			{
+				if (limb.TryGetProperty("dismembered", out var taken) && taken.ValueKind == JsonValueKind.False
+					&& limb.TryGetProperty("index", out var index) && index.TryGetInt32(out var value))
+				{
+					return value;
+				}
+			}
+		}
+
+		return 0;
 	}
 
 	private static Dictionary<string, string> Split(string text)

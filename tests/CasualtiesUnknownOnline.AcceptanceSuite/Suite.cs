@@ -293,7 +293,7 @@ internal static partial class Program
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
 			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
-			if (acceptanceCase.NeedsFreshRun || runChangedByTheLastRow)
+			if (acceptanceCase.NeedsFreshRun || runChangedByTheLastRow || acceptanceCase.Cost == CaseCost.NewWorld)
 			{
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
 				runChangedByTheLastRow = false;

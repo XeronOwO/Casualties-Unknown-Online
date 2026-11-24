@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
@@ -66,7 +67,7 @@ internal sealed class WorldCensusCase : AcceptanceCase
 
 		// The census reports groups as an array of { id, count }: the earlier string-only reader returned an
 		// empty string for both clients, so this half of the comparison never ran (measured 2026-11-25).
-		var text = new System.Text.StringBuilder();
+		var text = new StringBuilder();
 		foreach (var group in value.EnumerateArray())
 		{
 			if (text.Length > 0)

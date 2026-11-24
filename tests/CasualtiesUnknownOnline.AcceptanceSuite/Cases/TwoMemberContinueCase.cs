@@ -48,8 +48,17 @@ internal sealed class TwoMemberContinueCase : AcceptanceCase
 		await ProvideMarkerAsync(context, context.Session.MemberUrl, cancellationToken).ConfigureAwait(false);
 		await ProvideMarkerAsync(context, context.Session.AltUrl, cancellationToken).ConfigureAwait(false);
 
+		// Each player's own item is coloured with that player's own swatch, so after the continue the
+		// row can say whose record each body came back from: the host's body from the game's save,
+		// each member from the member's own record (a member carrying another player's swatch means the
+		// wrong record was handed over).
+		await ColourOwnItemAsync(context, context.Session.HostUrl, 3, cancellationToken).ConfigureAwait(false);
+		await ColourOwnItemAsync(context, context.Session.MemberUrl, 5, cancellationToken).ConfigureAwait(false);
+		await ColourOwnItemAsync(context, context.Session.AltUrl, 7, cancellationToken).ConfigureAwait(false);
 		var beforeMember = await ItemsAsync(context, context.Session.MemberUrl, cancellationToken).ConfigureAwait(false);
 		var beforeSecond = await ItemsAsync(context, context.Session.AltUrl, cancellationToken).ConfigureAwait(false);
+		var beforeHost = await ItemAtAsync(context, context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
+		context.Read("host's own items before the save", beforeHost);
 		context.Read("items-before-member", beforeMember);
 		context.Read("items-before-second", beforeSecond);
 		Require(Text(beforeMember, "ids").Contains("bandage", StringComparison.Ordinal),
@@ -102,6 +111,23 @@ internal sealed class TwoMemberContinueCase : AcceptanceCase
 			"the first member's character lost its items across the continue: " + Raw(afterMember));
 		Require(Text(afterSecond, "ids").Contains("bandage", StringComparison.Ordinal),
 			"the second member's character lost its items across the continue: " + Raw(afterSecond));
+
+		// Whose record came back: the host's own body must carry the host's swatch (the game's own save
+		// path restored it), and each member must carry its own swatch and neither of the other two.
+		var afterHost = await ItemAtAsync(context, context.Session.HostUrl, cancellationToken).ConfigureAwait(false);
+		context.Read("host's own items after the continue", afterHost);
+		var hostOwn = SwatchCopies(afterHost, 3);
+		var hostForeign = SwatchCopies(afterHost, 5) + SwatchCopies(afterHost, 7);
+		Require(hostOwn >= 1, "the host's own body did not come back from the game's save: " + Raw(afterHost));
+		Require(hostForeign == 0, "the host's body came back carrying a member's marker: " + Raw(afterHost));
+		var memberOwn = SwatchCopies(afterMember, 5);
+		var memberForeign = SwatchCopies(afterMember, 7) + SwatchCopies(afterMember, 3);
+		Require(memberOwn >= 1, "the first member came back without its own record's marker: " + Raw(afterMember));
+		Require(memberForeign == 0, "the first member came back carrying another player's marker: " + Raw(afterMember));
+		var secondOwn = SwatchCopies(afterSecond, 7);
+		var secondForeign = SwatchCopies(afterSecond, 5) + SwatchCopies(afterSecond, 3);
+		Require(secondOwn >= 1, "the second member came back without its own record's marker: " + Raw(afterSecond));
+		Require(secondForeign == 0, "the second member came back carrying another player's marker: " + Raw(afterSecond));
 
 		// The host's own view of both players must render the marker too: the continue's hand-over writes
 		// each member's character, and the applied-item ledger is what the host shows.
@@ -157,6 +183,45 @@ internal sealed class TwoMemberContinueCase : AcceptanceCase
 
 	private static async Task<JsonElement?> ItemsAsync(CaseContext context, string url, CancellationToken cancellationToken) =>
 		await context.Session.RecipeAtAsync(url, "body-items", args: null, cancellationToken).ConfigureAwait(false);
+
+	/// <summary>Colours this client's first bandage with its own swatch, through the game's own customizer entry.</summary>
+	private static async Task ColourOwnItemAsync(CaseContext context, string url, int swatch, CancellationToken cancellationToken)
+	{
+		var items = await ItemsAsync(context, url, cancellationToken).ConfigureAwait(false);
+		var slot = FirstSlot(Text(items, "ids"));
+		Require(slot.Length > 0, "this client has no item to colour: " + Raw(items));
+		var coloured = await context.Session.RecipeAtAsync(url, "item-customize-native", new Dictionary<string, string>(StringComparer.Ordinal)
+		{
+			["slot"] = slot,
+			["label"] = "OwnColor",
+			["swatch"] = swatch.ToString(CultureInfo.InvariantCulture),
+		}, cancellationToken).ConfigureAwait(false);
+		Require(Boolean(coloured, "ok"), "this client's own colour did not apply on " + url + ": " + Raw(coloured));
+	}
+
+	/// <summary>The slot number of the first item in an "N:type|M:type" id list.</summary>
+	private static string FirstSlot(string ids)
+	{
+		var first = ids.Split('|', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+		var colon = first.IndexOf(':', StringComparison.Ordinal);
+		return colon > 0 ? first.Substring(0, colon) : string.Empty;
+	}
+
+	/// <summary>The host's own body items, read through the host's own client.</summary>
+	private static async Task<JsonElement?> ItemAtAsync(CaseContext context, string url, CancellationToken cancellationToken) =>
+		await context.Session.RecipeAtAsync(url, "body-items", args: null, cancellationToken).ConfigureAwait(false);
+
+	/// <summary>How many of this body's items carry the given swatch, from its own details string.</summary>
+	private static int SwatchCopies(JsonElement? reading, int swatch) =>
+		Text(reading, "details").Split('|', StringSplitOptions.RemoveEmptyEntries)
+			.Count(entry =>
+			{
+				var parts = entry.Split(':', 4);
+				return parts.Length == 4
+					&& string.Equals(parts[2], "OwnColor", StringComparison.Ordinal)
+					&& int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+					&& value == swatch;
+			});
 
 	private static async Task<JsonElement?> WaitForItemsAsync(CaseContext context, string url, CancellationToken cancellationToken)
 	{

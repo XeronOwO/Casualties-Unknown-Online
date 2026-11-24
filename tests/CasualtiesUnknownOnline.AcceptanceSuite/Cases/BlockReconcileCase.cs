@@ -23,7 +23,23 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 		Require(members.Length == 1, "the run does not have exactly one member on the host: " + members.Length);
 		context.UseMember(members[0]);
 
-		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4"), ("minOffset", "0"), ("radius", "8")).ConfigureAwait(false);
+		// A long run's host can stand in rock a previous row already broke, so a narrow
+		// ring around it is not guaranteed to hold four cells (measured in the one run:
+		// one cell at radius 8). The player walks to rock; the row asks a wider ring, and
+		// gives chunks a moment to arrive before it calls the world empty.
+		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4"), ("minOffset", "0"), ("radius", "24")).ConfigureAwait(false);
+		for (var attempt = 0; attempt < 8; attempt++)
+		{
+			var count = Count(scan);
+			if (count >= 4)
+			{
+				break;
+			}
+
+			await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+			scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "4"), ("minOffset", "0"), ("radius", "24")).ConfigureAwait(false);
+		}
+
 		context.Read("scan", scan);
 		JsonElement? cells = null;
 		if (scan is { ValueKind: JsonValueKind.Object } scanElement
@@ -272,4 +288,12 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 			throw new AssertionException(message);
 		}
 	}
+
+	/// <summary>How many cells a scan answered with — zero when the recipe answered without a listing.</summary>
+	private static int Count(JsonElement? scan) =>
+		scan is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty("cells", out var cells)
+		&& cells.ValueKind == JsonValueKind.Array
+			? cells.GetArrayLength()
+			: 0;
 }

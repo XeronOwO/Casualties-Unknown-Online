@@ -61,6 +61,16 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		Require(Boolean(seeded, "ok") && NumberValue(seeded, "shrapnel") >= pieces,
 			"the member's limb did not take the seeded shrapnel: " + Raw(seeded));
 
+		// The chart only opens while the LOCAL body is awake: the game's own wound view refuses on a
+		// sleeping observer (`MedicalChartCase` measured the refusal the same way). This row used to walk
+		// straight to the open, so in a batch it read `opened:false, nativeOpen:false` with the member
+		// found — the member was there and the host was asleep. Read it first and name it if it is asleep.
+		var viewer = await context.RecipeAsync("body-effects", cancellationToken).ConfigureAwait(false);
+		context.Read("viewer", viewer);
+		Require(Boolean(viewer, "alive"), "the host's body is not alive, so the game's wound view cannot open: " + Raw(viewer));
+		Require(NumberValue(viewer, "consciousness") >= 60,
+			"the host's body stayed asleep, so the game's own wound view refuses to open: " + Raw(viewer));
+
 		var opened = await context.RecipeAsync("medical-open", cancellationToken, ("steamId", memberId), ("name", string.Empty)).ConfigureAwait(false);
 		Require(Boolean(opened, "opened"), "the member's medical view did not open on the host: " + Raw(opened));
 

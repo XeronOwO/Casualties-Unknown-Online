@@ -1222,8 +1222,49 @@ internal sealed class SessionDriver(Options options)
 			closed.Add(target.Item2 + (IsTrue(answer, "visible") ? " still shows its panel" : " panel closed"));
 		}
 
+		// Closing the panel restores the game's background input on that very frame, and a key
+		// staged inside the same frame is read by our own guard instead of the game (measured
+		// 2026-11-25: three key-driven rows failed in one batch with `modal closed — background UI
+		// input restored` beside them, and passed alone). Two rendered frames put the row past it.
+		closed.Add(await WaitForRenderedFramesAsync(_options.HostUrl, 2, cancellationToken).ConfigureAwait(false));
 		return string.Join(", ", closed);
 	}
+
+	/// <summary>
+	/// Wait until the client's own game frame advanced by <paramref name="frames"/>, so a row that
+	/// stages input next does so after whatever the last action changed has been rendered. Bounded:
+	/// a client that stops rendering is reported, never awaited.
+	/// </summary>
+	private async Task<string> WaitForRenderedFramesAsync(string url, int frames, CancellationToken cancellationToken)
+	{
+		var start = await TryStateAsync(url, cancellationToken).ConfigureAwait(false);
+		var startFrame = ReadFrame(start);
+		if (startFrame is null)
+		{
+			return "frames unknown";
+		}
+
+		for (var attempt = 0; attempt < 40; attempt++)
+		{
+			await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+			var current = ReadFrame(await TryStateAsync(url, cancellationToken).ConfigureAwait(false));
+			if (current is { } now && now - startFrame.Value >= frames)
+			{
+				return "frames advanced";
+			}
+		}
+
+		return "frames did not advance";
+	}
+
+	/// <summary>The client's own frame counter, when its state carries one.</summary>
+	private static long? ReadFrame(JsonElement? state) =>
+		state is { ValueKind: JsonValueKind.Object } element
+		&& element.TryGetProperty("frame", out var frame)
+		&& frame.ValueKind == JsonValueKind.Number
+		&& frame.TryGetInt64(out var value)
+			? value
+			: null;
 
 	private async Task<string> EnsureLiveWorldCoreAsync(CancellationToken cancellationToken, bool keepCarried)
 	{

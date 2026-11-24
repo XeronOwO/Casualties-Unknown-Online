@@ -61,6 +61,19 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		Require(Boolean(seeded, "ok") && NumberValue(seeded, "shrapnel") >= pieces,
 			"the member's limb did not take the seeded shrapnel: " + Raw(seeded));
 
+		// The host's own view of the member is a remote body: it opens only while the member is in the host's
+		// sight (the same gate the push and carry gestures read). A batch leaves the two bodies far apart, so
+		// the row puts the member beside the host the way the other remote-body rows do, then lets it stand
+		// still — a body dropped on a tile keeps falling and the view refuses mid-fall (measured 2026-11-25).
+		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		var hostX = BodyPosition(hostBody).X;
+		var hostY = BodyPosition(hostBody).Y;
+		await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", (hostX + 1.5).ToString(CultureInfo.InvariantCulture)),
+			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		await SettleAsync(context, cancellationToken).ConfigureAwait(false);
+
 		// The chart only opens while the LOCAL body is awake: the game's own wound view refuses on a
 		// sleeping observer (`MedicalChartCase` measured the refusal the same way). This row used to walk
 		// straight to the open, so in a batch it read `opened:false, nativeOpen:false` with the member
@@ -142,13 +155,30 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		// The host's own line names the break and the damage it applied, which is the session doing the work.
 		var applied = FindLine(context.HostLogPath, "break-grasp applied", logStart);
 		context.Read("host-break-line", JsonSerializer.SerializeToElement(new { line = applied, pain }));
-		Require(applied.Length > 0, "the host's log names no break-grasp application for this session");
+		Require(applied.Length > 0,
+			"the host's log names no break-grasp application for this session (offset " + logStart.ToString(CultureInfo.InvariantCulture) +
+			", length now " + LogLength(context.HostLogPath).ToString(CultureInfo.InvariantCulture) + "); the host's own tail says: " +
+			Tail(context.HostLogPath, 1200));
 		Require(pain > 0f, "the removed shrapnel piece applied no pain on the member's limb: " + Raw(after));
 	}
 
 	private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
 	/// <summary>The host's log from an offset (the console channel is buffered; the line is polled above).</summary>
+	/// <summary>The last part of a file, so a failed log read carries the text it could not find.</summary>
+	private static string Tail(string path, int characters)
+	{
+		try
+		{
+			var text = File.ReadAllText(path);
+			return text.Length <= characters ? text : text[^characters..];
+		}
+		catch (IOException exception)
+		{
+			return "(could not read the log: " + exception.Message + ")";
+		}
+	}
+
 	private static string FindLine(string path, string needle, long start)
 	{
 		try
@@ -199,6 +229,42 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		var final = await context.Session.ReadMembersAsync(cancellationToken).ConfigureAwait(false);
 		Require(false, "the host's roster did not name exactly one member: " + string.Join(", ", final));
 		return string.Empty;
+	}
+
+	/// <summary>The local body's world point, from <c>body-read</c>'s own <c>localBody</c> object.</summary>
+	private static (float X, float Y) BodyPosition(JsonElement? reading)
+	{
+		if (reading is { ValueKind: JsonValueKind.Object } state
+			&& state.TryGetProperty("localBody", out var body)
+			&& body.ValueKind == JsonValueKind.Object
+			&& body.TryGetProperty("positionX", out var x)
+			&& body.TryGetProperty("positionY", out var y))
+		{
+			return ((float)x.GetDouble(), (float)y.GetDouble());
+		}
+
+		return (float.NaN, float.NaN);
+	}
+
+	/// <summary>Waits until the member's body stops moving (two readings within 0.1), so a fall is not read as a refusal.</summary>
+	private static async Task<JsonElement?> SettleAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		var (lastX, lastY) = (double.NaN, double.NaN);
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			last = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+			var (x, y) = BodyPosition(last);
+			if (!double.IsNaN(lastX) && Math.Abs(x - lastX) < 0.1 && Math.Abs(y - lastY) < 0.1)
+			{
+				return last;
+			}
+
+			(lastX, lastY) = (x, y);
+		}
+
+		return last;
 	}
 
 	private static bool Boolean(JsonElement? reading, string property) =>

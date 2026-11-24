@@ -88,6 +88,17 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 			"the refused push still moved the target: before (" + beforeX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + beforeY.ToString("0.###", CultureInfo.InvariantCulture)
 				+ ") after (" + afterX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + afterY.ToString("0.###", CultureInfo.InvariantCulture) + ")");
 
+		// The push moved the target, so the pair can be out of sight again: put the member back beside the host
+		// and let it stand still before the carry half, or the carry's own visibility gate drops it
+		// (measured 2026-11-25 in a batch: the push half passed and the carry half read "no-line-of-sight").
+		var hostAgain = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
+		var (hostAgainX, hostAgainY) = Position(hostAgain);
+		await context.MemberRecipeAsync("teleport", cancellationToken,
+			("x", (hostAgainX + 1.5).ToString(CultureInfo.InvariantCulture)),
+			("y", hostAgainY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		context.Read("member settled for the carry", await SettleAsync(context, cancellationToken).ConfigureAwait(false));
+
 		// Row 2: a conscious body is not carryable by the game's own rule; the host's switch lifts exactly that,
 		// and the relation forms on the member's client.
 		await SetHostRuleAsync(context, "allow_always_carry", "true", cancellationToken).ConfigureAwait(false);

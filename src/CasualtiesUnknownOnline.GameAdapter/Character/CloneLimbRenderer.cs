@@ -213,6 +213,15 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 			{
 				hasProsthetic = true,
 				itemId = data.ProstheticItemId ?? string.Empty,
+				// Item.cs:831 / :896 / :7914 set this where the game builds the record; a record rebuilt from a
+				// message cannot, and Limb.cs:122 loads the sprite unguarded, so the id is mapped here.
+				appearancePath = (data.ProstheticItemId ?? string.Empty) switch
+				{
+					"steelprosthesis" => "Sprites/steelprosthesisoverlay",
+					"peo" => "Sprites/peooverlay",
+					"peglimb" => "Sprites/peglimboverlay",
+					_ => string.Empty,
+				},
 				forceChange = data.ProstheticForceChange,
 				armorChange = data.ProstheticArmorChange,
 				r = data.ProstheticR,

@@ -145,7 +145,11 @@ public static class BandageHandDrive
 		Angle = roll > 350f ? 0.5f : roll + Lead;
 
 		var radians = Angle * Mathf.Deg2Rad;
-		var hand = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * Radius;
+		// The game's own angle is measured with `Mathf.Atan2(handPos.x, handPos.y)` (the row's `handAngle`), so a hand at
+		// the roll's own degrees is (sin, cos), NOT (cos, sin): placing the plain cosine pair put the hand a quarter turn
+		// away from the roll it was told to sit on (measured 2026-11-26: placed at 15 degrees, read back as 75, and the
+		// window's dot product was sin(15) instead of cos(15)).
+		var hand = new Vector2(Mathf.Sin(radians), Mathf.Cos(radians)) * Radius;
 		Traverse.Create(body).Field("handPos").SetValue(hand);
 
 		// The native physics pulls the hand for the rest of the frame (`BandageMinigame.cs:129-130`:

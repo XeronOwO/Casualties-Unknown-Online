@@ -128,6 +128,14 @@ internal static class DriveCommand
 					extra.Add(("-LobbyId", lobby));
 				}
 
+				// The log-tail filter: the driver matches its own lines on this text, and the default
+				// (empty) returns the last lines whatever they say (measured 2026-11-26: `--argument`
+				// reached this dictionary and was never handed to the action).
+				if (values.TryGetValue("argument", out var match) && !string.IsNullOrEmpty(match))
+				{
+					extra.Add(("-Argument", match));
+				}
+
 				if (page is not null)
 				{
 					extra.Add(("-Page", page));

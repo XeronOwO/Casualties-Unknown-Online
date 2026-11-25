@@ -2604,6 +2604,24 @@ internal sealed class SessionDriver(Options options)
 		ActionAsync(url, "close-window", cancellationToken);
 
 	/// <summary>
+	/// The kernel run the host is simulating right now, as the host's own driver reports it; <c>"0"</c> means the host
+	/// holds no run. A row is a reading of ONE run: the game itself can leave the world mid-row (its own
+	/// <c>PlayerCamera.ToMainMenu</c> is intercepted into a mid-run cut and a menu return), and a row that then read the
+	/// replacement would report a number about a world it never measured (measured 2026-11-25: `drop-mid-transfer` read
+	/// the host's bag while the new run was still placing the character's starting supplies).
+	/// </summary>
+	public async Task<string> ReadRunIdentityAsync(CancellationToken cancellationToken)
+	{
+		var state = await ActionAsync(_options.HostUrl, "state", cancellationToken).ConfigureAwait(false);
+		if (!IsTrue(state, "ok"))
+		{
+			throw new InvalidOperationException("the host's run identity could not be read: " + Raw(state));
+		}
+
+		return StringValue(state, "runId");
+	}
+
+	/// <summary>
 	/// Takes OUR window down on both clients before a row runs. The runner owns this the way it owns the
 	/// world: a row that leaves the window up changes what the next row's pointer and keys reach, and the
 	/// failures that produced were read as row defects for a night (measured 2026-11-22: `every-14` and

@@ -384,6 +384,15 @@ internal static partial class Program
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
 			}
 
+			// The row is pinned to the run it was given. The game itself can leave the world mid-row — its own
+			// PlayerCamera.ToMainMenu is intercepted into a mid-run cut and a menu return — and the row then reads the
+			// replacement: measured 2026-11-25, `drop-mid-transfer` read the host's bag while the new run was still
+			// placing the character's starting supplies, and reported the give's own slot missing. The pin is taken
+			// here, before the panels close, because that leave came 2.7 s after the world guarantee.
+			var runUnderTheRow = runChangedByTheLastRow
+				? string.Empty
+				: await caseSession.ReadRunIdentityAsync(CancellationToken.None).ConfigureAwait(false);
+
 			// The member's transport id is not stable across a rejoin, and every probe names the member by it: take the
 			// id the host's roster shows NOW, or the row opens a view for a player the host no longer has.
 			if (await caseSession.SingleMemberIdAsync(CancellationToken.None).ConfigureAwait(false) is { Length: > 0 } liveMember)
@@ -438,6 +447,22 @@ internal static partial class Program
 			}
 
 			await caseWork.ConfigureAwait(false);
+
+			// The same pin, read again: a row that did not declare a run change must have measured the run it was
+			// given. A run-changing row is exempt by contract (it continues a save, restarts the host or ends the run).
+			if (runUnderTheRow.Length > 0
+				&& ulong.TryParse(runUnderTheRow, NumberStyles.None, CultureInfo.InvariantCulture, out var pinnedRun)
+				&& pinnedRun != 0)
+			{
+				var runAfterTheCase = await caseSession.ReadRunIdentityAsync(CancellationToken.None).ConfigureAwait(false);
+				if (!string.Equals(runUnderTheRow, runAfterTheCase, StringComparison.Ordinal))
+				{
+					throw new InvalidOperationException(
+						"the host started run " + runAfterTheCase + " under this row (it was given run " + runUnderTheRow
+						+ "), so what it measured is not the run it was given");
+				}
+			}
+
 			run.Stop();
 			var setup = context.Session.SetupMilliseconds;
 			var caseMs = Math.Max(0, run.Elapsed.TotalMilliseconds - setup);

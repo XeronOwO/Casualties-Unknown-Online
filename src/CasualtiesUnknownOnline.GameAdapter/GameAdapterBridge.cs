@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -173,6 +175,29 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			return false;
 		}
 
+		// A deferral ends the run mid-world, so the log names the game-side caller: the game's own ToMainMenu has no
+		// log of its own, and a reader (an operator, or an acceptance row that then measured the replacement world)
+		// has to be told which of the game's four leave surfaces asked. Measured 2026-11-25: a row read the run that
+		// replaced the one it was given and nothing in either log said what had left the world.
+		var leaveStack = new StackTrace(skipFrames: 1, fNeedFileInfo: false);
+		var leaveCaller = new StringBuilder();
+		for (var frame = 0; frame < leaveStack.FrameCount && frame < 6; frame++)
+		{
+			var method = leaveStack.GetFrame(frame)?.GetMethod();
+			if (method is null)
+			{
+				continue;
+			}
+
+			if (leaveCaller.Length > 0)
+			{
+				leaveCaller.Append(" <- ");
+			}
+
+			leaveCaller.Append(method.DeclaringType?.Name).Append('.').Append(method.Name);
+		}
+
+		domains.Log.LogInformation("The game left the world (its scene load was deferred for the mid-run cut). Caller: {Caller}", leaveCaller.ToString());
 		domains.MenuReturn.Request(domains.Session.Role, RunMenuReturnOrigin.PlayerLeave, inWorld: true);
 		return true;
 	}

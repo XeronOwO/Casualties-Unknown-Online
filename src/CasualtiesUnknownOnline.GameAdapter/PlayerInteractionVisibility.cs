@@ -37,6 +37,23 @@ public sealed class PlayerInteractionVisibility(
 		var hit = Physics2D.Linecast(observer, target, LayerMask.GetMask("Ground"));
 		if (hit)
 		{
+			// Two bodies standing on top of each other have no wall between them, but a
+			// zero-length linecast can still land on the floor cell their feet share (the
+			// engine reports the hosts' own body position and the member's synced entity
+			// position a few centimetres apart). The row that put the pair together read
+			// "it still stands 0.0 units away, and the host's own line of sight reads
+			// blocked" at (7.5,454.9) on 2026-11-26 01:07 (`.acceptance/sc-6`), and wf-7
+			// read the same at 0.0 units. The gate exists to stop an interaction THROUGH a
+			// wall, so a pair inside one body width is never blocked by it.
+			var gap = Vector2.Distance(observer, target);
+			if (gap <= 0.9f)
+			{
+				_log.LogDebug(
+					"[Visibility] clear {Observer} → {Target}: the pair is {Gap:F2} units apart, inside one body width.",
+					observerSteamId, targetSteamId, gap);
+				return true;
+			}
+
 			_log.LogInformation(
 				"[Visibility] blocked {Observer} → {Target} by ground at ({HitX:F1},{HitY:F1}).",
 				observerSteamId, targetSteamId, hit.point.x, hit.point.y);

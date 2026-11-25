@@ -57,6 +57,7 @@ internal sealed class ReentryCoordinator(
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 		_session.SessionActivated += OnSessionActivated;
 		_session.SessionEnded += ResetSessionState;
+		_run.EntryTakesThisClientOutOfItsRun += OnEntryTakesThisClientOutOfItsRun;
 	}
 
 	internal void Unbind()
@@ -65,7 +66,33 @@ internal sealed class ReentryCoordinator(
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 		_session.SessionActivated -= OnSessionActivated;
 		_session.SessionEnded -= ResetSessionState;
+		_run.EntryTakesThisClientOutOfItsRun -= OnEntryTakesThisClientOutOfItsRun;
 		DropWindow("the session binding was unbound");
+	}
+
+	/// <summary>
+	/// Guest: the host's entry instruction names a run this side is not serving, so the run coordinator
+	/// is taking this client out of the world it is in (the run change is in place, there is no scene
+	/// change to arm on afterwards). The window is armed exactly as for a host exit: this member is
+	/// following an entry it has no world for yet, and the ask is what brings the entry back if the
+	/// host's one-shot invite does not land.
+	/// </summary>
+	private void OnEntryTakesThisClientOutOfItsRun()
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var memberInWorldOrEntering = _run.IsInWorld || _run.IsEnteringWorld || HarmonyTraverse.IsGenerating();
+		if (!_window.TryArm(_time.NowMs, memberInWorldOrEntering))
+		{
+			_log.LogDebug("[Reentry] the entry names another run, but this member was already out of its world — no window is armed.");
+			return;
+		}
+
+		_log.LogInformation(
+			"[Reentry] the entry names another run — this member leaves its own world and will ask for the new entry if the host's invite does not land.");
 	}
 
 	/// <summary>The session is gone — the window belongs to it (ISessionReset).</summary>

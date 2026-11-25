@@ -401,6 +401,10 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 
 	public void FireWorldJoinReceived(bool isTutorial, bool baselineFollows) => _messages.FireWorldJoinReceived(isTutorial, baselineFollows);
 
+	public void FireEntryNamesAnotherRun(ulong runEpoch) => _messages.FireEntryNamesAnotherRun(runEpoch);
+
+	public event Action<ulong>? EntryNamesAnotherRun { add => _messages.EntryNamesAnotherRun += value; remove => _messages.EntryNamesAnotherRun -= value; }
+
 	public void CancelWorldJoinBaselineDrop() => _messages.CancelWorldJoinBaselineDrop();
 
 	public event Action? WorldSnapshotCompleteReceived { add => _messages.WorldSnapshotCompleteReceived += value; remove => _messages.WorldSnapshotCompleteReceived -= value; }

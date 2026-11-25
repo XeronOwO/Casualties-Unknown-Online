@@ -17,6 +17,12 @@ public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg, IWorldKer
 {
 	protected override void Handle(ulong sender, WorldJoinMsg msg, IWorldKernelHandlerContext ctx)
 	{
+		// An instruction that names a run this side is not serving is the edge a member has to
+		// act on: adopting the epoch first would erase the identity it needs to compare, and the
+		// member would go on serving the old run's world under the new run's number (measured
+		// 2026-11-25/26: a continued run's member kept its old seat, `.acceptance/dep-1`).
+		var serving = ctx.KernelProtocol.CurrentRunEpoch;
+		var namesAnotherRun = serving != 0 && serving != msg.RunEpoch;
 		// Recorded before the entry is raised: the set the entry group carries is
 		// validated against this identity, so a set from another run is refused
 		// instead of restored onto a member the live streams no longer match.
@@ -25,5 +31,11 @@ public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg, IWorldKer
 		// side still holds (a previous run's) and lets the generation wait for the
 		// checkpoint set the instruction says follows.
 		ctx.World.FireWorldJoinReceived(msg.IsTutorial, msg.RunBaselineFollows);
+		if (namesAnotherRun)
+		{
+			// Raised after the entry promise so the adapter can take its own world down
+			// while the entry it is following is already recorded.
+			ctx.World.FireEntryNamesAnotherRun(msg.RunEpoch);
+		}
 	}
 }

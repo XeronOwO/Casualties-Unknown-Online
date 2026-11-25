@@ -57,6 +57,9 @@ internal sealed class RunCoordinator(
 	private readonly DescentBodyPreservation _descentBody = descentBody;
 	private readonly ILogger<RunCoordinator> _log = log;
 	private RunPhase _phase = RunPhase.Idle;
+
+	/// <summary>Guest: the entry instruction named another run and this client is being taken out of its world (raised before the menu return, while the world is still up).</summary>
+	internal event Action? EntryTakesThisClientOutOfItsRun;
 	private bool _hostStartGateAlertPending; // host: generation boundary → gate release — DoAlert popups in this span are deferred
 
 	private readonly StartGateJoinPump _startGateJoin = new();
@@ -179,6 +182,7 @@ internal sealed class RunCoordinator(
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 		_world.WorldJoinReceived += OnWorldJoin;
+		_world.EntryNamesAnotherRun += OnEntryNamesAnotherRun;
 		_world.WorldReadyReceived += OnRemoteWorldReady;
 		_world.LayerDescentReceived += OnLayerDescent;
 		_world.RunEndedReceived += OnRunEnded;
@@ -191,6 +195,7 @@ internal sealed class RunCoordinator(
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
 		_world.WorldJoinReceived -= OnWorldJoin;
+		_world.EntryNamesAnotherRun -= OnEntryNamesAnotherRun;
 		_world.WorldReadyReceived -= OnRemoteWorldReady;
 		_world.LayerDescentReceived -= OnLayerDescent;
 		_world.RunEndedReceived -= OnRunEnded;
@@ -471,6 +476,27 @@ internal sealed class RunCoordinator(
 	}
 
 	private void OnWorldJoin(bool isTutorial) => Join.OnJoin(isTutorial);
+
+	/// <summary>
+	/// Guest: the host's entry instruction named a run this side was not serving. The epoch is already
+	/// adopted, so the entry is the run this client now follows; what is missing is leaving the world
+	/// that belongs to the previous run. The member's own re-entry window is armed first (it reads the
+	/// world this client is still in), then the menu return is requested through the same seam the
+	/// other leaves use.
+	/// </summary>
+	private void OnEntryNamesAnotherRun(ulong runEpoch)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_log.LogInformation(
+			"[Run] the host's entry names run {Epoch} while this side was serving another run — leaving this world so the entry starts here.",
+			runEpoch);
+		EntryTakesThisClientOutOfItsRun?.Invoke();
+		_menuReturn.Request(_session.Role, RunMenuReturnOrigin.PlayerLeave, _inWorld);
+	}
 
 	private void OnRemoteWorldReady()
 	{

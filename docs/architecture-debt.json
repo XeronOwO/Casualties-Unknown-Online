@@ -13,6 +13,15 @@
 		"Lines": 628,
 		"BoolFlags": 0,
 		"Ticket": "docs/backlog/review/1.0-transport-handover-identity.md"
+	},
+	"CasualtiesUnknownOnline.GameAdapter.Run.RunCoordinator": {
+		"Lines": 626,
+		"BoolFlags": 0,
+		"Ticket": "docs/backlog/todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md"
+	},
+	"CasualtiesUnknownOnline.Runtime.Session.World.WorldService": {
+		"Lines": 604,
+		"BoolFlags": 0,
+		"Ticket": "docs/backlog/todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md"
 	}
 }
-

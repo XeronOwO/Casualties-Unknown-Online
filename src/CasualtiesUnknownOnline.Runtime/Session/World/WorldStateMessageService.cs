@@ -63,6 +63,9 @@ internal sealed class WorldStateMessageService(
 
 	public event Action<bool>? WorldJoinReceived;
 
+	/// <summary>Guest: the entry instruction named a run this side was not serving (the epoch is already adopted when this fires).</summary>
+	public event Action<ulong>? EntryNamesAnotherRun;
+
 	/// <summary>The host's own layer advance, its own message family (the send is paired with the start gate's expectation by the facade).</summary>
 	private LayerDescentChannel? _descent;
 
@@ -97,6 +100,9 @@ internal sealed class WorldStateMessageService(
 		WorldJoinReceived?.Invoke(isTutorial);
 		_joinDroppedParams = null; // one instruction, one chance to cancel — no stale baseline outlives the event
 	}
+
+	/// <summary>Guest: the entry instruction named another run than the one this side was serving.</summary>
+	public void FireEntryNamesAnotherRun(ulong runEpoch) => EntryNamesAnotherRun?.Invoke(runEpoch);
 
 	/// <summary>Guest: the world join was REFUSED by the run-follow (already in or entering a world) — put back the baseline its drop took, so the generation in flight keeps its params.</summary>
 	public void CancelWorldJoinBaselineDrop()

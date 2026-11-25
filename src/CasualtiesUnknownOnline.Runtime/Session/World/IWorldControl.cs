@@ -108,6 +108,16 @@ public interface IWorldControl : IWorldSocialControl
 	event Action<bool>? WorldJoinReceived;
 
 	/// <summary>
+	/// Guest: the entry instruction named a run this side was not serving. The epoch is already adopted
+	/// (the instruction owns it); this edge is what tells the adapter that the world it is standing in
+	/// belongs to the previous run, so it can leave it and follow the entry instead of driving the old
+	/// world under the new run's number.
+	/// </summary>
+	void FireEntryNamesAnotherRun(ulong runEpoch);
+
+	event Action<ulong>? EntryNamesAnotherRun;
+
+	/// <summary>
 	/// Report a locally-performed player attack on a building entity (local
 	/// compute): guest → host as a report (the host applies the damage to its
 	/// own copy — which rolls the host-side entity drops — and relays), host →

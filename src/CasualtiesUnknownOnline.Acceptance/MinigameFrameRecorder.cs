@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using HarmonyLib;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Acceptance;
 
@@ -24,7 +26,7 @@ internal static class MinigameFrameRecorder
 
 	private static readonly Queue<string> Frames = new();
 
-	private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+	private static readonly Stopwatch Clock = Stopwatch.StartNew();
 
 	private static FieldInfo? _handStartedField;
 
@@ -64,7 +66,7 @@ internal static class MinigameFrameRecorder
 
 		var started = _handStartedField != null ? _handStartedField.GetValue(minigame) as bool? ?? false : false;
 		var holding = _holdingField != null ? _holdingField.GetValue(minigame) as bool? ?? false : false;
-		var handTransform = _handField != null ? _handField.GetValue(minigame) as UnityEngine.Transform : null;
+		var handTransform = _handField != null ? _handField.GetValue(minigame) as Transform : null;
 		var line = Clock.Elapsed.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture)
 			+ " started=" + (started ? "true" : "false")
 			+ " holding=" + (holding ? "true" : "false")

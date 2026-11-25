@@ -11,6 +11,9 @@ internal sealed class ProstheticCase : AcceptanceCase
 {
 	public override string Name => "prosthetic";
 
+	/// <summary>The prosthetic the row stages into a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

@@ -22,6 +22,9 @@ internal sealed class ItemCustomizationCase : AcceptanceCase
 
 	public override string Name => "item-customization";
 
+	/// <summary>The item the row renamed and recoloured, still in a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The host carries the item and owns the customization; the member's client is the observer that must show the

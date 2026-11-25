@@ -22,6 +22,9 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 {
 	public override string Name => "medical-bandage";
 
+	/// <summary>The wound the row seeds and the bandage it applies.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

@@ -18,6 +18,9 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 {
 	public override string Name => "remote-backpack-refresh";
 
+	/// <summary>The item the row stages into a body to watch the remote view refresh.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

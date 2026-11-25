@@ -139,6 +139,12 @@ internal static partial class Program
 		Console.WriteLine($"setup\t{sharedSetup.Elapsed.TotalSeconds:F1}s (shared pair)");
 		WriteProgress(outputDirectory, $"suite\tstart\t{selected.Count} case(s)");
 		var runChangedByTheLastRow = false;
+		var leftByTheLastRow = CaseLeftovers.None;
+		var previousCase = "the pair the batch started on";
+		// The rules the batch starts with are the baseline a `Rules` rollback restores: read it before the first row can
+		// write a switch. A row's own restore is skipped when it throws, so a failed row used to leave `allow_push`
+		// changed for every later row and for the next batch (measured 2026-11-25, `HostRuleTogglesCase.cs:35-37`).
+		var rulesBaseline = await session.ReadRuleSwitchesAsync(CancellationToken.None).ConfigureAwait(false);
 		foreach (var acceptanceCase in selected)
 		{
 			// The member's id is the HOST's view of it, and that view exists only once the handshake
@@ -154,10 +160,14 @@ internal static partial class Program
 			}
 
 			WriteProgress(outputDirectory, $"case\tstart\t{acceptanceCase.Name}");
-			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline, runChangedByTheLastRow).ConfigureAwait(false));
+			results.Add(await RunAsync(acceptanceCase, options, outputDirectory, timeline, runChangedByTheLastRow, leftByTheLastRow, previousCase, rulesBaseline).ConfigureAwait(false));
 			// A row that continued a save, restarted the host or changed the run leaves a world the next
 			// row did not start in: the runner starts a fresh run before that next row.
 			runChangedByTheLastRow = acceptanceCase.LeavesTheRunChanged;
+			// What the row changed without putting back travels with it into the next row's setup, which
+			// undoes exactly that and proves it before the row's own body runs.
+			leftByTheLastRow = acceptanceCase.Leaves;
+			previousCase = acceptanceCase.Name;
 			WriteProgress(outputDirectory, $"case\t{(results[^1].Passed ? "PASS" : "FAIL")}\t{acceptanceCase.Name}\t{results[^1].TotalMs / 1000:F1}s");
 			if (!results[^1].Passed)
 			{
@@ -324,7 +334,15 @@ internal static partial class Program
 		return end > start ? line[start..end] : "-";
 	}
 
-	private static async Task<CaseResult> RunAsync(AcceptanceCase acceptanceCase, Options options, string outputDirectory, Timeline timeline, bool runChangedByTheLastRow)
+	private static async Task<CaseResult> RunAsync(
+		AcceptanceCase acceptanceCase,
+		Options options,
+		string outputDirectory,
+		Timeline timeline,
+		bool runChangedByTheLastRow,
+		CaseLeftovers leftByTheLastRow,
+		string previousCase,
+		IReadOnlyDictionary<string, string> rulesBaseline)
 	{
 		var startedUtc = DateTimeOffset.UtcNow;
 		timeline.Begin(acceptanceCase.Name);
@@ -346,7 +364,16 @@ internal static partial class Program
 			// own verdict and the nine rows after it waited out their join budgets against a host that
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
-			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
+			// The guarantee also undoes what the previous row declared it leaves, before it judges the
+			// world live: a full bag fails the free-slot probe and used to pay a world rebuild
+			// (measured 2026-11-25: overlay-sound cost 28.2 s of load after give-item filled all six
+			// slots). A row that changes the run has its leftovers undone with the run, so it declares none.
+			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(
+				CancellationToken.None,
+				acceptanceCase.NeedsStartingKit,
+				runChangedByTheLastRow ? CaseLeftovers.None : leftByTheLastRow,
+				previousCase,
+				rulesBaseline).ConfigureAwait(false));
 			// A fresh run is paid only when the last row changed the run (it left the world or continued a save): the
 			// next row would otherwise start inside whatever that row left behind. A row does NOT get a fresh run just
 			// because it wants a clean world — one world build is 25–35 s, and giving sixty rows their own world turned a
@@ -356,7 +383,6 @@ internal static partial class Program
 			if (runChangedByTheLastRow)
 			{
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
-				runChangedByTheLastRow = false;
 			}
 
 			// The member's transport id is not stable across a rejoin, and every probe names the member by it: take the
@@ -992,6 +1018,15 @@ internal abstract class AcceptanceCase
 	/// </summary>
 	public virtual CaseCost Cost => CaseCost.InRun;
 
+	/// <summary>
+	/// What this case leaves for the next row (see <see cref="CaseLeftovers"/>). Declare a fact when the row changes it
+	/// and does not put it back on every path — including the failure paths, where a row's own restore is skipped.
+	/// Over-declaring costs one game verb and one probe in the next row's setup; under-declaring hands the next row a
+	/// world the row before it made, which is how rows that pass alone failed in the batch (measured 2026-11-25).
+	/// </summary>
+	public virtual CaseLeftovers Leaves => CaseLeftovers.None;
+
+
 	// (No "runs in the batch" switch: acceptance is one run over every registered case — a case that
 	// costs a world restart says so in Cost, and the runner pays it there instead of hiding the case.)
 
@@ -1023,6 +1058,44 @@ internal enum CaseCost
 	InRun,
 	NewWorld,
 	ClientRestart,
+}
+
+/// <summary>
+/// What a case leaves behind in the shared run, one flag per fact the next row would otherwise start inside.
+/// </summary>
+/// <remarks>
+/// The batch runs every row in one world (<c>docs/acceptance/AGENTS.md</c> rule 10): a fresh run is paid only when
+/// the previous case left or changed the run. Every other fact a row changes has to be undone between rows, and the
+/// row that changed it is the only one that knows what it changed — hence a declaration, not a sweep the runner
+/// guesses at. The runner undoes a declared fact through the game's own entry point (the <c>/heal</c> verb,
+/// <c>Body.DropItem</c>, <c>/gamerule</c>, <c>Time.timeScale</c>, <c>PauseHandler.isPaused</c>, the body's own
+/// transform) and then proves with a probe that the undo took, before the next row's own body runs.
+/// Panels are not declared: the runner closes our window for every row
+/// (<c>SessionDriver.CloseOurPanelsAsync</c>), because the window holds the game's own pointer and keys.
+/// </remarks>
+[Flags]
+internal enum CaseLeftovers
+{
+	/// <summary>The row hands the next one the world as it found it.</summary>
+	None = 0,
+
+	/// <summary>Injury, bleeding, a seeded wound, pain or a missing limb on either body.</summary>
+	Body = 1,
+
+	/// <summary>Items in either body's carried set (the bag).</summary>
+	Bag = 2,
+
+	/// <summary>An item left in either body's hand.</summary>
+	Hands = 4,
+
+	/// <summary>A body left away from the host's side, so a gesture that needs the pair together reads nothing.</summary>
+	Position = 8,
+
+	/// <summary>A <c>/gamerule</c> switch the run did not start with.</summary>
+	Rules = 16,
+
+	/// <summary>A time scale or a pause the row set, which every later wait then measures against.</summary>
+	Clock = 32,
 }
 
 internal sealed record CaseResult(

@@ -21,6 +21,9 @@ internal sealed class NetConditionsCase : AcceptanceCase
 
 	public override string Name => "net-conditions";
 
+	/// <summary>The body state the row drives while it measures a drop (a kill is a run change and is declared there).</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 	/// <summary>

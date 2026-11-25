@@ -18,6 +18,9 @@ internal sealed class DropMidTransferCase : AcceptanceCase
 {
 	public override string Name => "drop-mid-transfer";
 
+	/// <summary>The item the row staged into a body and then dropped mid-transfer.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

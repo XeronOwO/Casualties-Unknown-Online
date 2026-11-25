@@ -21,6 +21,9 @@ internal sealed class TopicalDoseCase : AcceptanceCase
 {
 	public override string Name => "medical-dose";
 
+	/// <summary>The topical dose the row applies, the item it staged, and the place it put the member at.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands | CaseLeftovers.Position;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// Both sides must be in the world and the host's start gate released before any reading:

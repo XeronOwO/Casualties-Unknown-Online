@@ -13,6 +13,9 @@ internal sealed class MedicalChartCase : AcceptanceCase
 {
 	public override string Name => "medical-chart";
 
+	/// <summary>The seeded wound and the place the row put the member at for the view to open.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Position;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// A leftover focus from an earlier run would answer `opened=false`; the case begins from the

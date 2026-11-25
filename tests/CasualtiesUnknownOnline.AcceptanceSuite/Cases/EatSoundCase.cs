@@ -13,6 +13,9 @@ internal sealed class EatSoundCase : AcceptanceCase
 {
 	public override string Name => "eat-sound";
 
+	/// <summary>The food the row staged and the item its use left behind.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

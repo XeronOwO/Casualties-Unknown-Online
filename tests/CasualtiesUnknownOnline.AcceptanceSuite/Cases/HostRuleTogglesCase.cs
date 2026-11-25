@@ -21,6 +21,12 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 {
 	public override string Name => "host-rule-toggles";
 
+	/// <summary>
+	/// The two switches the row writes. Its own restore runs on the row's normal path only, so a row that throws
+	/// half-way leaves a switch the next row would run inside.
+	/// </summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Rules | CaseLeftovers.Position;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 	/// <summary>Writes host rules, so the registry places it after every case that reads the default rules.</summary>
@@ -57,12 +63,7 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		// The push is only offered to a pusher that can see the target: the game's own visibility gate
 		// ("no-line-of-sight") drops the request before the rule is read. Put the two bodies in sight of
 		// each other the way the other rows do, then read the member's own position as the before value.
-		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
-		var (hostX, hostY) = Position(hostBody);
-		await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", (hostX + 1.5).ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		context.Note("member placed: " + await context.Session.BringTheMemberBesideTheHostAsync("the push half", cancellationToken).ConfigureAwait(false));
 
 		// A body dropped on a tile keeps falling for a moment: the "the target did not move" half needs the
 		// member to be standing still first, or the fall is read as a push (measured 2026-11-25: 2.6 units).
@@ -91,12 +92,9 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		// The push moved the target, so the pair can be out of sight again: put the member back beside the host
 		// and let it stand still before the carry half, or the carry's own visibility gate drops it
 		// (measured 2026-11-25 in a batch: the push half passed and the carry half read "no-line-of-sight").
+		context.Note("member placed for the carry: " + await context.Session.BringTheMemberBesideTheHostAsync("the carry half", cancellationToken).ConfigureAwait(false));
 		var hostAgain = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
 		var (hostAgainX, hostAgainY) = Position(hostAgain);
-		await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", (hostAgainX + 1.5).ToString(CultureInfo.InvariantCulture)),
-			("y", hostAgainY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		context.Read("member settled for the carry", await SettleAsync(context, cancellationToken).ConfigureAwait(false));
 
 		// Standing beside the host is not the same as having it on screen: the game's visibility gate also needs the

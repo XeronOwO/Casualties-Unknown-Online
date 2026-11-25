@@ -23,6 +23,9 @@ internal sealed class GiveContainerSoundCase : AcceptanceCase
 {
 	public override string Name => "give-container-sound";
 
+	/// <summary>The item the pair passed and the distance the receiving client was placed at.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands | CaseLeftovers.Position;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

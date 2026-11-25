@@ -14,6 +14,9 @@ internal sealed class BlockPlaceSoundCase : AcceptanceCase
 {
 	public override string Name => "block-place-sound";
 
+	/// <summary>The placed item and whatever the row's own grant left in the hand.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

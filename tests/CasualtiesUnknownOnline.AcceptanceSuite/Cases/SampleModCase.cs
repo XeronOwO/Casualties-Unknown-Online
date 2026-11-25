@@ -17,6 +17,9 @@ internal sealed class SampleModCase : AcceptanceCase
 {
 	public override string Name => "sample-mod";
 
+	/// <summary>The sample item the row grants, uses and leaves in the body it was granted to.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

@@ -13,6 +13,9 @@ internal sealed class GiveItemCase : AcceptanceCase
 {
 	public override string Name => "give-item";
 
+	/// <summary>The bandage the member took and the trashbags the refusal test filled its bag with.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands | CaseLeftovers.Position;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The receiver's own client runs the pickup, so it must stand within reach of the dropped

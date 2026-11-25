@@ -13,6 +13,9 @@ internal sealed class PauseClockCase : AcceptanceCase
 {
 	public override string Name => "pause-clock";
 
+	/// <summary>The pause and the time scale the row sets to separate the two clocks.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Clock;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The game refuses a pause while its world is still generating, a cutscene runs, or the death/self-destruct

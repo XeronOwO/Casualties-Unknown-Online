@@ -13,6 +13,9 @@ internal sealed class ConsoleHealCase : AcceptanceCase
 {
 	public override string Name => "console-heal";
 
+	/// <summary>The seeded wound the row heals away, left wounded when the heal itself throws.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The verb resets a body that is in the world; a host that is still at the menu answers

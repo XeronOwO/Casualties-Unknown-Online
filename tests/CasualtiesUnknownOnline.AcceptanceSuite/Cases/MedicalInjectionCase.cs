@@ -22,6 +22,9 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 {
 	public override string Name => "medical-injection";
 
+	/// <summary>The syringe the row staged and the dose it put into a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

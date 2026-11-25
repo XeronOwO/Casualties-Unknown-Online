@@ -22,6 +22,9 @@ internal sealed class MedicalSplintCase : AcceptanceCase
 {
 	public override string Name => "medical-splint";
 
+	/// <summary>The broken limb the row seeds and the splint it stages into a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

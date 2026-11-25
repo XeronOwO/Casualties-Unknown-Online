@@ -23,6 +23,9 @@ internal sealed class RealDragCase : AcceptanceCase
 {
 	public override string Name => "real-drag";
 
+	/// <summary>The wound the drag test seeds and the item it stages into a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

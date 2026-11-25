@@ -17,7 +17,15 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite.Cases;
 /// </summary>
 internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : AcceptanceCase
 {
+	/// <summary>The name the registry gives this instance (the after-mutation row is a second instance).</summary>
 	public override string Name => name;
+
+	/// <summary>
+	/// The hand the row empties for its own aim and the wounds its hits leave. The dug-out block is a change to the
+	/// world itself, which no game verb puts back: both instances report the cell they removed, and a later row reads
+	/// the world as the batch left it.
+	/// </summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Hands | CaseLeftovers.Body;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{

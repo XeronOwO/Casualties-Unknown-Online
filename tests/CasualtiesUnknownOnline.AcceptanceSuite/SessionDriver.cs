@@ -1207,19 +1207,41 @@ internal sealed class SessionDriver(Options options)
 	/// preparing the world, not a per-row step — a row that reopens the panel for its own reading closes it again
 	/// before it drives the game.
 	/// </summary>
-	public async Task<string> EnsureLiveWorldAsync(CancellationToken cancellationToken, bool keepCarried = false)
+	/// <remarks>
+	/// The panel goes down BEFORE the leftovers are undone: the game's own <c>/heal</c> heals
+	/// <c>PlayerCamera.main.body</c> (<c>reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs:530-545</c>), and a
+	/// medical view holds that camera and the body it shows. Measured 2026-11-25: with the rollback moved ahead of the
+	/// close, the member's head stayed at skin 0.011 through a heal that answered ok, and a placed transform did not
+	/// stick (member 4.5 units away from where the teleport put it); the same undo run after the close passed five
+	/// times in the row before it.
+	/// </remarks>
+	public async Task<string> EnsureLiveWorldAsync(
+		CancellationToken cancellationToken,
+		bool keepCarried,
+		CaseLeftovers leftovers,
+		string previousCase,
+		IReadOnlyDictionary<string, string> rulesBaseline)
 	{
-		var note = await EnsureLiveWorldCoreAsync(cancellationToken, keepCarried).ConfigureAwait(false);
-		return note + "; " + await CloseOurPanelAsync(cancellationToken).ConfigureAwait(false);
+		var closed = await CloseOurPanelAsync(cancellationToken).ConfigureAwait(false);
+		var note = await EnsureLiveWorldCoreAsync(cancellationToken, keepCarried, leftovers, previousCase, rulesBaseline).ConfigureAwait(false);
+		return closed + "; " + note;
 	}
 
 	public async Task<string> CloseOurPanelAsync(CancellationToken cancellationToken)
 	{
-		var closed = new List<string>(2);
-		foreach (var target in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
+		var closed = new List<string>(3);
+		foreach (var (url, who) in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
 		{
-			var answer = await CloseWindowAsync(target.Item1, cancellationToken).ConfigureAwait(false);
-			closed.Add(target.Item2 + (IsTrue(answer, "visible") ? " still shows its panel" : " panel closed"));
+			var answer = await CloseWindowAsync(url, cancellationToken).ConfigureAwait(false);
+			closed.Add(who + (IsTrue(answer, "visible") ? " still shows its panel" : " panel closed"));
+
+			// The game's own panels go down with ours: the medical view holds the camera and the body a heal writes
+			// (the leftovers are undone after this call), and an open wound view takes the pause key first.
+			var gamePanels = await CloseGamePanelsAsync(url, who, cancellationToken).ConfigureAwait(false);
+			if (gamePanels.Length > 0)
+			{
+				closed.Add(gamePanels);
+			}
 		}
 
 		// Closing the panel restores the game's background input on that very frame, and a key
@@ -1266,12 +1288,78 @@ internal sealed class SessionDriver(Options options)
 			? value
 			: null;
 
-	private async Task<string> EnsureLiveWorldCoreAsync(CancellationToken cancellationToken, bool keepCarried)
+	private async Task<string> EnsureLiveWorldCoreAsync(
+		CancellationToken cancellationToken,
+		bool keepCarried,
+		CaseLeftovers leftovers,
+		string previousCase,
+		IReadOnlyDictionary<string, string> rulesBaseline)
 	{
 		BeginSetup();
 		var clock = Stopwatch.StartNew();
 		try
 		{
+			// The row before this one declared what it leaves; the guarantee undoes exactly that before it
+			// judges the world live. A full bag answers the free-slot probe below as "no pair" (a heal cannot
+			// empty a held slot), so undoing it afterwards cost the world rebuild the undo was meant to save
+			// (measured 2026-11-25: overlay-sound paid 28.2 s of load after give-item filled all six slots).
+			// The previous row's leftovers are undone once per guarantee, whichever live path answers: a row that
+			// falls through the rejoin attempt to a rebuild must not pay the undo twice.
+			string? undoNote = null;
+			async Task<string> UndoAsync()
+			{
+				if (leftovers == CaseLeftovers.None)
+				{
+					return string.Empty;
+				}
+
+				if (undoNote is not null)
+				{
+					return undoNote + "; ";
+				}
+
+				undoNote = await RollBackAsync(previousCase, leftovers, rulesBaseline, cancellationToken).ConfigureAwait(false);
+				return undoNote + "; ";
+			}
+
+			// The three facts a live pair answers with, printed when one of them says no: a rebuild costs a world load,
+			// and "no live pair" alone cannot say which probe sent it there (measured 2026-11-25: give-container-sound
+			// paid 29.5 s after the row before it had already been undone, and the report could not name the probe).
+			async Task<bool> IsLiveAsync()
+			{
+				var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
+				var ground = await GroundAsync().ConfigureAwait(false);
+				var slots = ground && await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false);
+				if (members.Length > 0 && ground && slots)
+				{
+					return true;
+				}
+
+				Timeline?.Invoke($"the pair is not live: roster={members.Length}, breakable ground={(ground ? "yes" : "no")}, carry slot={(slots ? "yes" : "no")}");
+				return false;
+			}
+
+			// A host standing where no cell can be dug is a wrong place, not a wrong world: the save carries the host
+			// into a pod and the pod's floor does not answer the swing (measured 2026-11-25: a slice rebuilt the world
+			// three times, 28 s each, and every rebuilt world still answered "no breakable ground" — the pair had been
+			// left inside the pod). Placing the host on ground the world already has costs two calls; the world is only
+			// given up when it has no diggable ground within reach.
+			string? groundNote = null;
+			async Task<bool> GroundAsync()
+			{
+				if (await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+				{
+					return true;
+				}
+
+				groundNote ??= await MoveThePairOntoBreakableGroundAsync(previousCase, cancellationToken).ConfigureAwait(false)
+						?? "the world has no diggable ground the pair could be placed on";
+
+				return await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false);
+			}
+
+			string GroundNote() => groundNote is null ? string.Empty : groundNote + "; ";
+
 			var hostState = await TryStateAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 			var hostInWorld = hostState is { } host
 				&& IsTrue(host, "inWorld")
@@ -1284,12 +1372,10 @@ internal sealed class SessionDriver(Options options)
 					// A member in its own world is not the host's member: the roster is the host's
 					// own account of who shares this run, and an empty one means the pair is not
 					// live however each client describes itself (measured 2026-11-12).
-					var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (members.Length > 0
-						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
-						&& await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false))
+					var undone = await UndoAsync().ConfigureAwait(false);
+					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
+						return undone + GroundNote() + "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 							+ (keepCarried
 								? "; the carried set was kept for this row"
 								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
@@ -1301,12 +1387,10 @@ internal sealed class SessionDriver(Options options)
 				try
 				{
 					var memberNote = await EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
-					var roster = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-					if (roster.Length > 0
-						&& await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false)
-						&& await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false))
+					var undone = await UndoAsync().ConfigureAwait(false);
+					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return "the host kept its run; the member rejoined it: " + memberNote
+						return undone + GroundNote() + "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 							+ (keepCarried
 								? "; the carried set was kept for this row"
@@ -1321,7 +1405,10 @@ internal sealed class SessionDriver(Options options)
 
 			Timeline?.Invoke("no live pair before the case; rebuilding it");
 			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
-			return "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
+			// A rebuilt world answers bodies, bags and positions fresh, but the rule switches and the clock live in
+			// the process (or in the host's config), so the declared leftovers are still undone here.
+			var rebuiltUndone = await UndoAsync().ConfigureAwait(false);
+			return rebuiltUndone + GroundNote() + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
 				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 				+ (keepCarried
 					? "; the carried set was kept for this row"
@@ -1520,6 +1607,520 @@ internal sealed class SessionDriver(Options options)
 		return "the member's carried set was cleared"
 			+ (answer.TryGetProperty("dropped", out var dropped) ? " (" + dropped.GetInt32().ToString(CultureInfo.InvariantCulture) + " dropped)" : string.Empty);
 	}
+
+	/// <summary>The two clients a leftover can be written on, in the order the rows read them.</summary>
+	private (string Url, string Who)[] Ends => [(_options.HostUrl, "host"), (_options.MemberUrl, "member")];
+
+	/// <summary>
+	/// The rule switches <c>host-rules-read</c> reports, each with the console name that writes it
+	/// (<c>HostRuleCensus.Rows</c> in <c>src/CasualtiesUnknownOnline.Runtime/Session/HostRules/HostRuleCensus.cs:104+</c>).
+	/// </summary>
+	private static readonly (string Field, string Verb)[] RuleSwitches =
+	[
+		("allowPush", "allow_push"),
+		("allowAlwaysCarry", "allow_always_carry"),
+		("remoteBackpackAccess", "remote_backpack_access"),
+		("allowMemberCheatVerbs", "allow_member_cheat_verbs"),
+		("piggybackWeightMultiplier", "piggyback_weight_multiplier"),
+		("nativeBindingParity", "native_binding_parity"),
+		("permadeath", "permadeath"),
+		("reviveFromTrader", "revive_from_trader"),
+	];
+
+	/// <summary>
+	/// The rule switches in force on the host, keyed by the field name the recipe reports. Read once before the first
+	/// case: the batch's own starting values are the baseline a <c>Rules</c> leftover is undone to, and a row's own
+	/// restore is skipped when the row throws.
+	/// </summary>
+	public async Task<IReadOnlyDictionary<string, string>> ReadRuleSwitchesAsync(CancellationToken cancellationToken)
+	{
+		var reading = await RecipeAtAsync(_options.HostUrl, "host-rules-read", null, cancellationToken).ConfigureAwait(false);
+		if (reading is not { ValueKind: JsonValueKind.Object } rules)
+		{
+			throw new InvalidOperationException("the host's rule switches could not be read, so a row that leaves one changed cannot be undone: " + Raw(reading));
+		}
+
+		var switches = new Dictionary<string, string>(RuleSwitches.Length, StringComparer.Ordinal);
+		foreach (var (field, _) in RuleSwitches)
+		{
+			if (rules.TryGetProperty(field, out var value))
+			{
+				switches[field] = ValueText(value);
+			}
+		}
+
+		return switches;
+	}
+
+	/// <summary>
+	/// Undoes the facts the previous case declared it leaves, through the game's own entry points, and proves each undo
+	/// with a probe before the next case's own body runs.
+	/// </summary>
+	/// <remarks>
+	/// The three lines this method is designed from (step 2):
+	/// 1. The player's action and expectation: the batch moves from one row to the next inside the same run, and the
+	/// player expects each row to find the run as the row before it found it — no fight's wound, no full bag, no
+	/// switched rule, no fast clock, no teammate left across the map.
+	/// 2. What the game itself runs to put those facts back: CUO's console <c>/heal &lt;selector&gt;</c>, the pair-wide
+	/// reset (<c>src/CasualtiesUnknownOnline.Runtime/Session/Commands/HealResetCommands.cs</c> → the host's own body and
+	/// an instruction to the member's client), <c>Body.DropItem(int)</c> for a hand and for a carried slot
+	/// (<c>tools/acceptance/recipes/empty-hands.cs</c>, <c>clear-carried.cs</c>), <c>/gamerule &lt;name&gt; &lt;value&gt;</c>
+	/// (<c>src/CasualtiesUnknownOnline.Plugin/HostRulesConfigEditor.cs:113-151</c> → <c>config.Save()</c>), the game's own
+	/// speed knob <c>Time.timeScale</c> (<c>tools/acceptance/recipes/time-scale.cs</c>), <c>PauseHandler.main.isPaused</c>
+	/// — the field the ESC handler toggles (<c>tools/acceptance/recipes/pause-set.cs</c>) — and the body's own transform
+	/// written to the host's own standing coordinates (<c>tools/acceptance/recipes/body-place.cs</c>). No private field
+	/// without a player verb is written.
+	/// 3. How the next row sees it: every undo runs on the client that owns the fact (the host's body, rules and clock on
+	/// the host's machine; the member's body, bag, hand and position on the member's) and the probe reads that same
+	/// client, so the fact the next row reads is the one that client shows its own player.
+	/// </remarks>
+	public async Task<string> RollBackAsync(string previousCase, CaseLeftovers leftovers, IReadOnlyDictionary<string, string> rulesBaseline, CancellationToken cancellationToken)
+	{
+		BeginSetup();
+		try
+		{
+			var undone = new List<string>(4);
+			if ((leftovers & CaseLeftovers.Body) != 0)
+			{
+				undone.Add(await HealBothBodiesAsync(previousCase, cancellationToken).ConfigureAwait(false));
+			}
+
+			if ((leftovers & CaseLeftovers.Bag) != 0)
+			{
+				undone.Add(await EmptyBothBagsAsync(previousCase, cancellationToken).ConfigureAwait(false));
+			}
+
+			if ((leftovers & CaseLeftovers.Hands) != 0)
+			{
+				undone.Add(await EmptyBothHandsAsync(previousCase, cancellationToken).ConfigureAwait(false));
+			}
+
+			if ((leftovers & CaseLeftovers.Position) != 0)
+			{
+				undone.Add(await BringTheMemberBesideTheHostAsync(previousCase, cancellationToken).ConfigureAwait(false));
+			}
+
+			if ((leftovers & CaseLeftovers.Rules) != 0)
+			{
+				undone.Add(await RestoreRuleSwitchesAsync(previousCase, rulesBaseline, cancellationToken).ConfigureAwait(false));
+			}
+
+			if ((leftovers & CaseLeftovers.Clock) != 0)
+			{
+				undone.Add(await RestoreTheClockAsync(previousCase, cancellationToken).ConfigureAwait(false));
+			}
+
+			Timeline?.Invoke($"{previousCase} leftovers undone: {string.Join("; ", undone)}");
+			return "undid what " + previousCase + " left: " + string.Join("; ", undone);
+		}
+		finally
+		{
+			EndSetup();
+		}
+	}
+
+	/// <summary>
+	/// Resets both bodies with CUO's own <c>/heal</c> verb on the host, then proves no limb is still wounded or missing.
+	/// </summary>
+	/// <remarks>
+	/// The game's local <c>heal</c> heals only the client that runs it, and on a member that copy is not the authority: the
+	/// host re-applies its own record of the member's limbs (measured 2026-11-25: a member's head healed back to skin 100
+	/// read skin 4.625 again one second later, and the member's log said the limb event re-applied the host's record).
+	/// CUO's console <c>/heal &lt;selector&gt;</c>
+	/// (<c>src/CasualtiesUnknownOnline.Runtime/Session/Commands/HealResetCommands.cs</c>) is the verb built for the pair:
+	/// the host resets its own body and instructs the member, whose client applies the full reset and reports the body it
+	/// resulted in, so the host's record holds the healed limbs instead of restoring the old ones.
+	/// </remarks>
+	private async Task<string> HealBothBodiesAsync(string previousCase, CancellationToken cancellationToken)
+	{
+		var answer = await ActionAsync(_options.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
+		if (!IsTrue(answer, "applied"))
+		{
+			throw new InvalidOperationException($"the console refused '/heal @a' while undoing what {previousCase} left: " + Raw(answer));
+		}
+
+		// The member's reset is a round trip — the instruction, the applied event, then the snapshot — so the probe waits
+		// for the two clients to agree, up to a bounded deadline, instead of reading the frame the answer left on.
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+		while (true)
+		{
+			var remaining = await ReadLimbsStillWoundedAsync(cancellationToken).ConfigureAwait(false);
+			if (remaining is null)
+			{
+				return "both bodies healed by the host's '/heal @a' (no limb missing, every limb back at full skin)";
+			}
+
+			if (DateTime.UtcNow >= deadline)
+			{
+				throw new InvalidOperationException($"the body still reads what {previousCase} left after the host's '/heal @a': " + remaining);
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	/// <summary>Reads both bodies' limbs; returns the first limb still wounded or missing, or null when both are whole.</summary>
+	private async Task<string?> ReadLimbsStillWoundedAsync(CancellationToken cancellationToken)
+	{
+		foreach (var (url, who) in Ends)
+		{
+			var limbs = await RecipeAtAsync(url, "limb-bleeding", new Dictionary<string, string> { ["limb"] = "0" }, cancellationToken).ConfigureAwait(false);
+			if (limbs is not { } reading || !IsTrue(reading, "ok")
+				|| !reading.TryGetProperty("limbs", out var array) || array.ValueKind != JsonValueKind.Array)
+			{
+				return $"the {who}'s limbs could not be read back after the heal: " + Raw(limbs);
+			}
+
+			foreach (var limb in array.EnumerateArray())
+			{
+				// `bleed` is the limb's running total of blood lost, not an activity flag: /heal restores the skin and
+				// closes the wound while the accumulator keeps whatever it reached (measured 2026-11-25: a head the
+				// row had wounded to skin 14.2 was healed back to skin 100 and still read bleed 20.027, and the probe
+				// called that a live wound and failed the next row). The two facts a heal changes are the skin and
+				// whether the limb is still attached.
+				if (IsTrue(limb, "dismembered") || Number(limb, "skin") < 99)
+				{
+					return $"the {who}'s body still reads: " + Raw(limb);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Empties both carried sets through the game's own <c>Body.DropItem(int)</c>, then proves both bags are empty.
+	/// </summary>
+	/// <remarks>
+	/// An item cannot be put back the way it came (the run's own grant is spent), so the state the next row finds is
+	/// the empty bag a staging row wants, not the contents the batch started with: a row that needs an item stages it
+	/// through the game's own grant.
+	/// </remarks>
+	private async Task<string> EmptyBothBagsAsync(string previousCase, CancellationToken cancellationToken)
+	{
+		var notes = new List<string>(2);
+		foreach (var (url, who) in Ends)
+		{
+			var cleared = await RecipeAtAsync(url, "clear-carried",
+				new Dictionary<string, string> { ["slots"] = "6" }, cancellationToken).ConfigureAwait(false);
+			if (cleared is not { } answer || !IsTrue(answer, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s bag could not be emptied of what {previousCase} put in it: " + Raw(cleared));
+			}
+
+			notes.Add(who + (answer.TryGetProperty("dropped", out var dropped) && dropped.ValueKind == JsonValueKind.Number
+				? " dropped " + dropped.GetInt32().ToString(CultureInfo.InvariantCulture)
+				: " cleared"));
+		}
+
+		foreach (var (url, who) in Ends)
+		{
+			var bag = await RecipeAtAsync(url, "body-items", null, cancellationToken).ConfigureAwait(false);
+			if (bag is not { } reading || !reading.TryGetProperty("ids", out var ids) || ids.ValueKind != JsonValueKind.String)
+			{
+				throw new InvalidOperationException($"the {who}'s bag could not be read back after the clear: " + Raw(bag));
+			}
+
+			if ((ids.GetString() ?? string.Empty).Length > 0)
+			{
+				throw new InvalidOperationException($"the {who}'s bag still holds {ids.GetString()} after the clear that {previousCase} owed");
+			}
+		}
+
+		return "both bags emptied (" + string.Join(", ", notes) + ")";
+	}
+
+	/// <summary>Drops whatever either hand holds through the game's own drop, then proves no slot is held.</summary>
+	private async Task<string> EmptyBothHandsAsync(string previousCase, CancellationToken cancellationToken)
+	{
+		foreach (var (url, who) in Ends)
+		{
+			var dropped = await RecipeAtAsync(url, "empty-hands", null, cancellationToken).ConfigureAwait(false);
+			if (dropped is not { } answer || !IsTrue(answer, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s hand could not be emptied of what {previousCase} left in it: " + Raw(dropped));
+			}
+		}
+
+		foreach (var (url, who) in Ends)
+		{
+			var slots = await RecipeAtAsync(url, "item-provide",
+				new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken).ConfigureAwait(false);
+			if (slots is not { } reading || !reading.TryGetProperty("slots", out var table) || table.ValueKind != JsonValueKind.Array)
+			{
+				throw new InvalidOperationException($"the {who}'s slots could not be read back after the hand was emptied: " + Raw(slots));
+			}
+
+			foreach (var slot in table.EnumerateArray())
+			{
+				if (IsTrue(slot, "holding"))
+				{
+					throw new InvalidOperationException($"the {who}'s hand still holds an item after the drop that {previousCase} owed: " + Raw(slot));
+				}
+			}
+		}
+
+		return "both hands empty";
+	}
+
+	/// <summary>
+	/// Puts the member on the host's own standing spot, inside the host's own line of sight, then proves both — the
+	/// rollback's placement and a row's own setup go through this one method.
+	/// </summary>
+	/// <remarks>
+	/// The placement writes the member's transform to the host's own coordinates
+	/// (<c>tools/acceptance/recipes/body-place.cs</c>) instead of to a point a downward raycast found
+	/// (<c>tools/acceptance/recipes/teleport.cs</c>): from above, the first ground under a cave is the cave's roof, and
+	/// that raycast put the member 13.5 units over the host's head in the world a rebuild had left (measured
+	/// 2026-11-25). The host's own coordinates are, by construction, on the floor the host is standing on.
+	///
+	/// <para>
+	/// Distance is not sight. The product's own gate before a push, a carry, a remote medical session or a shrapnel break
+	/// is a Ground-layer linecast between the two bodies (<c>src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionVisibility.cs</c>),
+	/// and a member 1.5 units away on the far side of a wall reads "no-line-of-sight" on every one of them (measured
+	/// 2026-11-25: host-rule-toggles and medical-shrapnel each failed twice in one slice with a body placed, settled and
+	/// in range, because a wall stood between the pair). The spots are tried in order until the pair is both together and
+	/// in sight, and the one that answered is what the note names.
+	/// </para>
+	/// </remarks>
+	public async Task<string> BringTheMemberBesideTheHostAsync(string because, CancellationToken cancellationToken)
+	{
+		var memberId = await SingleMemberIdAsync(cancellationToken).ConfigureAwait(false)
+			?? throw new InvalidOperationException($"the pair is not one host and one member, so the place {because} left the member in cannot be undone");
+		var host = await RecipeAtAsync(_options.HostUrl, "body-read", null, cancellationToken).ConfigureAwait(false);
+		var (hostX, hostY) = BodyPosition(host);
+		if (hostX == 0 && hostY == 0)
+		{
+			throw new InvalidOperationException($"the host's body has no position, so the place {because} left the member cannot be undone: " + Raw(host));
+		}
+
+		// The host's own floor, one step to either side, then just above: every spot is ground the host is already
+		// standing on or next to, so none can land on a roof, and the physics settles the body where it stands.
+		var (lastHostX, lastHostY) = (0.0, 0.0);
+		var (lastMemberX, lastMemberY) = (0.0, 0.0);
+		var lastSight = false;
+		foreach (var (offsetX, offsetY) in new[] { (1.5, 0.0), (-1.5, 0.0), (0.0, 1.5), (0.0, 0.5) })
+		{
+			var placed = await RecipeAtAsync(_options.MemberUrl, "body-place", new Dictionary<string, string>
+			{
+				["x"] = (hostX + offsetX).ToString(CultureInfo.InvariantCulture),
+				["y"] = (hostY + offsetY).ToString(CultureInfo.InvariantCulture),
+			}, cancellationToken).ConfigureAwait(false);
+			if (placed is not { } answer || !IsTrue(answer, "ok"))
+			{
+				throw new InvalidOperationException($"the member could not be placed beside the host after {because}: " + Raw(placed));
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+			var hostAfter = BodyPosition(await RecipeAtAsync(_options.HostUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
+			var memberAfter = BodyPosition(await RecipeAtAsync(_options.MemberUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
+			(lastHostX, lastHostY) = hostAfter;
+			(lastMemberX, lastMemberY) = memberAfter;
+			var distance = Math.Sqrt(
+				((lastMemberX - lastHostX) * (lastMemberX - lastHostX))
+				+ ((lastMemberY - lastHostY) * (lastMemberY - lastHostY)));
+			if (distance > 4)
+			{
+				continue;
+			}
+
+			lastSight = await CanSeeTheMemberAsync(memberId, cancellationToken).ConfigureAwait(false);
+			if (lastSight)
+			{
+				return $"the member was placed {(distance).ToString("0.0", CultureInfo.InvariantCulture)} units from the host, in the host's sight";
+			}
+		}
+
+		throw new InvalidOperationException(
+			$"the member could not be put back with the host after {because}: it still stands {(Math.Sqrt(((lastMemberX - lastHostX) * (lastMemberX - lastHostX)) + ((lastMemberY - lastHostY) * (lastMemberY - lastHostY)))).ToString("0.0", CultureInfo.InvariantCulture)} units away, and the host's own line of sight reads {(lastSight ? "clear" : "blocked")} (host {lastHostX:0.0},{lastHostY:0.0}; member {lastMemberX:0.0},{lastMemberY:0.0})");
+	}
+
+	/// <summary>Asks the product's own visibility gate for this client's line to the member.</summary>
+	private async Task<bool> CanSeeTheMemberAsync(string memberId, CancellationToken cancellationToken)
+	{
+		var reading = await RecipeAtAsync(_options.HostUrl, "visibility-read", new Dictionary<string, string>(StringComparer.Ordinal)
+		{
+			["target"] = memberId,
+		}, cancellationToken).ConfigureAwait(false);
+		return reading is { } answer && IsTrue(answer, "ok") && IsTrue(answer, "clear");
+	}
+
+	/// <summary>
+	/// Places the host on a cell the world already has and can be dug — the member follows — and says which cell it
+	/// used, or null when the world has no such cell within reach.
+	/// </summary>
+	private async Task<string?> MoveThePairOntoBreakableGroundAsync(string previousCase, CancellationToken cancellationToken)
+	{
+		foreach (var radius in new[] { 32, 64 })
+		{
+			var found = await RecipeAtAsync(_options.HostUrl, "block-find-breakable", new Dictionary<string, string>
+			{
+				["count"] = "12",
+				["minOffset"] = "4",
+				["radius"] = radius.ToString(CultureInfo.InvariantCulture),
+			}, cancellationToken).ConfigureAwait(false);
+			if (found is not { } reading || !IsTrue(reading, "ok")
+				|| !reading.TryGetProperty("cells", out var cells) || cells.ValueKind != JsonValueKind.Array)
+			{
+				return null;
+			}
+
+			foreach (var cell in cells.EnumerateArray())
+			{
+				if (cell.ValueKind != JsonValueKind.Object
+					|| !cell.TryGetProperty("x", out var x) || x.ValueKind != JsonValueKind.Number
+					|| !cell.TryGetProperty("y", out var y) || y.ValueKind != JsonValueKind.Number)
+				{
+					continue;
+				}
+
+				var probe = await RecipeAtAsync(_options.HostUrl, "block-probe", new Dictionary<string, string>
+				{
+					["x"] = x.GetInt32().ToString(CultureInfo.InvariantCulture),
+					["y"] = y.GetInt32().ToString(CultureInfo.InvariantCulture),
+				}, cancellationToken).ConfigureAwait(false);
+				if (probe is not { } hit || !IsTrue(hit, "blockGround"))
+				{
+					continue;
+				}
+
+				var placed = await RecipeAtAsync(_options.HostUrl, "body-place", new Dictionary<string, string>
+				{
+					["x"] = (x.GetInt32() + 0.5).ToString(CultureInfo.InvariantCulture),
+					["y"] = (y.GetInt32() + 1.5).ToString(CultureInfo.InvariantCulture),
+				}, cancellationToken).ConfigureAwait(false);
+				if (placed is not { } answer || !IsTrue(answer, "ok"))
+				{
+					return null;
+				}
+
+				await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+				if (!await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+				{
+					continue;
+				}
+
+				var together = await BringTheMemberBesideTheHostAsync(previousCase, cancellationToken).ConfigureAwait(false);
+				return $"the host was put on the ground the world already has at {x.GetInt32()},{y.GetInt32()} instead of rebuilding the world ({together})";
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>Writes every rule switch the row changed back through <c>/gamerule</c>, then proves the values in force.</summary>
+	private async Task<string> RestoreRuleSwitchesAsync(string previousCase, IReadOnlyDictionary<string, string> baseline, CancellationToken cancellationToken)
+	{
+		var now = await ReadRuleSwitchesAsync(cancellationToken).ConfigureAwait(false);
+		var restored = new List<string>(2);
+		foreach (var (field, verb) in RuleSwitches)
+		{
+			if (!baseline.TryGetValue(field, out var value) || !now.TryGetValue(field, out var current))
+			{
+				throw new InvalidOperationException($"the host's '{field}' rule was not readable on both sides of {previousCase}, so the switch it leaves cannot be undone");
+			}
+
+			if (string.Equals(value, current, StringComparison.Ordinal))
+			{
+				continue;
+			}
+
+			var answer = await ActionAsync(_options.HostUrl, "console", cancellationToken, ("-Text", "/gamerule " + verb + " " + value)).ConfigureAwait(false);
+			if (!IsTrue(answer, "applied"))
+			{
+				throw new InvalidOperationException($"the console refused '/gamerule {verb} {value}' while undoing what {previousCase} left: " + Raw(answer));
+			}
+
+			restored.Add(verb + "=" + value);
+		}
+
+		if (restored.Count == 0)
+		{
+			return "no rule switch was left changed";
+		}
+
+		var after = await ReadRuleSwitchesAsync(cancellationToken).ConfigureAwait(false);
+		foreach (var (field, verb) in RuleSwitches)
+		{
+			if (after.TryGetValue(field, out var current) && baseline.TryGetValue(field, out var value)
+				&& !string.Equals(value, current, StringComparison.Ordinal))
+			{
+				throw new InvalidOperationException($"'{verb}' reads {current} after being written back to {value} for {previousCase}");
+			}
+		}
+
+		return "rule switches restored (" + string.Join(", ", restored) + ")";
+	}
+
+	/// <summary>Puts both clocks back to normal speed and unpaused, then proves the values every later wait measures.</summary>
+	private async Task<string> RestoreTheClockAsync(string previousCase, CancellationToken cancellationToken)
+	{
+		foreach (var (url, who) in Ends)
+		{
+			var scale = await RecipeAtAsync(url, "time-scale", new Dictionary<string, string> { ["value"] = "1" }, cancellationToken).ConfigureAwait(false);
+			if (scale is not { } answer || !IsTrue(answer, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s clock could not be put back to normal speed after {previousCase}: " + Raw(scale));
+			}
+
+			var unpaused = await RecipeAtAsync(url, "pause-set", new Dictionary<string, string> { ["value"] = "off" }, cancellationToken).ConfigureAwait(false);
+			if (unpaused is not { } pauseAnswer || !IsTrue(pauseAnswer, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s pause could not be lifted after {previousCase}: " + Raw(unpaused));
+			}
+		}
+
+		// The clock writes are read back on a later frame: `Time.timeScale` and the pause field are read by every
+		// Update, and a probe in the same frame reads the value the row set, not the one the game runs.
+		await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		foreach (var (url, who) in Ends)
+		{
+			var clock = await RecipeAtAsync(url, "frame-clock", null, cancellationToken).ConfigureAwait(false);
+			if (clock is not { } reading || !IsTrue(reading, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s clock could not be read back after {previousCase}: " + Raw(clock));
+			}
+
+			var scale = Number(reading, "timeScale");
+			if (Math.Abs(scale - 1) > 0.01 || IsTrue(reading, "paused"))
+			{
+				throw new InvalidOperationException($"the {who}'s clock still reads timeScale={scale.ToString("0.###", CultureInfo.InvariantCulture)} paused={IsTrue(reading, "paused")} after the clock {previousCase} set was put back: " + Raw(clock));
+			}
+		}
+
+		return "both clocks are at normal speed and unpaused";
+	}
+
+	private static (double X, double Y) BodyPosition(JsonElement? reading)
+	{
+		if (reading is { ValueKind: JsonValueKind.Object } element
+			&& element.TryGetProperty("localBody", out var body)
+			&& body.ValueKind == JsonValueKind.Object
+			&& body.TryGetProperty("positionX", out var x) && x.ValueKind == JsonValueKind.Number
+			&& body.TryGetProperty("positionY", out var y) && y.ValueKind == JsonValueKind.Number)
+		{
+			return (x.GetDouble(), y.GetDouble());
+		}
+
+		return (0, 0);
+	}
+
+	private static double Number(JsonElement element, string property) =>
+		element.ValueKind == JsonValueKind.Object
+		&& element.TryGetProperty(property, out var value)
+		&& value.ValueKind == JsonValueKind.Number
+			? value.GetDouble()
+			: 0;
+
+	private static string ValueText(JsonElement value) => value.ValueKind switch
+	{
+		JsonValueKind.True => "true",
+		JsonValueKind.False => "false",
+		JsonValueKind.String => value.GetString() ?? string.Empty,
+		_ => value.GetRawText(),
+	};
+
+	private static string Raw(JsonElement? reading) => reading?.GetRawText() ?? "null";
 
 	public async Task<string> EnsureSingleMemberAsync(CancellationToken cancellationToken)
 	{
@@ -2000,7 +2601,8 @@ internal sealed class SessionDriver(Options options)
 	{
 		var closed = 0;
 		var asked = 0;
-		foreach (var url in new[] { _options.HostUrl, _options.MemberUrl })
+		var panels = new List<string>(2);
+		foreach (var (url, who) in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
 		{
 			asked++;
 			try
@@ -2010,6 +2612,12 @@ internal sealed class SessionDriver(Options options)
 				{
 					closed++;
 				}
+
+				var gamePanels = await CloseGamePanelsAsync(url, who, cancellationToken).ConfigureAwait(false);
+				if (gamePanels.Length > 0)
+				{
+					panels.Add(gamePanels);
+				}
 			}
 			catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
 			{
@@ -2017,9 +2625,36 @@ internal sealed class SessionDriver(Options options)
 			}
 		}
 
-		return asked == closed
+		var summary = asked == closed
 			? "our window was already down on both clients"
 			: $"our window was taken down on {closed} of {asked} client(s)";
+		return panels.Count == 0 ? summary : summary + "; " + string.Join("; ", panels);
+	}
+
+	/// <summary>
+	/// Closes the game's own medical, craft and trade panels on one client through their own close entries, and reports
+	/// only the ones that were open.
+	/// </summary>
+	/// <remarks>
+	/// Our window is not the only panel that eats a row's keys: the medical rows open the game's own WoundView through
+	/// CUO's remote medical view, and the game's pause key chain answers an open wound view before it pauses (measured
+	/// 2026-11-25: pause-clock pressed Escape onto the wound view medical-chart had left open, the view closed, and the
+	/// clock kept running). The close is CUO's own <c>RemoteMedicalView.Close</c>, run by the recipe
+	/// <c>tools/acceptance/recipes/close-wound-view.cs</c>.
+	/// </remarks>
+	private async Task<string> CloseGamePanelsAsync(string url, string who, CancellationToken cancellationToken)
+	{
+		var reading = await RecipeAtAsync(url, "close-wound-view", null, cancellationToken).ConfigureAwait(false);
+		if (reading is not { } answer || !IsTrue(answer, "ok"))
+		{
+			throw new InvalidOperationException($"the {who}'s game panels could not be closed: " + Raw(reading));
+		}
+
+		return answer.TryGetProperty("closed", out var which)
+			&& which.ValueKind == JsonValueKind.String
+			&& (which.GetString() ?? string.Empty) is { Length: > 0 } names
+				? $"{who}'s game panels closed ({names})"
+				: string.Empty;
 	}
 
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)

@@ -20,6 +20,9 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 {
 	public override string Name => "medical-tourniquet";
 
+	/// <summary>The seeded bleed, the tourniquet it stages and the bloodstopper its use consumes.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

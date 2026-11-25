@@ -27,6 +27,9 @@ internal sealed class MedicalCprCase : AcceptanceCase
 {
 	public override string Name => "medical-cpr";
 
+	/// <summary>The stopped heart and the injuries the row's own CPR leaves on both bodies.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

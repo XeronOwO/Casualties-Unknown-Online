@@ -15,6 +15,9 @@ internal sealed class EnemyKillCase : AcceptanceCase
 
 	public override string Name => "enemy-kill";
 
+	/// <summary>The wounds the kill test's own hits leave on the bodies it drives.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

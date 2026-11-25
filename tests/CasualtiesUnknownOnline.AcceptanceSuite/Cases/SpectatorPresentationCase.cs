@@ -15,6 +15,9 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 {
 	public override string Name => "spectator-presentation";
 
+	/// <summary>The wound the row seeds to put a body in front of a spectator, and the item it staged.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

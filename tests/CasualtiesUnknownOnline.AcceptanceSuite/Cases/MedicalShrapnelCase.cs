@@ -25,6 +25,9 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 {
 	public override string Name => "medical-shrapnel";
 
+	/// <summary>The seeded pieces, the pain the broken one applied, and the place the member was put at.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body | CaseLeftovers.Position;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 
@@ -65,13 +68,7 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		// sight (the same gate the push and carry gestures read). A batch leaves the two bodies far apart, so
 		// the row puts the member beside the host the way the other remote-body rows do, then lets it stand
 		// still — a body dropped on a tile keeps falling and the view refuses mid-fall (measured 2026-11-25).
-		var hostBody = await context.RecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
-		var hostX = BodyPosition(hostBody).X;
-		var hostY = BodyPosition(hostBody).Y;
-		await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", (hostX + 1.5).ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
+		context.Note("member placed: " + await context.Session.BringTheMemberBesideTheHostAsync("the remote view", cancellationToken).ConfigureAwait(false));
 		await SettleAsync(context, cancellationToken).ConfigureAwait(false);
 
 		// The chart only opens while the LOCAL body is awake: the game's own wound view refuses on a
@@ -153,7 +150,21 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 			", remaining " + remaining.ToString(CultureInfo.InvariantCulture) + "): " + Raw(after));
 
 		// The host's own line names the break and the damage it applied, which is the session doing the work.
-		var applied = FindLine(context.HostLogPath, "break-grasp applied", logStart);
+		// The log is buffered: a line's own timestamp can precede the moment its bytes reach the file (measured
+		// 2026-11-25: `break-grasp applied` was stamped 20.650 while the file still ended before it at 21.407, so a
+		// single read failed a row that had just watched the piece leave the limb). Poll the file, bounded.
+		var applied = string.Empty;
+		for (var wait = 0; wait < 50; wait++)
+		{
+			applied = FindLine(context.HostLogPath, "break-grasp applied", logStart);
+			if (applied.Length > 0)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(100), cancellationToken).ConfigureAwait(false);
+		}
+
 		context.Read("host-break-line", JsonSerializer.SerializeToElement(new { line = applied, pain }));
 		Require(applied.Length > 0,
 			"the host's log names no break-grasp application for this session (offset " + logStart.ToString(CultureInfo.InvariantCulture) +

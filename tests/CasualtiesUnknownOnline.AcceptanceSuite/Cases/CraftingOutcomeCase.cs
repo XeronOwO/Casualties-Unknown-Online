@@ -26,6 +26,9 @@ internal sealed class CraftingOutcomeCase : AcceptanceCase
 
 	public override string Name => "crafting-outcome";
 
+	/// <summary>The ingredient and the crafted result the row staged into a body.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override CaseCost Cost => CaseCost.NewWorld;
 
 

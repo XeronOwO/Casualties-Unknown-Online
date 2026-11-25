@@ -17,6 +17,13 @@ internal sealed class RunSettingsCase : AcceptanceCase
 
 	public override string Name => "run-settings";
 
+	/// <summary>
+	/// The wound the row seeds into a limb. The run settings it writes are the run's own table (the preset the row
+	/// applies) and are not undone here: the batch's leftover categories name the body, the bag, the hand, the
+	/// position, the rule switches and the clock.
+	/// </summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.Session.EnsureInWorldAsync(cancellationToken).ConfigureAwait(false);

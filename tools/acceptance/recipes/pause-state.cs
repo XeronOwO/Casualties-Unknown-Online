@@ -25,8 +25,9 @@
 	{
 		var pauseBind = KeyBinds.GetBind("pause");
 		bindName = pauseBind.ToString();
-		var seam = System.Type.GetType("CasualtiesUnknownOnline.Acceptance.VirtualInput, CasualtiesUnknownOnline.Acceptance");
-		var query = System.Type.GetType("CasualtiesUnknownOnline.GameAdapter.Acceptance.ButtonQuery, CasualtiesUnknownOnline.Acceptance");
+		var findType = new System.Func<string, System.Type>((simpleName) => { var assemblies = System.AppDomain.CurrentDomain.GetAssemblies(); for (var i = 0; i < assemblies.Length; i++) { System.Type[] types; try { types = assemblies[i].GetTypes(); } catch { continue; } for (var t = 0; t < types.Length; t++) { if (types[t].Name == simpleName) { return types[t]; } } } return null; });
+	var seam = findType("VirtualInput");
+		var query = findType("ButtonQuery");
 		var ask = seam == null || query == null ? null : seam.GetMethod("TryAnswerKey", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 		var answer = new System.Func<string, string>((name) => {
 			if (ask == null) { return "?"; }

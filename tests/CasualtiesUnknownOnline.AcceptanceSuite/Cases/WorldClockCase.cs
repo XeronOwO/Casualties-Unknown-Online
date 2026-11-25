@@ -13,6 +13,9 @@ internal sealed class WorldClockCase : AcceptanceCase
 {
 	public override string Name => "world-clock";
 
+	/// <summary>The speed the row sets on the world clock.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Clock;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var requested = await context.MemberRecipeAsync("world-time-request", cancellationToken, ("speed", "fast")).ConfigureAwait(false);

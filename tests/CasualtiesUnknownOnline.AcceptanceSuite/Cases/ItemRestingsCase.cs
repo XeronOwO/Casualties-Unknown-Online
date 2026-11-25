@@ -12,6 +12,9 @@ internal sealed class ItemRestingsCase : AcceptanceCase
 {
 	public override string Name => "item-restings";
 
+	/// <summary>The items the resting test staged and dropped.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The kernel's own world set before the drop, so the bandage can be found afterwards by the difference:

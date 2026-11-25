@@ -18,6 +18,9 @@ internal sealed class LockpickCase : AcceptanceCase
 
 	public override string Name => "lockpick";
 
+	/// <summary>The lockpick the row staged, and the place it put the member at to reach the lock.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands | CaseLeftovers.Position;
+
 	// Needs a lockable the run has not picked yet and a hold long enough to fill the game's progress;
 	// the registry places it before the cases that open containers for their own readings.
 

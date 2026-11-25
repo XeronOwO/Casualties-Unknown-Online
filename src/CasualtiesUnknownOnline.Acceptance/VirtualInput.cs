@@ -53,14 +53,15 @@ internal static class VirtualInput
 		internal bool DownPending;
 
 		/// <summary>
-		/// A staged KEY's press waits for the FIRST reader instead of a frame number. <c>PressKey</c> runs on the channel, not on
-		/// the game's main thread, so <c>Time.frameCount</c> there can be a frame that already passed and the frame-stamped edge
-		/// is never seen: <c>stage-bind bind=attack action=down</c> answered <c>answered:true</c> while the minigame's own
-		/// <c>UpdateHandVisuals</c> kept reading <c>handStartedClicking:false</c> (measured 2026-11-26, band-18). The flag is
-		/// cleared by the answer, so a held key still answers Down exactly once and the pause row's frame-rate toggling cannot
-		/// come back.
+		/// The game frame in which a staged KEY's press is read as "just pressed", anchored by the FIRST reader and then honoured
+		/// for every reader of that same frame. <c>PressKey</c> runs on the channel, not on the game's main thread, so
+		/// <c>Time.frameCount</c> there can name a frame that already passed; a stamp pinned to that frame is never seen
+		/// (<c>stage-bind bind=attack action=down</c> answered <c>answered:true</c> while the minigame's own
+		/// <c>UpdateHandVisuals</c> kept reading <c>handStartedClicking:false</c>, measured 2026-11-26, band-18). Anchoring on the
+		/// reader keeps the native meaning — one DOWN for one press, visible to every caller that frame — and a held key still
+		/// answers Down exactly once per press, so the pause row's frame-rate toggling cannot come back.
 		/// </summary>
-		internal bool EdgeForTheFirstReader;
+		internal int EdgeFrame = -1;
 		internal int DownFrame = -1;
 		internal int UpFrame = -1;
 	}
@@ -201,7 +202,7 @@ internal static class VirtualInput
 		state.DownPending = true;
 		state.DownFrame = UnityTime.frameCount + 1;
 		state.UpFrame = -1;
-		state.EdgeForTheFirstReader = true;
+		state.EdgeFrame = -1;
 		RecordKey(key, "down");
 	}
 
@@ -328,15 +329,24 @@ internal static class VirtualInput
 		// and is cleared once the frame has passed.
 		if (query == ButtonQuery.Down)
 		{
-			// A staged KEY's edge belongs to whoever asks first (see `EdgeForTheFirstReader`): the channel's own frame count is
-			// not the game's, so the stamp cannot be pinned to a frame that has not run yet.
-			if (state.EdgeForTheFirstReader)
+			// A staged KEY's edge belongs to the frame its first reader runs in (see `EdgeFrame`): the channel's own frame count
+			// is not the game's, so the stamp is anchored on the reader and honoured for every caller of that same frame.
+			if (state.EdgeFrame < 0 && state.DownPending)
 			{
-				state.EdgeForTheFirstReader = false;
+				state.EdgeFrame = UnityTime.frameCount;
+			}
+
+			if (state.EdgeFrame >= 0 && state.EdgeFrame == UnityTime.frameCount)
+			{
 				state.DownPending = false;
-				state.DownFrame = -1;
 				value = true;
 				return true;
+			}
+
+			if (state.EdgeFrame >= 0 && UnityTime.frameCount > state.EdgeFrame)
+			{
+				state.EdgeFrame = -1;
+				state.DownPending = false;
 			}
 
 			// The pending edge is a one-frame event, so it is dropped the moment the frame it belongs to has passed — a

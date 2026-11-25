@@ -1322,43 +1322,44 @@ internal sealed class SessionDriver(Options options)
 				return undoNote + "; ";
 			}
 
-			// The three facts a live pair answers with, printed when one of them says no: a rebuild costs a world load,
-			// and "no live pair" alone cannot say which probe sent it there (measured 2026-11-25: give-container-sound
-			// paid 29.5 s after the row before it had already been undone, and the report could not name the probe).
+			// Liveness is one fact: the host's run holds the member. What a row additionally wants — diggable ground
+			// under the feet, a slot a bag can take an item into — is a row precondition, repaired here when the repair
+			// is cheap and never a reason to give the world up. A rebuild costs a world load and answers the same way
+			// (measured 2026-11-25: one batch rebuilt the pair eight times, 230 s of its 371 s of world time, and seven
+			// of the eight answered "breakable ground=no" alone; the world that replaced it was only another lottery).
 			async Task<bool> IsLiveAsync()
 			{
 				var members = await ReadMembersAsync(cancellationToken).ConfigureAwait(false);
-				var ground = await GroundAsync().ConfigureAwait(false);
-				var slots = ground && await HasCarrySlotOrHealAsync(cancellationToken).ConfigureAwait(false);
-				if (members.Length > 0 && ground && slots)
+				if (members.Length > 0)
 				{
 					return true;
 				}
 
-				Timeline?.Invoke($"the pair is not live: roster={members.Length}, breakable ground={(ground ? "yes" : "no")}, carry slot={(slots ? "yes" : "no")}");
+				Timeline?.Invoke($"the pair is not live: the host's run holds {members.Length} member(s)");
 				return false;
 			}
 
-			// A host standing where no cell can be dug is a wrong place, not a wrong world: the save carries the host
-			// into a pod and the pod's floor does not answer the swing (measured 2026-11-25: a slice rebuilt the world
-			// three times, 28 s each, and every rebuilt world still answered "no breakable ground" — the pair had been
-			// left inside the pod). Placing the host on ground the world already has costs two calls; the world is only
-			// given up when it has no diggable ground within reach.
-			string? groundNote = null;
-			async Task<bool> GroundAsync()
+			// The two row preconditions, repaired on the world the pair already has: the host is carried to a cell the
+			// world can dig (the swing needs one), and a body whose slots cannot take an item is healed — the pair-wide
+			// heal restores a severed limb, and the slot lives on the limb. Each answer is a note: a precondition the
+			// world cannot meet is the row's own reading, never the reason to load another world.
+			async Task<string> PrepareAsync()
 			{
-				if (await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+				var notes = new List<string>(2);
+				if (!await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 				{
-					return true;
+					var placed = await MoveThePairOntoBreakableGroundAsync(previousCase, cancellationToken).ConfigureAwait(false);
+					notes.Add(placed ?? "the world has no diggable ground within reach of the pair, so the row reads its own ground probe");
 				}
 
-				groundNote ??= await MoveThePairOntoBreakableGroundAsync(previousCase, cancellationToken).ConfigureAwait(false)
-						?? "the world has no diggable ground the pair could be placed on";
+				var slots = await SlotNoteAsync(cancellationToken).ConfigureAwait(false);
+				if (slots.Length > 0)
+				{
+					notes.Add(slots);
+				}
 
-				return await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false);
+				return notes.Count == 0 ? string.Empty : string.Join("; ", notes) + "; ";
 			}
-
-			string GroundNote() => groundNote is null ? string.Empty : groundNote + "; ";
 
 			var hostState = await TryStateAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
 			var hostInWorld = hostState is { } host
@@ -1375,7 +1376,7 @@ internal sealed class SessionDriver(Options options)
 					var undone = await UndoAsync().ConfigureAwait(false);
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return undone + GroundNote() + "the pair was already live; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
+						return undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 							+ (keepCarried
 								? "; the carried set was kept for this row"
 								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
@@ -1390,7 +1391,7 @@ internal sealed class SessionDriver(Options options)
 					var undone = await UndoAsync().ConfigureAwait(false);
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return undone + GroundNote() + "the host kept its run; the member rejoined it: " + memberNote
+						return undone + await PrepareAsync().ConfigureAwait(false) + "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 							+ (keepCarried
 								? "; the carried set was kept for this row"
@@ -1403,12 +1404,12 @@ internal sealed class SessionDriver(Options options)
 				}
 			}
 
-			Timeline?.Invoke("no live pair before the case; rebuilding it");
+			Timeline?.Invoke("the host's run holds no member; rebuilding the pair");
 			var pair = await EnsurePairAsync(cancellationToken).ConfigureAwait(false);
 			// A rebuilt world answers bodies, bags and positions fresh, but the rule switches and the clock live in
 			// the process (or in the host's config), so the declared leftovers are still undone here.
 			var rebuiltUndone = await UndoAsync().ConfigureAwait(false);
-			return rebuiltUndone + GroundNote() + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
+			return rebuiltUndone + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
 				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
 				+ (keepCarried
 					? "; the carried set was kept for this row"
@@ -1560,13 +1561,20 @@ internal sealed class SessionDriver(Options options)
 		return false;
 	}
 
-	private async Task<bool> HasCarrySlotOrHealAsync(CancellationToken cancellationToken)
+	/// <summary>
+	/// Says how each body was made able to take an item, or which body could not be. A slot that answers
+	/// <c>canPickUp</c> false is owned by a limb the body lost, and the game's own <c>heal</c> writes skin and muscle
+	/// onto the limbs it finds without bringing a severed one back (<c>reversing/Assembly-CSharp/Assembly-CSharp/ConsoleScript.cs:530</c>);
+	/// CUO's pair-wide heal restores the limb, and the slot with it
+	/// (<c>src/CasualtiesUnknownOnline.GameAdapter/Character/LocalBodyReset.cs</c>). Both ends are asked, because the host
+	/// loses limbs in the same rows the member does. A body that still has no slot is a note for the row, never the
+	/// reason to load another world (measured 2026-11-25: the host answered "no slot" after a native heal and the
+	/// guarantee spent 30 s rebuilding a world that answered the same way).
+	/// </summary>
+	private async Task<string> SlotNoteAsync(CancellationToken cancellationToken)
 	{
-		// A slot that cannot take an item is a body that has lost the limb which owned it, and a character
-		// comes back from its own save with that loss: rebuilding the pair restores the same body. Each
-		// client's body is healed before the run is thrown away (measured 2026-11-22: the rows after the
-		// medical ones failed with "no-free-slot", and the host failed them too — "the host could not take
-		// a trashbag" — so both bodies are asked, not just the member's).
+		var notes = new List<string>(2);
+		var healed = false;
 		foreach (var (url, who) in new[] { (_options.HostUrl, "host"), (_options.MemberUrl, "member") })
 		{
 			if (await HasCarrySlotAsync(url, who, cancellationToken).ConfigureAwait(false))
@@ -1574,25 +1582,28 @@ internal sealed class SessionDriver(Options options)
 				continue;
 			}
 
-			Timeline?.Invoke("the " + who + " has no slot to take an item; healing its body before the pair is given up");
-			try
+			if (!healed)
 			{
-				await RecipeAtAsync(url, "native-heal", new Dictionary<string, string>(), cancellationToken)
-					.ConfigureAwait(false);
-			}
-			catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
-			{
-				Timeline?.Invoke("the " + who + "'s body could not be healed: " + exception.Message);
-				return false;
+				Timeline?.Invoke("the " + who + " has no slot to take an item; healing both bodies so a severed limb's slot comes back");
+				try
+				{
+					notes.Add(await HealBothBodiesAsync("the world guarantee", cancellationToken).ConfigureAwait(false));
+					healed = true;
+				}
+				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
+				{
+					notes.Add($"the pair could not be healed to bring the {who}'s slot back: {exception.Message}");
+					continue;
+				}
 			}
 
 			if (!await HasCarrySlotAsync(url, who, cancellationToken).ConfigureAwait(false))
 			{
-				return false;
+				notes.Add($"the {who}'s body has no slot that can take an item");
 			}
 		}
 
-		return true;
+		return string.Join("; ", notes);
 	}
 
 	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)
@@ -1971,11 +1982,12 @@ internal sealed class SessionDriver(Options options)
 
 	/// <summary>
 	/// Places the host on a cell the world already has and can be dug — the member follows — and says which cell it
-	/// used, or null when the world has no such cell within reach.
+	/// used, or null when the world has no such cell within reach. The search widens once a nearer radius answers
+	/// nothing, because a world that has diggable ground at all is not a world to throw away.
 	/// </summary>
 	private async Task<string?> MoveThePairOntoBreakableGroundAsync(string previousCase, CancellationToken cancellationToken)
 	{
-		foreach (var radius in new[] { 32, 64 })
+		foreach (var radius in new[] { 32, 64, 128 })
 		{
 			var found = await RecipeAtAsync(_options.HostUrl, "block-find-breakable", new Dictionary<string, string>
 			{
@@ -1986,7 +1998,8 @@ internal sealed class SessionDriver(Options options)
 			if (found is not { } reading || !IsTrue(reading, "ok")
 				|| !reading.TryGetProperty("cells", out var cells) || cells.ValueKind != JsonValueKind.Array)
 			{
-				return null;
+				Timeline?.Invoke($"the ground search found nothing within {radius} cells: " + Raw(found));
+				continue;
 			}
 
 			foreach (var cell in cells.EnumerateArray())

@@ -58,3 +58,12 @@ rule itself lives in its step file, so this page never restates a check.
 - The batch procedure itself is `docs/acceptance/workflow.md`; its own measured pitfalls (the `plays`-not-`names`
   count, the one-line recipe body, the settings menu that must exist before a tab is selected) live there, where a run
   reads them.
+- **2026-11-25, the batch's wall clock.** The batch has to fit eight minutes; when it cannot, the full run is not made
+  at all (the reader's own words are kept in the local rule file, not here). `all-11` measured 1071.4 s for 66 rows -
+  650.2 s of case work, 371 s of world builds inside eleven rows, 370.1 s of client stop/relaunch inside a row's span
+  but outside its measured wall, and 25.8 s of gaps. Eight of those world builds were one defect: the world guarantee
+  read "no diggable ground" and "no bag slot" as "the pair is not live" and loaded a new pair, though the host's run
+  still held the member. Liveness is now the roster alone, ground and slots are repaired on the world the pair has, and
+  the seven-row slice `ready-1` read 1.6-5.9 s per world guarantee against 25-31 s per rebuild.
+- **2026-11-25, a batch as a status check.** A batch was started with a dozen rows still red and had to be stopped; each
+  of those rows had already named itself in the previous batch, so the run bought no reading.

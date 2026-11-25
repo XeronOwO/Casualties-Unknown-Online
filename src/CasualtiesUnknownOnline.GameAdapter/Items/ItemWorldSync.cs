@@ -23,7 +23,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// materialization side in <see cref="ItemApplication"/>.
 /// </summary>
 internal sealed class ItemWorldSync(
-	ISessionControl session,
 	IItemControl items,
 	DropProtectionGuard guard,
 	ItemDropState dropState,
@@ -32,9 +31,9 @@ internal sealed class ItemWorldSync(
 	OperationTrace trace,
 	ItemReportCommitter reports,
 	ItemIdAllocator ids,
+	ItemDepartureReports departures,
 	ILogger<ItemWorldSync> log)
 {
-	private readonly ISessionControl _session = session;
 	private readonly IItemControl _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ItemDropState _dropState = dropState;
@@ -43,6 +42,7 @@ internal sealed class ItemWorldSync(
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly ItemIdAllocator _ids = ids;
+	private readonly ItemDepartureReports _departures = departures;
 	private readonly ILogger<ItemWorldSync> _log = log;
 
 	/// <summary>True while a REPLAY of a peer's fact is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool). A peer's inventory INTENT this client executes on its own objects answers it false, because that mutation is this client's own fact and must be reported like a local gesture's.</summary>
@@ -452,149 +452,15 @@ internal sealed class ItemWorldSync(
 	/// snapshot converges what it misses.</summary>
 	internal bool HasPendingDropReport => _dropState.HasReportOwed;
 
-	/// <summary>The world was left (scene switch / session end) — a pending departure cannot resolve anymore; cancel it so the operation trace stays balanced. Its own per-call set: the reset can run from a report's own call stack, the shape the flush's comment argues against for shared buffers.</summary>
-	internal void ResetPending()
-	{
-		var cancelled = new List<DropPendingState.Pending>();
-		_dropState.ResetAll(cancelled);
-		foreach (var departure in cancelled)
-		{
-			_trace.End(departure.Op, departure.ItemId, "ResetPending", "Cancelled", "WorldLeft");
-		}
-	}
+	/// <summary>The world was left (scene switch / session end) — a pending departure cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>
+	internal void ResetPending() => _departures.ResetPending();
 
-	internal void OnItemDropped(Item item)
-	{
-		if (IsReplayedFact || HarmonyTraverse.IsGenerating())
-		{
-			return;
-		}
+	internal void OnItemDropped(Item item) => _departures.OnItemDropped(item);
 
-		var itemId = EnsureItemId(item);
-		if (itemId == 0)
-		{
-			return;
-		}
+	internal void OnItemThrown(Item item) => _departures.OnItemThrown(item);
 
-		var op = _trace.NextOperationId();
-
-		if (_session.Role == SessionRole.Guest)
-		{
-			_guard.Mark(itemId); // the frozen copy must not be killed by the reconcile before the host's stream takes over
-
-			// Freeze the item at the drop spot — NO local simulation until the
-			// host's stream arrives (ItemPositionFollow switches it to local
-			// physics on its first tick). Without the freeze the copy diverges
-			// from the host's trajectory: the report travels for the latency,
-			// the host starts simulating from the drop spot, and a local copy
-			// that already rolled gets yanked back THROUGH the wall ("thrown
-			// item through the wall"). The frozen item plays the host's
-			// simulation from the same spot — same phase, no rewind. (The
-			// landmine argument from the earlier kinematic design is gone: the
-			// layer isolation + MineScriptPatches shield items from tripping
-			// mines, so local physics in the playback phase is safe.) The throw
-			// report reads rb.velocity AFTER ThrowItem ran; the kinematic body
-			// keeps the assigned property values. DropItem does not move the
-			// item (Body.cs:1441-1451), so the drop spot IS the reported
-			// position.
-			item.rb.bodyType = RigidbodyType2D.Kinematic;
-			item.rb.velocity = Vector2.zero;
-			item.rb.angularVelocity = 0f;
-		}
-
-		// The departure waits for the frame-end flush (the throw velocity lands a
-		// moment later and merges into ONE report). No flush of another item is
-		// forced here any more: the machine holds one entry PER ITEM, so a second
-		// drop in the same frame — which a same-frame flush cannot settle — no
-		// longer overwrites the first one's report (ticket
-		// `drop-pending-single-slot-overwrite`).
-		_trace.Begin(op, itemId, "OnItemDropped", "Drop");
-		_dropState.EnterDrop(itemId, item, item.transform.position, op, DropPendingState.Source.CarriedInventory);
-	}
-
-	internal void OnItemThrown(Item item)
-	{
-		if (IsReplayedFact || HarmonyTraverse.IsGenerating())
-		{
-			return;
-		}
-
-		var itemId = EnsureItemId(item);
-		if (itemId == 0)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Guest)
-		{
-			_guard.Mark(itemId);
-		}
-
-		if (_dropState.TryConsumeByThrow(item, out var thrown))
-		{
-			// Landed check: a throw with the item NOT a standalone world item
-			// (re-attached mid-flight — an inventory-internal sequence) never
-			// left the world; reporting it would materialize a phantom drop.
-			var status = IsStandaloneWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
-			_reports.CommitReport(itemId, thrown.Op, "OnItemThrown", status,
-				() =>
-				{
-					_reports.SendDropReport(itemId, item, thrown.Pos);
-					return 1;
-				},
-				"Drop", "Throw");
-			return;
-		}
-
-		// No matching pending drop — the pump already flushed it on a previous
-		// frame (a cross-frame DropItem → ThrowItem, rare) or a hook-order
-		// anomaly. Report alone anyway, or the item never enters the domain;
-		// the host's re-place covers the rare double report.
-		var op = _trace.NextOperationId();
-		var throwStatus = IsStandaloneWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
-		_reports.CommitReport(itemId, op, "OnItemThrown", throwStatus,
-			() =>
-			{
-				_reports.SendDropReport(itemId, item, (Vector2)item.transform.position);
-				return 1;
-			},
-			"Throw");
-	}
-
-	/// <summary>Next frame: every departure whose frame has passed reports now — the
-	/// one-frame wait lets the game's DropItem → ThrowItem sequence set the FINAL
-	/// velocity (a zero-velocity report materialized a ghost on the host, "dropped —
-	/// immediately desynced"), and it is what lets a container load re-home a
-	/// container's child first. One entry per item: two departures in one frame are
-	/// two reports. An item that meanwhile left the world as a whole (or that a
-	/// load re-homed) does not re-report.</summary>
-	internal void FlushPendingDrop()
-	{
-		if (!_dropState.HasPending)
-		{
-			return; // the common frame: nothing left a home, so nothing is due
-		}
-
-		// The due set is taken OUT of the machine before the first report goes out:
-		// a report RE-ENTERS this method (the item domain settles the deferred
-		// creation reports before an operation goes out, and this flush is one of
-		// those owners), and it then finds the machine short of exactly the entries
-		// this call is reporting — never a half-iterated shared buffer.
-		var due = new List<ItemDropState.Departure>();
-		_dropState.Settle(due);
-		foreach (var departure in due)
-		{
-			// Settle already verified the item is a standalone world item — the
-			// commit is Committed by construction.
-			var itemId = EnsureItemId(departure.Item);
-			_reports.CommitReport(itemId, departure.Op, "FlushPendingDrop", CommitStatus.Committed,
-				() =>
-				{
-					_reports.SendDropReport(itemId, departure.Item, departure.Pos);
-					return 1;
-				},
-				"Drop", "Flush");
-		}
-	}
+	/// <summary>Next frame: every departure whose frame has passed reports now — the one-frame wait lets the game's
+	/// DropItem → ThrowItem sequence set the final velocity, and lets a container load re-home a child first.</summary>
+	internal void FlushPendingDrop() => _departures.FlushPendingDrop();
 
 }

@@ -63,6 +63,9 @@ public class ContainerMovePairGateTests
 
 	private const string ItemWorldSyncFile = "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemWorldSync.cs";
 
+	/// <summary>The departure seam's own type since the split (the drop, the throw and their flush) — it owns the throw's departure resolution, so it is a carrier this gate must name.</summary>
+	private const string ItemDepartureReportsFile = "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemDepartureReports.cs";
+
 	/// <summary>The departure query the unload half registers through and the load half consumes.</summary>
 	private const string DepartureRegister = "_dropState.EnterDrop(";
 
@@ -134,7 +137,8 @@ public class ContainerMovePairGateTests
 		(ContainerItemSyncFile, "ContainerItemSync", 2), // a container load CONSUMES the departure (it IS the move); a replacing unload cancels it
 		(PickupSyncFile, "PickupSync", 1), // a landed pickup is a world pickup or a body-internal reorder — either way this report owns the move
 		(ItemSlotSyncFile, "ItemSlotSync", 1), // a wear / slot move / drag re-home reports the move itself
-		(ItemWorldSyncFile, "ItemWorldSync", 2), // a destruction cancels the departure; a throw consumes it
+		(ItemWorldSyncFile, "ItemWorldSync", 1), // a destruction cancels the departure
+		(ItemDepartureReportsFile, "ItemDepartureReports", 1), // …and the throw consumes it, in the type that owns the departure seam
 	];
 
 	/// <summary>The machine's resolution surface: the calls that take one item's pending departure out of the set.</summary>

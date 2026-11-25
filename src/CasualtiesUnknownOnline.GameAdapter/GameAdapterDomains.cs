@@ -347,7 +347,8 @@ internal sealed class GameAdapterDomains
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new BlockBreakPendingState();
 		TrapDrops = new TrapDropPendingState();
-		ItemWorldSync = new ItemWorldSync(session, items, DropGuard, itemDropState, blockBreakState, TrapDrops, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		var itemDepartures = new ItemDepartureReports(session, items, DropGuard, itemDropState, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemDepartureReports>());
+		ItemWorldSync = new ItemWorldSync(items, DropGuard, itemDropState, blockBreakState, TrapDrops, OperationTrace, itemReports, ItemIds, itemDepartures, loggerFactory.CreateLogger<ItemWorldSync>());
 		LimbItemTransform = new LimbItemTransform(session, items, loggerFactory.CreateLogger<LimbItemTransform>());
 		ItemSlotSync = new ItemSlotSync(items, session, itemDropState, ItemIds, OperationTrace, loggerFactory.CreateLogger<ItemSlotSync>());
 		ItemCustody = new ItemCustodyProjection(items, loggerFactory.CreateLogger<ItemCustodyProjection>());

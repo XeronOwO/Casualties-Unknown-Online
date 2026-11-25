@@ -552,20 +552,25 @@ internal static class InputQueryPatches
 	private static bool Probe(KeyCode key, VirtualInput.ButtonQuery query)
 	{
 		KeyQueries++;
-		if (VirtualInput.TryAnswerKey(key, query, out var value))
+		var staged = VirtualInput.TryAnswerKey(key, query, out var value);
+
+		// EVERY staged question is recorded, answered or not: a query the channel has no answer for is exactly the case that
+		// `KeyDownAnswers` could not show, and reading only the answered ones made the trail look like the game stopped asking
+		// (measured 2026-11-26: the bandage row's hand never saw a DOWN while the counter still moved).
+		if (query == VirtualInput.ButtonQuery.Down)
 		{
-			if (query == VirtualInput.ButtonQuery.Down)
+			lock (_Trail)
 			{
-				lock (_Trail)
+				_Trail.Enqueue(key + "@" + Time.frameCount.ToString(CultureInfo.InvariantCulture) + "=" + (staged ? (value ? "1" : "0") : "?"));
+				while (_Trail.Count > 48)
 				{
-					_Trail.Enqueue(key + "@" + Time.frameCount.ToString(CultureInfo.InvariantCulture) + "=" + (value ? "1" : "0"));
-					while (_Trail.Count > 48)
-					{
-						_Trail.Dequeue();
-					}
+					_Trail.Dequeue();
 				}
 			}
+		}
 
+		if (staged)
+		{
 			if (query == VirtualInput.ButtonQuery.Down && value)
 			{
 				KeyDownAnswers++;

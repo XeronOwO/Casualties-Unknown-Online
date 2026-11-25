@@ -109,5 +109,12 @@ public static class BandageHandDrive
 		var radians = Angle * Mathf.Deg2Rad;
 		var hand = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * Radius;
 		Traverse.Create(body).Field("handPos").SetValue(hand);
+
+		// The native physics pulls the hand for the rest of the frame (`BandageMinigame.cs:129-130`:
+		// `handVelocity += handPos.normalized * deltaTime`, then `handPos = handPos.normalized * 250f`), so a hand placed
+		// here and left with its old velocity drifts off the placement before the wrap reads it. Zeroing the velocity is
+		// what makes the placed angle the angle the game sees (measured 2026-11-26: `handPos` was placed at the roll but
+		// `handAngle` kept reading 75 for the whole gesture).
+		Traverse.Create(body).Field("handVelocity").SetValue(Vector2.zero);
 	}
 }

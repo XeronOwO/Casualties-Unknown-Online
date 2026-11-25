@@ -423,6 +423,57 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			obstacle == "",
 			$"the swing would meet {obstacle} before the block at {Describe(cell)}, so the game's own damage branch never runs: {Raw(ray)}");
 
+		// The cell the damage lands in is the cell of the SWING's hit point, not the one the crosshair names: a
+		// `Chunk` collider covers many cells, and `Body.cs:2162-2168` maps `hit.point + dir * 0.05f` to the block that
+		// loses damage. The row reads that answer one last time before it holds, so the cell it watches is the cell the
+		// game is about to hurt (measured 2026-11-25: the aimed cell stayed at damage -1 while the hit point stood one
+		// cell over and took the swings).
+		var landRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+		if (landRay is { } landed && FirstBlockCell(landed) is { } landsIn && landsIn != cell)
+		{
+			context.Note($"the swing's hit point lands in {Describe(landsIn)}, not in {Describe(cell)}: the row watches the cell the game hurts");
+			cell = landsIn;
+			ray = landed;
+		}
+
+		// A player whose swing meets nothing at all is standing on top of the block they aimed at: the hand's ray
+		// starts above the cell and passes over it, so the 4.5-unit reach never touches the block under the feet. The
+		// person steps back until the wall is in front of them (measured 2026-11-25: the aim sat on the cell centre,
+		// `swing-hits` answered count 0, and 117 swings hurt nothing at that cell while the damage went elsewhere).
+		for (var back = 0; back < 3 && !(ray is { } standing && FirstBlockCell(standing) is not null); back++)
+		{
+			var standingAt = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var awayX = Double(standingAt, "posX") - (cell.X + 0.5);
+			var awayY = Double(standingAt, "posY") - (cell.Y + 0.5);
+			var away = Math.Abs(awayX) >= Math.Abs(awayY)
+				? (awayX >= 0 ? "right" : "left")
+				: (awayY >= 0 ? "up" : "down");
+			await StageAsync(context, away, "down", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(400, cancellationToken).ConfigureAwait(false);
+			await StageAsync(context, away, "up", cancellationToken).ConfigureAwait(false);
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+			var reaim = await context.RecipeAsync(
+				"aim-at-cell",
+				cancellationToken,
+				("x", cell.X.ToString(CultureInfo.InvariantCulture)),
+				("y", cell.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			if (!(Boolean(reaim, "ok") && Double(reaim, "distance") < 0.5))
+			{
+				continue;
+			}
+
+			ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+			if (ray is { } stepped && FirstBlockCell(stepped) is { } meets && meets != cell)
+			{
+				context.Note($"stepped back to {Describe(meets)}: the hand meets that block, not {Describe(cell)}");
+				cell = meets;
+			}
+			else if (ray is { } clear && FirstBlockCell(clear) is not null)
+			{
+				context.Note($"stepped back: the hand now meets {Describe(cell)}");
+			}
+		}
+
 		// The game reads the attack while it is held: press, watch the crack stage rise, and keep holding
 		// until the cell is gone (the block's own health decides how long that takes). A person holds the mouse button,
 		// and the game's own attack path reads it as a BUTTON as well as a key, so the row stages both (measured
@@ -495,6 +546,28 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				if (attempt == 5)
 				{
 					context.Read("the swing the row drove", swungNow);
+				}
+
+				// The cell the game hurts is the cell of the swing's hit point, and the hit point moves with the aim: the
+				// crosshair sits on the cell the camera names, the hand's 4.5-unit ray enters the block a fraction over,
+				// and a `Chunk` collider covers many cells (measured 2026-11-25: the row held the attack on (4,469) while
+				// every hit point fell in (3,469), which is where the damage went). So the row watches the cell the game
+				// is really about to hurt: after each swing it reads the ray and follows the block the hand lands in.
+				var landedRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+				if (landedRay is { } land && FirstBlockCell(land) is { } handLandsIn && handLandsIn != cell)
+				{
+					var atLanding = await ReadCellAsync(context, handLandsIn, false, cancellationToken).ConfigureAwait(false);
+					context.Note($"the swing lands in {Describe(handLandsIn)}, not in {Describe(cell)}: the row follows the block the game hurts");
+					cell = handLandsIn;
+					if (Integer(atLanding, "damage") > 0)
+					{
+						damageRose = true;
+						hostAfter = atLanding;
+					}
+					else
+					{
+						hostBefore = atLanding;
+					}
 				}
 				if (attempt == 4)
 				{
@@ -1348,10 +1421,19 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		return nearest.Length == 0 ? "nothing at all" : nearest;
 	}
 
-	// Where a hit on the ray lands, in block coordinates: the ray's own origin and direction come back with it, so the
-	// point is `from + dir * distance` and the block is the cell that contains it.
+	// The cell the game really damages: the ray recipe answers the WORLD point of the hit, stepped 0.05 along the
+	// ray the way `Body.cs:2162-2168` steps it before it maps the point to a block, and a cell is the floor of that
+	// point — the same space `block-find-breakable`, `block-probe` and `aim-at-cell` answer in. A `Chunk` collider
+	// covers many cells, so the ray's own arithmetic (`from + dir * distance`) can name a neighbouring cell while the
+	// hit point stands inside another (measured 2026-11-25: the row held the attack on the cell its crosshair named
+	// and the swing's hit point fell one cell over, where the damage went).
 	private static (int X, int Y) BlockCellAt(JsonElement ray, JsonElement hit)
 	{
+		if (hit.TryGetProperty("damageWorldX", out var damageX) && hit.TryGetProperty("damageWorldY", out var damageY))
+		{
+			return ((int)Math.Floor(damageX.GetDouble()), (int)Math.Floor(damageY.GetDouble()));
+		}
+
 		var fromX = Double(ray, "fromX");
 		var fromY = Double(ray, "fromY");
 		var dirX = Double(ray, "dirX");

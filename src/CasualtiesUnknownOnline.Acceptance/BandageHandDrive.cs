@@ -143,10 +143,11 @@ public static class BandageHandDrive
 		var roll = rollField == null ? 0f : Convert.ToSingle(rollField.GetValue(current));
 
 		Frames++;
-		// The hand sits just ahead of the roll while it turns — inside the wrap's own twenty-degree windows on
-		// both sides — and comes back to the start once the roll is nearly done, which is its finish condition
-		// (`bandageAngle > 350 && angle < 90`).
-		Angle = roll > 350f ? 0.5f : roll + Lead;
+		// The hand walks the lap the way a circling hand does: it advances by the step on every physics pass, so the
+		// hand keeps moving relative to the roll and the roll follows it. Placing it at `roll + lead` on every pass held
+		// the hand still relative to the roll, and the roll parked at 300 with `holding` still true (measured
+		// 2026-11-26: `roll195hand210` … `roll300hand315`, bleed 24.5 to 20.6 and never stopped).
+		Angle = (Angle + Lead) % 360f;
 
 		var radians = Angle * Mathf.Deg2Rad;
 		// The game's own angle is measured with `Mathf.Atan2(handPos.x, handPos.y)` (the row's `handAngle`), so a hand at

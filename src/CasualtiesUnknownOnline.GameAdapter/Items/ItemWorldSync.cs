@@ -382,17 +382,12 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
-		// Remote clone inventory renders are display proxies. Their OnDestroy
-		// (the renderer prunes/replaces proxy children every snapshot) is not a
-		// player operation and must never report a destroy for the owner's real
-		// instance id — a guest destroying its clone of the host's bag contents
-		// used to delete the host's actual carried items on the host. The test is
-		// <see cref="IsDisplayProxy"/>, NOT an ancestor lookup of the tree marker
-		// alone: the renderer DEACTIVATES a stale proxy before its deferred
-		// destroy, and an inactive object answers no default component lookup —
-		// which is how batch `20261006-h`'s adopted proxy reported its own destroy
-		// (the item domain had stamped an id on it in the meantime) and left the
-		// item `terminal` in the kernel with no object in the world.
+		// Remote clone inventory renders are display proxies: their OnDestroy (the renderer
+		// prunes/replaces proxy children every snapshot) is not a player operation and must never
+		// report a destroy for the owner's real instance id. The test is IsDisplayProxy, NOT an
+		// ancestor lookup: the renderer DEACTIVATES a stale proxy before its deferred destroy, and
+		// an inactive object answers no component lookup — which is how batch `20261006-h`'s adopted
+		// proxy reported its own destroy and left the item `terminal` with no object in the world.
 		if (IsDisplayProxy(item))
 		{
 			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is a remote clone display proxy — destroy not reported.",
@@ -407,16 +402,25 @@ internal sealed class ItemWorldSync(
 			_trace.End(cancelledOp, OperationTrace.IdOf(item), "OnItemDestroyed", "Cancelled", "Destroyed");
 		}
 
-		// A standing item object is another member's carried item incarnated locally: its
-		// destruction is CUO's own retire step (the data moved the id elsewhere, or the session
-		// ended), never a fact about the owner's item — the owner's own client is the one that
-		// reports the item dying. The kernel's arbitration would already refuse this report
-		// (KernelCommandGateway.MayReportDestroyed answers Ignore for an item carried by another
-		// member), so sending it could only be loud, never right. The pending-drop bookkeeping above
-		// still runs: that is local state, not a report.
+		// A standing item object is another member's carried item incarnated locally: its destruction
+		// is CUO's own retire step, never a fact about the owner's item — the owner's client reports the
+		// item dying, and the kernel's arbitration would refuse this report anyway
+		// (KernelCommandGateway.MayReportDestroyed answers Ignore for an item carried by another member).
+		// The pending-drop bookkeeping above still runs: that is local state, not a report.
 		if (StandingItems.Is(item))
 		{
 			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is a standing item object — the local incarnation of another member's carried item, destroy not reported.",
+				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);
+			return;
+		}
+
+		// No live world on this side: the scene's own teardown (leaving, then the menu dropping the
+		// previous world's objects), never a player operation — and after a cut the restored kernel
+		// need not carry the id, so the report reads as a protocol violation (the continue row,
+		// batch 20261125: the guest's menu destroy 22:35:01.750 was refused 22:35:02.085).
+		if (!HarmonyTraverse.HasLiveWorld)
+		{
+			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) left with the world scene — destroy not reported.",
 				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);
 			return;
 		}
@@ -433,10 +437,9 @@ internal sealed class ItemWorldSync(
 				},
 				"Destroyed");
 		}
-		// else: a domain-less item (generation-time, restored, decayed) — its
-		// destruction is an ordinary event, not a player operation; no trace.
-		// (The old "Skipped/NoId" line flooded the log on every corpse-loot /
-		// clearing destroy.)
+		// else: a domain-less item (generation-time, restored, decayed) — its destruction is an
+		// ordinary event, not a player operation; no trace (the old "Skipped/NoId" line flooded
+		// the log on every corpse-loot / clearing destroy).
 	}
 
 	/// <summary>True while a departure report is REGISTERED, NOT yet sent, and still OWED (the item is a standalone

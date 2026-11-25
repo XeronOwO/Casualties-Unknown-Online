@@ -225,8 +225,21 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				cancellationToken,
 				("mode", "start"),
 				("radius", "250"),
-				("step", stepToTheRoll.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				("step", "-6")).ConfigureAwait(false);
 			context.Read("hand parked on the roll", park);
+			// Walk the hand INTO the roll's window before the press: `step` is the recipe's per-frame increment (not the angle to
+			// arrive at), so a delta of -75 stepped the hand past the window and round to 269 degrees (measured 2026-11-26,
+			// band-23). Six degrees a frame reaches the window from 75 in about a dozen frames.
+			for (var attempt = 0; attempt < 30; attempt++)
+			{
+				var now = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				if (Math.Abs(Number(now, "handAngle") - Number(now, "angle")) <= 20)
+				{
+					break;
+				}
+
+				await Task.Delay(60, cancellationToken).ConfigureAwait(false);
+			}
 			// The wrap's hold is a KEY bind, not a mouse button: MinigameBase stamps handStartedClicking from
 			// Input.GetKeyDown(KeyBinds.GetBind("attack")) and the staged MOUSE never reaches it (2026-11-26: holding
 			// stayed false for the whole gesture while a staged mouse press held the pointer).

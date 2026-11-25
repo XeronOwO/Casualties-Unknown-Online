@@ -473,7 +473,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// starts above the cell and passes over it, so the 4.5-unit reach never touches the block under the feet. The
 		// person steps back until the wall is in front of them (measured 2026-11-25: the aim sat on the cell centre,
 		// `swing-hits` answered count 0, and 117 swings hurt nothing at that cell while the damage went elsewhere).
-		for (var back = 0; back < 3 && !(ray is { } standing && FirstBlockCell(standing) is not null); back++)
+		// The ray read above was taken with the hands full. Dropping the supplies changes what the hand meets — the pile
+		// lands where the body stands (measured 2026-11-26, `.acceptance/wf-14`: the hold ran against a cell whose line
+		// began with `dogfood(Clone)` at distance 0) — so the step-back below judges the ray as it is now.
+		ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+		context.Read("host-swing-ray-after-dropping", ray);
+		for (var back = 0; back < 6 && (!(ray is { } standing && FirstBlockCell(standing) is not null) || MeetsALooseItem(ray)); back++)
 		{
 			var standingAt = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 			var awayX = Double(standingAt, "posX") - (cell.X + 0.5);
@@ -1397,6 +1402,26 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		}
 
 		await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Whether the first thing the hand's ray meets is a loose item rather than the block behind it. The row drops
+	/// the starting supplies at its feet before it swings (`empty-hands`), and the pile can stand in the ray: measured
+	/// 2026-11-26 (`.acceptance/wf-13`), the hold ran against a cell whose line read
+	/// <c>{"tag":"Untagged","layer":"Item","distance":3.805}</c> and the cell's damage never moved. A player steps
+	/// around their own pile; so does the row.
+	/// </summary>
+	private static bool MeetsALooseItem(JsonElement? reading)
+	{
+		if (reading is not { } ray || !ray.TryGetProperty("hits", out var hits) || hits.ValueKind != JsonValueKind.Array
+			|| hits.GetArrayLength() == 0)
+		{
+			return false;
+		}
+
+		var first = hits[0];
+		return first.TryGetProperty("layer", out var layer) && layer.ValueKind == JsonValueKind.String
+			&& string.Equals(layer.GetString(), "Item", StringComparison.Ordinal);
 	}
 
 	private static string FirstObstacle(JsonElement ray, (int X, int Y) cell)

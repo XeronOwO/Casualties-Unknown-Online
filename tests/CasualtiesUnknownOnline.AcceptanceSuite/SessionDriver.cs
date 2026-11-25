@@ -586,6 +586,9 @@ internal sealed class SessionDriver(Options options)
 		var hostRunId = StateUInt64(hostState, "runId");
 		var memberRunId = StateUInt64(state, "runId");
 		var sameRun = hostRunId != 0 && memberRunId == hostRunId;
+		// Named when the member had to leave a world to reach this run: after a continue the two run
+		// ids are the reading, and without them the cost of the rejoin is not attributable.
+		string? runNote = null;
 		if (IsTrue(state, "inWorld") && hostCarriesLocal && sameRun)
 		{
 			return "the member was already in the host's run";
@@ -607,6 +610,7 @@ internal sealed class SessionDriver(Options options)
 			// so it leaves and joins the host's current one. The leave races the scene, and the
 			// joiner refuses while THIS client is still generating a world ("IP-direct start
 			// refused: a world is running or generating"), so the wait is the judge.
+			runNote = $"the member was in the world on run {memberRunId} while the host was on run {hostRunId}, so it left that world";
 			await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 			await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
 			state = await ActionAsync(_options.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
@@ -648,11 +652,14 @@ internal sealed class SessionDriver(Options options)
 				var memberRun = StateUInt64(state, "runId");
 				if (listed && hostRun != 0 && memberRun == hostRun)
 				{
-					return $"the suite joined the member to the host's run after {deadline.Elapsed.TotalSeconds:F1}s";
+					return runNote is null
+						? $"the suite joined the member to the host's run after {deadline.Elapsed.TotalSeconds:F1}s"
+						: $"{runNote}; the suite joined the member to the host's run after {deadline.Elapsed.TotalSeconds:F1}s";
 				}
 
 				if (memberRun != hostRun)
 				{
+					runNote ??= $"the member was in the world on run {memberRun} while the host was on run {hostRun}, so it left that world";
 					await TryActionAsync(_options.MemberUrl, "leave-world", cancellationToken).ConfigureAwait(false);
 					await WaitWorldExitAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
 					continue;

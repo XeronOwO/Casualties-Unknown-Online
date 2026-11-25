@@ -230,6 +230,44 @@ internal static partial class Program
 	/// save rows failed with "the cut did not commit" and the cause was already gone when the run
 	/// ended. Names are kept apart per row so a later row cannot overwrite the first failure's log.
 	/// </summary>
+	private static async Task SaveRowWindowAsync(
+		SessionDriver session,
+		Options options,
+		string outputDirectory,
+		string caseName,
+		long mark,
+		string side)
+	{
+		var path = Path.Combine(outputDirectory, $"{side}-window-{caseName}.json");
+		if (mark < 0)
+		{
+			await File.WriteAllTextAsync(path, $"the {side} log was not marked for this row, so its window is unknown").ConfigureAwait(false);
+			return;
+		}
+
+		try
+		{
+			var url = string.Equals(side, "host", StringComparison.Ordinal) ? options.HostUrl : options.MemberUrl;
+			var window = await session.LogSinceAsync(url, mark, CancellationToken.None).ConfigureAwait(false);
+			var text = new StringBuilder();
+			text.Append("errors: ").Append(window.Errors).Append('\n');
+			text.Append("warnings: ").Append(window.Warnings).Append('\n');
+			text.Append("first warning: ").Append(window.FirstWarning).Append('\n');
+			text.Append("first error: ").Append(window.FirstError).Append('\n');
+			await File.WriteAllTextAsync(path, text.ToString()).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
+		{
+			await File.WriteAllTextAsync(path, $"the {side} window could not be read: {exception.Message}").ConfigureAwait(false);
+		}
+	}
+
+	/// <summary>
+	/// The row's own log mark, kept for the failure artefact. The row writes it right after it marks
+	/// both logs; a row that never marked has no entry, which the saver reports as unknown.
+	/// </summary>
+	private static readonly Dictionary<string, (long Host, long Member)> RowLogMarks = new(StringComparer.Ordinal);
+
 	private static async Task TrySaveHostTailAsync(
 		SessionDriver session,
 		Options options,
@@ -241,6 +279,17 @@ internal static partial class Program
 			var tail = await session.LogTailAsync(options.HostUrl, string.Empty, 6000, CancellationToken.None).ConfigureAwait(false);
 			var path = Path.Combine(outputDirectory, $"host-log-{caseName}.json");
 			await File.WriteAllTextAsync(path, tail?.ToString() ?? "(the host answered no log lines)").ConfigureAwait(false);
+
+			// The row's own window, not only the tail: the counts and `firstError` the row was judged on
+			// come from `LogSinceAsync(mark)`, and the tail is a different set of lines (measured
+			// 2026-11-26, `.acceptance/budget-1` run-settings: the bare member NullReferenceException the
+			// count saw was not in the 200 saved tail lines). A window that cannot be read is written as
+			// the reason, never left as "no errors".
+			if (RowLogMarks.TryGetValue(caseName, out var marks))
+			{
+				await SaveRowWindowAsync(session, options, outputDirectory, caseName, marks.Host, "host").ConfigureAwait(false);
+				await SaveRowWindowAsync(session, options, outputDirectory, caseName, marks.Member, "member").ConfigureAwait(false);
+			}
 
 			// The member's own log too: a row can fail on an exception that only the member's client raised
 			// (measured 2026-11-25: run-settings failed on a member-side NullReferenceException and the report
@@ -441,6 +490,8 @@ internal static partial class Program
 				memberMark = -1L;
 				markProblem ??= $"member log could not be marked: {exception.Message}";
 			}
+
+			RowLogMarks[acceptanceCase.Name] = (hostMark, memberMark);
 
 			// A case gets a hard budget of its own. Every wait inside a row has one, but a row can still leave the run
 			// parked — an await that never comes back costs the whole batch its report (measured 2026-11-22, `every-17`:

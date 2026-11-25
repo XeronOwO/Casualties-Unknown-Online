@@ -2013,7 +2013,23 @@ internal sealed class SessionDriver(Options options)
 				throw new InvalidOperationException($"the member could not be placed beside the host after {because}: " + Raw(placed));
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+			// A body put down under the host is not on the ground yet: it falls, and a row that hands the item over
+			// while the member is still in the air gives it to a body that is no longer where it was placed (measured
+			// 2026-11-26, `.acceptance/twenty-3`: the give was refused at 93.1 units, the member's body ninety blocks
+			// below the spot the placement had reported). The wait is the body's own state, not a clock: it ends when
+			// the body stands still.
+			var settleDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(1.5);
+			while (true)
+			{
+				var settling = await RecipeAtAsync(_options.MemberUrl, "body-read", null, cancellationToken).ConfigureAwait(false);
+				if ((settling is { } still && StandsStill(still)) || DateTime.UtcNow > settleDeadline)
+				{
+					break;
+				}
+
+				await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
+			}
+
 			var hostAfter = BodyPosition(await RecipeAtAsync(_options.HostUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
 			var memberAfter = BodyPosition(await RecipeAtAsync(_options.MemberUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
 			(lastHostX, lastHostY) = hostAfter;
@@ -2040,6 +2056,24 @@ internal sealed class SessionDriver(Options options)
 
 		throw new InvalidOperationException(
 			$"the member could not be put back with the host after {because}: it still stands {(lastDistance).ToString("0.0", CultureInfo.InvariantCulture)} units away, and the host's own line of sight reads {(lastSight ? "clear" : "blocked")} (host {lastHostX:0.0},{lastHostY:0.0}; member {lastMemberX:0.0},{lastMemberY:0.0})");
+	}
+
+	/// <summary>Whether a body reads as standing on the ground and not still falling.</summary>
+	private static bool StandsStill(JsonElement reading)
+	{
+		if (reading.ValueKind != JsonValueKind.Object
+			|| !reading.TryGetProperty("localBody", out var body)
+			|| body.ValueKind != JsonValueKind.Object)
+		{
+			return false;
+		}
+
+		if (!body.TryGetProperty("standing", out var standing) || standing.ValueKind != JsonValueKind.True)
+		{
+			return false;
+		}
+
+		return Math.Abs(Number(body, "velocityX")) + Math.Abs(Number(body, "velocityY")) < 0.5;
 	}
 
 	/// <summary>Asks the product's own visibility gate for this client's line to the member.</summary>

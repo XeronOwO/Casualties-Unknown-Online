@@ -23,6 +23,9 @@ internal sealed class BlockBreakSoundCase : AcceptanceCase
 
 	public override string Name => "block-break-sound";
 
+	/// <summary>This row breaks or places blocks, so it needs a cell the world can dig under the pair.</summary>
+	public override bool NeedsDiggableGround => true;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 

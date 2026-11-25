@@ -1226,10 +1226,11 @@ internal sealed class SessionDriver(Options options)
 		CancellationToken cancellationToken,
 		CaseLeftovers leftovers,
 		string previousCase,
-		IReadOnlyDictionary<string, string> rulesBaseline)
+		IReadOnlyDictionary<string, string> rulesBaseline,
+		bool needsDiggableGround)
 	{
 		var closed = await CloseOurPanelAsync(cancellationToken).ConfigureAwait(false);
-		var note = await EnsureLiveWorldCoreAsync(cancellationToken, leftovers, previousCase, rulesBaseline).ConfigureAwait(false);
+		var note = await EnsureLiveWorldCoreAsync(cancellationToken, leftovers, previousCase, rulesBaseline, needsDiggableGround).ConfigureAwait(false);
 		return closed + "; " + note;
 	}
 
@@ -1298,7 +1299,8 @@ internal sealed class SessionDriver(Options options)
 		CancellationToken cancellationToken,
 		CaseLeftovers leftovers,
 		string previousCase,
-		IReadOnlyDictionary<string, string> rulesBaseline)
+		IReadOnlyDictionary<string, string> rulesBaseline,
+		bool needsDiggableGround)
 	{
 		BeginSetup();
 		var clock = Stopwatch.StartNew();
@@ -1353,10 +1355,19 @@ internal sealed class SessionDriver(Options options)
 			// world can dig (the swing needs one), and a body whose slots cannot take an item is healed — the pair-wide
 			// heal restores a severed limb, and the slot lives on the limb. Each answer is a note: a precondition the
 			// world cannot meet is the row's own reading, never the reason to load another world.
+			// A row that never digs does not pay the ground probe or its repair. Ground under the feet is a
+			// precondition of the block family alone; every other row was paying 3.5-7.8 s of repair whenever the
+			// world's own ground probe answered none (measured 2026-11-26 in a twenty-row slice: twelve repairs),
+			// and the repair's own placement could fail a row that never touched a block (radiation-line failed its
+			// setup on a repair it did not need).
 			async Task<string> PrepareAsync()
 			{
 				var notes = new List<string>(2);
-				if (!await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
+				if (!needsDiggableGround)
+				{
+					Timeline?.Invoke("  " + Stage("ground probe: skipped (the row does not dig)"));
+				}
+				else if (!await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 				{
 					Timeline?.Invoke("  " + Stage("ground probe: none"));
 					var placed = await MoveThePairOntoBreakableGroundAsync(previousCase, cancellationToken).ConfigureAwait(false);

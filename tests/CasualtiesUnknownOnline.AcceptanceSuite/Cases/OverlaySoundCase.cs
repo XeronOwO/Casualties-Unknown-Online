@@ -15,6 +15,9 @@ internal sealed class OverlaySoundCase : AcceptanceCase
 {
 	public override string Name => "overlay-sound";
 
+	/// <summary>This row breaks or places blocks, so it needs a cell the world can dig under the pair.</summary>
+	public override bool NeedsDiggableGround => true;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.Session.ActionAsync(context.Session.HostUrl, "close-window", cancellationToken).ConfigureAwait(false);

@@ -27,6 +27,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	/// </summary>
 	public override CaseLeftovers Leaves => CaseLeftovers.Hands | CaseLeftovers.Body;
 
+	/// <summary>This row breaks blocks, so it needs a cell the world can dig under the pair.</summary>
+	public override bool NeedsDiggableGround => true;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		// The install report says whether the game's own attack method had its key reads rewritten at all; a zero there

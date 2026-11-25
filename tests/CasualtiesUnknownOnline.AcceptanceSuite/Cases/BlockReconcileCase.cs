@@ -16,6 +16,9 @@ internal sealed class BlockReconcileCase : AcceptanceCase
 {
 	public override string Name => "block-reconcile";
 
+	/// <summary>This row breaks or places blocks, so it needs a cell the world can dig under the pair.</summary>
+	public override bool NeedsDiggableGround => true;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

@@ -377,7 +377,8 @@ internal static partial class Program
 				CancellationToken.None,
 				runChangedByTheLastRow ? CaseLeftovers.None : leftByTheLastRow,
 				previousCase,
-				rulesBaseline).ConfigureAwait(false));
+				rulesBaseline,
+				acceptanceCase.NeedsDiggableGround).ConfigureAwait(false));
 			// A fresh run is paid only when the last row changed the run (it left the world or continued a save): the
 			// next row would otherwise start inside whatever that row left behind. A row does NOT get a fresh run just
 			// because it wants a clean world — one world build is 25–35 s, and giving sixty rows their own world turned a
@@ -1051,6 +1052,15 @@ internal abstract class AcceptanceCase
 	/// world the row before it made, which is how rows that pass alone failed in the batch (measured 2026-11-25).
 	/// </summary>
 	public virtual CaseLeftovers Leaves => CaseLeftovers.None;
+
+	/// <summary>
+	/// Whether the row's own reading needs a cell of diggable ground under the pair (the block family: it breaks,
+	/// places or swings at a block). Only those rows pay the guarantee's ground probe and, when the world has none
+	/// within reach, the host's move to a cell it can dig; every other row was paying that repair for a precondition
+	/// it never reads (measured 2026-11-26: twelve repairs in a twenty-row slice, and one row failed its setup inside
+	/// a repair it did not need).
+	/// </summary>
+	public virtual bool NeedsDiggableGround => false;
 
 
 	// (No "runs in the batch" switch: acceptance is one run over every registered case — a case that

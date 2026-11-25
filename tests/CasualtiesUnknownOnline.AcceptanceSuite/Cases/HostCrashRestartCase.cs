@@ -17,6 +17,9 @@ internal sealed class HostCrashRestartCase : AcceptanceCase
 {
 	public override string Name => "host-crash-restart";
 
+	/// <summary>This row breaks or places blocks, so it needs a cell the world can dig under the pair.</summary>
+	public override bool NeedsDiggableGround => true;
+
 	public override CaseCost Cost => CaseCost.ClientRestart;
 
 

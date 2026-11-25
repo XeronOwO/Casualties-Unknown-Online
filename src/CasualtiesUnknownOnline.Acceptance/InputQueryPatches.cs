@@ -165,6 +165,28 @@ internal static class InputQueryPatches
 			}
 		}
 
+		// The bandage wrap's start edge: `MinigameBase.Update` asks `Input.GetKeyDown` for the attack bind
+		// (`MinigameBase.cs:167`) at one call site outside HandleAttacks, so a staged press never started the
+		// hand (measured 2026-11-26: sixty recorded frames of `started=false` while the wrap was running).
+		var minigameUpdate = AccessTools.Method(typeof(MinigameBase), "Update");
+		if (minigameUpdate == null)
+		{
+			report.Add("MinigameBase.Update: no method on this build");
+		}
+		else
+		{
+			try
+			{
+				ResetReplacementCount();
+				harmony.Patch(minigameUpdate, transpiler: new HarmonyMethod(typeof(InputQueryPatches), nameof(TranspileKeyReads)));
+				report.Add("MinigameBase.Update: patched, " + _handleInputReplacements.ToString(CultureInfo.InvariantCulture) + " call(s) replaced");
+			}
+			catch (Exception exception)
+			{
+				report.Add("MinigameBase.Update: FAILED " + DescribeFailure(exception));
+			}
+		}
+
 		// The click path of the world (a crate, a door): `HandleStartDragging` is where a use actually happens, so the
 		// acceptance assembly counts its entries and the usable object it was handed (see `ClickGates`).
 		var startDragging = AccessTools.Method(typeof(PlayerCamera), "HandleStartDragging");

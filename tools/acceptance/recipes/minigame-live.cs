@@ -21,6 +21,7 @@
 	var body = "{\"ok\":true,\"hasMain\":true,\"kind\":\"" + kind + "\""
 		+ ",\"handClicking\":" + (clicking ? "true" : "false")
 		+ ",\"handStarted\":" + (started ? "true" : "false")
+		+ ",\"holding\":" + ((current.GetType().GetField("holdingBandage") != null && (bool)current.GetType().GetField("holdingBandage").GetValue(current)) ? "true" : "false")
 		+ ",\"handMagnitude\":" + magnitude.ToString("0.###", inv)
 		// The hand's own inputs: `UpdateHandVisuals` bails when the body is unconscious
 		// (`MinigameBase.cs:206`), and the physics step scales both rates by it (`:147-154`), so a

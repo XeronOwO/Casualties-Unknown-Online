@@ -252,6 +252,27 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				Boolean(drive, "ok"),
 				"the hand drive could not start: " + Raw(drive) + "; ring radius on screen " + radius.ToString("0.#", CultureInfo.InvariantCulture));
 
+			// The game reads its own start edge inside the minigame (`MinigameBase.cs:167` asks
+			// `Input.GetKeyDown(KeyBinds.GetBind("attack"))`), and the press that opened the wrap happened before
+			// the wrap existed, so no edge was there to read. The hand now orbits the roll: release and press
+			// again so the edge lands where the game is looking (measured 2026-11-26 05:45: the press answers
+			// `keyDown:false` in its own frame because `VirtualInput.PressKey` shows the edge on the next frame).
+			await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+			await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "release-key"),
+				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
+			await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "press-key"),
+				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+				("button", "0")).ConfigureAwait(false);
+
 			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
 			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand
 			// stops relative to the roll (2026-11-22: one 20-degree step in a 21 s gesture, `angle 0.832`, fill 0.002 —

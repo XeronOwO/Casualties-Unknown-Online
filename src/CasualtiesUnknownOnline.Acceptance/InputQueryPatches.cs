@@ -212,8 +212,12 @@ internal static class InputQueryPatches
 		// this build (see the type's header). The same call-site replacement therefore has to be applied to it as well: without this a
 		// staged press can hold a world gesture and never the hand of a minigame (measured 2026-11-01: `minigame-live` read
 		// handClicking=False with a press staged at the ring).
-		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals", [typeof(bool)])
-			?? AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals")
+		// The build has <c>public void UpdateHandVisuals()</c>, no parameters
+		// (<c>reversing/release-1.0.2/Assembly-CSharp/MinigameBase.cs:164</c>): the parameterised lookup
+		// logged "Could not find method for type MinigameBase and name UpdateHandVisuals and parameters (bool)"
+		// on every install (measured 2026-11-26: band-13's member log carried it as the row's first warning),
+		// so the lookup starts with the declared shape.
+		var updateHandVisuals = AccessTools.Method(typeof(MinigameBase), "UpdateHandVisuals")
 			?? FirstDeclaredMethod(typeof(MinigameBase), "UpdateHandVisuals");
 		if (updateHandVisuals == null)
 		{

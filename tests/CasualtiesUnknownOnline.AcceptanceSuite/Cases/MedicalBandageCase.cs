@@ -248,6 +248,11 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);
 			await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+			// Which replaced call site took the staged edge, and in which frame: `keyDownAnswers` moves without the hand's own
+			// `UpdateHandVisuals` ever seeing it (measured 2026-11-26, band-21), so the trail names the frame of every DOWN probe.
+			context.Read(
+				"the down probes",
+				await context.MemberRecipeAsync("down-trail", cancellationToken).ConfigureAwait(false));
 			var drive = await context.MemberRecipeAsync(
 				"bandage-hand",
 				cancellationToken,

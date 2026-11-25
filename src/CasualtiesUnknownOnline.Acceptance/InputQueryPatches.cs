@@ -544,11 +544,40 @@ internal static class InputQueryPatches
 	/// One query from the replaced call site: counted ALWAYS, answered from the staged state when that key is staged, and handed to the
 	/// real <c>UnityEngine.Input</c> otherwise. The count is what makes a zero honest.
 	/// </summary>
+	private static readonly Queue<string> _Trail = new Queue<string>();
+
+	/// <summary>The last DOWN questions the replaced call sites asked, oldest first: `key@frame=answer`.</summary>
+	internal static string TrailText
+	{
+		get
+		{
+			lock (_Trail)
+			{
+				return string.Join(";", _Trail);
+			}
+		}
+	}
+
 	private static bool Probe(KeyCode key, VirtualInput.ButtonQuery query)
 	{
 		KeyQueries++;
 		if (VirtualInput.TryAnswerKey(key, query, out var value))
 		{
+			if (query == VirtualInput.ButtonQuery.Down)
+			{
+				// A staged key's DOWN question, answered or not, with the frame and the answer. `KeyDownAnswers` alone could not
+				// say which replaced call site took the edge (`handStartedClicking` stayed false while the counter moved, band-21),
+				// so the trail keeps the last probes and a recipe reads them.
+				lock (_Trail)
+				{
+					_Trail.Enqueue(key + "@" + UnityEngine.Time.frameCount.ToString(CultureInfo.InvariantCulture) + "=" + (value ? "1" : "0"));
+					while (_Trail.Count > 48)
+					{
+						_Trail.Dequeue();
+					}
+				}
+			}
+
 			if (query == VirtualInput.ButtonQuery.Down && value)
 			{
 				KeyDownAnswers++;

@@ -274,6 +274,25 @@ internal static class VirtualInput
 	/// <summary>The same question for a KEY: false when the key is not staged, so the real keyboard answers.</summary>
 	internal static bool TryAnswerKey(KeyCode key, ButtonQuery query, out bool value)
 	{
+		// The mouse buttons are staged on ONE store but read through TWO: <see cref="Press(string)"/> and every
+		// button reader go through <see cref="Buttons"/>, while the minigame's own hand update asks
+		// <c>Input.GetKey/GetKeyDown/GetKeyUp(KeyBinds.GetBind("attack"))</c>, a KeyCode question
+		// (<c>reversing/release-1.0.2/Assembly-CSharp/MinigameBase.cs:164-167</c>). Without this mapping the key store
+		// never holds Mouse0 and the bandage's start edge never answered, even with the press staged and the reader
+		// patched (measured 2026-11-26: band-14 asked the key store 464 times and every answer was false).
+		var stagedAsButton = key switch
+		{
+			KeyCode.Mouse0 => 0,
+			KeyCode.Mouse1 => 1,
+			KeyCode.Mouse2 => 2,
+			_ => -1,
+		};
+		if (stagedAsButton >= 0 && !Keys.ContainsKey(key) && Buttons.TryGetValue(stagedAsButton, out var buttonState))
+		{
+			value = AnswerFor(buttonState, query);
+			return true;
+		}
+
 		if (!Keys.TryGetValue(key, out var state))
 		{
 			value = false;

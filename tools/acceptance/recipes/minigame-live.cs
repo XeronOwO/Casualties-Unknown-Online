@@ -63,6 +63,10 @@
 	var sprite = current.GetType().GetField("bandageSprite", flags);
 	if (angle != null) { body += ",\"angle\":" + System.Convert.ToSingle(angle.GetValue(current)).ToString("0.###", inv); }
 	if (holding != null) { body += ",\"holding\":" + (System.Convert.ToBoolean(holding.GetValue(current)) ? "true" : "false"); }
+	// The wrap's own frames, read after the frame's updates: the two flags `MinigameBase.Update` sets and the
+	// state the item's minigame copied from them on that frame (`BandageHandDrive.UpdateTraceText`).
+	var drive = System.AppDomain.CurrentDomain.GetAssemblies();
+	for (var d = 0; d < drive.Length; d++) { var trace = drive[d].GetType("CasualtiesUnknownOnline.Acceptance.BandageHandDrive"); if (trace == null) { continue; } var frames = trace.GetProperty("UpdateTraceText", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public); if (frames != null) { body += ",\"frames\":\"" + System.Convert.ToString(frames.GetValue(null, null)) + "\""; } break; }
 	// The hand's own direction, in the same degrees the roll is measured in, so a reading says whether
 	// the hand is inside the roll's 20-degree window without the reader redoing the trigonometry.
 	if (magnitude > 0.001f) { body += ",\"handAngle\":" + ((((UnityEngine.Mathf.Atan2(main.handPos.x, main.handPos.y) * 57.29578f) + 360f) % 360f)).ToString("0.###", inv); }

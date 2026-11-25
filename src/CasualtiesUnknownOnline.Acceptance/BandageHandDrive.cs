@@ -56,7 +56,7 @@ public static class BandageHandDrive
 		// the update is the only way to see whether the frame the edge landed on was the frame the wrap read
 		// (measured 2026-11-26: the row's samples never showed `handStarted`, while the channel answered the DOWN).
 		var updateHolder = AccessTools.TypeByName("MinigameBase");
-		var updateMethod = updateHolder == null ? null : AccessTools.Method(updateHolder, "Update");
+		var updateMethod = updateHolder == null ? null : AccessTools.Method(updateHolder, "UpdateHandVisuals");
 		if (updateMethod != null)
 		{
 			harmony.Patch(updateMethod, postfix: new HarmonyMethod(typeof(BandageHandDrive), nameof(AfterMinigameBaseUpdate)));

@@ -1217,13 +1217,12 @@ internal sealed class SessionDriver(Options options)
 	/// </remarks>
 	public async Task<string> EnsureLiveWorldAsync(
 		CancellationToken cancellationToken,
-		bool keepCarried,
 		CaseLeftovers leftovers,
 		string previousCase,
 		IReadOnlyDictionary<string, string> rulesBaseline)
 	{
 		var closed = await CloseOurPanelAsync(cancellationToken).ConfigureAwait(false);
-		var note = await EnsureLiveWorldCoreAsync(cancellationToken, keepCarried, leftovers, previousCase, rulesBaseline).ConfigureAwait(false);
+		var note = await EnsureLiveWorldCoreAsync(cancellationToken, leftovers, previousCase, rulesBaseline).ConfigureAwait(false);
 		return closed + "; " + note;
 	}
 
@@ -1290,7 +1289,6 @@ internal sealed class SessionDriver(Options options)
 
 	private async Task<string> EnsureLiveWorldCoreAsync(
 		CancellationToken cancellationToken,
-		bool keepCarried,
 		CaseLeftovers leftovers,
 		string previousCase,
 		IReadOnlyDictionary<string, string> rulesBaseline)
@@ -1376,10 +1374,7 @@ internal sealed class SessionDriver(Options options)
 					var undone = await UndoAsync().ConfigureAwait(false);
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
-							+ (keepCarried
-								? "; the carried set was kept for this row"
-								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
+						return undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -1392,10 +1387,7 @@ internal sealed class SessionDriver(Options options)
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
 						return undone + await PrepareAsync().ConfigureAwait(false) + "the host kept its run; the member rejoined it: " + memberNote
-							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
-							+ (keepCarried
-								? "; the carried set was kept for this row"
-								: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
+							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 				catch (Exception exception) when (exception is DriverException or InvalidOperationException or IOException)
@@ -1410,10 +1402,7 @@ internal sealed class SessionDriver(Options options)
 			// the process (or in the host's config), so the declared leftovers are still undone here.
 			var rebuiltUndone = await UndoAsync().ConfigureAwait(false);
 			return rebuiltUndone + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
-				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false)
-				+ (keepCarried
-					? "; the carried set was kept for this row"
-					: "; " + await ClearCarriedAsync(cancellationToken).ConfigureAwait(false));
+				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 		}
 		finally
 		{
@@ -1604,19 +1593,6 @@ internal sealed class SessionDriver(Options options)
 		}
 
 		return string.Join("; ", notes);
-	}
-
-	private async Task<string> ClearCarriedAsync(CancellationToken cancellationToken)
-	{
-		var reading = await RecipeAtAsync(_options.MemberUrl, "clear-carried",
-			new Dictionary<string, string> { ["slots"] = "6" }, cancellationToken).ConfigureAwait(false);
-		if (reading is not { } answer || !IsTrue(answer, "ok"))
-		{
-			return "the member's carried set could not be cleared";
-		}
-
-		return "the member's carried set was cleared"
-			+ (answer.TryGetProperty("dropped", out var dropped) ? " (" + dropped.GetInt32().ToString(CultureInfo.InvariantCulture) + " dropped)" : string.Empty);
 	}
 
 	/// <summary>The two clients a leftover can be written on, in the order the rows read them.</summary>

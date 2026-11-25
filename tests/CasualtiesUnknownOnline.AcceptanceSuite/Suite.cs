@@ -370,7 +370,6 @@ internal static partial class Program
 			// slots). A row that changes the run has its leftovers undone with the run, so it declares none.
 			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(
 				CancellationToken.None,
-				acceptanceCase.NeedsStartingKit,
 				runChangedByTheLastRow ? CaseLeftovers.None : leftByTheLastRow,
 				previousCase,
 				rulesBaseline).ConfigureAwait(false));
@@ -977,11 +976,6 @@ internal abstract class AcceptanceCase
 	public abstract string Name { get; }
 
 	public virtual LaunchKind Launch => LaunchKind.Warm;
-
-	/// <summary>
-	/// Whether this row reads the game's starting kit, which the run's own pre-case sweep would otherwise drop.
-	/// </summary>
-	public virtual bool NeedsStartingKit => false;
 
 	/// <summary>
 	/// True when the row leaves the run itself changed — it continued a save, restarted the host, ended

@@ -6,6 +6,11 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 
 - Start the clients once and judge every row the batch set out to; a batch that judged no row failed — build the
   capability first.
+- **The batch fits in eight minutes or it is not run.** Suite wall is a red line: a full-suite run is allowed only at
+  8 minutes (480 s) or under, read from the suite's own report. Seventeen minutes per batch is one reading a day, which
+  is no reading at all; a batch that cannot fit is not run, and the rows it would judge are judged in slices of six to
+  ten until the cost is gone. The bar is met by removing the cost the measurement names — never by skipping rows, by
+  letting a row judge another, or by calling a red row green.
 - At most two batches per row, then the next ticket; two batches without a reading means the code, not the fixture.
 - For a diagnosis, run one case at a time; the batch is for rows that are already individually ready — not how a case
   that is not yet understood gets its evidence.

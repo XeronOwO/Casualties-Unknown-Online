@@ -94,8 +94,15 @@ public static class BandageHandDrive
 		catch (Exception exception)
 		{
 			// A throw inside a Harmony prefix is logged on every frame; the drive stops instead and the case's own
-			// reading reports the untouched hand.
+			// reading reports the untouched hand. The reason also goes into the frame trace, because a Unity warning
+			// does not reach the row's report (measured 2026-11-26: the drive stopped on its first frame and every
+			// reading looked like the game had simply ignored the hand).
 			Active = false;
+			lock (UpdateTrace)
+			{
+				UpdateTrace.Enqueue("err:" + exception.GetType().Name + ":" + exception.Message);
+			}
+
 			Debug.LogWarning("[Acceptance] the bandage hand drive stopped: " + exception.Message);
 		}
 	}

@@ -287,7 +287,7 @@ internal static class VirtualInput
 			KeyCode.Mouse2 => 2,
 			_ => -1,
 		};
-		if (stagedAsButton >= 0 && !Keys.ContainsKey(key) && Buttons.TryGetValue(stagedAsButton, out var buttonState))
+		if (stagedAsButton >= 0 && Buttons.TryGetValue(stagedAsButton, out var buttonState))
 		{
 			value = AnswerFor(buttonState, query);
 			return true;

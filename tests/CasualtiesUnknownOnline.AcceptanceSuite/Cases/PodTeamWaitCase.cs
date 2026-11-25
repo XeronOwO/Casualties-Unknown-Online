@@ -15,6 +15,9 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 {
 	public override string Name => "pod-team-wait";
 
+	/// <summary>The wait places the member a hundred units away to hold up the pod, and its refusal paths leave it there.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Position;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)

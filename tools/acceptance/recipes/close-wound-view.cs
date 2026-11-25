@@ -29,7 +29,12 @@
 	});
 	const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 	var camera = PlayerCamera.main;
-	if (camera == null) { return "{\"ok\":false,\"error\":\"no-player-camera\"}"; }
+	if (camera == null)
+	{
+		// No camera means no world on this client, and a panel cannot be open without one: the menu the fresh-run
+		// rows start from is the pair's own waiting room, not a leftover to undo.
+		return "{\"ok\":true,\"closed\":\"\",\"world\":false}";
+	}
 	var field = new System.Func<string, object>((name) => {
 		var info = camera.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
 		return info == null ? null : info.GetValue(camera);

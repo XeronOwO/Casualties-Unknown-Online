@@ -59,10 +59,6 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		Require(limb >= 0, "no healthy limb of the member's body can take seeded shrapnel");
 
 		const int pieces = 3;
-		var seeded = await context.MemberRecipeAsync("seed-shrapnel", cancellationToken, ("limb", Number(limb)), ("count", Number(pieces))).ConfigureAwait(false);
-		context.Read("seeded-shrapnel", seeded);
-		Require(Boolean(seeded, "ok") && NumberValue(seeded, "shrapnel") >= pieces,
-			"the member's limb did not take the seeded shrapnel: " + Raw(seeded));
 
 		// The host's own view of the member is a remote body: it opens only while the member is in the host's
 		// sight (the same gate the push and carry gestures read). A batch leaves the two bodies far apart, so
@@ -70,6 +66,37 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		// still — a body dropped on a tile keeps falling and the view refuses mid-fall (measured 2026-11-25).
 		context.Note("member placed: " + await context.Session.BringTheMemberBesideTheHostAsync("the remote view", cancellationToken).ConfigureAwait(false));
 		await SettleAsync(context, cancellationToken).ConfigureAwait(false);
+
+		// Seed AFTER the placement, never before: the placement writes the member's transform on its own client,
+		// and the host's record of that body — which by then still holds the limb with no pieces — is written
+		// back over it. Measured 2026-11-25: the pieces seeded before the move were gone from both sides by the
+		// time the view opened (`remote-wound-special mode=open` read `"shrapnel":0` while the seed had answered
+		// 3), and the operator's hand then had nothing to grab.
+		var seeded = await context.MemberRecipeAsync("seed-shrapnel", cancellationToken, ("limb", Number(limb)), ("count", Number(pieces))).ConfigureAwait(false);
+		context.Read("seeded-shrapnel", seeded);
+		Require(Boolean(seeded, "ok") && NumberValue(seeded, "shrapnel") >= pieces,
+			"the member's limb did not take the seeded shrapnel: " + Raw(seeded));
+
+		// The seeded count reaches the operator on the member's next character report (1 Hz). Wait for the
+		// authority's own copy to carry it before the view opens, or the view is built from a snapshot without
+		// the pieces and the special starts with nothing to remove.
+		var carried = 0f;
+		for (var wait = 0; wait < 25; wait++)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			var saved = await context.RecipeAsync("limb-read", cancellationToken, ("source", "saved"), ("limb", Number(limb)), ("target", memberId)).ConfigureAwait(false);
+			carried = NumberValue(saved, "shrapnel");
+			if (carried >= pieces)
+			{
+				break;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+		}
+
+		Require(carried >= pieces,
+			"the host's record of the member's limb never carried the seeded pieces, so no operator could see them: " + carried.ToString(CultureInfo.InvariantCulture));
+
 
 		// The chart only opens while the LOCAL body is awake: the game's own wound view refuses on a
 		// sleeping observer (`MedicalChartCase` measured the refusal the same way). This row used to walk

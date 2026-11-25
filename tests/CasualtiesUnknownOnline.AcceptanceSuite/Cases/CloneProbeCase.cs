@@ -15,6 +15,9 @@ internal sealed class CloneProbeCase : AcceptanceCase
 
 	public override string Name => "clone-probe";
 
+	/// <summary>The member walks for nine hundred milliseconds and is not put back; the distance it ends at is floor data.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Position;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		_ = await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

@@ -1697,7 +1697,11 @@ internal sealed class SessionDriver(Options options)
 
 			if ((leftovers & CaseLeftovers.Position) != 0)
 			{
-				undone.Add(await BringTheMemberBesideTheHostAsync(previousCase, cancellationToken).ConfigureAwait(false));
+				// A row that took the member out of the world (a leave, a death screen) leaves no member to place; the
+				// world guarantee joins it again, and the join is what puts it beside the host.
+				undone.Add(await SingleMemberIdAsync(cancellationToken).ConfigureAwait(false) is null
+					? $"the member was not in the world after {previousCase}, so the world guarantee joins it"
+					: await BringTheMemberBesideTheHostAsync(previousCase, cancellationToken, requireSight: false).ConfigureAwait(false));
 			}
 
 			if ((leftovers & CaseLeftovers.Rules) != 0)
@@ -1882,8 +1886,15 @@ internal sealed class SessionDriver(Options options)
 	/// in range, because a wall stood between the pair). The spots are tried in order until the pair is both together and
 	/// in sight, and the one that answered is what the note names.
 	/// </para>
+	///
+	/// <para>
+	/// The row-side calls ask for sight because the gesture the row is about to send needs it. The rollback asks only
+	/// for the pair to be together (<c>requireSight: false</c>): a row that left the member somewhere else has its
+	/// declared fact — the position — put back, and whether a wall stands between them is the next row's own business,
+	/// read by that row's gate and not by this one's probe.
+	/// </para>
 	/// </remarks>
-	public async Task<string> BringTheMemberBesideTheHostAsync(string because, CancellationToken cancellationToken)
+	public async Task<string> BringTheMemberBesideTheHostAsync(string because, CancellationToken cancellationToken, bool requireSight = true)
 	{
 		var memberId = await SingleMemberIdAsync(cancellationToken).ConfigureAwait(false)
 			?? throw new InvalidOperationException($"the pair is not one host and one member, so the place {because} left the member in cannot be undone");
@@ -1894,12 +1905,20 @@ internal sealed class SessionDriver(Options options)
 			throw new InvalidOperationException($"the host's body has no position, so the place {because} left the member cannot be undone: " + Raw(host));
 		}
 
-		// The host's own floor, one step to either side, then just above: every spot is ground the host is already
-		// standing on or next to, so none can land on a roof, and the physics settles the body where it stands.
+		// The host's own floor, one step to either side, then the diagonals, then the host's own cell: every spot is
+		// ground the host is already standing on or next to, so none can land on a roof, and the physics settles the
+		// body where it stands. A cave corridor of one cell admits the cells along it and refuses the rest, which is
+		// why the list is walked in full before the row is failed (measured 2026-11-25: a member 2.3 units away on the
+		// diagonal read "no-line-of-sight" from every one-perpendicular spot).
 		var (lastHostX, lastHostY) = (0.0, 0.0);
 		var (lastMemberX, lastMemberY) = (0.0, 0.0);
+		var lastDistance = double.MaxValue;
 		var lastSight = false;
-		foreach (var (offsetX, offsetY) in new[] { (1.5, 0.0), (-1.5, 0.0), (0.0, 1.5), (0.0, 0.5) })
+		foreach (var (offsetX, offsetY) in new[]
+		{
+			(1.5, 0.0), (-1.5, 0.0), (0.0, 1.5), (0.0, -1.5), (0.5, 0.0), (-0.5, 0.0),
+			(1.5, 1.5), (-1.5, 1.5), (1.5, -1.5), (-1.5, -1.5), (0.0, 0.0),
+		})
 		{
 			var placed = await RecipeAtAsync(_options.MemberUrl, "body-place", new Dictionary<string, string>
 			{
@@ -1916,23 +1935,28 @@ internal sealed class SessionDriver(Options options)
 			var memberAfter = BodyPosition(await RecipeAtAsync(_options.MemberUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
 			(lastHostX, lastHostY) = hostAfter;
 			(lastMemberX, lastMemberY) = memberAfter;
-			var distance = Math.Sqrt(
+			lastDistance = Math.Sqrt(
 				((lastMemberX - lastHostX) * (lastMemberX - lastHostX))
 				+ ((lastMemberY - lastHostY) * (lastMemberY - lastHostY)));
-			if (distance > 4)
+			if (lastDistance > 4)
 			{
 				continue;
+			}
+
+			if (!requireSight)
+			{
+				return $"the member was placed {(lastDistance).ToString("0.0", CultureInfo.InvariantCulture)} units from the host";
 			}
 
 			lastSight = await CanSeeTheMemberAsync(memberId, cancellationToken).ConfigureAwait(false);
 			if (lastSight)
 			{
-				return $"the member was placed {(distance).ToString("0.0", CultureInfo.InvariantCulture)} units from the host, in the host's sight";
+				return $"the member was placed {(lastDistance).ToString("0.0", CultureInfo.InvariantCulture)} units from the host, in the host's sight";
 			}
 		}
 
 		throw new InvalidOperationException(
-			$"the member could not be put back with the host after {because}: it still stands {(Math.Sqrt(((lastMemberX - lastHostX) * (lastMemberX - lastHostX)) + ((lastMemberY - lastHostY) * (lastMemberY - lastHostY)))).ToString("0.0", CultureInfo.InvariantCulture)} units away, and the host's own line of sight reads {(lastSight ? "clear" : "blocked")} (host {lastHostX:0.0},{lastHostY:0.0}; member {lastMemberX:0.0},{lastMemberY:0.0})");
+			$"the member could not be put back with the host after {because}: it still stands {(lastDistance).ToString("0.0", CultureInfo.InvariantCulture)} units away, and the host's own line of sight reads {(lastSight ? "clear" : "blocked")} (host {lastHostX:0.0},{lastHostY:0.0}; member {lastMemberX:0.0},{lastMemberY:0.0})");
 	}
 
 	/// <summary>Asks the product's own visibility gate for this client's line to the member.</summary>
@@ -2650,11 +2674,31 @@ internal sealed class SessionDriver(Options options)
 			throw new InvalidOperationException($"the {who}'s game panels could not be closed: " + Raw(reading));
 		}
 
-		return answer.TryGetProperty("closed", out var which)
+		var closed = answer.TryGetProperty("closed", out var which)
 			&& which.ValueKind == JsonValueKind.String
 			&& (which.GetString() ?? string.Empty) is { Length: > 0 } names
 				? $"{who}'s game panels closed ({names})"
 				: string.Empty;
+
+		// The medical surface is the panel AND the operation behind it: a row that stopped on its assertion leaves the
+		// compression or the injection open on the authority, and the next medical row's start is refused by name
+		// ("Operator already has an active medical operation") while its minigame still opens locally. The cancel is the
+		// product's own entry, not a new leftover category: it is the same per-row close as the panel's.
+		var operation = await RecipeAtAsync(url, "medical-operation-cancel", null, cancellationToken).ConfigureAwait(false);
+		if (operation is not { } cancelled || !IsTrue(cancelled, "ok"))
+		{
+			throw new InvalidOperationException($"the {who}'s open medical operation could not be cancelled: " + Raw(operation));
+		}
+
+		if (cancelled.TryGetProperty("cancelled", out var ids)
+			&& ids.ValueKind == JsonValueKind.String
+			&& (ids.GetString() ?? string.Empty) is { Length: > 0 } operationIds)
+		{
+			var note = $"{who}'s open medical operation was cancelled ({operationIds})";
+			return closed.Length == 0 ? note : closed + "; " + note;
+		}
+
+		return closed;
 	}
 
 	public async Task<JsonElement> ActionAsync(string url, string action, CancellationToken cancellationToken, params (string Name, string Value)[] extraArguments)

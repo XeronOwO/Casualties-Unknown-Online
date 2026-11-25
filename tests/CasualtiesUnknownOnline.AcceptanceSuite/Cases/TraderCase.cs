@@ -14,6 +14,9 @@ internal sealed class TraderCase : AcceptanceCase
 {
 	public override string Name => "trader";
 
+	/// <summary>The purchase lands in the buyer's own body through the game's auto-pickup, container or hand slot.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Bag | CaseLeftovers.Hands;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		var list = await context.RecipeAsync("trade-drive", cancellationToken, ("mode", "list"), ("index", "0"), ("type", "")).ConfigureAwait(false);

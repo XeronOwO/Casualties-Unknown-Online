@@ -14,6 +14,9 @@ internal sealed class MineBlastCase : AcceptanceCase
 {
 	public override string Name => "mine-blast";
 
+	/// <summary>The blast wounds the body it goes off beside: limbs, shock, bleeding, and nothing heals it back.</summary>
+	public override CaseLeftovers Leaves => CaseLeftovers.Body;
+
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		await context.WaitForHostBodyAsync(cancellationToken).ConfigureAwait(false);

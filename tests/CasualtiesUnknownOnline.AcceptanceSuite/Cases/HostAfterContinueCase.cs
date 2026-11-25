@@ -281,8 +281,19 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 	private static async Task<string?> WaitForLogAsync(string path, long offset, string needle, TimeSpan budget, CancellationToken cancellationToken)
 	{
 		var deadline = DateTime.UtcNow + budget;
+		var lastLength = -1L;
 		while (DateTime.UtcNow < deadline)
 		{
+			// Only a log that grew can carry the line: poll its length first and read the file when it
+			// changed (measured 2026-11-26: the row sat a whole 300 ms tick after the line had landed).
+			var length = LogLength(path);
+			if (length == lastLength)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
+				continue;
+			}
+
+			lastLength = length;
 			var text = ReadLog(path);
 			var index = text.LastIndexOf(needle, StringComparison.Ordinal);
 			if (index >= 0 && index >= offset)
@@ -292,7 +303,7 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 				return text[lineStart..(lineEnd >= 0 ? lineEnd : text.Length)].Trim();
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
 		}
 
 		return null;

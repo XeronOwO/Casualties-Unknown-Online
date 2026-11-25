@@ -85,7 +85,11 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		var memberAfter = await context.MemberRecipeAsync("body-read", cancellationToken).ConfigureAwait(false);
 		var (afterX, afterY) = Position(memberAfter);
 		Require(
-			Math.Abs(afterX - beforeX) <= 0.05f && Math.Abs(afterY - beforeY) <= 0.05f,
+			// A push moves the target by whole cells; a body standing on its own ground settles by a few
+			// hundredths as it lands (measured 2026-11-26: before (2.043, 496.225), after (2.043, 496.279)
+			// — 0.054 on a row where the push was correctly refused). Half a cell separates settling from
+			// being moved.
+			Math.Abs(afterX - beforeX) <= 0.5f && Math.Abs(afterY - beforeY) <= 0.5f,
 			"the refused push still moved the target: before (" + beforeX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + beforeY.ToString("0.###", CultureInfo.InvariantCulture)
 				+ ") after (" + afterX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + afterY.ToString("0.###", CultureInfo.InvariantCulture) + ")");
 

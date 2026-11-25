@@ -132,8 +132,30 @@ internal static class SaveContinueCycle
 	public static async Task<string> WaitForLogAsync(string path, int mark, string needle, TimeSpan budget, CancellationToken cancellationToken)
 	{
 		var deadline = DateTime.UtcNow + budget;
+		var lastLength = -1L;
 		while (DateTime.UtcNow < deadline)
 		{
+			// A file that has not grown cannot hold the line yet: read its length first and pay the whole
+			// file only when it changed. At 60 ms a poll this turns a fixed 300 ms tick into a wait that
+			// returns on the write that carries the line (measured 2026-11-26: the continue rows poll a
+			// multi-megabyte log and sat on the tick after the line had already landed).
+			var length = -1L;
+			try
+			{
+				length = new FileInfo(path).Length;
+			}
+			catch (Exception)
+			{
+				// A log that is being rotated is read on the next poll.
+			}
+
+			if (length == lastLength)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
+				continue;
+			}
+
+			lastLength = length;
 			var text = ReadLog(path);
 			var from = Math.Min(Math.Max(mark, 0), text.Length);
 			var index = text.IndexOf(needle, from, StringComparison.Ordinal);
@@ -144,7 +166,7 @@ internal static class SaveContinueCycle
 				return text[lineStart..(lineEnd >= 0 ? lineEnd : text.Length)].Trim();
 			}
 
-			await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
+			await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
 		}
 
 		return string.Empty;

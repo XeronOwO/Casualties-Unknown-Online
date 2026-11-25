@@ -822,6 +822,12 @@
 		var errors = 0;
 		var firstWarning = "";
 		var firstError = "";
+		// The stack under the first error is what says which line threw: the marker line alone reads
+		// "NullReferenceException: Object reference not set to an instance of an object" and names nothing
+		// (measured 2026-11-26, `.acceptance/budget-1` run-settings: six errors, a bare NRE on the member).
+		var errorDetail = new System.Text.StringBuilder();
+		var collecting = false;
+		var detailLines = 0;
 		using (var sinceStream = new System.IO.FileStream(sincePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
 		using (var sinceReader = new System.IO.StreamReader(sinceStream)) {
 			if (since < 0L || since > sinceStream.Length) { since = 0L; }
@@ -833,10 +839,24 @@
 					if (firstWarning.Length == 0) { firstWarning = sinceLine; }
 				} else if (sinceLine.StartsWith("[Error", System.StringComparison.Ordinal)) {
 					errors++;
-					if (firstError.Length == 0) { firstError = sinceLine; }
+					if (firstError.Length == 0) {
+						firstError = sinceLine;
+						collecting = true;
+						detailLines = 0;
+					} else {
+						collecting = false;
+					}
+				} else if (collecting) {
+					if (sinceLine.StartsWith("[", System.StringComparison.Ordinal) || detailLines >= 8) {
+						collecting = false;
+					} else {
+						errorDetail.Append('\n').Append(sinceLine);
+						detailLines++;
+					}
 				}
 			}
 		}
+		if (errorDetail.Length > 0) { firstError += errorDetail.ToString(); }
 
 		putRaw(fields, escape, "ok", "true");
 		putRaw(fields, escape, "warnings", warnings.ToString(System.Globalization.CultureInfo.InvariantCulture));

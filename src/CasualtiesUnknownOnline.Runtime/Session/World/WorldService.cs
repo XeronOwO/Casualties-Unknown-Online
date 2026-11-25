@@ -95,6 +95,9 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 		// SAME instance, so both see one set of tables.
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, new KernelWorldGenerationSource(kernelAuthority), kernelProtocol, nativeWorldFacts);
 		_log = log;
+		// The two edges a member can learn a new run on: the entry instruction, and a checkpoint set that
+		// adopts a run with no instruction in front of it (the continued run answers on the second one).
+		kernelProtocol.RunAdoptedWithoutInstruction += FireEntryNamesAnotherRun;
 		_blockReports = new BlockReportChannel(session, sender, nativeWorldFacts, new KernelWorldGenerationSource(kernelAuthority), log);
 		_facts = new WorldFactLifecycle(_messages, log);
 		_reportFallbacks = new GuestReportFallbacks(session);

@@ -47,6 +47,9 @@ public interface IKernelProtocolControl
 	/// </summary>
 	void AdoptHostRunEpoch(ulong runEpoch);
 
+	/// <summary>A restored checkpoint set carried a run this side had no entry instruction for, and the run was adopted from the set (the run coordinator takes the member out of the previous run's world on this edge).</summary>
+	event Action<ulong>? RunAdoptedWithoutInstruction;
+
 	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
 
 	event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;

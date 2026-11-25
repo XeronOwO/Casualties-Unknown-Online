@@ -194,6 +194,12 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void AdoptHostRunEpoch(ulong runEpoch) => _checkpointReceiver.AdoptHostRunEpoch(runEpoch);
 
+	public event Action<ulong>? RunAdoptedWithoutInstruction
+	{
+		add => _checkpointReceiver.RunAdoptedWithoutInstruction += value;
+		remove => _checkpointReceiver.RunAdoptedWithoutInstruction -= value;
+	}
+
 	public void SendCommand(WireCommand command, WirePayloadType payloadType)
 	{
 		if (!_session.IsGuest || !_session.SessionActive || _session.HostSteamId == 0)

@@ -29,6 +29,13 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 	private ulong _expectedHostRunEpoch;
 
 	/// <summary>
+	/// A complete set was restored on a run this side had no instruction for, and the run was adopted from
+	/// the set itself. Raised so the adapter can act on the same edge the entry instruction raises: a member
+	/// standing in the previous run's world has to leave it before driving the adopted run.
+	/// </summary>
+	public event Action<ulong>? RunAdoptedWithoutInstruction;
+
+	/// <summary>
 	/// Guest: the host announced the run identity this member must serve. Zero
 	/// means "no announcement" — the identity already held stays in force.
 	/// </summary>
@@ -145,6 +152,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 					// serves from here, exactly as an announced one would be.
 					_expectedHostRunEpoch = checkpoint.RunEpoch.Value;
 					_log.LogInformation("Adopted run {Epoch} from the restored checkpoint (no world-join instruction preceded it).", _expectedHostRunEpoch);
+					RunAdoptedWithoutInstruction?.Invoke(_expectedHostRunEpoch);
 				}
 			}
 			else

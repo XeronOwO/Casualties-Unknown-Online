@@ -9,6 +9,10 @@ Procedure: [docs/acceptance/workflow.md](../../acceptance/workflow.md). Why: [wh
 - At most two batches per row, then the next ticket; two batches without a reading means the code, not the fixture.
 - For a diagnosis, run one case at a time; the batch is for rows that are already individually ready — not how a case
   that is not yet understood gets its evidence.
+- A batch is the last reading, never a status check: while any row is known red, that row is fixed on its own single-case
+  run, and the full batch runs only when every row is green by itself. A batch started to see where the work stands
+  spends both clients on a reading the failing rows already gave (2026-11-25: a batch was started with a dozen rows
+  still red and had to be stopped; each of those rows had already named itself in the previous batch).
 
 ## The clients stay up
 

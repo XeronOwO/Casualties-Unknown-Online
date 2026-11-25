@@ -183,10 +183,24 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			&& Distance(hereX, hereY, touching.X + 0.5, touching.Y + 0.5) <= 4.4;
 		if (swingAlreadyInReach)
 		{
-			cell = FirstBlockCell(hereRay!.Value)!.Value;
-			stood = ((int)Math.Floor(hereX), (int)Math.Floor(hereY), $"the body stayed where it spawned ({hereX:0.00},{hereY:0.00}) "
-				+ $"and the hand's ray already met {Describe(cell)}");
-			context.Read("host-stayed-in-place", here);
+			// The ray's block is only a block if the grid holds one there: a chunk collider can put the hand's hit point
+			// in a cell three rows under the body that carries no block (measured 2026-11-26, `.acceptance/wf-12`: the
+			// row then spent its whole swing on `(6,457)`, which `block-read-at` answers 0 for). The row stays only when
+			// the cell it would adopt has a block; otherwise it keeps the scanned cell and walks to it.
+			var touchingCell = FirstBlockCell(hereRay!.Value)!.Value;
+			var touchingHost = await ReadCellAsync(context, touchingCell, false, cancellationToken).ConfigureAwait(false);
+			if (Integer(touchingHost, "block") > 0)
+			{
+				cell = touchingCell;
+				stood = ((int)Math.Floor(hereX), (int)Math.Floor(hereY), $"the body stayed where it spawned ({hereX:0.00},{hereY:0.00}) "
+					+ $"and the hand's ray already met {Describe(cell)}");
+				context.Read("host-stayed-in-place", here);
+			}
+			else
+			{
+				context.Note($"the hand's ray meets {Describe(touchingCell)}, a cell the grid holds no block in, so the row walks to the cell the scan named: {Raw(touchingHost)}");
+				stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+			}
 		}
 		else
 		{

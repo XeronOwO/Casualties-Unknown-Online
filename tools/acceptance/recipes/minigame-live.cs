@@ -7,7 +7,19 @@
 // (they come from `Input.GetKey`/`GetMouseButton` through the bind), so the only honest question is what the game ITSELF saw:
 // was the attack bind held, how far has the ring turned, and how many of the game's own actions have run.
 ((System.Func<string>)(() => {
-	var inv = System.Globalization.CultureInfo.InvariantCulture;
+	var readCensus = new System.Func<string, string>((name) => {
+		var assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < assemblies.Length; i++) {
+			System.Type[] types; try { types = assemblies[i].GetTypes(); } catch { continue; }
+			for (var t = 0; t < types.Length; t++) {
+				if (types[t].Name != "InputQueryPatches") { continue; }
+				var property = types[t].GetProperty(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+				if (property == null) { return "0"; }
+				return System.Convert.ToInt32(property.GetValue(null, null)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+			}
+		}
+		return "0";
+	});	var inv = System.Globalization.CultureInfo.InvariantCulture;
 	var main = MinigameBase.main;
 	if (main == null) { return "{\"ok\":true,\"hasMain\":false}"; }
 
@@ -22,6 +34,8 @@
 		+ ",\"handClicking\":" + (clicking ? "true" : "false")
 		+ ",\"handStarted\":" + (started ? "true" : "false")
 		+ ",\"holding\":" + ((current.GetType().GetField("holdingBandage") != null && (bool)current.GetType().GetField("holdingBandage").GetValue(current)) ? "true" : "false")
+		+ ",\"keyQueries\":" + readCensus("KeyQueries")
+		+ ",\"keyDowns\":" + readCensus("KeyDownAnswers")
 		+ ",\"handMagnitude\":" + magnitude.ToString("0.###", inv)
 		// The hand's own inputs: `UpdateHandVisuals` bails when the body is unconscious
 		// (`MinigameBase.cs:206`), and the physics step scales both rates by it (`:147-154`), so a

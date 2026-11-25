@@ -65,7 +65,17 @@ internal static class MinigameFrameRecorder
 		LookupFields();
 
 		var started = _handStartedField != null ? _handStartedField.GetValue(minigame) as bool? ?? false : false;
-		var holding = _holdingField != null ? _holdingField.GetValue(minigame) as bool? ?? false : false;
+
+		// `holdingBandage` lives on the minigame INSTANCE the shell is running, not on the shell
+		// (`MinigameBase.main` is the UI shell; reading its field raised
+		// "Field holdingBandage defined on type BandageMinigame is not a field on the target object"
+		// on every frame of the 2026-11-26 reading, which is also why the first record was empty).
+		var holding = false;
+		if (_holdingField != null && minigame.currentMinigame is BandageMinigame bandage)
+		{
+			holding = _holdingField.GetValue(bandage) as bool? ?? false;
+		}
+
 		var handTransform = _handField != null ? _handField.GetValue(minigame) as Transform : null;
 		var line = Clock.Elapsed.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture)
 			+ " started=" + (started ? "true" : "false")

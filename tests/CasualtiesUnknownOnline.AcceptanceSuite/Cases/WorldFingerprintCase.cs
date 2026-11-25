@@ -438,9 +438,21 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var landRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
 		if (landRay is { } landed && FirstBlockCell(landed) is { } landsIn && landsIn != cell)
 		{
-			context.Note($"the swing's hit point lands in {Describe(landsIn)}, not in {Describe(cell)}: the row watches the cell the game hurts");
-			cell = landsIn;
-			ray = landed;
+			// A chunk's collider covers many cells, so the point a swing meets can fall in a cell the grid holds no
+			// block in; adopting that cell would have the row demand a block the world never had (measured 2026-11-25,
+			// `.acceptance/wf-11`: the hit point named (19,463), `block-read-at` answered 0 for it while the scan's own
+			// cells carried blocks). The row keeps the cell it aimed at and only follows the point when a block is there.
+			var landsInHost = await ReadCellAsync(context, landsIn, false, cancellationToken).ConfigureAwait(false);
+			if (Integer(landsInHost, "block") > 0)
+			{
+				context.Note($"the swing's hit point lands in {Describe(landsIn)}, not in {Describe(cell)}: the row watches the cell the game hurts");
+				cell = landsIn;
+				ray = landed;
+			}
+			else
+			{
+				context.Note($"the swing's hit point lands in {Describe(landsIn)}, a cell the grid holds no block in, so the row keeps {Describe(cell)}: {Raw(landsInHost)}");
+			}
 		}
 
 		// A player whose swing meets nothing at all is standing on top of the block they aimed at: the hand's ray

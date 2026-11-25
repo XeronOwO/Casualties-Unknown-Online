@@ -71,6 +71,11 @@ public static class BandageHandDrive
 		Angle = 0f;
 		Frames = 0;
 		Active = true;
+		lock (UpdateTrace)
+		{
+			UpdateTrace.Clear();
+			UpdateTrace.Enqueue("start");
+		}
 	}
 
 	public static void Stop()
@@ -85,6 +90,15 @@ public static class BandageHandDrive
 		if (!Active)
 		{
 			return;
+		}
+
+		lock (UpdateTrace)
+		{
+			UpdateTrace.Enqueue("pre");
+			while (UpdateTrace.Count > 64)
+			{
+				UpdateTrace.Dequeue();
+			}
 		}
 
 		try

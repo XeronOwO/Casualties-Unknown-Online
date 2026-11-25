@@ -1,5 +1,5 @@
 /*
- * WindowQuiet - a native helper that keeps one process's windows from taking the foreground.
+ * WindowQuiet - a native helper that keeps one process's windows from taking the foreground at launch.
  *
  * Why it exists: Unity creates and activates its window before the managed runtime (and so before
  * any BepInEx plugin) runs, so nothing managed can influence that first activation. The system does
@@ -9,14 +9,19 @@
  * a native DLL, which is what this file is (ticket:
  * docs/backlog/todo/1.0-the-game-window-never-takes-the-front.md).
  *
+ * The hold is short-lived (QUIET_WINDOW_MS): only the client's own startup is kept at the bottom. After
+ * that the window is left alone, so the person can bring it forward by hand and watch (user, 2026-11-26:
+ * keep the launch hold, but five or ten seconds of it, then let the window go).
+ *
  * Contract with the caller: QuietInstall(pid) after CreateProcess, QuietRemove() when the client is
- * gone. Only windows owned by one of those pids are touched; the hook lets every other CBT event
+ * gone. Only windows owned by the target process are touched; the hook lets every other CBT event
  * through untouched.
  */
 
 #include <windows.h>
 
 #define QUIET_MAX 8
+#define QUIET_WINDOW_MS 10000
 
 static HHOOK s_hook = NULL;
 static HHOOK s_callWndHook = NULL;
@@ -25,6 +30,7 @@ static int s_count = 0;
 static HMODULE s_self = NULL;
 static WCHAR s_image[MAX_PATH];
 static int s_byImage = 0;
+static DWORD s_firstSeen = 0;
 
 static int QuietOwns(DWORD owner)
 {
@@ -58,6 +64,30 @@ static int QuietHere(void)
     return QuietOwns(GetCurrentProcessId());
 }
 
+/* The hold is measured from the first window event this process produced, so it needs no configuration from the
+   launcher (which the injected copy cannot see). GetTickCount is a reading, not a timer: every hook call compares
+   the elapsed time and decides, and nothing is scheduled. */
+static int QuietInWindow(void)
+{
+    DWORD now = GetTickCount();
+    if (s_firstSeen == 0) {
+        s_firstSeen = now;
+        return 1;
+    }
+    return (DWORD)(now - s_firstSeen) < QUIET_WINDOW_MS;
+}
+
+/* A window created hidden and non-activating cannot be brought forward by hand once the hold ends, so the style the
+   create hook added is taken back on the first z-order change after the hold. */
+static void QuietReleaseStyle(HWND window)
+{
+    LONG_PTR style = GetWindowLongPtrW(window, GWL_EXSTYLE);
+    SetPropW(window, L"QuietReleasedAt", (HANDLE)(ULONG_PTR)GetTickCount());
+    if ((style & WS_EX_NOACTIVATE) != 0) {
+        SetWindowLongPtrW(window, GWL_EXSTYLE, style & ~WS_EX_NOACTIVATE);
+    }
+}
+
 /* Raising a window is not an activation: `ShowWindow(SW_SHOW)` and `SetWindowPos` move a window to the top
    without any CBT event, which is why the window still covered the screen while it never took the foreground
    (measured 2026-11-22: the window was visible, never activated, and still the top application window). Every
@@ -68,10 +98,15 @@ static LRESULT CALLBACK QuietCallWndProc(int code, WPARAM wParam, LPARAM lParam)
     if (code == HC_ACTION) {
         CWPSTRUCT* message = (CWPSTRUCT*)lParam;
         if (message != NULL && message->message == WM_WINDOWPOSCHANGING && QuietHere()) {
-            WINDOWPOS* position = (WINDOWPOS*)message->lParam;
-            if (position != NULL) {
-                position->hwndInsertAfter = HWND_BOTTOM;
-                position->flags &= ~SWP_NOZORDER;
+            if (QuietInWindow()) {
+                WINDOWPOS* position = (WINDOWPOS*)message->lParam;
+                if (position != NULL) {
+                    SetPropW(message->hwnd, L"QuietHeldAt", (HANDLE)(ULONG_PTR)GetTickCount());
+                    position->hwndInsertAfter = HWND_BOTTOM;
+                    position->flags &= ~SWP_NOZORDER;
+                }
+            } else {
+                QuietReleaseStyle(message->hwnd);
             }
         }
     }
@@ -83,7 +118,7 @@ static LRESULT CALLBACK QuietCbtProc(int code, WPARAM wParam, LPARAM lParam)
 {
     if (code == HCBT_CREATEWND) {
         CREATESTRUCTW* create = (CREATESTRUCTW*)lParam;
-        if (create != NULL && QuietHere()) {
+        if (create != NULL && QuietHere() && QuietInWindow()) {
             /* A new window is shown at the top of the z-order the moment it exists, which is the flash the
                person sees even when it is never activated. Creating it hidden and showing it later, below
                everything, is the only way to keep that first frame from covering the screen. */
@@ -92,12 +127,16 @@ static LRESULT CALLBACK QuietCbtProc(int code, WPARAM wParam, LPARAM lParam)
         }
     } else if (code == HCBT_ACTIVATE) {
         if (QuietHere()) {
-            /* The game wants to come forward: show it (in case it was created hidden) but place it below every
-               other window and refuse the activation. Both happen before the activation completes, so the window
-               appears without covering the person's work. */
-            ShowWindow((HWND)wParam, SW_SHOWNOACTIVATE);
-            SetWindowPos((HWND)wParam, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-            return 1;
+            if (QuietInWindow()) {
+                /* The game wants to come forward: show it (in case it was created hidden) but place it below
+                   every other window and refuse the activation. Both happen before the activation completes,
+                   so the window appears without covering the person's work. */
+                ShowWindow((HWND)wParam, SW_SHOWNOACTIVATE);
+                SetWindowPos((HWND)wParam, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                return 1;
+            }
+
+            QuietReleaseStyle((HWND)wParam);
         }
     }
 
@@ -149,6 +188,7 @@ __declspec(dllexport) void __stdcall QuietRemove(void)
         s_callWndHook = NULL;
     }
     s_count = 0;
+    s_firstSeen = 0;
 }
 
 __declspec(dllexport) unsigned long __stdcall QuietLastError(void)

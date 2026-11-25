@@ -1,7 +1,7 @@
 // recipe: lockpick-align
 // args: radius=n
 // serves: 1.0-rebuild-each-acceptance-row-from-the-game (row 4, lockpick)
-// returns: ok, kind, correctAngle, handAngle, error, precision, handDistance, max, screenX, screenY
+// returns: ok, kind, correctAngle, handAngle, error, precision, handDistance, max, screenX, screenY, averagePain
 //
 // Stages the pointer on the lock's correct angle at the given radius and reports where the hand actually ended up.
 // The game counts the turn only while the hand is inside 195..247 units and within `anglePrecision` of
@@ -57,6 +57,7 @@
 		+ ",\"error\":" + error.ToString("0.###", inv)
 		+ ",\"precision\":" + precision.ToString("0.###", inv)
 		+ ",\"handDistance\":" + hand.magnitude.ToString("0.###", inv)
+		+ ",\"averagePain\":" + (main.body != null ? main.body.averagePain.ToString("0.###", inv) : "null")
 		+ ",\"screenX\":" + screen.x.ToString("0.###", inv)
 		+ ",\"screenY\":" + screen.y.ToString("0.###", inv) + "}";
 }))()

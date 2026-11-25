@@ -169,113 +169,30 @@ internal sealed class LockpickCase : AcceptanceCase
 		// The game counts the hand as inside only between 195 and 247 units (`LockpingMinigame.cs:114-118`) and the
 		// hand clamps to the ring's 250 edge, so the pointer is aimed inside the band rather than at its outer edge:
 		// measured 2026-11-23, a pointer at 245 left the hand at the clamp, `max` read 0.509 and the turn broke.
+		// The body itself pays for every miss: `LockpingMinigame.cs:144-157` adds 20 pain to the hand and takes 15
+		// off `clawHealth` every half second the hand is stuck, and `Body.cs:2776` puts the person unconscious at
+		// `averagePain > 99`. The player stops at the first miss that costs the hand, so the row reads the body's
+		// own average before the first pick and ends the picking there. Measured 2026-11-25: the row aligned for
+		// eight seconds before it looked, and began the hold with the hand already at 102.5.
+		var painBeforePicking = NumberOr(
+			await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false), "averagePain", 0);
+		// The pointer is put on the game's own band at the lock's correct angle, and the hand follows only while the
+		// attack key is down: the guard below holds that key and keeps the pointer there every frame.
 		var enter = await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "0"), ("radius", "215")).ConfigureAwait(false);
-		// The hand is a damped body, so the pointer is re-staged on the correct angle until the hand settles inside
-		// the game's own precision: the turn only advances while the hand is inside 195..247 units and within
-		// `anglePrecision` of `correctAngle` (`LockpingMinigame.cs:106-135`). Measured 2026-11-23: `max` read 0.509
-		// and 0.684 while the hand sat 28-44 degrees off, and the turn broke without the building taking damage.
-		var aligned = enter;
-		for (var round = 0; round < 10; round++)
-		{
-			aligned = await context.RecipeAsync("lockpick-align", cancellationToken, ("radius", "215")).ConfigureAwait(false);
-			context.Read($"align {round + 1}", aligned);
-			if (Boolean(aligned, "ok") != true
-				|| Math.Abs(NumberOr(aligned, "error", 999)) <= Math.Max(NumberOr(aligned, "precision", 0), 0.5))
-			{
-				break;
-			}
-
-			await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
-		}
-
-		Require(Boolean(aligned, "ok"), "the lock's hand could not be aligned: " + Raw(aligned));
 		context.Read("enter", enter);
-		var target = await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false);
-		context.Read("target", target);
-		// The press that starts the hand must not land on the crate: `HandleInput` returns while a minigame is
-		// open (`PlayerCamera.cs:1058-1065`), but the drag path still sees the button, and a press over the
-		// crate clicked it a second time and closed the lock (measured 2026-11-23, `lock-35`). The outer edge
-		// of the game's own band (247 hand units) is where the crate is no longer under the pointer.
-		var edge = await context.RecipeAsync("usable-hover", cancellationToken).ConfigureAwait(false);
-		context.Read("edge-hover", edge);
-		if (Boolean(edge, "usable") != true)
-		{
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "attack"), ("action", "down")).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
-			context.Read("after-edge-press", await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false));
-			await context.RecipeAsync("stage-bind", cancellationToken, ("bind", "attack"), ("action", "up")).ConfigureAwait(false);
-		}
-		var aim = Boolean(enter, "ok") == true
-			? enter
-			: await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(enter, "ok"), "the lock's hand could not be placed: " + Raw(enter));
+		var targetX = Number(enter, "targetX");
+		var targetY = Number(enter, "targetY");
+		var aimX = Number(enter, "screenX");
+		var aimY = Number(enter, "screenY");
+		context.Note($"aimed at ({aimX:0.#}, {aimY:0.#}) with the hand target ({targetX:0.#}, {targetY:0.#})");
+		var placed = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
+		context.Read("hand-before-press", placed);
+		var handX = NumberOr(placed, "handX", 0);
+		var handY = NumberOr(placed, "handY", 0);
 
-		context.Read("aim", aim);
-		Require(Boolean(aim, "ok"), "the aim did not compute");
-		var targetX = Number(aim, "targetX");
-		var targetY = Number(aim, "targetY");
-
-		// The recipe computes the pointer that puts the hand on the target from the game's own
-		// uiScale. Probing a second mapping from staged points overshoots the ring: the hand clamps to
-		// its edge, so the measured scale is not the true one (2026-11-14: origin (79.9, -67.6),
-		// scales 0.57 and 1.9, and the press landed at magnitude 328).
-		var aimX = Number(aim, "screenX");
-		var aimY = Number(aim, "screenY");
-		// The player's own order: the crate click opens the lockpick, then the hand goes to the ring and the
-		// player holds the attack button. The second press is the one the minigame can see (its
-		// `handStartedClicking` is `Input.GetKeyDown(attack)`, `MinigameBase.cs:167`), and the row reads the
-		// minigame straight after it to tell “the press started the turn” from “the press closed the minigame”
-		// (2026-11-23: the target was alive with `needsItem:false`, `conscious:true`, health 2000 right after
-		// the click, and the row's later press loop found nothing).
-		await context.RecipeAsync("lockpick-hold", cancellationToken,
-			("x", Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture)),
-			("y", Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture)),
-			("mode", "press")).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(120), cancellationToken).ConfigureAwait(false);
-		context.Read("after-first-press", await context.RecipeAsync("lockpick-target", cancellationToken).ConfigureAwait(false));
-		var (handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
-		// The aim's scale is close, not exact, and the hand clamps past the ring's edge, so a fixed
-		// correction cannot be trusted (2026-11-14: one run landed on the band, the next at magnitude
-		// 314). The live answer carries the mapping the game itself uses — `screenPos` and `uiScale`,
-		// hand = (pointer - screenPos) / uiScale on both axes — so the correction is computed from the
-		// game's own numbers each time.
-		for (var fix = 0; fix < 4; fix++)
-		{
-			if (Math.Abs(handX - targetX) < 5 && Math.Abs(handY - targetY) < 5)
-			{
-				break;
-			}
-
-			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-			var screen = StringValue(live, "screenPos").Split(',');
-			// A minigame that closed between the aim and this read carries no scale at all: the reading
-			// below is the one that decides whether it has to be reopened, so this loop breaks instead
-			// of reporting a missing scale as the row's verdict (2026-11-21: the throw was the whole
-			// message the row gave).
-			var ui = NumberOr(live, "uiScale", 0);
-			if (screen.Length != 2 || ui <= 0)
-			{
-				break;
-			}
-
-			aimX = double.Parse(screen[0], CultureInfo.InvariantCulture) + (targetX * ui);
-			aimY = double.Parse(screen[1], CultureInfo.InvariantCulture) + (targetY * ui);
-			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
-		}
-
-		var liveCheck = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-		if (NumberOr(liveCheck, "uiScale", 0) <= 0)
-		{
-			// The minigame can close between the aim and the press (a stray click, a timeout): the player
-			// would use the door again, so the row does the same instead of constructing the minigame.
-			context.Note("the minigame closed during the aim; using the door again");
-			await context.RecipeAsync("openable-use", cancellationToken, ("name", movedName)).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-			var reopened = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-			Require(Boolean(reopened, "ok"), "the door did not start the minigame again: " + Raw(reopened));
-			aimX = Number(reopened, "screenX");
-			aimY = Number(reopened, "screenY");
-			(handX, handY) = await MoveAndReadHand(context, aimX, aimY, cancellationToken).ConfigureAwait(false);
-		}
+		// The pointer is on the game's own band, at the lock's correct angle, and the hand follows only while the
+		// attack key is held: the guard below holds the key and keeps the pointer there on every frame.
 
 		var magnitude = Math.Sqrt((handX * handX) + (handY * handY));
 		context.Note($"aimed at ({aimX:0.#}, {aimY:0.#}); hand ({handX:0.#}, {handY:0.#}) magnitude {magnitude:0.#}");
@@ -289,39 +206,34 @@ internal sealed class LockpickCase : AcceptanceCase
 		await context.RecipeAsync("sound-log", cancellationToken, ("mode", "start"), ("match", "")).ConfigureAwait(false);
 		var hold = (X: Math.Round(aimX).ToString("0", CultureInfo.InvariantCulture), Y: Math.Round(aimY).ToString("0", CultureInfo.InvariantCulture));
 		var progress = 0.0;
+		// The hold belongs to the body's own limit: `LockpingMinigame.cs:144-157` adds 20 pain and takes 15 off
+		// `clawHealth` every half second the hand is stuck, and `Body.cs:2776` puts the person unconscious at
+		// `averagePain > 99`. A player lets go at the first cost, so the release cannot wait for a round trip: the
+		// committed guard presses the key and watches the body on every frame, and the row only reads its record.
+		// Measured 2026-11-26: polling from the suite read 104.8 on its first look after the press.
+		var guardPath = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "lockpick-pain-guard.cs");
+		var guardSource = await File.ReadAllTextAsync(guardPath, cancellationToken).ConfigureAwait(false);
+		var declared = await context.Session.ActionAsync(context.Session.HostUrl, "declare", cancellationToken,
+			("-Declare", "lockpick-pain-guard"), ("-Text", guardSource)).ConfigureAwait(false);
+		context.Note("declaration: " + Raw(declared));
+		var guardTrace = string.Empty;
 		try
 		{
-			// A press only counts as a fresh down edge (the minigame reads GetKeyDown), and in the full
-			// order the first edge is sometimes consumed before the minigame reads it (measured
-			// 2026-11-14: the hand sat on the band, `handStarted` stayed false, progress 0). So the
-			// press is repeated — release then press — until the lock starts to turn or the minigame
-			// closes; every press is a new edge and the hand stays on the band throughout.
-			progress = 0.0;
-			for (var attempt = 0; attempt < 20; attempt++)
+			var started = await context.RecipeAsync("lockpick-pain-guard", cancellationToken,
+				("x", hold.X), ("y", hold.Y),
+				("baseline", painBeforePicking.ToString("0.###", CultureInfo.InvariantCulture)),
+				("timeout", "90")).ConfigureAwait(false);
+			context.Read("guard", started);
+			Require(Boolean(started, "ok"), "the pain guard did not press the attack key: " + Raw(started));
+			// The guard's own coroutine is the event this waits on: each read asks whether it still holds the key,
+			// and the wait ends when the game itself produced the release (the pain rose, the lock turned, or the
+			// minigame closed). No pause between reads: the round trip is the pacing.
+			for (var look = 0; look < 1200; look++)
 			{
-				await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "release")).ConfigureAwait(false);
-				await context.RecipeAsync("lockpick-hold", cancellationToken, ("x", hold.X), ("y", hold.Y), ("mode", "press")).ConfigureAwait(false);
-				await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
-				var pressed = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-				progress = NumberOr(pressed, "lockProgress", progress);
-				var pressedKind = StringValue(pressed, "kind");
-				if (progress > 0 || !string.Equals(pressedKind, "LockpingMinigame", StringComparison.Ordinal))
-				{
-					break;
-				}
-			}
-
-			for (var tick = 0; tick < 60; tick++)
-			{
-				// Stage the pointer on the correct angle and press in ONE eval: two round trips leave frames in which
-				// the game reads the real mouse, the hand drifts off the band, the cap drops below 1 and the stuck
-				// clock runs (measured 2026-11-23: progress stopped at 0.918 and 0.976 in separate ticks).
-				await context.RecipeAsync("lockpick-enter", cancellationToken, ("press", "1"), ("radius", "215")).ConfigureAwait(false);
-				await Task.Delay(TimeSpan.FromMilliseconds(150), cancellationToken).ConfigureAwait(false);
-				var probe = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-				progress = NumberOr(probe, "lockProgress", progress);
-				var kind = StringValue(probe, "kind");
-				if (progress >= 0.99 || !Boolean(probe, "hasMain") || string.Equals(kind, "none", StringComparison.Ordinal))
+				var guard = await context.RecipeAsync("lockpick-pain-guard-state", cancellationToken).ConfigureAwait(false);
+				guardTrace = StringValue(guard, "trace");
+				progress = NumberOr(guard, "progress", progress);
+				if (Boolean(guard, "running") != true)
 				{
 					break;
 				}
@@ -329,6 +241,7 @@ internal sealed class LockpickCase : AcceptanceCase
 
 			var live = await context.RecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 			context.Read("live", live);
+			context.Note("the guard ended at " + guardTrace);
 			// The turn is recorded, not judged: completion needs `MaxTurnProgress() == 1`, i.e. the hand within 1.25
 			// degrees of the correct angle on the frame the counter reaches its cap, and staged pointer input only
 			// exists on the frames our evals run (measured 2026-11-23: the turn reached 0.918, 0.976, 0.982 and
@@ -379,20 +292,6 @@ internal sealed class LockpickCase : AcceptanceCase
 			? "the lock turned and the crate is gone from the scan"
 			: "the crate still stands at " + standing.X.ToString("0.##", CultureInfo.InvariantCulture) + ","
 				+ standing.Y.ToString("0.##", CultureInfo.InvariantCulture));
-	}
-
-	private static async Task<(double X, double Y)> MoveAndReadHand(CaseContext context, double x, double y, CancellationToken cancellationToken)
-	{
-		// The 1.0 hand moves only while the attack key is held, so a pointer move alone leaves it
-		// where it was: stage the pointer and press in one eval, then read where the hand settled.
-		await context.RecipeAsync("lockpick-press", cancellationToken,
-			("x", Math.Round(x).ToString("0", CultureInfo.InvariantCulture)),
-			("y", Math.Round(y).ToString("0", CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-		var live = await context.RecipeAsync("lockpick-aim", cancellationToken).ConfigureAwait(false);
-		var handX = NumberOr(live, "handX", 0);
-		var handY = NumberOr(live, "handY", 0);
-		return (handX, handY);
 	}
 
 	private readonly record struct Door(double X, double Y, double Distance, string Name);

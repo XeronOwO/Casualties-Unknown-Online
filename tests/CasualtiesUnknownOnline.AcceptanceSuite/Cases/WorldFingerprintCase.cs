@@ -478,7 +478,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// began with `dogfood(Clone)` at distance 0) — so the step-back below judges the ray as it is now.
 		ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
 		context.Read("host-swing-ray-after-dropping", ray);
-		for (var back = 0; back < 6 && (!(ray is { } standing && FirstBlockCell(standing) is not null) || MeetsALooseItem(ray)); back++)
+		for (var back = 0; back < 2 && (!(ray is { } standing && FirstBlockCell(standing) is not null) || MeetsALooseItem(ray)); back++)
 		{
 			var standingAt = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 			var awayX = Double(standingAt, "posX") - (cell.X + 0.5);
@@ -523,6 +523,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var brokenByTheGamesEntry = await TryTheGamesOwnBlockEntryAsync(context, cell, cancellationToken).ConfigureAwait(false);
 		if (!brokenByTheGamesEntry)
 		{
+			// The pile the hand dropped stands in the swing's line and two steps cannot leave it: a player picks the
+			// supplies up, and this channel has no pickup the native attack path accepts. That is the park named in the
+			// ticket (2026-11-26), so the row says it here instead of holding 60 s against a cell it cannot reach.
+			Require(
+				!MeetsALooseItem(ray),
+				$"the swing's line holds a loose item after two steps, so the hand cannot reach the cell ({Describe(cell)}): {Raw(ray)}");
 			await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
 			await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
 			// The staging is only worth anything if the game actually asks it: the report carries how many of the

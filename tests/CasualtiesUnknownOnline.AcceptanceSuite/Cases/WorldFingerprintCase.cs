@@ -138,6 +138,14 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				}
 
 				var distance = Distance(hereXBeforeScan, hereYBeforeScan, candidate.X + 0.5, candidate.Y + 0.5);
+				if (distance > 8.0)
+				{
+					// A person walks a few steps to a wall, not forty. A cell the screen shows but the body cannot reach
+					// in a few steps is the park this row records: walking to one cost 80 s in `.acceptance/wf-16` and
+					// ended 83.7 units short.
+					continue;
+				}
+
 				if (distance < nearest)
 				{
 					nearest = distance;
@@ -155,8 +163,9 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			$"the game's own scan found no breakable cell beside the host's player: {_lastScan}");
 		if (point is null && candidates.Count > 0)
 		{
-			cell = candidates[0];
-			_lastScan += $" [nothing projected; the row went with the nearest cell, {lastReason}]";
+			Require(
+				false,
+				$"the game's scan offered no cell within a few steps of the host's player ({hereXBeforeScan:F1},{hereYBeforeScan:F1}), so there is nothing this row can walk to and swing at: {_lastScan}");
 		}
 
 		// A swing's ray starts at the attacking limb and passes through whatever that hand holds, so a lantern a starting

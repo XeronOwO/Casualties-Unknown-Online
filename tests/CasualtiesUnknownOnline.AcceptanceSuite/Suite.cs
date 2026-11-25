@@ -384,10 +384,13 @@ internal static partial class Program
 			// nine-minute batch into forty (measured 2026-11-25: ~2000 s of setup against ~500 s of case work). Rows that
 			// need a pristine detail get it from the freshness probes inside EnsureLiveWorldAsync (breakable ground, a free
 			// slot, a single member, the bodies' own walls), which rebuild only that detail.
-			if (runChangedByTheLastRow)
-			{
-				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
-			}
+			//
+			// The fresh run after a run-changing row was that same price inside the batch: ten run-changing rows cost ten
+			// world builds (~280 s of the 480 s budget). The guarantee already waits for a live run and brings the member
+			// back into whatever the game left, and the row after a continue is given the run the game restored — which is
+			// the state the product's own player finds. Measured 2026-11-26 23:34 (`.acceptance/cheap-1`, six rows around
+			// two run changes): every setup 0.2 s, zero world builds, give-item/overlay-sound/world-clock/save-continue/
+			// run-end green, player-deaths red on its own product defect (the save cut did not commit).
 
 			// The row is pinned to the run it was given. The game itself can leave the world mid-row — its own
 			// PlayerCamera.ToMainMenu is intercepted into a mid-run cut and a menu return — and the row then reads the

@@ -215,6 +215,16 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("radius", "250"),
 				("step", "0")).ConfigureAwait(false);
 			context.Read("hand parked on the roll", park);
+// The wrap's hold is a KEY bind, not a mouse button: MinigameBase stamps handStartedClicking from
+// Input.GetKeyDown(KeyBinds.GetBind("attack")) and the staged MOUSE never reaches it (2026-11-26: holding
+// stayed false for the whole gesture while a staged mouse press held the pointer).
+context.Read(
+"attack held",
+await context.MemberRecipeAsync(
+"stage-bind",
+cancellationToken,
+("bind", "attack"),
+("action", "down")).ConfigureAwait(false));
 			await Task.Delay(300, cancellationToken).ConfigureAwait(false);
 			await context.MemberRecipeAsync(
 				"virtual-input",

@@ -51,6 +51,16 @@ internal static class VirtualInput
 	{
 		internal bool Held;
 		internal bool DownPending;
+
+		/// <summary>
+		/// A staged KEY's press waits for the FIRST reader instead of a frame number. <c>PressKey</c> runs on the channel, not on
+		/// the game's main thread, so <c>Time.frameCount</c> there can be a frame that already passed and the frame-stamped edge
+		/// is never seen: <c>stage-bind bind=attack action=down</c> answered <c>answered:true</c> while the minigame's own
+		/// <c>UpdateHandVisuals</c> kept reading <c>handStartedClicking:false</c> (measured 2026-11-26, band-18). The flag is
+		/// cleared by the answer, so a held key still answers Down exactly once and the pause row's frame-rate toggling cannot
+		/// come back.
+		/// </summary>
+		internal bool EdgeForTheFirstReader;
 		internal int DownFrame = -1;
 		internal int UpFrame = -1;
 	}
@@ -191,6 +201,7 @@ internal static class VirtualInput
 		state.DownPending = true;
 		state.DownFrame = UnityTime.frameCount + 1;
 		state.UpFrame = -1;
+		state.EdgeForTheFirstReader = true;
 		RecordKey(key, "down");
 	}
 
@@ -317,6 +328,17 @@ internal static class VirtualInput
 		// and is cleared once the frame has passed.
 		if (query == ButtonQuery.Down)
 		{
+			// A staged KEY's edge belongs to whoever asks first (see `EdgeForTheFirstReader`): the channel's own frame count is
+			// not the game's, so the stamp cannot be pinned to a frame that has not run yet.
+			if (state.EdgeForTheFirstReader)
+			{
+				state.EdgeForTheFirstReader = false;
+				state.DownPending = false;
+				state.DownFrame = -1;
+				value = true;
+				return true;
+			}
+
 			// The pending edge is a one-frame event, so it is dropped the moment the frame it belongs to has passed — a
 			// batch that HOLDS a key (the pause row holds it until the game acts) would otherwise answer "just pressed"
 			// on every frame of the hold, and the game toggled the pause at frame rate (measured 2026-11-23: `paused` read

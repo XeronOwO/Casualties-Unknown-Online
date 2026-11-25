@@ -74,6 +74,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
 - [Give refused for a distance](todo/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the hand-over lands in the world.
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
+- [Physics steps crawl in a slice](todo/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — a row that needs time measures the batch's frames.
 - [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
 
 ### In progress

@@ -5,6 +5,12 @@
 // Offers breakable cells near the local body, nearest first and all around it. One evaluator call: the block-sync
 // case used to read one cell per round-trip across a 65x33 band. Callers still probe a cell with `block-probe`
 // before swinging, because a block number also covers walls and background tiles.
+//
+// A cell's `y` is in the same frame as `bodyY` (the body's own cell), because callers read the offered cell with
+// `block-read-at` and compare the two. The loop starts one row below the body (a body stands on the block it wants to
+// dig), so the offset is added back before the cell is named: measured 2026-11-26 (`.acceptance/wf-9`), the row took
+// an offered cell at (7,477), `block-read-at` answered `block 0` for it, and the cell the grid really held was the one
+// directly above in the loop's own frame.
 ((System.Func<string>)(() => {
 	var count = {{n:count}};
 	var minOffset = {{n:minOffset}};
@@ -19,6 +25,8 @@
 	if (blocks == null || blocks.Rank != 2) { return "{\"ok\":false,\"error\":\"no-worldblocks\"}"; }
 	var startX = (int)System.Math.Floor(camera.body.transform.position.x);
 	var startY = (int)System.Math.Floor(camera.body.transform.position.y) - 1;
+	// The cells below are named in the body's own frame, so the one-row step down is added back.
+	var bodyCellY = startY + 1;
 	var lowerX = blocks.GetLowerBound(0);
 	var upperX = blocks.GetUpperBound(0);
 	var lowerY = blocks.GetLowerBound(1);
@@ -34,7 +42,7 @@
 	var rows = new System.Collections.Generic.List<string>();
 	for (var i = 0; i < candidates.Count && rows.Count < count; i++) {
 		var x = startX + candidates[i][0];
-		var y = startY + candidates[i][1];
+		var y = bodyCellY + candidates[i][1];
 		if (x < lowerX || x > upperX || y < lowerY || y > upperY) { continue; }
 		var block = System.Convert.ToUInt16(blocks.GetValue(x, y));
 		if (block == 0 || block == 14) { continue; }

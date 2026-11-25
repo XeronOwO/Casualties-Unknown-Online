@@ -158,8 +158,8 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		// Reading it cell by cell used to cost 2,145 driver round-trips (46.5 s in the 1.0.2
 		// full batch); the recipe returns the first breakable cell.
 		var read = member
-			? await context.MemberRecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "8")).ConfigureAwait(false)
-			: await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "8")).ConfigureAwait(false);
+			? await context.MemberRecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "16")).ConfigureAwait(false)
+			: await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "16")).ConfigureAwait(false);
 		if (read is not { ValueKind: JsonValueKind.Object } element
 			|| !element.TryGetProperty("cells", out var cells)
 			|| cells.ValueKind != JsonValueKind.Array

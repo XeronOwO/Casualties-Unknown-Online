@@ -61,7 +61,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// (SessionDriver's ground repair, for a world whose spawn pocket has no diggable cell), and walking out of the
 		// pod then takes the body off that ground: in `.acceptance/wf-3` the exit walked the host from (-4,492) down to
 		// (-9,413), fifty units below the cell it had been standing beside, and the row failed on a reach it had lost.
-		var besideTheBody = await FindBreakableCellsAsync(context, cancellationToken, radius: 4, count: 6).ConfigureAwait(false);
+		// The scan below answers within the guarantee's own promise (sixteen cells), because a four-cell scan answered
+		// nothing while the guarantee's sixteen-cell probe answered three and had already placed the body beside them:
+		// measured 2026-11-26 (`.acceptance/ground-1`), the row then left that ground, fell to y 391, and failed to walk
+		// back up to the cell at y 473 it had been standing beside.
+		var besideTheBody = await FindBreakableCellsAsync(context, cancellationToken, radius: 16, count: 6).ConfigureAwait(false);
 		var hittableBeside = await KeepOnlyCellsASwingCanHitAsync(context, besideTheBody, cancellationToken).ConfigureAwait(false);
 		context.Note($"beside the body: {besideTheBody.Count} cell(s) the grid calls breakable, {hittableBeside.Count} of them carrying the collider a swing hurts");
 		var alreadyOnGround = hittableBeside.Count > 0;

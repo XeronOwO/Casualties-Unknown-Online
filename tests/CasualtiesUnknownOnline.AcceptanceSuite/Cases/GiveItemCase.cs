@@ -45,11 +45,12 @@ internal sealed class GiveItemCase : AcceptanceCase
 		context.Read("host-body", hostBody);
 		var (hostX, hostY) = Position(hostBody);
 		Require(hostX != 0 || hostY > 0, "the host's body has no position yet: " + Raw(hostBody));
-		var placed = await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", hostX.ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		context.Note("member placed: " + Raw(placed));
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+
+		// Teleporting the member writes its transform, and the host's own record of where it stands puts
+		// it back: measured 2026-11-26 (`.acceptance/ground-1`), the member read 46.1 units from the
+		// object it was asked to take and refused the pickup on line of sight. The guarantee's placement
+		// reads both ends back and retries until the pair really stands together, so the row uses it.
+		context.Note("member placed: " + await context.Session.BringTheMemberBesideTheHostAsync("the give", cancellationToken).ConfigureAwait(false));
 
 		// A real world copy: the game's own factory creates it and its physics lands it, so the
 		// custody row is `World` and the give is the gesture the drag patch makes.
@@ -60,10 +61,7 @@ internal sealed class GiveItemCase : AcceptanceCase
 
 		// The receiver is placed again after the drop: its own client applies a give only while it
 		// stands beside the giver, and the drop's physics can move the pair apart.
-		await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", hostX.ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
+		context.Note("member placed for the give: " + await context.Session.BringTheMemberBesideTheHostAsync("the give", cancellationToken).ConfigureAwait(false));
 
 		// The give is a gesture the receiver's client applies; a lost delivery is retried with the
 		// pair re-placed, because the drop's physics and the member's own step can separate them.
@@ -72,10 +70,8 @@ internal sealed class GiveItemCase : AcceptanceCase
 		JsonElement? memberBag = null;
 		for (var attempt = 0; attempt < 3 && !landed; attempt++)
 		{
-			await context.MemberRecipeAsync("teleport", cancellationToken,
-				("x", hostX.ToString(CultureInfo.InvariantCulture)),
-				("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-			await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+			context.Note("member placed before give " + attempt.ToString(CultureInfo.InvariantCulture) + ": "
+				+ await context.Session.BringTheMemberBesideTheHostAsync("the give", cancellationToken).ConfigureAwait(false));
 
 			give = await context.RecipeAsync("give-probe", cancellationToken,
 				("mode", "give-world"),
@@ -126,10 +122,8 @@ internal sealed class GiveItemCase : AcceptanceCase
 		var groundTwo = await context.RecipeAsync("item-drop", cancellationToken, ("type", "bandage"), ("height", "1")).ConfigureAwait(false);
 		Require(Boolean(groundTwo, "ok"), "the second ground item was not created");
 		await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken).ConfigureAwait(false);
-		await context.MemberRecipeAsync("teleport", cancellationToken,
-			("x", hostX.ToString(CultureInfo.InvariantCulture)),
-			("y", hostY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-		await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
+		context.Note("member placed for the full-bag give: "
+			+ await context.Session.BringTheMemberBesideTheHostAsync("the give to a full bag", cancellationToken).ConfigureAwait(false));
 
 		var refused = await context.RecipeAsync("give-probe", cancellationToken,
 			("mode", "give-world"),

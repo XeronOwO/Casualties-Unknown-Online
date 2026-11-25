@@ -74,6 +74,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
 - [Give refused for a distance](todo/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the hand-over lands in the world.
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
+- [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.
@@ -131,7 +132,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [The bandage hand never holds](done/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — placed a quarter turn off the roll.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.
 - [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.

@@ -67,7 +67,11 @@ public static class BandageHandDrive
 	public static void Start(float radius, float lead)
 	{
 		Radius = radius > 1f ? radius : 250f;
-		Lead = lead >= 0f ? lead : 20f;
+		// A negative step is a small lead, not a missing one: `|step|` is how far ahead of the roll the hand sits each
+		// frame, and the roll advances by about that much. Twenty degrees stepped the roll from 345 straight past its
+		// own finish window (`bandageAngle > 350 && hand < 90`), so the wrap reset without ever completing (measured
+		// 2026-11-26, band-34: `roll345 hand360`, then `roll0 hand15` — the roll wrapped and no wrap was taken).
+		Lead = lead < 0f ? Mathf.Abs(lead) : lead > 0f ? lead : 20f;
 		Angle = 0f;
 		Frames = 0;
 		Active = true;

@@ -41,6 +41,20 @@ internal sealed class RemoteBackpackRefreshCase : AcceptanceCase
 		// exists reads "container 0" (2026-11-21: the row failed that way in two runs whose pair was
 		// fresh). So the row opens it again until the copy has a marked container, and keeps the last
 		// reading for the verdict.
+		//
+		// The window can only bind to a container the host actually carries: a fresh run whose
+		// starting-supply grant has not landed on the host yet has none, and the view then opens on
+		// nothing at all (2026-11-26: the retry loop read "container 0" for its whole ten seconds and
+		// the host's slots held only an emergencylight). Put the game's own container item on the host
+		// through the game's own grant call first, and open the view against that.
+		var carried = await context.RecipeAsync("item-provide", cancellationToken, ("mode", "find"), ("type", "trashbag")).ConfigureAwait(false);
+		if (!IsTrue(carried, "found") && !IsTrue(carried, "already"))
+		{
+			var created = await context.RecipeAsync("item-provide", cancellationToken, ("mode", "create"), ("type", "trashbag")).ConfigureAwait(false);
+			Require(IsTrue(created, "ok"), "the host could not be given a container to show: " + Raw(created));
+			context.Read("host given a container for the view", created);
+		}
+
 		JsonElement? opened = null;
 		var container = "0";
 		for (var attempt = 0; attempt < 20; attempt++)

@@ -2,13 +2,11 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitter.CommitStatus;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;

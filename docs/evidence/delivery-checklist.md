@@ -3,30 +3,32 @@
 Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal ` — evidence: ` followed by the evidence.
 
 - [ ] Design comprehension
-  ground the game can dig"), read in `tests/CasualtiesUnknownOnline.AcceptanceSuite/SessionDriver.cs` and in the design
-  page it serves, `docs/design/cross-cutting/saves-and-recovery.md`.
+  (`reversing/Assembly-CSharp/Assembly-CSharp/PlayerCamera.cs:2787-2792`) and tracks what it showed in
+  `src/CasualtiesUnknownOnline.GameAdapter/Patches/RemoteDragPredicatePatches.cs:206-211`; read with
+  `docs/design/model/item-custody.md` and `docs/design/items/README.md`.
 - [ ] Native parity
-  own spawn does, and the ground probe is the game's `worldBlocks` row plus `GetBlockInfo(block).health`.
+  (the `item-provide` recipe), the same call the native starting-supply grant makes.
 - [ ] Native parity probe
-  block-family rows and each dug through the game's own `DamageBlock`.
+  (`currentContainer` marker id and `containerUnloadButtons`) and PASSes the row.
 - [ ] Entry mapping
-  `PrepareAsync` in the same file; its two callers (the live path and the rebuilt path) were both exercised in
-  `.acceptance/ground-2`.
+  (`src/CasualtiesUnknownOnline.GameAdapter/RemoteBackpackView.cs:110`) followed by the game's own `OpenContainer`; the row
+  drives it through the `remote-view-items` recipe, named in the ticket section of the same title.
 - [ ] Mechanism inventory
-  records the mechanism, the cost it paid (27.7 s of 28.5 s) and the new reading.
+  backpack window had no container to show (2026-11-26 02:08)" with the failing reading and the fix.
 - [ ] Whole-family audit
-  `host-crash-restart` all PASS in `.acceptance/ground-2`, so the cheaper search did not narrow what the family needs.
+  by every failed row on both ends (`.acceptance/budget-1` run-settings was the one whose exception it recovered).
 - [ ] Self-check table
-  per-cell `block-probe` loop; (3) the chain is twelve offered cells → twelve round trips → 27.7 s; (4) the probe repeated a
-  fact the scan had read, and the guarantee's post-landing probe is the check that actually matters.
+  emergencylight and nothing else; (2) line: the open loop in
+  `tests/CasualtiesUnknownOnline.AcceptanceSuite/Cases/RemoteBackpackRefreshCase.cs`; (3) chain: fresh run → no container
+  item on the host → the clone has no marked container → the window binds to nothing; (4) the grant lands first, so the
+  cause (a missing container) is removed rather than the symptom.
 - [ ] Verification design
-  (`.acceptance/ground-2`, suite wall 165.1 s, exit 0).
+  and `.acceptance/budget-1` where it failed.
 - [ ] Plan approved by the user
-  asking (`AGENTS.md` rule 10).
+  measured evidence without asking.
 - [ ] Structure review done
-  signature and its single return shape.
+  and its comment.
 - [ ] Build + dotnet format + dotnet test normative gates pass
-  837/837 normative gates and 6762/6762 unit tests; `dotnet format CasualtiesUnknownOnline.slnx whitespace
-  --verify-no-changes` exits 0.
+  `dotnet format CasualtiesUnknownOnline.slnx whitespace --verify-no-changes` exits 0.
 - [ ] Release-cycle deployment/acceptance
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate

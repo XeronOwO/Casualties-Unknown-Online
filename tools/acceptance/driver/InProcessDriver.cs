@@ -769,7 +769,11 @@
 			while ((line = reader.ReadLine()) != null) {
 				if (argument.Length > 0 && line.IndexOf(argument, System.StringComparison.Ordinal) < 0) { continue; }
 				matched.Add(line);
-				if (matched.Count > 200) { matched.RemoveAt(0); }
+				// The suite asks for a failure's own window, and 200 lines is shorter than one row's
+				// output once a client is streaming item traces (measured 2026-11-26: run-settings failed
+				// on a member-side NullReferenceException that had already been pushed out of a 200-line
+				// tail before the row ended). Keep the whole file's worth of matches instead.
+				if (matched.Count > 5000) { matched.RemoveAt(0); }
 			}
 		}
 

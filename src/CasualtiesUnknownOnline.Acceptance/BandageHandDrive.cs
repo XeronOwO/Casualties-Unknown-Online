@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using HarmonyLib;
 using UnityEngine;
 
@@ -48,6 +50,17 @@ public static class BandageHandDrive
 		}
 
 		harmony.Patch(target, prefix: new HarmonyMethod(typeof(BandageHandDrive), nameof(BeforePhysicsUpdate)));
+
+		// The frame the wrap owes its state to: `MinigameBase.Update` sets `handStartedClicking` and then runs the
+		// current minigame's `Update`, which copies `holdingBandage` on that frame only. Reading the two fields after
+		// the update is the only way to see whether the frame the edge landed on was the frame the wrap read
+		// (measured 2026-11-26: the row's samples never showed `handStarted`, while the channel answered the DOWN).
+		var updateHolder = AccessTools.TypeByName("MinigameBase");
+		var updateMethod = updateHolder == null ? null : AccessTools.Method(updateHolder, "Update");
+		if (updateMethod != null)
+		{
+			harmony.Patch(updateMethod, postfix: new HarmonyMethod(typeof(BandageHandDrive), nameof(AfterMinigameBaseUpdate)));
+		}
 		_harmony = harmony;
 	}
 
@@ -60,7 +73,11 @@ public static class BandageHandDrive
 		Active = true;
 	}
 
-	public static void Stop() => Active = false;
+	public static void Stop()
+	{
+		Active = false;
+		Debug.Log("[BandageFrame] the wrap's own frames: " + UpdateTraceText);
+	}
 
 	/// <summary>Places the hand on the ring ahead of the roll before the wrap reads it.</summary>
 	private static void BeforePhysicsUpdate()
@@ -116,5 +133,62 @@ public static class BandageHandDrive
 		// what makes the placed angle the angle the game sees (measured 2026-11-26: `handPos` was placed at the roll but
 		// `handAngle` kept reading 75 for the whole gesture).
 		Traverse.Create(body).Field("handVelocity").SetValue(Vector2.zero);
+	}
+
+	/// <summary>
+	/// What the wrap saw on each frame it ran, after the frame's own updates: the two flags the item's minigame reads
+	/// and the state it copied from them.
+	/// </summary>
+	private static void AfterMinigameBaseUpdate()
+	{
+		if (!Active)
+		{
+			return;
+		}
+
+		try
+		{
+			var holder = AccessTools.TypeByName("MinigameBase");
+			var body = holder == null ? null : AccessTools.Field(holder, "main").GetValue(null);
+			if (body == null)
+			{
+				return;
+			}
+
+			var started = Convert.ToBoolean(AccessTools.Field(holder, "handStartedClicking").GetValue(body));
+			var clicking = Convert.ToBoolean(AccessTools.Field(holder, "handClicking").GetValue(body));
+			var current = AccessTools.Field(holder, "currentMinigame").GetValue(body);
+			var holdingField = current == null ? null : AccessTools.Field(current.GetType(), "holdingBandage");
+			var holding = holdingField != null && Convert.ToBoolean(holdingField.GetValue(current));
+
+			lock (UpdateTrace)
+			{
+				UpdateTrace.Enqueue(
+					Time.frameCount.ToString(CultureInfo.InvariantCulture)
+					+ "=" + (clicking ? "c1" : "c0") + (started ? "s1" : "s0") + (holding ? "h1" : "h0"));
+				while (UpdateTrace.Count > 64)
+				{
+					UpdateTrace.Dequeue();
+				}
+			}
+		}
+		catch (Exception exception)
+		{
+			Active = false;
+			Debug.LogWarning("[Acceptance] the bandage frame trace stopped: " + exception.Message);
+		}
+	}
+
+	private static readonly Queue<string> UpdateTrace = new();
+
+	internal static string UpdateTraceText
+	{
+		get
+		{
+			lock (UpdateTrace)
+			{
+				return string.Join(";", UpdateTrace);
+			}
+		}
 	}
 }

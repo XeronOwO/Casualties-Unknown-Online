@@ -27,6 +27,11 @@
 	var count = 0;
 	foreach (var hit in Physics2D.RaycastAll(from, dir, reach))
 	{
+		// The game skips the attacker's own transform in this walk (`Body.cs:1919`: `if (raycastHit2D.transform !=
+		// base.transform)`), so the player's own body is never an "earlier hit" that absorbed the swing. Listing it
+		// made a row that aimed from inside its own cell read a Body hit and conclude the swing met nothing
+		// (measured 2026-11-25: world-fingerprint, hits[0] = Body/Player, the block behind it never named).
+		if (hit.transform == null || hit.transform == body.transform) { continue; }
 		count++;
 		if (count > 12) { break; }
 		text = text + (count > 1 ? "," : "") + "{\"name\":\"" + hit.transform.name.Replace("\"", "''") + "\",\"tag\":\"" + hit.transform.tag + "\",\"layer\":\"" + LayerMask.LayerToName(hit.transform.gameObject.layer) + "\",\"distance\":" + hit.distance.ToString("0.###", inv) + "}";

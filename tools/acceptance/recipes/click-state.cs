@@ -21,7 +21,7 @@
 		return property == null ? "?" : System.Convert.ToString(property.GetValue(null, null), System.Globalization.CultureInfo.InvariantCulture);
 	});
 	var install = read(vi, "InstallReport");
-	if (install.Length > 240) { install = install.Substring(0, 240); }
+	if (install.Length > 900) { install = install.Substring(0, 900); }
 	return "{\"ok\":true"
 		+ ",\"clickGates\":\"" + read(vi, "ClickGates").Replace("\\", "/").Replace("\"", "''") + "\""
 		+ ",\"install\":\"" + install.Replace("\"", "''").Replace("\n", " | ").Replace("\r", "") + "\""

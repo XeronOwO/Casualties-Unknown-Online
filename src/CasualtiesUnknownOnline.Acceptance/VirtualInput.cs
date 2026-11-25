@@ -290,7 +290,17 @@ internal static class VirtualInput
 		if (stagedAsButton >= 0 && Buttons.TryGetValue(stagedAsButton, out var buttonState))
 		{
 			value = AnswerFor(buttonState, query);
-			return true;
+
+			// A RELEASED button must not mask a held KEY staged for the same physical input. The two stores are staged by two
+			// different actions (`virtual-input` presses a button, `stage-bind` presses a key), and the bandage row uses both on
+			// one run: it releases the button, holds the pointer on the roll, then stages `attack` (Mouse0) as a KEY. A button
+			// entry that answers "not held" took the question first and the key store never answered, so the hand's `GetKey`
+			// read false with the key held (measured 2026-11-26: band-17's `stage-bind` reported `held:false` right after its
+			// own `PressKey(Mouse0)`). Button-true still wins because that is the store the pointer is staged in.
+			if (value || !Keys.ContainsKey(key))
+			{
+				return true;
+			}
 		}
 
 		if (!Keys.TryGetValue(key, out var state))

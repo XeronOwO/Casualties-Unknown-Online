@@ -203,6 +203,13 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 				("button", "0")).ConfigureAwait(false);
+			// What the input patches actually replaced. `virtual-input mode=report` answers the staged stores, not the call-site
+			// replacement, so a hand that never starts had no readable cause (measured 2026-11-26: neither the row's report nor
+			// the game log carried a single installation line). `click-state` carries `VirtualInput.InstallReport`, which names
+			// every replaced site, including `MinigameBase.UpdateHandVisuals`.
+			context.Read(
+				"the input patch report",
+				await context.MemberRecipeAsync("click-state", cancellationToken).ConfigureAwait(false));
 			// The hand has to be on the roll before the key goes down: the game stamps `holdingBandage` only on
 			// the click-start frame, and only when the hand is within about twenty-five degrees of the roll
 			// (`BandageMinigame.cs:77-84`). So the drive first parks the hand at the roll, the key goes down

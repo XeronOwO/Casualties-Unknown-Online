@@ -18,11 +18,6 @@ internal sealed class StartingSuppliesCase : AcceptanceCase
 	/// </summary>
 	public override bool NeedsStartingKit => true;
 
-	/// <summary>
-	/// The kit is granted on a character's first entry, so the runner starts a new run for this row.
-	/// </summary>
-	public override bool NeedsFreshRun => true;
-
 	// Restarts the run to get a character's first world entry; that restart is the case's declared cost.
 	public override CaseCost Cost => CaseCost.ClientRestart;
 

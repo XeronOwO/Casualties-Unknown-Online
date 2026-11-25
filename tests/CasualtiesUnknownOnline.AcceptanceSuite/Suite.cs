@@ -231,6 +231,23 @@ internal static partial class Program
 			var tail = await session.LogTailAsync(options.HostUrl, string.Empty, 6000, CancellationToken.None).ConfigureAwait(false);
 			var path = Path.Combine(outputDirectory, $"host-log-{caseName}.json");
 			await File.WriteAllTextAsync(path, tail?.ToString() ?? "(the host answered no log lines)").ConfigureAwait(false);
+
+			// The member's own log too: a row can fail on an exception that only the member's client raised
+			// (measured 2026-11-25: run-settings failed on a member-side NullReferenceException and the report
+			// carried the host's log only).
+			try
+			{
+				var memberTail = await session.LogTailAsync(options.MemberUrl, string.Empty, 6000, CancellationToken.None).ConfigureAwait(false);
+				await File.WriteAllTextAsync(
+					Path.Combine(outputDirectory, $"member-log-{caseName}.json"),
+					memberTail?.ToString() ?? "(the member answered no log lines)").ConfigureAwait(false);
+			}
+			catch (Exception memberException) when (memberException is DriverException or IOException or InvalidOperationException)
+			{
+				await File.WriteAllTextAsync(
+					Path.Combine(outputDirectory, $"member-log-{caseName}.json"),
+					"the member log could not be copied: " + memberException.Message).ConfigureAwait(false);
+			}
 		}
 		catch (Exception exception) when (exception is DriverException or IOException or InvalidOperationException)
 		{
@@ -330,7 +347,13 @@ internal static partial class Program
 			// was not hosting. The check is two state reads when the pair is live and pays the rebuild
 			// in the case's setup when it is not.
 			context.Notes.Add(await caseSession.EnsureLiveWorldAsync(CancellationToken.None, acceptanceCase.NeedsStartingKit).ConfigureAwait(false));
-			if (acceptanceCase.NeedsFreshRun || runChangedByTheLastRow || acceptanceCase.Cost == CaseCost.NewWorld)
+			// A fresh run is paid only when the last row changed the run (it left the world or continued a save): the
+			// next row would otherwise start inside whatever that row left behind. A row does NOT get a fresh run just
+			// because it wants a clean world — one world build is 25–35 s, and giving sixty rows their own world turned a
+			// nine-minute batch into forty (measured 2026-11-25: ~2000 s of setup against ~500 s of case work). Rows that
+			// need a pristine detail get it from the freshness probes inside EnsureLiveWorldAsync (breakable ground, a free
+			// slot, a single member, the bodies' own walls), which rebuild only that detail.
+			if (runChangedByTheLastRow)
 			{
 				context.Notes.Add(await caseSession.StartFreshRunAsync(CancellationToken.None).ConfigureAwait(false));
 				runChangedByTheLastRow = false;
@@ -933,25 +956,6 @@ internal abstract class AcceptanceCase
 	/// Whether this row reads the game's starting kit, which the run's own pre-case sweep would otherwise drop.
 	/// </summary>
 	public virtual bool NeedsStartingKit => false;
-
-	/// <summary>
-	/// Whether this row reads a character's FIRST entry into a world, so the runner has to start a brand-new run
-	/// before it. A kit is granted once per character, so a run an earlier row already populated cannot answer it
-	/// (measured 2026-11-22: `starting-supplies` passes alone and fails behind `world-fingerprint`).
-	/// </summary>
-	public virtual bool NeedsFreshRun => RowsThatStartFresh.Contains(Name);
-
-	/// <summary>
-	/// Rows that read where the player stands: they need the run's own start, not whatever spot the row
-	/// before them left the body on. Measured 2026-11-24: `world-fingerprint` found breakable cells at
-	/// x 1..3 with the body at -21,482, and `clone-probe` lost the host's copy mid-walk.
-	/// </summary>
-	private static readonly HashSet<string> RowsThatStartFresh = new(StringComparer.Ordinal)
-	{
-		"world-fingerprint",
-		"world-fingerprint-after-mutation",
-		"clone-probe",
-	};
 
 	/// <summary>
 	/// True when the row leaves the run itself changed — it continued a save, restarted the host, ended

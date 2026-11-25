@@ -95,7 +95,9 @@ internal sealed class GiveItemCase : AcceptanceCase
 		}
 
 		context.Read("member-bag", memberBag);
-		Require(landed, "the member's inventory does not list the given bandage: " + Raw(memberBag));
+		Require(landed, "the member's inventory does not list the given bandage: " + Raw(memberBag)
+			+ "; the give answered " + Raw(give)
+			+ "; the host's own bag reads " + Raw(await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false)));
 
 		// The other half of the claim: a friend whose hands and bag are full cannot take the item, and the giver keeps
 		// it. Nothing here writes the receiver's bag; the row fills it the way a player's bag fills — with real items the

@@ -298,7 +298,7 @@ internal sealed class MedicalTourniquetCase : AcceptanceCase
 		return double.NaN;
 	}
 
-	private static double Number(JsonElement? reading, string property) =>		reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.Number
+	private static double Number(JsonElement? reading, string property) => reading is { ValueKind: JsonValueKind.Object } value && value.TryGetProperty(property, out var propertyValue) && propertyValue.ValueKind == JsonValueKind.Number
 			? propertyValue.GetDouble()
 			: double.NaN;
 

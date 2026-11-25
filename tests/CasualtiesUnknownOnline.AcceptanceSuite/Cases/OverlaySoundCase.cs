@@ -43,6 +43,13 @@ internal sealed class OverlaySoundCase : AcceptanceCase
 		// reason. The recorder's `raw=` counter counts every `Sound.Play` it saw, so the check is a count that grows.
 		await ArmAsync(context, true, "hit", cancellationToken).ConfigureAwait(false);
 		var scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "1"), ("radius", "8")).ConfigureAwait(false);
+		if (FirstCell(scan) is null)
+		{
+			// The batch can leave the body at a spot with nothing breakable around it (measured 2026-11-25:
+			// count 0 within 8 units). The control is the block, not the radius, so look further before failing.
+			scan = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "1"), ("radius", "24")).ConfigureAwait(false);
+		}
+
 		context.Read("cell", scan);
 		var target = FirstCell(scan);
 		Require(target is not null, "the world offers no breakable block to hit: " + (scan?.GetRawText() ?? "null"));

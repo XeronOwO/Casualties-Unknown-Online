@@ -170,7 +170,8 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 	{
 		try
 		{
-			var text = File.ReadAllText(path);
+			var bytes = ReadShared(path);
+			var text = Encoding.UTF8.GetString(bytes);
 			return text.Length <= characters ? text : text[^characters..];
 		}
 		catch (IOException exception)
@@ -179,6 +180,24 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 		}
 	}
 
+	/// <summary>
+	/// The log's own bytes, read without taking a write lock: the host keeps writing it, and a plain
+	/// <c>File.ReadAllText</c> fails while it does (measured 2026-11-25: "The process cannot access the file").
+	/// </summary>
+	private static byte[] ReadShared(string path)
+	{
+		using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+		using var memory = new MemoryStream();
+		stream.CopyTo(memory);
+		return memory.ToArray();
+	}
+
+	/// <summary>
+	/// Finds the last <paramref name="needle"/> written at or after <paramref name="start"/>. The start is a
+	/// byte count (what <c>LogLength</c> measures) while the needle is a string, so the offset is converted
+	/// through the text's own encoding before they are compared — the log carries non-ASCII text, where a
+	/// byte offset and a character index are not the same number.
+	/// </summary>
 	private static string FindLine(string path, string needle, long start)
 	{
 		try
@@ -188,11 +207,12 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 				return string.Empty;
 			}
 
-			using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-			using var reader = new StreamReader(stream, Encoding.UTF8);
-			var text = reader.ReadToEnd();
+			var bytes = ReadShared(path);
+			var text = Encoding.UTF8.GetString(bytes);
+			var clipped = (int)Math.Min(start, bytes.Length);
+			var charStart = Encoding.UTF8.GetCharCount(bytes, 0, clipped);
 			var index = text.LastIndexOf(needle, StringComparison.Ordinal);
-			return index >= 0 && index >= start ? text[index..Math.Min(text.Length, index + 240)].Trim() : string.Empty;
+			return index >= 0 && index >= charStart ? text[index..Math.Min(text.Length, index + 240)].Trim() : string.Empty;
 		}
 		catch (IOException)
 		{

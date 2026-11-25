@@ -99,6 +99,13 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		context.Read("member settled for the carry", await SettleAsync(context, cancellationToken).ConfigureAwait(false));
 
+		// Standing beside the host is not the same as having it on screen: the game's visibility gate also needs the
+		// target on the camera's side of the screen, so the member looks at the host before the carry gesture
+		// (measured 2026-11-25: distance alone still read "no-line-of-sight").
+		context.Read("member aims at the host", await context.MemberRecipeAsync("aim-at-world", cancellationToken,
+			("x", hostAgainX.ToString(CultureInfo.InvariantCulture)),
+			("y", hostAgainY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false));
+
 		// Row 2: a conscious body is not carryable by the game's own rule; the host's switch lifts exactly that,
 		// and the relation forms on the member's client.
 		await SetHostRuleAsync(context, "allow_always_carry", "true", cancellationToken).ConfigureAwait(false);

@@ -283,6 +283,13 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 
 			minigameAtPress = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 			context.Read("minigame after the wrap", minigameAtPress);
+
+			// The hand's own history: the single reading above says the hand never started, and only the frame-by-frame record
+			// says whether the game's own start edge ever fired while the row held the attack (measured 2026-11-26).
+			var handFrames = await context.MemberRecipeAsync("minigame-frames", cancellationToken).ConfigureAwait(false);
+			var handFramesRaw = Raw(handFrames);
+			var handFramesTail = handFramesRaw.Length > 1500 ? handFramesRaw.Substring(handFramesRaw.Length - 1500) : handFramesRaw;
+			context.Note("the hand's own frames (tail): " + handFramesTail);
 		}
 		finally
 		{

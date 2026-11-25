@@ -97,7 +97,8 @@ internal static class VirtualInput
 
 		// The drag gesture's own key read, the cue tracker's read and the key-bind capture are their own files: each patches a different
 		// target family, and each reports what it did so this report names every patched site in one place.
-		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + CueInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony);
+		var report = inputReport + " | " + DragInputPatch.Install(harmony) + " | " + CueInputPatch.Install(harmony) + " | " + KeybindCapturePatch.Install(harmony)
+			+ " | " + MinigameFrameRecorder.Install(harmony);
 		installed = failures == 0;
 		InstallReport = report;
 		return report;

@@ -742,6 +742,34 @@
 		return finish(fields);
 	}
 
+	if (command == "minigame-frames") {
+		// The minigame's own per-frame hand state, which a single reading cannot give: `started` is
+		// the start edge the game latches, `holding` the wrap, `handAngle` where the hand sits. The
+		// bandage row held the attack for 34 s and read `handStarted: false` at the end, so the frame
+		// history is what says whether the edge ever fired (measured 2026-11-26).
+		var recorder = (System.Type)null;
+		var loaded = System.AppDomain.CurrentDomain.GetAssemblies();
+		for (var i = 0; i < loaded.Length && recorder == null; i++) {
+			try { recorder = loaded[i].GetType("CasualtiesUnknownOnline.GameAdapter.Acceptance.MinigameFrameRecorder", false); } catch { recorder = null; }
+		}
+		if (recorder == null) {
+			putText(fields, escape, "ok", "false");
+			putText(fields, escape, "error", "the acceptance assembly is not loaded on this side");
+			return finish(fields);
+		}
+		const System.Reflection.BindingFlags any = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+		if (argument == "clear") {
+			recorder.GetMethod("Clear", any)?.Invoke(null, null);
+			putText(fields, escape, "ok", "true");
+			putText(fields, escape, "cleared", "true");
+			return finish(fields);
+		}
+		var frames = recorder.GetMethod("Read", any)?.Invoke(null, null) as string ?? "";
+		putText(fields, escape, "ok", "true");
+		putText(fields, escape, "frames", frames);
+		return finish(fields);
+	}
+
 	if (command == "log-tail") {
 		// The last lines of THIS client's own BepInEx log that contain ARGUMENT: the suite judges the
 		// target's side of a relayed effect from the target's own file, not from the host's answer.

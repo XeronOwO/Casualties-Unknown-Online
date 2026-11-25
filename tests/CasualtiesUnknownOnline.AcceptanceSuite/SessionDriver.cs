@@ -1295,6 +1295,10 @@ internal sealed class SessionDriver(Options options)
 	{
 		BeginSetup();
 		var clock = Stopwatch.StartNew();
+		// Where the guarantee's seconds go. The guarantee is the batch's largest cost and the one figure that
+		// decides whether a full run fits its wall budget, so every stage names its own elapsed time
+		// (measured 2026-11-25: 3.7-5.7 s per row with nothing saying which stage owned them).
+		string Stage(string name) => $"{name}: {clock.Elapsed.TotalSeconds:F2}s";
 		try
 		{
 			// The row before this one declared what it leaves; the guarantee undoes exactly that before it
@@ -1317,6 +1321,7 @@ internal sealed class SessionDriver(Options options)
 				}
 
 				undoNote = await RollBackAsync(previousCase, leftovers, rulesBaseline, cancellationToken).ConfigureAwait(false);
+				Timeline?.Invoke("  " + Stage("leftovers undone"));
 				return undoNote + "; ";
 			}
 
@@ -1346,11 +1351,18 @@ internal sealed class SessionDriver(Options options)
 				var notes = new List<string>(2);
 				if (!await HasBreakableGroundAsync(cancellationToken).ConfigureAwait(false))
 				{
+					Timeline?.Invoke("  " + Stage("ground probe: none"));
 					var placed = await MoveThePairOntoBreakableGroundAsync(previousCase, cancellationToken).ConfigureAwait(false);
 					notes.Add(placed ?? "the world has no diggable ground within reach of the pair, so the row reads its own ground probe");
+					Timeline?.Invoke("  " + Stage("ground repair"));
+				}
+				else
+				{
+					Timeline?.Invoke("  " + Stage("ground probe: ok"));
 				}
 
 				var slots = await SlotNoteAsync(cancellationToken).ConfigureAwait(false);
+				Timeline?.Invoke("  " + Stage("slot probe"));
 				if (slots.Length > 0)
 				{
 					notes.Add(slots);
@@ -1360,12 +1372,14 @@ internal sealed class SessionDriver(Options options)
 			}
 
 			var hostState = await TryStateAsync(_options.HostUrl, cancellationToken).ConfigureAwait(false);
+			Timeline?.Invoke("  " + Stage("host state"));
 			var hostInWorld = hostState is { } host
 				&& IsTrue(host, "inWorld")
 				&& !IsTrue(host, "gateWaiting");
 			if (hostInWorld)
 			{
 				var memberState = await TryStateAsync(_options.MemberUrl, cancellationToken).ConfigureAwait(false);
+				Timeline?.Invoke("  " + Stage("member state"));
 				if (memberState is { } member && IsTrue(member, "inWorld"))
 				{
 					// A member in its own world is not the host's member: the roster is the host's
@@ -1374,6 +1388,7 @@ internal sealed class SessionDriver(Options options)
 					var undone = await UndoAsync().ConfigureAwait(false);
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
+						Timeline?.Invoke("  " + Stage("member list"));
 						return undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -1724,6 +1739,14 @@ internal sealed class SessionDriver(Options options)
 	/// </remarks>
 	private async Task<string> HealBothBodiesAsync(string previousCase, CancellationToken cancellationToken)
 	{
+		// A row declares that it touches bodies; most of them leave both bodies whole anyway (a chart read, a
+		// dose). Reading first costs one probe per end and saves the pair-wide reset, the member's round trip
+		// and the poll that follows it — the guarantee is the batch's largest cost.
+		if (await ReadLimbsStillWoundedAsync(cancellationToken).ConfigureAwait(false) is null)
+		{
+			return $"both bodies were already whole after {previousCase} (no limb missing, every limb at full skin)";
+		}
+
 		var answer = await ActionAsync(_options.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
 		if (!IsTrue(answer, "applied"))
 		{
@@ -1789,6 +1812,26 @@ internal sealed class SessionDriver(Options options)
 	/// </remarks>
 	private async Task<string> EmptyBothBagsAsync(string previousCase, CancellationToken cancellationToken)
 	{
+		// A row declares that it puts things in bags; several of them hand the item over and take it back
+		// before the row ends. Reading the bags first costs one probe per end and skips the drop when there
+		// is nothing to drop.
+		var alreadyEmpty = true;
+		foreach (var (url, who) in Ends)
+		{
+			var bag = await RecipeAtAsync(url, "body-items", null, cancellationToken).ConfigureAwait(false);
+			if (bag is not { } reading || !reading.TryGetProperty("ids", out var ids) || ids.ValueKind != JsonValueKind.String)
+			{
+				throw new InvalidOperationException($"the {who}'s bag could not be read before the clear that {previousCase} owes: " + Raw(bag));
+			}
+
+			alreadyEmpty &= (ids.GetString() ?? string.Empty).Length == 0;
+		}
+
+		if (alreadyEmpty)
+		{
+			return $"both bags were already empty after {previousCase}";
+		}
+
 		var notes = new List<string>(2);
 		foreach (var (url, who) in Ends)
 		{
@@ -1824,6 +1867,29 @@ internal sealed class SessionDriver(Options options)
 	/// <summary>Drops whatever either hand holds through the game's own drop, then proves no slot is held.</summary>
 	private async Task<string> EmptyBothHandsAsync(string previousCase, CancellationToken cancellationToken)
 	{
+		// Same shape as the bags: read the slots first, and pay the drop only when a hand still holds
+		// something after the row that declared it.
+		var alreadyEmpty = true;
+		foreach (var (url, who) in Ends)
+		{
+			var slots = await RecipeAtAsync(url, "item-provide",
+				new Dictionary<string, string> { ["mode"] = "slots", ["type"] = string.Empty }, cancellationToken).ConfigureAwait(false);
+			if (slots is not { } reading || !reading.TryGetProperty("slots", out var table) || table.ValueKind != JsonValueKind.Array)
+			{
+				throw new InvalidOperationException($"the {who}'s slots could not be read before the drop that {previousCase} owes: " + Raw(slots));
+			}
+
+			foreach (var slot in table.EnumerateArray())
+			{
+				alreadyEmpty &= !IsTrue(slot, "holding");
+			}
+		}
+
+		if (alreadyEmpty)
+		{
+			return $"both hands were already empty after {previousCase}";
+		}
+
 		foreach (var (url, who) in Ends)
 		{
 			var dropped = await RecipeAtAsync(url, "empty-hands", null, cancellationToken).ConfigureAwait(false);
@@ -1890,6 +1956,18 @@ internal sealed class SessionDriver(Options options)
 		if (hostX == 0 && hostY == 0)
 		{
 			throw new InvalidOperationException($"the host's body has no position, so the place {because} left the member cannot be undone: " + Raw(host));
+		}
+
+		// A rollback only wants the pair together again, and most rows that move the member leave it well
+		// inside reach: read where it stands and skip the walk when it is already there.
+		if (!requireSight)
+		{
+			var (memberX, memberY) = BodyPosition(await RecipeAtAsync(_options.MemberUrl, "body-read", null, cancellationToken).ConfigureAwait(false));
+			var gap = Math.Sqrt((memberX - hostX) * (memberX - hostX) + (memberY - hostY) * (memberY - hostY));
+			if (gap <= 4)
+			{
+				return $"the member was already {gap.ToString("0.#", CultureInfo.InvariantCulture)} units from the host after {because}";
+			}
 		}
 
 		// The host's own floor, one step to either side, then the diagonals, then the host's own cell: every spot is
@@ -2068,6 +2146,25 @@ internal sealed class SessionDriver(Options options)
 	/// <summary>Puts both clocks back to normal speed and unpaused, then proves the values every later wait measures.</summary>
 	private async Task<string> RestoreTheClockAsync(string previousCase, CancellationToken cancellationToken)
 	{
+		// Most clock rows put the clock back themselves; the guarantee only has to prove it, so the writes and
+		// their settle frame are paid only when a clock is actually off normal.
+		var needsTheWrite = false;
+		foreach (var (url, who) in Ends)
+		{
+			var clock = await RecipeAtAsync(url, "frame-clock", null, cancellationToken).ConfigureAwait(false);
+			if (clock is not { } reading || !IsTrue(reading, "ok"))
+			{
+				throw new InvalidOperationException($"the {who}'s clock could not be read after {previousCase}: " + Raw(clock));
+			}
+
+			needsTheWrite |= Math.Abs(Number(reading, "timeScale") - 1) > 0.01 || IsTrue(reading, "paused");
+		}
+
+		if (!needsTheWrite)
+		{
+			return $"both clocks were already at normal speed and unpaused after {previousCase}";
+		}
+
 		foreach (var (url, who) in Ends)
 		{
 			var scale = await RecipeAtAsync(url, "time-scale", new Dictionary<string, string> { ["value"] = "1" }, cancellationToken).ConfigureAwait(false);

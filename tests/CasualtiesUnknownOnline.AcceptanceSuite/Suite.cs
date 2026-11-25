@@ -357,6 +357,11 @@ internal static partial class Program
 		{
 			await host.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
 			connect.Stop();
+			// The row's own clock starts here, not at the case body: the setup is the largest part of a row
+			// (measured 2026-11-25: a row that spans 10.1 s reported setup 3.7 s and case 0.0 s, because the
+			// clock started after the guarantee, the pin and the marks, while the setup figure covered them).
+			// Setup plus case must add up to the row's span, or the batch's cost reads short.
+			run.Start();
 			var caseSession = new SessionDriver(options) { Timeline = timeline.Step };
 			context = new CaseContext(options, outputDirectory, host, caseSession, timeline);
 			// The runner owns the world's lifetime: a case that verifies inside a world must find one,
@@ -433,7 +438,6 @@ internal static partial class Program
 				markProblem ??= $"member log could not be marked: {exception.Message}";
 			}
 
-			run.Start();
 			// A case gets a hard budget of its own. Every wait inside a row has one, but a row can still leave the run
 			// parked — an await that never comes back costs the whole batch its report (measured 2026-11-22, `every-17`:
 			// `medical-bandage` started at 07:00:23 and the batch was still sitting there at 07:15 with both clients

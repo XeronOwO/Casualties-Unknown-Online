@@ -133,6 +133,26 @@ public static class BandageHandDrive
 		// what makes the placed angle the angle the game sees (measured 2026-11-26: `handPos` was placed at the roll but
 		// `handAngle` kept reading 75 for the whole gesture).
 		Traverse.Create(body).Field("handVelocity").SetValue(Vector2.zero);
+
+		// What the wrap saw this frame, read where the physics stage runs (after the frame's updates): the two flags
+		// `MinigameBase.UpdateHandVisuals` sets and the state the item's minigame copied from them. This is the pairing
+		// the row's own samples cannot show — a flag that is true for one frame is invisible to a 60 ms poll.
+		var startedNow = Convert.ToBoolean(AccessTools.Field(holder, "handStartedClicking").GetValue(body));
+		var holdingField = current == null ? null : AccessTools.Field(current.GetType(), "holdingBandage");
+		var holdingNow = holdingField != null && Convert.ToBoolean(holdingField.GetValue(current));
+		lock (UpdateTrace)
+		{
+			UpdateTrace.Enqueue(
+				Time.frameCount.ToString(CultureInfo.InvariantCulture)
+				+ "=roll" + roll.ToString("0", CultureInfo.InvariantCulture)
+				+ "hand" + Angle.ToString("0", CultureInfo.InvariantCulture)
+				+ (startedNow ? "s1" : "s0")
+				+ (holdingNow ? "h1" : "h0"));
+			while (UpdateTrace.Count > 64)
+			{
+				UpdateTrace.Dequeue();
+			}
+		}
 	}
 
 	/// <summary>

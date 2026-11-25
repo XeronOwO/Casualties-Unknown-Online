@@ -516,146 +516,154 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// until the cell is gone (the block's own health decides how long that takes). A person holds the mouse button,
 		// and the game's own attack path reads it as a BUTTON as well as a key, so the row stages both (measured
 		// 2026-11-22: with only the key staged, `HandleAttacks` ran 706 times and the body was never asked to swing).
-		await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
-		await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
-		// The staging is only worth anything if the game actually asks it: the report carries how many of the
-		// game's own key queries the patch answered, so a row that never swings can say which side is missing.
-		var staged = await context.RecipeAsync(
-			"virtual-input",
-			cancellationToken,
-			("mode", "report"),
-			("x", "0"),
-			("y", "0"),
-			("button", "0")).ConfigureAwait(false);
-		context.Read("the input the game sees", staged);
-		// The game's own input gates sit between the staged key and the swing: the console, its pause handler, and the
-		// crafting/trade panels each return from PlayerCamera.HandleInput before the attack code (measured 2026-11-22).
-		var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
-		context.Read("the game's own gates", clock);
-		var framesAtPress = Integer(clock, "frame");
-		// One swing through the game's own entry says whether the counter is live on this build at all; without it a zero
-		// cannot be told apart from a patch that never installed.
-		var swingProbe = await context.RecipeAsync("swing-once", cancellationToken).ConfigureAwait(false);
-		context.Read("one swing through the game's own entry", swingProbe);
-		var entriesAtPress = Integer(staged, "handleInputEntries");
-		JsonElement? hostDuring = null;
-		JsonElement? hostAfter = null;
-		JsonElement? gatesDuring = null;
-		JsonElement? branchDuring = null;
-		JsonElement? swingHits = null;
-		try
+		// The fingerprint claim is that both clients hold the same block at the same cell. The game's own damage
+		// entry breaks one cell without the mouse, the ray and the pile the hand drops — the hold below was measured
+		// spending 150.6 s walking around the row's own supplies and still never raising a cell's damage
+		// (`.acceptance/wf-15`, `wf-16`), so the entry is tried first and the hold stays for the world it cannot reach.
+		var brokenByTheGamesEntry = await TryTheGamesOwnBlockEntryAsync(context, cell, cancellationToken).ConfigureAwait(false);
+		if (!brokenByTheGamesEntry)
 		{
-			var damageRose = false;
-			var broke = false;
-			JsonElement? holdStaged = null;
-			for (var attempt = 0; attempt < 24 && !broke; attempt++)
+			await PressAsync(context, "press", cancellationToken).ConfigureAwait(false);
+			await PressAsync(context, "press-key", cancellationToken).ConfigureAwait(false);
+			// The staging is only worth anything if the game actually asks it: the report carries how many of the
+			// game's own key queries the patch answered, so a row that never swings can say which side is missing.
+			var staged = await context.RecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "report"),
+				("x", "0"),
+				("y", "0"),
+				("button", "0")).ConfigureAwait(false);
+			context.Read("the input the game sees", staged);
+			// The game's own input gates sit between the staged key and the swing: the console, its pause handler, and the
+			// crafting/trade panels each return from PlayerCamera.HandleInput before the attack code (measured 2026-11-22).
+			var clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+			context.Read("the game's own gates", clock);
+			var framesAtPress = Integer(clock, "frame");
+			// One swing through the game's own entry says whether the counter is live on this build at all; without it a zero
+			// cannot be told apart from a patch that never installed.
+			var swingProbe = await context.RecipeAsync("swing-once", cancellationToken).ConfigureAwait(false);
+			context.Read("one swing through the game's own entry", swingProbe);
+			var entriesAtPress = Integer(staged, "handleInputEntries");
+			JsonElement? hostDuring = null;
+			JsonElement? hostAfter = null;
+			JsonElement? gatesDuring = null;
+			JsonElement? branchDuring = null;
+			JsonElement? swingHits = null;
+			try
 			{
-				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
-				// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
-				// the channel drops it between frames (measured 2026-11-22: 703 frames asked the attack key and the game
-				// read "not held" while the row believed it was holding). It has to be the game's own bind staged *down*
-				// rather than a click: a click is over before `HandleAttacks` runs — measured 2026-11-22, the branch's own
-				// probe read `probeHeld=false` while staging a click, which is why no swing ever happened.
-				holdStaged = await StageReadingAsync(context, "attack", "down", cancellationToken).ConfigureAwait(false);
-				// The game asks for the attack with `Input.GetKey(<the attack bind>)`, and that bind is a mouse button.
-				// A staged key and a staged button are two different tables in the input seam (measured 2026-11-22: the
-				// key table said held while the game's own probe inside `HandleAttacks` read `probeHeld=false`), so the
-				// row holds both, the way a player's finger is on the button and the button is down.
-				await context.RecipeAsync(
-					"virtual-input",
-					cancellationToken,
-					("mode", "press"),
-					("x", "0"),
-					("y", "0"),
-					("button", "0")).ConfigureAwait(false);
-				// The camera keeps moving while the key is held (measured 2026-11-22: one staged pixel came back as world
-				// x 3.5 right after aiming and as 1.375 a second later, and the game's own look ended a hundred units off
-				// the cell), so a pointer staged once drifts off the block. A person keeps the cursor on the block; the row
-				// re-aims with the game's own camera every tick before it reads the damage.
-				await context.RecipeAsync(
-					"aim-at-cell",
-					cancellationToken,
-					("x", cell.X.ToString(CultureInfo.InvariantCulture)),
-					("y", cell.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
-				// The staged key cannot reach the game's own swing on this build (measured 2026-11-22), so the row drives
-				// the same entry a person's click ends in — `Body.UseItemInHand` — and keeps asserting what a person can
-				// see: the cell's damage and crack stage, and the member's view of the same cell.
-				var swungNow = await context.RecipeAsync("swing-now", cancellationToken).ConfigureAwait(false);
-				if (attempt == 5)
+				var damageRose = false;
+				var broke = false;
+				JsonElement? holdStaged = null;
+				for (var attempt = 0; attempt < 24 && !broke; attempt++)
 				{
-					context.Read("the swing the row drove", swungNow);
-				}
+					await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+					// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
+					// the channel drops it between frames (measured 2026-11-22: 703 frames asked the attack key and the game
+					// read "not held" while the row believed it was holding). It has to be the game's own bind staged *down*
+					// rather than a click: a click is over before `HandleAttacks` runs — measured 2026-11-22, the branch's own
+					// probe read `probeHeld=false` while staging a click, which is why no swing ever happened.
+					holdStaged = await StageReadingAsync(context, "attack", "down", cancellationToken).ConfigureAwait(false);
+					// The game asks for the attack with `Input.GetKey(<the attack bind>)`, and that bind is a mouse button.
+					// A staged key and a staged button are two different tables in the input seam (measured 2026-11-22: the
+					// key table said held while the game's own probe inside `HandleAttacks` read `probeHeld=false`), so the
+					// row holds both, the way a player's finger is on the button and the button is down.
+					await context.RecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "press"),
+						("x", "0"),
+						("y", "0"),
+						("button", "0")).ConfigureAwait(false);
+					// The camera keeps moving while the key is held (measured 2026-11-22: one staged pixel came back as world
+					// x 3.5 right after aiming and as 1.375 a second later, and the game's own look ended a hundred units off
+					// the cell), so a pointer staged once drifts off the block. A person keeps the cursor on the block; the row
+					// re-aims with the game's own camera every tick before it reads the damage.
+					await context.RecipeAsync(
+						"aim-at-cell",
+						cancellationToken,
+						("x", cell.X.ToString(CultureInfo.InvariantCulture)),
+						("y", cell.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					// The staged key cannot reach the game's own swing on this build (measured 2026-11-22), so the row drives
+					// the same entry a person's click ends in — `Body.UseItemInHand` — and keeps asserting what a person can
+					// see: the cell's damage and crack stage, and the member's view of the same cell.
+					var swungNow = await context.RecipeAsync("swing-now", cancellationToken).ConfigureAwait(false);
+					if (attempt == 5)
+					{
+						context.Read("the swing the row drove", swungNow);
+					}
 
-				// The cell the game hurts is the cell of the swing's hit point, and the hit point moves with the aim: the
-				// crosshair sits on the cell the camera names, the hand's 4.5-unit ray enters the block a fraction over,
-				// and a `Chunk` collider covers many cells (measured 2026-11-25: the row held the attack on (4,469) while
-				// every hit point fell in (3,469), which is where the damage went). So the row watches the cell the game
-				// is really about to hurt: after each swing it reads the ray and follows the block the hand lands in.
-				var landedRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
-				if (landedRay is { } land && FirstBlockCell(land) is { } handLandsIn && handLandsIn != cell)
-				{
-					var atLanding = await ReadCellAsync(context, handLandsIn, false, cancellationToken).ConfigureAwait(false);
-					context.Note($"the swing lands in {Describe(handLandsIn)}, not in {Describe(cell)}: the row follows the block the game hurts");
-					cell = handLandsIn;
-					if (Integer(atLanding, "damage") > 0)
+					// The cell the game hurts is the cell of the swing's hit point, and the hit point moves with the aim: the
+					// crosshair sits on the cell the camera names, the hand's 4.5-unit ray enters the block a fraction over,
+					// and a `Chunk` collider covers many cells (measured 2026-11-25: the row held the attack on (4,469) while
+					// every hit point fell in (3,469), which is where the damage went). So the row watches the cell the game
+					// is really about to hurt: after each swing it reads the ray and follows the block the hand lands in.
+					var landedRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+					if (landedRay is { } land && FirstBlockCell(land) is { } handLandsIn && handLandsIn != cell)
+					{
+						var atLanding = await ReadCellAsync(context, handLandsIn, false, cancellationToken).ConfigureAwait(false);
+						context.Note($"the swing lands in {Describe(handLandsIn)}, not in {Describe(cell)}: the row follows the block the game hurts");
+						cell = handLandsIn;
+						if (Integer(atLanding, "damage") > 0)
+						{
+							damageRose = true;
+							hostAfter = atLanding;
+						}
+						else
+						{
+							hostBefore = atLanding;
+						}
+					}
+					if (attempt == 4)
+					{
+						// Halfway through the hold, name every gate between the held key and a hurt block, so a failure
+						// can say which one said no instead of only that the damage stayed flat.
+						var gates = await context.RecipeAsync("swing-state", cancellationToken).ConfigureAwait(false);
+						gatesDuring = gates;
+						context.Read("the swing's own gates", gates);
+						var branch = await context.RecipeAsync("attack-branch", cancellationToken).ConfigureAwait(false);
+						branchDuring = branch;
+						context.Read("the attack branch's own gates", branch);
+						// What the swing actually meets: the game's block branch runs only when no earlier hit took the
+						// swing (`Body.cs:2160`), so this list names the thing that swallows it.
+						var hits = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+						swingHits = hits;
+						context.Read("what the swing meets", hits);
+					}
+					var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
+					if (Integer(now, "damage") > Integer(hostBefore, "damage"))
 					{
 						damageRose = true;
-						hostAfter = atLanding;
+						hostDuring ??= now;
 					}
-					else
-					{
-						hostBefore = atLanding;
-					}
+					broke = Integer(now, "block") <= 0;
+					hostAfter = now;
 				}
-				if (attempt == 4)
-				{
-					// Halfway through the hold, name every gate between the held key and a hurt block, so a failure
-					// can say which one said no instead of only that the damage stayed flat.
-					var gates = await context.RecipeAsync("swing-state", cancellationToken).ConfigureAwait(false);
-					gatesDuring = gates;
-					context.Read("the swing's own gates", gates);
-					var branch = await context.RecipeAsync("attack-branch", cancellationToken).ConfigureAwait(false);
-					branchDuring = branch;
-					context.Read("the attack branch's own gates", branch);
-					// What the swing actually meets: the game's block branch runs only when no earlier hit took the
-					// swing (`Body.cs:2160`), so this list names the thing that swallows it.
-					var hits = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
-					swingHits = hits;
-					context.Read("what the swing meets", hits);
-				}
-				var now = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
-				if (Integer(now, "damage") > Integer(hostBefore, "damage"))
-				{
-					damageRose = true;
-					hostDuring ??= now;
-				}
-				broke = Integer(now, "block") <= 0;
-				hostAfter = now;
+				// A person lets the attack go when the block gives way; the held bind is released here so the row leaves the
+				// client the way it found it.
+				await StageAsync(context, "attack", "up", cancellationToken).ConfigureAwait(false);
+				context.Read("host-cell-during", hostDuring);
+				context.Read("host-cell-after", hostAfter);
+				var clockAfter = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
+				var entriesAfter = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "report"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
+				var framesDrawn = Integer(clockAfter, "frame") - framesAtPress;
+				var entriesGained = Integer(entriesAfter, "handleInputEntries") - entriesAtPress;
+				var aimRoundTrip = await context.RecipeAsync(
+					"pointer-target",
+					cancellationToken,
+					("x", cell.X.ToString()),
+					("y", cell.Y.ToString())).ConfigureAwait(false);
+				Require(
+					damageRose,
+					$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}; the pointer truth at aim was {Raw(truthAtAim)} and one second later {Raw(truthLater)}; what the swing meets is {Raw(swingHits)}; the row's own hold staged {Raw(holdStaged)}");
+				Require(
+					broke,
+					$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
 			}
-			// A person lets the attack go when the block gives way; the held bind is released here so the row leaves the
-			// client the way it found it.
-			await StageAsync(context, "attack", "up", cancellationToken).ConfigureAwait(false);
-			context.Read("host-cell-during", hostDuring);
-			context.Read("host-cell-after", hostAfter);
-			var clockAfter = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
-			var entriesAfter = await context.RecipeAsync("virtual-input", cancellationToken, ("mode", "report"), ("x", "0"), ("y", "0"), ("button", "0")).ConfigureAwait(false);
-			var framesDrawn = Integer(clockAfter, "frame") - framesAtPress;
-			var entriesGained = Integer(entriesAfter, "handleInputEntries") - entriesAtPress;
-			var aimRoundTrip = await context.RecipeAsync(
-				"pointer-target",
-				cancellationToken,
-				("x", cell.X.ToString()),
-				("y", cell.Y.ToString())).ConfigureAwait(false);
-			Require(
-				damageRose,
-				$"holding the game's attack at the cell ({Describe(cell)}) never raised its damage: {Raw(hostAfter)}; the attack branch's own gates read {Raw(branchDuring)}; the input channel installed with {Raw(install)}; one swing through the game's own entry read {Raw(swingProbe)}; the game's own aim and hands while the attack was held were {Raw(gatesDuring)}; the pointer reached {Raw(aimRoundTrip)}; the input the game saw was {Raw(staged)}; the gates were {Raw(clock)}; while the attack was held the client drew {framesDrawn} frame(s) and entered its input path {entriesGained} more time(s), and its attack path read {Raw(entriesAfter)}; the pointer truth at aim was {Raw(truthAtAim)} and one second later {Raw(truthLater)}; what the swing meets is {Raw(swingHits)}; the row's own hold staged {Raw(holdStaged)}");
-			Require(
-				broke,
-				$"the cell ({Describe(cell)}) did not break while the attack was held: {Raw(hostAfter)}");
-		}
-		finally
-		{
-			await PressAsync(context, "release-key", cancellationToken).ConfigureAwait(false);
+			finally
+			{
+				await PressAsync(context, "release-key", cancellationToken).ConfigureAwait(false);
+			}
 		}
 
 		// The claim is about the member's screen: the same cell has to become the same empty cell there.
@@ -1402,6 +1410,44 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		}
 
 		await StageAsync(context, bind, "up", cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Breaks one cell through the game's own damage entry (<c>WorldGeneration.DamageBlock</c>, the choke point every
+	/// native mining roll enters) and reports whether the cell went empty. Returns false when the entry could not reach
+	/// the cell, which leaves the row's swing as the fallback.
+	/// </summary>
+	private static async Task<bool> TryTheGamesOwnBlockEntryAsync(
+		CaseContext context,
+		(int X, int Y) cell,
+		CancellationToken cancellationToken)
+	{
+		var before = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
+		if (Integer(before, "block") <= 0)
+		{
+			return true;
+		}
+
+		var broken = await context.RecipeAsync(
+			"block-break-at",
+			cancellationToken,
+			("x", cell.X.ToString(CultureInfo.InvariantCulture)),
+			("y", cell.Y.ToString(CultureInfo.InvariantCulture)),
+			("dmg", "100000")).ConfigureAwait(false);
+		context.Read("the game's own block entry", broken);
+		for (var attempt = 0; attempt < 20; attempt++)
+		{
+			var after = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
+			if (Integer(after, "block") <= 0)
+			{
+				context.Note($"the cell ({Describe(cell)}) broke through the game's own damage entry, so the row did not swing");
+				return true;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		return false;
 	}
 
 	/// <summary>

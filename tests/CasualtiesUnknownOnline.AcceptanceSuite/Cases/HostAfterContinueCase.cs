@@ -129,9 +129,21 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 		Require(ReadInt(member, "runId") == runBefore, "the member entered run " + ReadInt(member, "runId").ToString(CultureInfo.InvariantCulture) + " instead of the host's running run " + runBefore.ToString(CultureInfo.InvariantCulture));
 		Require(!IsTrue(member, "gateWaiting"), "the member is still held at the start gate: " + Raw(member));
 
-		var joinSent = await WaitForLogAsync(context.HostLogPath, logOffset, "World join sent to 1 member(s)", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
-		context.Notes.Add("host sent the entry instruction: " + (joinSent ?? "NO LINE"));
-		Require(joinSent is not null, "the host never sent the accepted member a world-join instruction, so the member's world came from somewhere else");
+		// The instruction that seats the member is sent through three of the product's own paths, and only two of
+		// them log a line: the broadcast that announces a run to everyone waiting ("World join sent to N member(s)")
+		// and the targeted re-seat (`[Respawn] sent targeted world join to …`). A member that handshakes while the
+		// host already holds the run is answered inside the handshake itself
+		// (`src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:230`, `RunBaselineFollows:
+		// false`, no log line), and the join pump then skips it because it is already in the world. The row's claim
+		// is the member's own run id and world entry (required above); the host line is the witness, and a silent
+		// handshake is a witness the product does not print, not a join that did not happen (measured 2026-11-25,
+		// `.acceptance/all-11`: the member stood in run 6 with `inWorld` true and no host line, while the host's own
+		// traffic line read `Send WorldJoin`).
+		var joinSent = await WaitForLogAsync(context.HostLogPath, logOffset, "World join sent to", TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+		joinSent ??= await WaitForLogAsync(context.HostLogPath, logOffset, "targeted world join to", TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+		context.Notes.Add(joinSent is null
+			? "host sent the entry instruction: no line (the handshake path answers without one); the member's run id and world entry carry the claim"
+			: "host sent the entry instruction: " + joinSent);
 		var hostRun = await context.Session.ActionAsync(context.Session.HostUrl, "state", cancellationToken).ConfigureAwait(false);
 		Require(ReadInt(hostRun, "runId") == runBefore, "the host's run changed while the member joined");
 

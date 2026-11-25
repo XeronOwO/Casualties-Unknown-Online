@@ -52,7 +52,20 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// The row leaves the capsule before it looks for rock: the world it can dig is the world outside the shell, and
 		// a scan taken inside it answers with cells on the far side that no walk can reach (measured 2026-11-22: the
 		// body exited leftward to x -8 while every candidate sat forty units to the right).
-		var podExit = await LeaveThePodAsync(context, cancellationToken).ConfigureAwait(false);
+		//
+		// The exit is paid only when the body has nothing to dig within its empty hand's reach (4.5 from the attacking
+		// limb, `Body.cs:2036`). The world guarantee may already have carried the host onto ground the game can dig
+		// (SessionDriver's ground repair, for a world whose spawn pocket has no diggable cell), and walking out of the
+		// pod then takes the body off that ground: in `.acceptance/wf-3` the exit walked the host from (-4,492) down to
+		// (-9,413), fifty units below the cell it had been standing beside, and the row failed on a reach it had lost.
+		var besideTheBody = await FindBreakableCellsAsync(context, cancellationToken, radius: 4, count: 6).ConfigureAwait(false);
+		var hittableBeside = await KeepOnlyCellsASwingCanHitAsync(context, besideTheBody, cancellationToken).ConfigureAwait(false);
+		context.Note($"beside the body: {besideTheBody.Count} cell(s) the grid calls breakable, {hittableBeside.Count} of them carrying the collider a swing hurts");
+		var alreadyOnGround = hittableBeside.Count > 0;
+		var podExit = alreadyOnGround
+			? (X: 0.0, Y: 0.0, Trace: "the body already stands beside a cell a swing can hurt, so the row stayed where the guarantee put it")
+			: await LeaveThePodAsync(context, cancellationToken).ConfigureAwait(false);
+		context.Note(podExit.Trace);
 		context.Read("host-left-the-pod", await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false));
 		var candidates = await FindBreakableCellsAsync(context, cancellationToken).ConfigureAwait(false);
 		// A collider on the cell is a preference, not a gate: the row walked into a world where the grid named
@@ -76,6 +89,13 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		(int X, int Y) cell = default;
 		JsonElement? point = null;
 		var lastReason = "";
+		// The nearest on-screen cell, not the first one the world's scan order offers. The scan answers in the world
+		// grid's own order, and that order named a cell twenty-six units away while a diggable one stood beside the
+		// body (measured 2026-11-25, `.acceptance/wf-2`: the body at (-23,501), the first offered cell at (3,492), the
+		// nearest inside walking distance). A player digs the block beside them; the row now does the same.
+		var hereBeforeScan = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		var hereXBeforeScan = Double(hereBeforeScan, "posX");
+		var hereYBeforeScan = Double(hereBeforeScan, "posY");
 		for (var scan = 0; scan < 6 && point is null; scan++)
 		{
 			if (scan > 0)
@@ -100,17 +120,23 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				}
 			}
 
+			var nearest = double.MaxValue;
 			foreach (var candidate in candidates)
 			{
 				var projected = await ProjectAsync(context, candidate, cancellationToken).ConfigureAwait(false);
-				if (IsOnScreen(projected))
+				if (!IsOnScreen(projected))
 				{
-					cell = candidate;
-					point = projected;
-					break;
+					lastReason = Raw(projected);
+					continue;
 				}
 
-				lastReason = Raw(projected);
+				var distance = Distance(hereXBeforeScan, hereYBeforeScan, candidate.X + 0.5, candidate.Y + 0.5);
+				if (distance < nearest)
+				{
+					nearest = distance;
+					cell = candidate;
+					point = projected;
+				}
 			}
 		}
 		context.Read("host-cell-point", point);

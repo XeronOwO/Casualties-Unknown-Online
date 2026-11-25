@@ -127,10 +127,17 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		var restored = await SaveContinueCycle.ContinueAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("restored line", JsonDocument.Parse("\"" + Escape(restored) + "\"").RootElement.Clone());
 
-		// The live-world replay holds the native geyser set while the live count is still growing,
-		// so the audit lands after the set stops filling, not at the entry seam. The wait is the
-		// fixture's budget: the measured runs put it inside 20 s.
-		var restoredAudit = await WaitForLogAsync(context, "restored the live world", TimeSpan.FromSeconds(20), cancellationToken).ConfigureAwait(false);
+		// The live-world replay holds the native geyser set while the live count is still growing, so
+		// the audit lands after the set stops filling, not at the entry seam. The hold's own ceiling is
+		// GeyserFillWait.HardCeilingSeconds (60 s), and a restore that is still filling is not a restore
+		// that failed: the fixture's budget is that ceiling plus the audit's settle margin, never a
+		// number measured on a smaller world. Measured 2026-11-25 (.acceptance/all-9, all-10, all-11):
+		// archives of 107 to 121 rows were still holding at the old 20 s budget in every run, and the
+		// empty timeout read as "the restore did not apply" while the restore was still legitimately
+		// waiting.
+		var auditStarted = DateTime.UtcNow;
+		var restoredAudit = await WaitForLogAsync(context, "restored the live world", TimeSpan.FromSeconds(70), cancellationToken).ConfigureAwait(false);
+		context.Note("the restore's audit answered after " + (DateTime.UtcNow - auditStarted).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + "s");
 		Require(
 			restoredAudit.Contains(beforeTypes.Count + " geyser type(s) applied (the archive carried " + beforeTypes.Count + ")", StringComparison.Ordinal),
 			"the restore did not apply the " + beforeTypes.Count + " geyser types the live world held before the save: " + restoredAudit);
@@ -449,7 +456,25 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken).ConfigureAwait(false);
 		}
 
-		return string.Empty;
+		return LastSaveFactsLine(context);
+	}
+
+	/// <summary>
+	/// The restore's own last account of what it is doing (its hold, its ceiling or its refusal), so a
+	/// timed-out wait reports why the audit had not arrived instead of an empty string.
+	/// </summary>
+	private static string LastSaveFactsLine(CaseContext context)
+	{
+		var text = ReadLog(context.HostLogPath);
+		var index = text.LastIndexOf("[SaveFacts]", StringComparison.Ordinal);
+		if (index < 0)
+		{
+			return string.Empty;
+		}
+
+		var lineStart = text.LastIndexOf('\n', index) + 1;
+		var lineEnd = text.IndexOf('\n', index);
+		return text[lineStart..(lineEnd >= 0 ? lineEnd : text.Length)].Trim();
 	}
 
 	private static string ReadLog(string path)

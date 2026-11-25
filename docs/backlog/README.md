@@ -72,6 +72,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [The continued run's dropped rows](todo/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy reads as a violation.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
+- [Give refused for a distance](todo/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the hand-over lands in the world.
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
 
 ### In progress

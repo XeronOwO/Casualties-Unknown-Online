@@ -163,6 +163,11 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 		// press could never arm the wrap.
 		var live = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 		context.Read("minigame before the gesture", live);
+		// The roll's own window is about twenty-five degrees wide (`BandageMinigame.cs:77-84`), and the game stamps
+		// `holdingBandage` only when the hand sits inside it on the frame the attack key goes down. The hand has to be STEPPED
+		// onto the roll, not merely parked on the ring: `.acceptance/band-22` reported `angle:0, handAngle:75, handMagnitude:250`
+		// for the whole gesture, so the hand was on the ring 75 degrees away from the window and the press could never arm it.
+		var stepToTheRoll = Number(live, "angle") - Number(live, "handAngle");
 		Require(Boolean(live, "hasMain") && Text(live, "kind").Length > 0, "the bandage minigame is not open: " + Raw(live));
 		var scale = Number(live, "uiScale");
 		Require(scale > 0, "the minigame reported no uiScale, so the gesture cannot be mapped to the screen: " + Raw(live));
@@ -220,7 +225,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				cancellationToken,
 				("mode", "start"),
 				("radius", "250"),
-				("step", "0")).ConfigureAwait(false);
+				("step", stepToTheRoll.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("hand parked on the roll", park);
 			// The wrap's hold is a KEY bind, not a mouse button: MinigameBase stamps handStartedClicking from
 			// Input.GetKeyDown(KeyBinds.GetBind("attack")) and the staged MOUSE never reaches it (2026-11-26: holding

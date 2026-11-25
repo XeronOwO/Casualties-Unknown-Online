@@ -2074,6 +2074,7 @@ internal sealed class SessionDriver(Options options)
 				continue;
 			}
 
+			var tried = 0;
 			foreach (var cell in cells.EnumerateArray())
 			{
 				if (cell.ValueKind != JsonValueKind.Object
@@ -2083,14 +2084,13 @@ internal sealed class SessionDriver(Options options)
 					continue;
 				}
 
-				var probe = await RecipeAtAsync(_options.HostUrl, "block-probe", new Dictionary<string, string>
+				// The scan already answered the question the probe would ask: a cell whose grid row is neither empty
+				// nor a wall and whose block is under the breakable health limit. Probing all twelve offered cells
+				// cost the guarantee 27.7 s in `.acceptance/bs-1`; the placement below is checked by the guarantee's
+				// own ground probe after it lands, and three cells are enough to try before saying the world has none.
+				if (tried++ >= 3)
 				{
-					["x"] = x.GetInt32().ToString(CultureInfo.InvariantCulture),
-					["y"] = y.GetInt32().ToString(CultureInfo.InvariantCulture),
-				}, cancellationToken).ConfigureAwait(false);
-				if (probe is not { } hit || !IsTrue(hit, "blockGround"))
-				{
-					continue;
+					break;
 				}
 
 				var placed = await RecipeAtAsync(_options.HostUrl, "body-place", new Dictionary<string, string>

@@ -290,6 +290,16 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			var handFramesRaw = Raw(handFrames);
 			var handFramesTail = handFramesRaw.Length > 1500 ? handFramesRaw.Substring(handFramesRaw.Length - 1500) : handFramesRaw;
 			context.Note("the hand's own frames (tail): " + handFramesTail);
+			// Whether the start edge could answer at all on this build: the install report names every patched method and
+			// how many key reads it replaced, so a hand that never starts says which side is missing (measured 2026-11-26).
+			var install = await context.MemberRecipeAsync(
+				"virtual-input",
+				cancellationToken,
+				("mode", "report"),
+				("x", "0"),
+				("y", "0"),
+				("button", "0")).ConfigureAwait(false);
+			context.Note("the input the game sees: " + Raw(install));
 		}
 		finally
 		{

@@ -38,9 +38,7 @@
 		// here so the row does not have to guess which (measured 2026-11-27 00:22: both clocks run at timeScale 1).
 		+ ",\"deltaTime\":" + Time.deltaTime.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"updateRate\":" + MinigameBase.PHYSICS_UPDATE_RATE.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-		+ ",\"updateTime\":" + (main.GetType().GetField("physicsUpdateTime") is { } put
-			? System.Convert.ToSingle(put.GetValue(main)).ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-			: "null")
+		+ ",\"updateTime\":" + System.Convert.ToSingle(main.GetType().GetField("physicsUpdateTime").GetValue(main)).ToString("R", System.Globalization.CultureInfo.InvariantCulture)
 		+ ",\"holding\":" + ((current.GetType().GetField("holdingBandage") != null && (bool)current.GetType().GetField("holdingBandage").GetValue(current)) ? "true" : "false")
 		+ ",\"keyQueries\":" + readCensus("KeyQueries")
 		+ ",\"keyDowns\":" + readCensus("KeyDownAnswers")

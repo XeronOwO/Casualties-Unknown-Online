@@ -696,7 +696,10 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	private HashSet<int> BoxedGameProcessIds()
 	{
 		var pids = new HashSet<int>();
-		foreach (var box in _clients.Where(candidate => candidate.Boxed).Select(candidate => candidate.Box!).Concat([_options.GuestBox, _options.AltBox]))
+		// Every box on this machine, not only this group's: a boxed host reports the same real image path as the desktop
+		// one, so a second group's host looked like this group's own and got adopted, then the run died with
+		// -532462766 (measured 2026-11-26 23:00, two groups started side by side).
+		foreach (var box in _clients.Where(candidate => candidate.Boxed).Select(candidate => candidate.Box!).Concat([_options.GuestBox, _options.AltBox]).Concat(EveryBoxOnThisMachine()))
 		{
 			if (string.IsNullOrWhiteSpace(box))
 			{
@@ -710,6 +713,42 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		}
 
 		return pids;
+	}
+
+	/// <summary>
+	/// Every sandbox box this machine has, read from the directory the configured roots live under: the roots a group
+	/// is told about are only its own, and the other group's box is exactly the one a host-candidate match must not see.
+	/// </summary>
+	private IEnumerable<string> EveryBoxOnThisMachine()
+	{
+		var names = new List<string>();
+		foreach (var root in new[] { _options.GuestRoot, _options.AltRoot, _options.GuestBox, _options.AltBox, _options.HostBox })
+		{
+			if (string.IsNullOrWhiteSpace(root))
+			{
+				continue;
+			}
+
+			var parts = root.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+			var at = Array.FindIndex(parts, part => string.Equals(part, "Sandbox", StringComparison.OrdinalIgnoreCase));
+			if (at < 0 || at + 1 >= parts.Length)
+			{
+				continue;
+			}
+
+			var parent = string.Join(Path.DirectorySeparatorChar, parts.Take(at + 1));
+			if (!Directory.Exists(parent))
+			{
+				continue;
+			}
+
+			foreach (var directory in Directory.GetDirectories(parent))
+			{
+				names.Add(Path.GetFileName(directory));
+			}
+		}
+
+		return names.Distinct(StringComparer.OrdinalIgnoreCase);
 	}
 
 	/// <summary>The game processes that can be the host: the host's image path, never a boxed member.</summary>

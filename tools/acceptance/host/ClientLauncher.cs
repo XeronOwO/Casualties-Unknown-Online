@@ -265,7 +265,9 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 	/// <summary>Covers the game processes a box started, not just the starter this class created.</summary>
 	private void CoverBoxedGames()
 	{
-		foreach (var box in new[] { _options.GuestBox, _options.AltBox })
+		// The host's own box counts: a headless group runs its host inside a box, and its window takes the front just
+		// like a member's (2026-11-26 23:05).
+		foreach (var box in new[] { _options.GuestBox, _options.AltBox, _options.HostBox })
 		{
 			if (string.IsNullOrWhiteSpace(box))
 			{

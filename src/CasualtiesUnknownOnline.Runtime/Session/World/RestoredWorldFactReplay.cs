@@ -63,8 +63,7 @@ internal sealed class RestoredWorldFactReplay(
 	ILogger<RestoredWorldFactReplay> log,
 	WorldRestoreAudit? audit = null,
 	IRestoredWorldEntitySource? worldEntities = null,
-	IRestoredWorldItemSource? restoredWorldItems = null,
-	Action? restoredInPlace = null)
+	IRestoredWorldItemSource? restoredWorldItems = null)
 {
 	private readonly IWorldFactSource _facts = facts;
 	private readonly INativeWorldFacts? _nativeFacts = nativeFacts;
@@ -73,7 +72,6 @@ internal sealed class RestoredWorldFactReplay(
 	private readonly WorldRestoreAudit? _audit = audit;
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
 	private readonly IRestoredWorldItemSource? _restoredWorldItems = restoredWorldItems;
-	private readonly Action? _restoredInPlace = restoredInPlace;
 	private long? _deferredGeyserSince;
 	private long? _deferredGeyserLastGrowth;
 	private int _deferredGeyserLive = -1;
@@ -423,9 +421,5 @@ internal sealed class RestoredWorldFactReplay(
 			liveWorldComplete && entityThrow is null && (entities?.Refused ?? 0) == 0
 				? "complete"
 				: "INCOMPLETE (reported at error level, not retried)");
-
-		// The run was rebuilt in place, so nothing in the member's own scene told it to re-enter; the host says so
-		// here, once the facts are in (measured 2026-11-26 23:28: without it the next row paid a 37 s rejoin).
-		_restoredInPlace?.Invoke();
 	}
 }

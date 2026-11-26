@@ -566,20 +566,6 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable,
 
 	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId, _kernelAuthority.CurrentRunEpoch.Value);
 
-	/// <summary>
-	/// Host: hand every member that is still in the world the instruction for the run the host has just restored.
-	/// A continue rebuilds the host's world in place, so no scene change tells the member that its own world is now
-	/// the previous run's; the member stayed standing in it and the next acceptance row paid a 37 s rejoin
-	/// (measured 2026-11-26 23:28, `.acceptance/sc-7`).
-	/// </summary>
-	public void SendWorldJoinToEveryMemberInWorld()
-	{
-		foreach (var steamId in _session.InWorldRemoteSteamIds())
-		{
-			SendWorldJoinTo(steamId);
-		}
-	}
-
 	/// <summary>This side's committed run generation (see <see cref="IWorldControl.CurrentGeneration"/>).</summary>
 	public WorldGenerationMsg? CurrentGeneration => _messages.Generations.Stamp();
 

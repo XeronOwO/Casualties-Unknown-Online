@@ -151,7 +151,13 @@ public static class BandageHandDrive
 		// (`BandageMinigame.cs:74-84`), so the hand stops advancing near the end and returns to the start: a hand that keeps
 		// circling walks the roll to 330 and no further, and the finish never matches (measured 2026-11-26 08:12:
 		// `roll330hand345h1` with the bleed still running at 39 s).
-		Angle = roll > 350f ? 5f : (Angle + Lead) % 360f;
+		//
+		// The step is the hand's angle, and the game copies it into `bandageAngle` on the same pass, so a fifteen-degree
+		// step from 345 lands on 0 and the finish window (strictly above 350) is never seen. That is what the slice's trace
+		// shows at 10 FPS: `pre;1953=roll345hand0s1h1;pre;1953=roll0hand15s1h1` — the roll never reads 351-359, and the
+		// wrap resets instead of finishing. Inside the last twenty degrees the step is narrowed to five, so the roll lands
+		// on 350 and 355 and the next pass sees `bandageAngle > 350` with a hand under ninety.
+		Angle = roll > 350f ? 5f : roll >= 340f ? Mathf.Min(roll + 5f, 355f) : (Angle + Lead) % 360f;
 
 		var radians = Angle * Mathf.Deg2Rad;
 		// The game's own angle is measured with `Mathf.Atan2(handPos.x, handPos.y)` (the row's `handAngle`), so a hand at

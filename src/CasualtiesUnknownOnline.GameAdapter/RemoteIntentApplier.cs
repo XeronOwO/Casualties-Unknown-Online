@@ -276,9 +276,18 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 				return;
 			}
 
+			// The hand-over is one move from the world to this destination (give-and-take.md), but the object still lies where the
+			// giver's drop left it — on a floor without support under the pair that can be metres away. The native pickup measures
+			// THAT ground position against the receiver's body, so a receiver standing beside the giver refused a hand-over both
+			// players could see (measured 2026-11-26: distance 93.1 for an item 96 units below the pair). Bring the object to the
+			// receiver first; the pickup's other native guards (slot bounds, holding, onlyHoldInHands) still decide, and a refusal
+			// puts the object back where it was so nothing is moved that did not leave the world.
+			var standingPosition = item.transform.position;
+			item.transform.position = body.transform.position;
 			body.PickUpItem(item, targetSlot, false);
 			if (body.GetItem(targetSlot) != item) // Unity objects — ==
 			{
+				item.transform.position = standingPosition;
 				_log.LogWarning("[RemoteIntent] hand-over refused by the game's own pickup: item {Item} did not go into slot {Slot} (the destination cannot take it).",
 					item.GetInstanceID(), targetSlot);
 			}

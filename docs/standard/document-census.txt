@@ -1444,7 +1444,7 @@ docs/backlog/todo/1.0-the-restore-cancels-its-own-wait.md | keep | index | docs/
 docs/backlog/todo/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-bandage-hand-never-holds-the-wrap.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/1.0-a-give-refused-for-a-distance-the-member-never-had.md | keep | index | docs/backlog/README.md
+docs/backlog/done/1.0-a-give-refused-for-a-distance-the-member-never-had.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-wire-carries-no-prosthetic.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-physics-steps-crawl-inside-a-slice.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-the-restore-drops-what-the-member-carried.md | keep | index | docs/backlog/README.md

@@ -71,7 +71,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [The continued run's dropped rows](todo/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy reads as a violation.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
-- [Give refused for a distance](todo/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the hand-over lands in the world.
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
 - [Physics steps crawl in a slice](todo/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — a row that needs time measures the batch's frames.
 - [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
@@ -134,6 +133,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [Give refused for a distance](done/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the world hand-over reaches the member's bag.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.
 - [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.

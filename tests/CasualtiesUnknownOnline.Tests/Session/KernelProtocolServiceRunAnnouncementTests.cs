@@ -117,4 +117,25 @@ public class KernelProtocolServiceRunAnnouncementTests
 		Assert.Equal(2UL, guestAuthority.CurrentRunEpoch.Value);
 		Assert.NotNull(guestAuthority.FindItem(77));
 	}
+
+	[Fact]
+	public void Guest_KeepsTheEpochGuardStrictWhileEnteringANewerRun()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+
+		// The host's first run-2 batch can arrive before the run-2 announcement (the
+		// two travel on different paths; 14 ms apart on 2026-11-22). It must not be
+		// applied while this side still serves run 1: the entry checkpoint carries
+		// the new run's baseline.
+		guestKernel.HandleFrame(HostId, KernelProtocolServiceTests.BatchFrame(
+			KernelProtocolServiceTests.SpawnWireBatch(globalRevision: 1, runEpoch: 2, itemId: 43)));
+
+		Assert.Null(guestAuthority.FindItem(43));
+	}
 }

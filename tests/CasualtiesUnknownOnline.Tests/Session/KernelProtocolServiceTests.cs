@@ -1170,7 +1170,7 @@ public class KernelProtocolServiceTests
 			Y = 2f,
 		};
 
-	private static ProtocolFrame BatchFrame(WireCommittedBatch batch) =>
+	internal static ProtocolFrame BatchFrame(WireCommittedBatch batch) =>
 		new()
 		{
 			Kind = EnvelopeKind.CommittedBatch,
@@ -1212,7 +1212,7 @@ public class KernelProtocolServiceTests
 			},
 		};
 
-	private static WireCommittedBatch SpawnWireBatch(ulong globalRevision, ulong runEpoch = 1, ulong itemId = 42) =>
+	internal static WireCommittedBatch SpawnWireBatch(ulong globalRevision, ulong runEpoch = 1, ulong itemId = 42) =>
 		new()
 		{
 			OperationId = globalRevision,

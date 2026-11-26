@@ -440,6 +440,18 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		var batch = KernelWireMapper.FromWireBatch(envelope.Batch, _checkpointSource.CreateCheckpoint().RunEpoch);
 		if (batch.RunEpoch.Value != _checkpointSource.CreateCheckpoint().RunEpoch.Value)
 		{
+			// A batch from a run the host has not announced yet is expected: the
+			// announcement and the batch travel on different paths (measured 14 ms
+			// apart on 2026-11-22), and the run's checkpoint carries the state that
+			// supersedes it. Only a batch from an OLDER run is a violation worth a
+			// warning; applying a newer one before the announcement is exactly what
+			// the epoch guard exists to prevent (2026-11-27: five such drops while a
+			// joining member was still entering the host's first run-2 world).
+			if (batch.RunEpoch.Value > _checkpointSource.CreateCheckpoint().RunEpoch.Value)
+			{
+				return;
+			}
+
 			_log.LogWarning("Batch from {Sender} has epoch {Epoch}; current is {Current} — dropped.",
 				sender, batch.RunEpoch.Value, _checkpointSource.CreateCheckpoint().RunEpoch.Value);
 			return;

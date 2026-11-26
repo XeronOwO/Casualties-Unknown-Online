@@ -114,6 +114,21 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		// lands, and the cut must be taken after them. This is that duration, not a poll budget.
 		await Task.Delay(TimeSpan.FromMilliseconds(1200), cancellationToken).ConfigureAwait(false);
 
+		// The blast drops the host's hand item: `.acceptance/fp-batch-1` read `[ItemDropped] lantern
+		// (id 1705102016513) at (18.2,450.6)` between the mid-run cut and the second cut, so the second
+		// cut's host character was 0 items (name-host.json) and the continue restored nothing. Heal the
+		// restored host first (the blast leaves it unconscious), then take the colour back into the bag
+		// through the game's own pickup before the cut that the continue reads.
+		var healedAfterBlast = await context.Session.ActionAsync(
+			context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
+		context.Read("heal after the blast", healedAfterBlast);
+		var hostReprimed = await ExistingItemAsync(context, false, cancellationToken).ConfigureAwait(false);
+		var hostReprimedSlot = StringValue(hostReprimed, "slot");
+		if (hostReprimedSlot.Length > 0)
+		{
+			await context.RecipeAsync("item-customize-native", cancellationToken, ("slot", hostReprimedSlot), ("label", "HostColor"), ("swatch", "3")).ConfigureAwait(false);
+		}
+
 		// The type table is read AFTER the blast, because the blast can destroy a geyser: the cut
 		// is taken after the damage, so the pre-damage table is not what the archive will carry
 		// (2026-11-17: 92 rows before the mine, 91 in the cut).

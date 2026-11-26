@@ -147,7 +147,11 @@ public static class BandageHandDrive
 		// hand keeps moving relative to the roll and the roll follows it. Placing it at `roll + lead` on every pass held
 		// the hand still relative to the roll, and the roll parked at 300 with `holding` still true (measured
 		// 2026-11-26: `roll195hand210` … `roll300hand315`, bleed 24.5 to 20.6 and never stopped).
-		Angle = (Angle + Lead) % 360f;
+		// The wrap's finish is the hand coming back under ninety degrees once the roll is past 350
+		// (`BandageMinigame.cs:74-84`), so the hand stops advancing near the end and returns to the start: a hand that keeps
+		// circling walks the roll to 330 and no further, and the finish never matches (measured 2026-11-26 08:12:
+		// `roll330hand345h1` with the bleed still running at 39 s).
+		Angle = roll > 330f ? 5f : (Angle + Lead) % 360f;
 
 		var radians = Angle * Mathf.Deg2Rad;
 		// The game's own angle is measured with `Mathf.Atan2(handPos.x, handPos.y)` (the row's `handAngle`), so a hand at

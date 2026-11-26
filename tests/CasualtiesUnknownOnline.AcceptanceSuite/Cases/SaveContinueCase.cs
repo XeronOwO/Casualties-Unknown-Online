@@ -162,22 +162,8 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		context.Read("geyser types after continue", afterGeysers);
 		Require(SameGeyserTypes(beforeTypes, GeyserRows(afterGeysers)), "the geyser types changed across the save/continue: " + Raw(afterGeysers));
 
-		var forced = await context.RecipeAsync("geyser-start", cancellationToken).ConfigureAwait(false);
-		Require(Boolean(forced, "ok"), "the acceptance could not force the geysers' Start: " + Raw(forced));
-		var forcedCount = Double(forced, "started");
-		context.Note(forcedCount >= 1
-			? "forced the Start of " + forcedCount + " geyser(s) after the continue"
-			: "no geyser was left unstarted after the continue; the Start re-apply path was not exercised in this world");
-		var afterStart = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
-		Require(Boolean(afterStart, "ok"), "the host could not read the geyser types after Start: " + Raw(afterStart));
-		Require(SameGeyserTypes(beforeTypes, GeyserRows(afterStart)), "a geyser's own Start overwrote the restored type: " + Raw(afterStart));
-		Require(Double(afterStart, "started") >= beforeTypes.Count, "not every geyser kept its started mark after Start: " + Raw(afterStart));
-		context.Read("geyser types after Start", afterStart);
-
-		// The member followed the host out of the world; the continued world needs it back before a
-		// later case reads the pair, and the host's refreshed member id replaces the old one. Clear
-		// the menu session first: RunEnded leaves it active but not in the world, and joining from
-		// that stale session keeps the old kernel revision (a range loop) instead of a fresh checkpoint.
+		// The member follows the host out of the world; continue leaves the menu session active but
+		// not in the world, and joining from that stale session keeps the old kernel revision.
 		await context.Session.ClearMemberSessionAsync(cancellationToken).ConfigureAwait(false);
 		var rejoined = await context.Session.EnsureMemberAsync(cancellationToken).ConfigureAwait(false);
 		context.Note("member after continue: " + rejoined);
@@ -202,6 +188,21 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(HasLabeledItem(memberSeesHostAfter, "HostColor", 3), "the host's colour did not survive the save/continue: " + Raw(memberSeesHostAfter));
 		context.Read("host sees member colour after continue", hostSeesMemberAfter);
 		context.Read("member sees host colour after continue", memberSeesHostAfter);
+
+		// Force the geysers' Start only after both colours were read: its eruption is a world event
+		// that can knock the hand item out of the restored host (2026-11-27 slice-5: the restored
+		// HostColor bandage was dropped 10 s after the heal, before the member's clone was read).
+		var forced = await context.RecipeAsync("geyser-start", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(forced, "ok"), "the acceptance could not force the geysers' Start: " + Raw(forced));
+		var forcedCount = Double(forced, "started");
+		context.Note(forcedCount >= 1
+			? "forced the Start of " + forcedCount + " geyser(s) after the continue"
+			: "no geyser was left unstarted after the continue; the Start re-apply path was not exercised in this world");
+		var afterStart = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
+		Require(Boolean(afterStart, "ok"), "the host could not read the geyser types after Start: " + Raw(afterStart));
+		Require(SameGeyserTypes(beforeTypes, GeyserRows(afterStart)), "a geyser's own Start overwrote the restored type: " + Raw(afterStart));
+		Require(Double(afterStart, "started") >= beforeTypes.Count, "not every geyser kept its started mark after Start: " + Raw(afterStart));
+		context.Read("geyser types after Start", afterStart);
 	}
 
 	private static async Task<JsonElement?> ExistingItemAsync(CaseContext context, bool member, CancellationToken cancellationToken)
@@ -261,7 +262,9 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		// A continued host's character restore is applied only after the restored world has taken its
 		// facts; in a slice that runs behind a heavy row it landed about eight seconds after the
 		// continue click, so five seconds read the member's clone before the host's body came back.
-		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+		// The member's own reconnect adds its sandbox world load: the saved character is sent when the
+		// member reports InWorld, which a slice measured about 50 s after the continue click.
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(50);
 		while (DateTime.UtcNow < deadline)
 		{
 			cancellationToken.ThrowIfCancellationRequested();

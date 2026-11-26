@@ -315,7 +315,10 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			{
 				var pass = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 				var gap = Math.Abs(Number(pass, "handAngle") - Number(pass, "angle"));
-				if (gap <= 20)
+				// The edge lands on the next frame, and a slice can run six physics steps in that frame: a five-degree
+				// step is thirty degrees by the time the game reads it, still inside the wrap's twenty-five. A twenty-
+				// degree gap was not (ten-2 read handStarted true and holding false).
+				if (gap <= 5)
 				{
 					await context.MemberRecipeAsync(
 						"virtual-input",

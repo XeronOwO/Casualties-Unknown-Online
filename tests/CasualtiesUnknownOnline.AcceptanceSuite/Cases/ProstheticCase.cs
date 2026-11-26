@@ -42,6 +42,27 @@ internal sealed class ProstheticCase : AcceptanceCase
 		context.Read("fitted-parts", parts);
 		Require(Boolean(parts, "ok") == true, "the prosthetic list could not be read: " + Raw(parts));
 		Require(Text(parts, "result").Contains("peg", StringComparison.OrdinalIgnoreCase), "the limb's prosthetic list does not name the peg: " + Raw(parts));
+
+		// The claim's other half: the member's own scene draws a CLONE of the host body, and the wire
+		// (CharacterLimbMsg.HasProsthetic / ProstheticItemId) plus the clone renderer are what make that
+		// clone show a peg instead of a stump. The clone is refreshed by the 1 Hz character snapshot,
+		// so the row polls the member's read for a bounded window rather than reading one instant.
+		var deadline = DateTime.UtcNow.AddSeconds(8);
+		JsonElement? memberParts = null;
+		while (true)
+		{
+			memberParts = await context.MemberRecipeAsync("limb-prosthetic4", cancellationToken, ("mode", "read"), ("limb", Integer(fitted, "stumpLimb").ToString()), ("item", "")).ConfigureAwait(false);
+			if (Text(memberParts, "result").Contains("peg", StringComparison.OrdinalIgnoreCase) || DateTime.UtcNow >= deadline)
+			{
+				break;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		context.Read("member-fitted-parts", memberParts);
+		Require(Boolean(memberParts, "ok") == true, "the member could not read its copy of the host body: " + Raw(memberParts));
+		Require(Text(memberParts, "result").Contains("peg", StringComparison.OrdinalIgnoreCase), "the member's copy of the host body does not show the peg: " + Raw(memberParts));
 	}
 
 	/// <summary>

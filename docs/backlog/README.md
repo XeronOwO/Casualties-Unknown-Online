@@ -71,7 +71,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [The continued run's dropped rows](todo/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy reads as a violation.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
-- [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
 - [Physics steps crawl in a slice](todo/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — a row that needs time measures the batch's frames.
 - [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
 - [The kernel protocol service is over its line ceiling](todo/1.0-split-the-kernel-protocol-service.md) — **Low** — 632 lines against a 600-line budget.
@@ -188,6 +187,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0: dune mode needs no sync](done/1.0-dune-mode.md) — **Low** — presentation-only, read from the release code.
 - [1.0: the final layer's ending is the host's state](done/1.0-endings-authority.md) — **High** — the ending is the host's, in the run row and the save.
 - [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the clone carries the peg limb.
+- [The wire carries a prosthetic](done/1.0-the-wire-carries-no-prosthetic.md) — **High** — the member's clone shows the owner's peg.
 - [1.0: the release's run settings reach the baseline and the save](done/1.0-run-settings-extended.md) — **High** — 50 keys ride the run row.
 
 - [Save backups are too many and disorganized](done/save-backups-overwhelm-the-archive.md) — **High** — deletes, an editable ceiling, runs not folders.

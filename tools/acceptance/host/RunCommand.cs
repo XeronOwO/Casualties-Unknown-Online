@@ -32,13 +32,17 @@ internal static class RunCommand
 		Environment.SetEnvironmentVariable("DOTNET_CLI_USE_MSBUILD_SERVER", "0");
 
 		var buildWatch = Stopwatch.StartNew();
-		var buildExit = RunProcess("dotnet", ["build", project, "--nologo", "-nodeReuse:false", "-p:UseSharedCompilation=false"], repoRoot);
-		buildWatch.Stop();
-		if (buildExit != 0)
+		if (arguments.Optional("no-build") is null)
 		{
-			Console.Error.WriteLine("the acceptance suite did not build");
-			return buildExit;
+			var buildExit = RunProcess("dotnet", ["build", project, "--nologo", "-nodeReuse:false", "-p:UseSharedCompilation=false"], repoRoot);
+			if (buildExit != 0)
+			{
+				Console.Error.WriteLine("the acceptance suite did not build");
+				return buildExit;
+			}
 		}
+
+		buildWatch.Stop();
 
 		var launchWatch = Stopwatch.StartNew();
 		if (arguments.Optional("no-launch") is null)
@@ -56,7 +60,10 @@ internal static class RunCommand
 				launchArgs.Add("--all");
 			}
 
-			foreach (var name in new[] { "steam-exe", "sandboxie", "guest-box", "guest-root", "alt-box", "alt-root", "host-url", "guest-url", "alt-url" })
+			// `facts` and `host-box` belong here too: a group started with its own facts file launched the *default*
+			// group's clients, and its `--restart` then stopped them, which read as the suite dying with -532462766
+			// (measured 2026-11-26 23:05).
+			foreach (var name in new[] { "facts", "host-box", "steam-exe", "sandboxie", "guest-box", "guest-root", "alt-box", "alt-root", "host-url", "guest-url", "alt-url" })
 			{
 				var value = arguments.Optional(name);
 				if (value is not null)

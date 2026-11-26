@@ -387,7 +387,9 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		try
 		{
 			using var sink = new FileStream(
-				Path.Combine(Path.GetTempPath(), $"cuo-client-{name}.{channel}.log"),
+				// The launcher's own id keeps two groups apart: both name their clients host/guest, so the file name
+				// alone mixed their stderr into one log and read as one client failing twice (2026-11-26 23:05).
+				Path.Combine(Path.GetTempPath(), $"cuo-client-{name}.{channel}.{Environment.ProcessId}.log"),
 				FileMode.Append,
 				FileAccess.Write,
 				FileShare.ReadWrite);

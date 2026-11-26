@@ -58,6 +58,9 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransp
 	string ITransportIdentity.LocalDisplayName => GetPersonaName(LocalSteamId);
 
 	/// <inheritdoc />
+	string ITransportIdentity.LocalIpDirectDisplayName => _ipDirectSteam.LocalDisplayName;
+
+	/// <inheritdoc />
 	string ITransportIdentity.LocalClientIdentity => _ipDirectActive ? _ipDirectSteam.LocalClientIdentity : "";
 
 	/// <summary>The IP-direct identity adapter (lobby events + local display name).</summary>

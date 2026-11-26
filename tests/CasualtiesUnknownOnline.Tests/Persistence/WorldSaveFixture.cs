@@ -104,6 +104,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		string label,
 		bool ipDirect = false,
 		string displayName = "Host",
+		string? ipDirectDisplayName = null,
 		ulong hostId = 1001UL,
 		SaveTestRepository? repository = null,
 		FakeNativeWorldFacts? nativeWorldFacts = null,
@@ -122,7 +123,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 		var characters = new FakeCharacterDataControl();
 		var session = new FakeSessionControl { LocalSteamId = hostId, HostSteamId = hostId };
-		var transport = new FakeTransportIdentity { LocalPeerId = hostId, LocalDisplayName = displayName, IsIpDirect = ipDirect };
+		var transport = new FakeTransportIdentity { LocalPeerId = hostId, LocalDisplayName = displayName, LocalIpDirectDisplayName = ipDirectDisplayName ?? "", IsIpDirect = ipDirect };
 		var worldFacts = new FakeWorldFactSource();
 		var monitor = new MutableOptionsMonitor<SaveOptions>(options ?? new SaveOptions());
 		var service = new WorldSaveService(
@@ -149,8 +150,8 @@ internal sealed class WorldSaveFixture : IDisposable
 	}
 
 	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart. The restore account and the item port are the caller's to supply: a restart is a NEW service, and sharing a stand-in silently would hide that (the suites that pin them compose through <see cref="Create"/>).</summary>
-	internal WorldSaveFixture Restart(string label, bool ipDirect = false, string displayName = "Host", ModContentStore? content = null) =>
-		Create(label, ipDirect, displayName, hostId: Session.LocalSteamId, repository: Repository, content: content, loggerFactory: LoggerFactory);
+	internal WorldSaveFixture Restart(string label, bool ipDirect = false, string displayName = "Host", string? ipDirectDisplayName = null, ModContentStore? content = null) =>
+		Create(label, ipDirect, displayName, ipDirectDisplayName, hostId: Session.LocalSteamId, repository: Repository, content: content, loggerFactory: LoggerFactory);
 
 	public void Dispose() => Service.Dispose();
 }

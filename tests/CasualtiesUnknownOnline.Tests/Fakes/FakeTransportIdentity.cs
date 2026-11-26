@@ -15,6 +15,9 @@ internal sealed class FakeTransportIdentity : ITransportIdentity
 
 	public string LocalDisplayName { get; set; } = "Host";
 
+	/// <summary>The configured IP-direct name; "" = only the active transport's name is known.</summary>
+	public string LocalIpDirectDisplayName { get; set; } = "";
+
 	/// <summary>The local client's persistent identity; a test seeds it to model two same-named players.</summary>
 	public string LocalClientIdentity { get; set; } = "";
 }

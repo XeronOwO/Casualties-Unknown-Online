@@ -148,6 +148,22 @@ internal sealed class WorldCharacterBinder(
 		}
 
 		var peers = PresentPeers();
+		if (space == PlayerKeySpace.IpDirect && live != PlayerKeySpace.IpDirect)
+		{
+			// The snapshot was written over IP-direct, where the key IS the display name, but
+			// this continue runs before an IP session exists: the active transport is Steam
+			// and advertises the Steam persona. The local player's key in the stored space is
+			// the configured IP name, and it outlives the session (2026-11-27).
+			var ipName = transport.LocalIpDirectDisplayName;
+			if (!string.IsNullOrWhiteSpace(ipName))
+			{
+				peers[0] = peers[0] with { DisplayName = ipName };
+				log.LogInformation(
+					"The snapshot's IP-direct keys are claimed under the configured IP name {IpName}; the active transport advertises {LiveName}.",
+					ipName, transport.LocalDisplayName);
+			}
+		}
+
 		var claimed = new List<(SavedCharacter Character, ulong PeerId)>(stored.Count);
 		var unclaimed = new List<SavedCharacter>();
 		var refusals = new List<string>();

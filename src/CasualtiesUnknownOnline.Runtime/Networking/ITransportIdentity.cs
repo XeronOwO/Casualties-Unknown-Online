@@ -22,6 +22,15 @@ public interface ITransportIdentity
 	string LocalDisplayName { get; }
 
 	/// <summary>
+	/// The display name this client presents in the IP-direct key space, from the persisted
+	/// configuration rather than from whichever transport is active now ("" when unconfigured).
+	/// It stays readable after an IP session ends, because a continue opens the archive before
+	/// the next session exists — and the IP-direct key IS this name, so a continue that only
+	/// saw the Steam persona could not recognise the local player's own stored character.
+	/// </summary>
+	string LocalIpDirectDisplayName { get; }
+
+	/// <summary>
 	/// The local client's own persistent identity ("" when the transport has none). It is the
 	/// fact that keeps two IP-direct players who share a display name apart: duplicate names
 	/// are allowed, and the key gains a digest of this instead of collapsing both players

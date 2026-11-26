@@ -113,6 +113,24 @@ public class WorldContinueLocalCharacterTests
 		Assert.NotNull(restarted.Characters.GetHostCharacterData());
 	}
 
+	[Fact]
+	public void Continue_UnderSteamStillClaimsTheLocalCharactersIpDirectKey()
+	{
+		// A continue runs after the IP session ended: the router is back on Steam, so the
+		// active transport advertises the Steam persona. The snapshot's key is the configured
+		// IP name, and that name is still the local player's key in the space the archive was
+		// written in — without it the host's own body falls back to a new character.
+		using var fixture = WorldSaveFixture.Create("continue-local-character-ipname", ipDirect: true, displayName: "Host");
+		CutAtLayerEnd(fixture, hostInstanceId: 100, guestInstanceId: null);
+
+		using var restarted = fixture.Restart("continue-local-character-ipname-restart", displayName: "Steam Persona", ipDirectDisplayName: "Host");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		var local = Assert.IsType<CharacterDataMsg>(outcome.LocalCharacter);
+		Assert.Equal(100UL, Assert.Single(local.Items).InstanceId);
+		Assert.Same(local, restarted.Characters.GetHostCharacterData());
+	}
+
 	// ---- helpers ----
 
 	/// <summary>

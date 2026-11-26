@@ -84,6 +84,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Review
 
 - [The same player must keep one identity across transports](review/1.0-transport-handover-identity.md) — **High** — a transport switch keeps one character.
+- [The run change reaches the guest first](review/1.0-the-run-change-arrives-after-its-batches.md) — **High** — the run is announced before its first batch.
 
 
 
@@ -133,7 +134,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
-- [The run change reaches the guest first](done/1.0-the-run-change-arrives-after-its-batches.md) — **High** — the run is announced before its first batch.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.
 - [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.

@@ -360,7 +360,11 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			// 40 ms to catch a pass, then polled for up to sixty seconds (measured 2026-11-22: 66.3 s of case time and the
 			// wrap never completed).
 
-			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(8);
+			// bandfix-3 (2026-11-27 04:11) pressed on a pass with the hand zero degrees off the roll and read `didWrap:true`
+			// only after the old eight-second window had already taken its last sample; the wrap's own eighteen actions are
+			// what drives the bleed down, and the row was judging before the last of them. Wait for the limb to settle
+			// instead: the game's own action count is the treatment.
+			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
 			var step = 0;
 			while (DateTime.UtcNow < deadline)
 			{

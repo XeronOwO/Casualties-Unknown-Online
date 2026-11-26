@@ -1643,6 +1643,10 @@ internal static class CaseRegistry
 		// The drill pod is the native two-layer trigger: it waits for every living member to stand at
 		// the pod before the host's descent, and refuses (with the missing names) when one is away.
 		new PodTeamWaitCase(),
+		// The per-player death count (the user's decision 2026-11-14) runs before the last-layer gate: that gate leaves
+		// the run on a layer that generates nothing, and a body the game no longer steps never dies (measured
+		// 2026-11-27 00:00: the death row wrote brainHealth 0 and the member still read consciousness 100).
+		new PlayerDeathsCase(),
 		// The last layer's own gate: both clients generate layer 10 of an unchipped run,
 		// the cutscene clears each client's local blockItemUsage, and each client's own
 		// staged attack moves its own native attack state.
@@ -1650,10 +1654,7 @@ internal static class CaseRegistry
 		// Last row in the shared world: the Merc ending must not write either solo unlock key, and
 		// the host's native solo picker must come back after the session is left.
 		new CharacterSoloLockCase(),
-		// The per-player death count (the user's decision 2026-11-14): two deaths with a revive between
-		// them, read from both clients, then the same count after a save and a continue; that restore is
-		// the cost it declares.
-		new PlayerDeathsCase(),
+		// The per-player death count now runs above the last-layer gate; see the note there for why.
 		// The body-action switches (the user's 2026-11-14 decision): a refused push named on the pusher's
 		// own client with the target unmoved, and a carry the game's rule refuses let through by the host's
 		// allow_always_carry. It writes host rules, so it is registered with the pair-shaping rows at the

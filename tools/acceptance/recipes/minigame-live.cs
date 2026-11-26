@@ -33,6 +33,14 @@
 	var body = "{\"ok\":true,\"hasMain\":true,\"kind\":\"" + kind + "\""
 		+ ",\"handClicking\":" + (clicking ? "true" : "false")
 		+ ",\"handStarted\":" + (started ? "true" : "false")
+		// The wrap steps once per accumulated `Time.deltaTime * PHYSICS_UPDATE_RATE` (MinigameBase.cs:210-214), so a
+		// slice that steps it a handful of times per second is either a small deltaTime or a small rate. Both are read
+		// here so the row does not have to guess which (measured 2026-11-27 00:22: both clocks run at timeScale 1).
+		+ ",\"deltaTime\":" + Time.deltaTime.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"updateRate\":" + MinigameBase.PHYSICS_UPDATE_RATE.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+		+ ",\"updateTime\":" + (main.GetType().GetField("physicsUpdateTime") is { } put
+			? System.Convert.ToSingle(put.GetValue(main)).ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+			: "null")
 		+ ",\"holding\":" + ((current.GetType().GetField("holdingBandage") != null && (bool)current.GetType().GetField("holdingBandage").GetValue(current)) ? "true" : "false")
 		+ ",\"keyQueries\":" + readCensus("KeyQueries")
 		+ ",\"keyDowns\":" + readCensus("KeyDownAnswers")

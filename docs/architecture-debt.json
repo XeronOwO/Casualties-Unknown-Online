@@ -27,6 +27,6 @@
 	"CasualtiesUnknownOnline.Application.Kernel.KernelProtocolService": {
 		"Lines": 632,
 		"BoolFlags": 0,
-		"Ticket": "docs/backlog/todo/1.0-the-run-change-arrives-after-its-batches.md"
+		"Ticket": "docs/backlog/todo/1.0-split-the-kernel-protocol-service.md"
 	}
 }

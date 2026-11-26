@@ -68,7 +68,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
   "queued" twice and never writes; two rows wait for it.
-- [The run change reaches the guest late](todo/1.0-the-run-change-arrives-after-its-batches.md) — **High** — a run-2 batch is dropped as foreign epoch.
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [The continued run's dropped rows](todo/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy reads as a violation.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
@@ -76,6 +75,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The wire carries no prosthetic](todo/1.0-the-wire-carries-no-prosthetic.md) — **High** — a friend sees a stump where the game shows a peg.
 - [Physics steps crawl in a slice](todo/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — a row that needs time measures the batch's frames.
 - [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
+- [The kernel protocol service is over its line ceiling](todo/1.0-split-the-kernel-protocol-service.md) — **Low** — 632 lines against a 600-line budget.
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.
@@ -133,6 +133,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The run change reaches the guest first](done/1.0-the-run-change-arrives-after-its-batches.md) — **High** — the run is announced before its first batch.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.
 - [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.

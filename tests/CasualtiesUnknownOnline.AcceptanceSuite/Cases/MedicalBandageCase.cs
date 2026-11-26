@@ -225,7 +225,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				cancellationToken,
 				("mode", "start"),
 				("radius", "250"),
-				("step", "-6")).ConfigureAwait(false);
+				("step", "5")).ConfigureAwait(false);
 			context.Read("hand parked on the roll", park);
 			// Walk the hand INTO the roll's window before the press: `step` is the recipe's per-frame increment (not the angle to
 			// arrive at), so a delta of -75 stepped the hand past the window and round to 269 degrees (measured 2026-11-26,

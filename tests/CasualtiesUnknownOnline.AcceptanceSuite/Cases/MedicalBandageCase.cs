@@ -315,11 +315,12 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			{
 				var pass = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
 				// `handAngle` is the visual hand after `UpdateHandVisuals` pulled it toward the staged pointer; the hand the
-				// drive actually places on the physics pass is `driveAngle`. Press only when the placed hand is on the roll:
-				// slice-16 read gap 0 and 3 from `handAngle` while the drive's own trace held the hand at 63 degrees, and the
-				// dot product the game computes was 0.45 against its > 0.9 window.
-				var gap = Math.Abs(Number(pass, "driveAngle") - Number(pass, "angle"));
-				if (gap <= 5)
+				// drive places on the physics pass is `driveAngle`. Three readings kept the press from ever landing:
+				// slice-16 (gap 3 on `handAngle`) pressed while the drive's trace held the hand at 63 degrees (dot 0.45),
+				// and slice-17 (gap on `driveAngle`) never pressed at all — the two angles are only equal on the pass the
+				// game reads, so the poll keeps the twenty-degree window and lets the retry loop take the edge there.
+				var gap = Math.Abs(Number(pass, "handAngle") - Number(pass, "angle"));
+				if (gap <= 20)
 				{
 					await context.MemberRecipeAsync(
 						"virtual-input",

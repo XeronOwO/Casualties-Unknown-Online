@@ -146,6 +146,17 @@ internal sealed class SaveContinueCase : AcceptanceCase
 		Require(!restoredAudit.Contains("not carried world-entity row(s)", StringComparison.Ordinal), "the restore carried none of the cut's world-entity rows: " + restoredAudit);
 		context.Read("geyser restore audit", JsonDocument.Parse("\"" + Escape(restoredAudit) + "\"").RootElement.Clone());
 
+		// The cut was taken after the mine blast, so the restored host is unconscious with the
+		// HostColor bandage in its hand, and the game drops a hand item when the body goes under
+		// (measured 2026-11-27: `ItemDropped bandage` 7 s after the restore, ~45 s before the
+		// member rejoined and the clone was read). Heal through the game's own console right
+		// after the restore lands: the item must still be in the hand when the clone is read.
+		var healed = await context.Session.ActionAsync(
+			context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
+		context.Read("heal after continue", healed);
+		Require(Boolean(healed, "applied") == true,
+			"the host's console did not accept /heal after the continue: " + healed.GetRawText());
+
 		var afterGeysers = await context.RecipeAsync("geyser-types", cancellationToken).ConfigureAwait(false);
 		Require(Boolean(afterGeysers, "ok"), "the host could not read the geyser types after continuing: " + Raw(afterGeysers));
 		context.Read("geyser types after continue", afterGeysers);
@@ -247,7 +258,10 @@ internal sealed class SaveContinueCase : AcceptanceCase
 
 	private static async Task<JsonElement?> WaitForCloneAsync(Func<Task<JsonElement?>> read, string label, int swatch, CancellationToken cancellationToken)
 	{
-		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+		// A continued host's character restore is applied only after the restored world has taken its
+		// facts; in a slice that runs behind a heavy row it landed about eight seconds after the
+		// continue click, so five seconds read the member's clone before the host's body came back.
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
 		while (DateTime.UtcNow < deadline)
 		{
 			cancellationToken.ThrowIfCancellationRequested();

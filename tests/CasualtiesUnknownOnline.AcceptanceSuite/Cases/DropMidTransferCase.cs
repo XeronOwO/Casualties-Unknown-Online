@@ -123,7 +123,9 @@ internal sealed class DropMidTransferCase : AcceptanceCase
 	/// <summary>
 	/// A continue gives the host a new character whose starting supplies land on the body a moment after
 	/// the world entry; a single read at entry sees the empty transitional body and picks a slot the
-	/// supplies then occupy. Wait until the bag has read the same contents twice.
+	/// supplies then occupy. Wait until the bag has read the same, non-empty contents twice: an empty bag
+	/// reads the same on two polls a quarter-second apart, and that was the 2026-11-27 slice where the
+	/// supplies landed five seconds later, after the slot had been picked.
 	/// </summary>
 	private static async Task<JsonElement?> WaitForSettledBagAsync(CaseContext context, CancellationToken cancellationToken)
 	{
@@ -134,7 +136,7 @@ internal sealed class DropMidTransferCase : AcceptanceCase
 		{
 			var reading = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 			var ids = Text(reading, "ids");
-			if (previous == ids && DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(500))
+			if (previous == ids && ids.Length > 0 && DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(500))
 			{
 				return reading;
 			}

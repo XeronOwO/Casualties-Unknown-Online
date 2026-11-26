@@ -55,7 +55,13 @@ internal static class RunCommand
 				"--save-root", saveRoot,
 				"--pids", pidsPath,
 			};
-			if (arguments.Optional("all") is not null)
+			// The third client is a row's own requirement, not an extra: `two-member-continue` reads both members'
+			// views, and a slice that never started the alt endpoint failed the row as "the driver at
+			// ws://127.0.0.1:18592 did not answer: Unable to connect to the remote server" (measured 2026-11-27 00:28).
+			var suiteNames = arguments.Optional("suite") ?? "all";
+			if (arguments.Optional("all") is not null
+				|| string.Equals(suiteNames, "all", StringComparison.Ordinal)
+				|| suiteNames.Contains("two-member", StringComparison.Ordinal))
 			{
 				launchArgs.Add("--all");
 			}

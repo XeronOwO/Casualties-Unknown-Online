@@ -165,6 +165,13 @@ internal sealed class RunSaveCoordinator(
 		// still on its first layer: the game's own grant is a position test, not an origin
 		// test — see StartingSupplyPolicy.NativeGrantCovers. The restore's first pass wipes
 		// whatever it handed out, which is why a restored character does not keep them.)
+		// Which record the archive handed this client for its own body: the row that reads the host's
+		// inventory after a continue needs to know whether the queue was ever given anything (measured
+		// 2026-11-27: the host's body came back empty while both members' were whole).
+		_log.LogInformation(
+			"Continuing CUO world {WorldId}: this client's own character record arrived {Presence}.",
+			outcome.WorldId,
+			outcome.LocalCharacter is null ? "absent" : "present");
 		QueueLocalCharacter(outcome.LocalCharacter);
 
 		// Debug: this click's account is already logged ONCE, by the restore applier

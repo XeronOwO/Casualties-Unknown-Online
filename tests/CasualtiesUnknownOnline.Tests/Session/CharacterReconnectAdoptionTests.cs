@@ -83,4 +83,17 @@ public class CharacterReconnectAdoptionTests
 
 		Assert.Null(source);
 	}
+
+	[Fact]
+	public void NewPresenceAlreadyReportsTheSameName_DoesNotShadowItsOwnOldRow()
+	{
+		var source = CharacterReconnectAdoption.FindSource(
+			NewPeer,
+			"Guest",
+			[Candidate(NewPeer, "Guest")],
+			new HashSet<ulong> { OldPeer },
+			new Dictionary<ulong, string> { { OldPeer, "Guest" }, { NewPeer, "Guest" } });
+
+		Assert.Equal(OldPeer, source);
+	}
 }

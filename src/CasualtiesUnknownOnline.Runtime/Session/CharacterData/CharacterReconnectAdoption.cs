@@ -65,17 +65,20 @@ internal static class CharacterReconnectAdoption
 		// The old presence may already be gone (the guest left the session before
 		// reconnecting): the store remembers the name each report arrived under, so
 		// the same one-match rule still applies over the saved table.
-		return source ?? (savedNames is null ? null : FindSourceByName(displayName, savedNames, members));
+		return source ?? (savedNames is null ? null : FindSourceByName(displayName, savedNames, members, newPeer));
 	}
 
 	/// <summary>
 	/// The fallback for a presence that already left the session: the one saved row whose
-	/// recorded name matches, and whose old transport is gone or out of the world.
+	/// recorded name matches, and whose old transport is gone or out of the world. The new
+	/// peer's own row is not a second match — its first report arrives before this hand-back
+	/// and would otherwise make the name look ambiguous.
 	/// </summary>
 	internal static ulong? FindSourceByName(
 		string? displayName,
 		IReadOnlyDictionary<ulong, string> savedNames,
-		IReadOnlyList<ReconnectCandidate> members)
+		IReadOnlyList<ReconnectCandidate> members,
+		ulong newPeer)
 	{
 		if (string.IsNullOrWhiteSpace(displayName))
 		{
@@ -84,7 +87,7 @@ internal static class CharacterReconnectAdoption
 
 		var name = displayName!.Trim();
 		var matches = savedNames
-			.Where(pair => string.Equals(pair.Value?.Trim(), name, StringComparison.OrdinalIgnoreCase))
+			.Where(pair => pair.Key != newPeer && string.Equals(pair.Value?.Trim(), name, StringComparison.OrdinalIgnoreCase))
 			.Select(pair => pair.Key)
 			.ToList();
 		if (matches.Count != 1)

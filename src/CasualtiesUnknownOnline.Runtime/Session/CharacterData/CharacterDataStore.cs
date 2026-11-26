@@ -314,8 +314,13 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		// An EMPTY saved row is not a character: it is the new body's first report,
 		// which arrives before this hand-back and would otherwise hide the old
 		// presence's row (the reconnect rule below must still run). A non-empty row
-		// is the latest report and is never replaced here.
-		if (!_savedCharacters.TryGetValue(steamId, out var data) || data.Items.Count == 0)
+		// is the latest report and is never replaced here — except once, for a peer
+		// that has not been adopted yet: a rejoining body can report its starting
+		// supplies before the hand-back, and that non-empty row would otherwise hide
+		// the old presence's row just like an empty one (measured 2026-11-27 04:19:
+		// the member's new transport reported 3 starting supplies, the saved row of
+		// its previous transport held 1, and the fallback name match found two rows).
+		if (!_savedCharacters.TryGetValue(steamId, out var data) || data.Items.Count == 0 || !_adoptedFrom.ContainsKey(steamId))
 		{
 			// IP-direct reconnects get a new transport id, while the saved table is
 			// keyed by the old one: the adoption rule finds the one old presence with

@@ -311,7 +311,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 		}
 
 		ulong? adoptedFrom = null;
-		if (!_savedCharacters.TryGetValue(steamId, out var data))
+		// An EMPTY saved row is not a character: it is the new body's first report,
+		// which arrives before this hand-back and would otherwise hide the old
+		// presence's row (the reconnect rule below must still run). A non-empty row
+		// is the latest report and is never replaced here.
+		if (!_savedCharacters.TryGetValue(steamId, out var data) || data.Items.Count == 0)
 		{
 			// IP-direct reconnects get a new transport id, while the saved table is
 			// keyed by the old one: the adoption rule finds the one old presence with
@@ -322,7 +326,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable, ISe
 			var source = member is null
 				? null
 				: CharacterReconnectAdoption.FindSource(steamId, member.DisplayName, candidates, _savedCharacters.Keys, _savedNames);
-			if (source is { } oldPeer && _savedCharacters.TryGetValue(oldPeer, out var adopted))
+			if (source is { } oldPeer && _savedCharacters.TryGetValue(oldPeer, out var adopted) && adopted.Items.Count > 0)
 			{
 				_savedCharacters.Remove(oldPeer);
 				_savedCharacters[steamId] = adopted;

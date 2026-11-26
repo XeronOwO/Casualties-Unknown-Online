@@ -172,6 +172,46 @@ public class CharacterDataStoreTests
 	}
 
 	[Fact]
+	public void SendSavedCharacter_AfterTheEmptyFirstReport_StillAdoptsTheOldRecord()
+	{
+		// The reconnecting body reports its empty bag BEFORE the hand-back runs.
+		// That empty row must not hide the old presence's saved character (measured
+		// 2026-11-27: `.acceptance/slice-4` sent `0 items` to the reconnected member
+		// and the member's clone lost the HostColor/MemberColor bandage).
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var control = (ISessionControl)host.Session;
+			var old = control.GetOrCreateMember(GuestId);
+			old.DisplayName = "Guest";
+			old.Handshaken = true;
+			old.InWorld = false;
+			var reconnected = control.GetOrCreateMember(3001);
+			reconnected.DisplayName = "Guest";
+			reconnected.Handshaken = true;
+			reconnected.InWorld = false;
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			store.SaveCharacterData(GuestId, new CharacterDataMsg
+			{
+				OwnerSteamId = GuestId,
+				Items = [new CharacterItemMsg { ItemId = "lantern", Label = "MemberColor", ColorSwatch = 5 }],
+			});
+			store.SaveReportedCharacterData(3001, new CharacterDataMsg { OwnerSteamId = 3001, Items = [] });
+			MarkHostInWorld(host);
+
+			store.SendSavedCharacter(3001);
+
+			var adopted = store.GetSavedCharacter(3001);
+			Assert.NotNull(adopted);
+			Assert.Equal("MemberColor", adopted!.Items[0].Label);
+			Assert.Equal(5, adopted.Items[0].ColorSwatch);
+			Assert.Null(store.GetSavedCharacter(GuestId));
+		}
+	}
+
+	[Fact]
 	public void SendSavedCharacter_AfterTheOldPresenceIsGone_StillAdopts()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

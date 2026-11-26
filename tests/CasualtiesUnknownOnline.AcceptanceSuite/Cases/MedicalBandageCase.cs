@@ -287,7 +287,23 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			// the wrap existed, so no edge was there to read. The hand now orbits the roll: release and press
 			// again so the edge lands where the game is looking (measured 2026-11-26 05:45: the press answers
 			// `keyDown:false` in its own frame because `VirtualInput.PressKey` shows the edge on the next frame).
-			await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+			// The press has to land while the hand is already on the ring: the drive places the hand inside the physics
+			// stage, so its first placement can arrive a frame or more after `start`. A fixed wait pressed too early in a
+			// slice and the hand was still at its first position, 75 degrees off the roll, where the wrap's own dot
+			// product is 0.26 against its > 0.9 window and the start never takes (measured 2026-11-26 08:05: `band-36`
+			// alone walks `roll75hand90h1`, `park-3` in a slice stays `roll0hand345h0` for the whole gesture).
+			var standby = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+			while (DateTime.UtcNow < standby)
+			{
+				var placed = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				if (Raw(placed).Contains("pre;", StringComparison.Ordinal))
+				{
+					break;
+				}
+
+				await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
+			}
+
 			await context.MemberRecipeAsync(
 				"virtual-input",
 				cancellationToken,

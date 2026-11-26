@@ -110,6 +110,11 @@ internal sealed class RestoredWorldFactReplay(
 			return;
 		}
 
+		// Before the facts, not after: the member compares the run an instruction names against the run it is
+		// serving, and the checkpoint set this method writes has already moved that number by the time the facts are
+		// in (measured 2026-11-26 23:29: sent after them, the instruction matched and the member stayed put 37.3 s).
+		_restoredInPlace?.Invoke();
+
 		var runtimePending = _facts.HasPendingLiveReplay;
 		var nativePending = _nativeFacts?.HasPendingRestore ?? false;
 		var entitiesPending = _worldEntities?.HasPendingRestore ?? false;
@@ -423,9 +428,5 @@ internal sealed class RestoredWorldFactReplay(
 			liveWorldComplete && entityThrow is null && (entities?.Refused ?? 0) == 0
 				? "complete"
 				: "INCOMPLETE (reported at error level, not retried)");
-
-		// The run was rebuilt in place, so nothing in the member's own scene told it to re-enter; the host says so
-		// here, once the facts are in (measured 2026-11-26 23:28: without it the next row paid a 37 s rejoin).
-		_restoredInPlace?.Invoke();
 	}
 }

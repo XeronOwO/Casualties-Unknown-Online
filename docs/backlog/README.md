@@ -70,8 +70,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
   "queued" twice and never writes; two rows wait for it.
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
-- [Physics steps crawl in a slice](todo/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — a row that needs time measures the batch's frames.
-- [The bandage hand never holds](todo/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — green alone, red in a slice.
 - [The kernel protocol service is over its line ceiling](todo/1.0-split-the-kernel-protocol-service.md) — **Low** — 632 lines against a 600-line budget.
 
 ### In progress
@@ -132,6 +130,8 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [Give refused for a distance](done/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the world hand-over reaches the member's bag.
+- [Physics steps crawl in a slice](done/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — the drive crossed the wrap's finish window.
+- [The bandage hand never holds](done/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — pressed on the window; green alone and in a slice.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.
 - [The journal repair re-sends history forever](done/1.0-the-journal-repair-resends-forever.md) — **High** — a second ask for the same start sends a checkpoint.
 - [Acceptance failure paths and replay](done/1.0-acceptance-failure-paths-and-update-replay.md) — **High** — 39/39; every failure row red on demand.

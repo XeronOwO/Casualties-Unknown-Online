@@ -401,7 +401,10 @@ internal sealed class GameAdapterDomains
 			EntityEventSync,
 			loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
 		RestoredWorldFactReplay = new RestoredWorldFactReplay(
-			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit, worldEntityKernel, items);
+			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit, worldEntityKernel, items,
+			// A continue rebuilds the host's world in place: the member is still standing in the previous run's scene
+			// and its own client never re-enters, so the host hands it the instruction the moment the facts are in.
+			() => world.SendWorldJoinToEveryMemberInWorld());
 		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, worldBackfill, loggerFactory.CreateLogger<WorldEventSync>());
 		DynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());

@@ -30,6 +30,9 @@ public interface IWorldControl : IWorldSocialControl
 	/// <summary>Host: send a targeted world-join instruction (a reconnecting member's re-entry).</summary>
 	void SendWorldJoinTo(ulong steamId);
 
+	/// <summary>Host: the same instruction for every member still in the world, after the host restored a run in place.</summary>
+	void SendWorldJoinToEveryMemberInWorld();
+
 	/// <summary>
 	/// Host: whether a run baseline is committed in the kernel — the fact <see cref="SendWorldJoinTo"/>
 	/// makes its baseline promise from (<c>RunBaselineFollows</c>), and the condition a re-entry answer

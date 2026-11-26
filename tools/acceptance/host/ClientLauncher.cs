@@ -118,7 +118,10 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 	private void BuildClientList()
 	{
-		var host = ("host", _options.HostUrl, !string.IsNullOrWhiteSpace(_options.HostBox), _options.HostBox ?? _options.GameDir, _options.HostBox);
+		// The host's root is the game install even when it runs inside a box: Sandboxie is given the real path and
+		// redirects the writes into the box. Passing the box *name* here built `Steam2\CasualtiesUnknown.exe` and
+		// started the wrong instance (measured 2026-11-26 23:00).
+		var host = ("host", _options.HostUrl, !string.IsNullOrWhiteSpace(_options.HostBox), _options.GameDir, _options.HostBox);
 		var guest = ("guest", _options.GuestUrl, true, _options.GuestRoot, _options.GuestBox);
 		var alt = ("alt", _options.AltUrl, true, _options.AltRoot, _options.AltBox);
 

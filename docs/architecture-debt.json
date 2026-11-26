@@ -25,8 +25,8 @@
 		"Ticket": "docs/backlog/todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md"
 	},
 	"CasualtiesUnknownOnline.Application.Kernel.KernelProtocolService": {
-		"Lines": 606,
+		"Lines": 620,
 		"BoolFlags": 0,
-		"Ticket": "docs/backlog/todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md"
+		"Ticket": "docs/backlog/todo/1.0-the-run-change-arrives-after-its-batches.md"
 	}
 }

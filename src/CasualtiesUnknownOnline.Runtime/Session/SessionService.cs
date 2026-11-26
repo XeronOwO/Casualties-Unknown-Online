@@ -576,4 +576,7 @@ public sealed class SessionService : ICuoService, ISessionControl, IKernelSessio
 
 	IEnumerable<ulong> IKernelSessionFacts.HandshakenPeerIds =>
 		Members.Where(member => member.Handshaken && member.SteamId != LocalSteamId).Select(member => member.SteamId);
+
+	IEnumerable<ulong> IKernelSessionFacts.InWorldPeerIds =>
+		Members.Where(member => member.Handshaken && member.InWorld && member.SteamId != LocalSteamId).Select(member => member.SteamId);
 }

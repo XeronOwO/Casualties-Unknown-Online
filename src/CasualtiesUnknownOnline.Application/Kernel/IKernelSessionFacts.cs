@@ -40,6 +40,14 @@ public interface IKernelSessionFacts
 	/// </summary>
 	IEnumerable<ulong> HandshakenPeerIds { get; }
 
+	/// <summary>
+	/// The handshaken peers currently in the world — the peers a run switch must
+	/// announce before its first batch. A peer outside the world receives the new
+	/// run's baseline on entry; a peer already in the world would drop the batch
+	/// as foreign-epoch unless the announcement adopts the run first.
+	/// </summary>
+	IEnumerable<ulong> InWorldPeerIds { get; }
+
 	/// <summary>The session side's display name ("Host", "Guest", "None") — log context only.</summary>
 	string RoleName { get; }
 

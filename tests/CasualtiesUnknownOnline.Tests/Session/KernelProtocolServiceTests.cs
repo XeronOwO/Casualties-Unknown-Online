@@ -515,16 +515,19 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
-	public void Host_FirstBatchOfANewRun_RebaselinesEveryHandshakenPeer()
+	public void Host_FirstBatchOfANewRun_RebaselinesEveryInWorldPeer()
 	{
 		// The new run's first broadcast prunes the journal to its own epoch. A peer that had not
 		// applied everything before that edge can never repair the hole from the history — the host
 		// no longer keeps those revisions — and asked again for the rest of the run (the 813 MB
-		// storm of 2026-11-22). The edge re-baselines instead of leaving the hole.
+		// storm of 2026-11-22). The edge re-baselines instead of leaving the hole. A peer still
+		// outside the world is not switched here: its entry edge carries the new run's baseline.
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [HostId, GuestId];
 		guest.Steam.FireLobbyEntered(LobbyId);
+
+		guest.Services.GetRequiredService<ISessionControl>().ReportSceneState(SceneStateType.InWorld, "level1", new NetVector2(1f, 2f));
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
 		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
@@ -1083,7 +1086,7 @@ public class KernelProtocolServiceTests
 		Assert.Null(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
 	}
 
-	private static ProtocolFrame CheckpointFrame(WireCheckpoint chunk) =>
+	internal static ProtocolFrame CheckpointFrame(WireCheckpoint chunk, bool rebaseline = false) =>
 		new()
 		{
 			Kind = EnvelopeKind.Checkpoint,
@@ -1098,6 +1101,7 @@ public class KernelProtocolServiceTests
 					BaseGlobalRevision = chunk.GlobalRevision,
 				},
 				Checkpoint = chunk,
+				Rebaseline = rebaseline,
 			},
 		};
 

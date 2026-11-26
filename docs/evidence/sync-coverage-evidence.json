@@ -2934,7 +2934,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
 
-      "quote": "public void SendCheckpoint(ulong targetSteamId)"
+      "quote": "public void SendCheckpoint(ulong targetSteamId, bool rebaseline = false)"
 
     },
 
@@ -3054,7 +3054,7 @@
 
       "file": "src/CasualtiesUnknownOnline.Application/Kernel/KernelProtocolService.cs",
 
-      "quote": "public void SendCheckpoint(ulong targetSteamId)"
+      "quote": "public void SendCheckpoint(ulong targetSteamId, bool rebaseline = false)"
 
     },
 

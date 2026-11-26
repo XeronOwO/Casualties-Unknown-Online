@@ -32,7 +32,7 @@ public interface IKernelProtocolControl
 
 	void BroadcastCommittedBatch(CommittedBatch batch);
 
-	void SendCheckpoint(ulong targetSteamId);
+	void SendCheckpoint(ulong targetSteamId, bool rebaseline = false);
 
 	/// <summary>Host: the kernel run epoch this side is serving — the run identity a world-join instruction announces to the members.</summary>
 	ulong CurrentRunEpoch { get; }

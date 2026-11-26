@@ -27,6 +27,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 	private readonly HashSet<ulong> _staleEpochWarned = [];
 	private (ulong Epoch, ulong Revision, int ChunkCount)? _pendingIdentity;
 	private ulong _expectedHostRunEpoch;
+	private bool _rebaselineSet;
 
 	/// <summary>
 	/// A complete set was restored on a run this side had no instruction for, and the run was adopted from
@@ -51,6 +52,11 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 		}
 
 		var previous = _expectedHostRunEpoch;
+		if (previous == runEpoch)
+		{
+			return;
+		}
+
 		_expectedHostRunEpoch = runEpoch;
 		if (previous == 0)
 		{
@@ -79,6 +85,15 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 			_log.LogWarning("Checkpoint chunk {Index} from {Sender} carries run {ChunkEpoch} but its header says {HeaderEpoch} — dropped.",
 				chunk.ChunkIndex, sender, chunk.RunEpoch, envelope.Header.RunEpoch);
 			return;
+		}
+
+		if (envelope.Rebaseline)
+		{
+			// The host is re-baselining at a run change: this set names the run this
+			// side must serve from here, and it is the announcement that precedes the
+			// new run's first batch (a batch that would otherwise be dropped as
+			// foreign-epoch).
+			AdoptHostRunEpoch(chunk.RunEpoch);
 		}
 
 		if (_expectedHostRunEpoch != 0 && chunk.RunEpoch != _expectedHostRunEpoch)
@@ -113,6 +128,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 		}
 
 		_pendingIdentity = identity;
+		_rebaselineSet = envelope.Rebaseline;
 		_chunks[chunk.ChunkIndex] = chunk;
 		if (_chunks.Count != chunk.ChunkCount)
 		{
@@ -132,6 +148,7 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 		_chunks.Clear();
 		_pendingIdentity = null;
 		_expectedHostRunEpoch = 0;
+		_rebaselineSet = false;
 		_staleEpochWarned.Clear();
 	}
 
@@ -154,6 +171,14 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 					_log.LogInformation("Adopted run {Epoch} from the restored checkpoint (no world-join instruction preceded it).", _expectedHostRunEpoch);
 					RunAdoptedWithoutInstruction?.Invoke(_expectedHostRunEpoch);
 				}
+				else if (_rebaselineSet)
+				{
+					// The host re-baselined at a run change: this is the announcement
+					// edge, and the adapter leaves the previous run's world on it so the
+					// new run's first batch lands in a world that is already the new run.
+					_log.LogInformation("Adopted run {Epoch} from a re-baseline checkpoint before its first batch.", checkpoint.RunEpoch.Value);
+					RunAdoptedWithoutInstruction?.Invoke(checkpoint.RunEpoch.Value);
+				}
 			}
 			else
 			{
@@ -169,5 +194,6 @@ internal sealed class GuestCheckpointReceiver(IKernelBatchApplication authority,
 		// only re-attempt the same outcome on the next chunk of the same set.
 		_chunks.Clear();
 		_pendingIdentity = null;
+		_rebaselineSet = false;
 	}
 }

@@ -36,6 +36,15 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private long _nextMessageId;
 
 	/// <summary>
+	/// The run epoch of the last committed batch this host sent. A change means the
+	/// guest is still holding the previous run; the re-baseline checkpoint must reach
+	/// every peer before the new run's first batch, or the guest drops that batch as
+	/// foreign-epoch (measured 2026-11-22: five batches dropped 14 ms before the
+	/// announcement).
+	/// </summary>
+	private ulong _announcedRunEpoch;
+
+	/// <summary>
 	/// How many times each peer has asked for a journal range that starts at the same revision.
 	///
 	/// A range request is the guest's repair path, and the host honours it by re-sending the range. The
@@ -105,11 +114,32 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
+		var runChanged = _announcedRunEpoch != 0 && batch.RunEpoch.Value != _announcedRunEpoch;
+		_announcedRunEpoch = batch.RunEpoch.Value;
 		var dropped = PruneJournalToEpoch(batch.RunEpoch);
 		_journal.Add(batch);
 		if (_journal.Count > JournalCapacity)
 		{
 			_journal.RemoveRange(0, _journal.Count - JournalCapacity);
+		}
+
+		if (runChanged)
+		{
+			// A new run's first batch is the edge where the journal lost the previous run
+			// (PruneJournalToEpoch above). Announce the new run BEFORE the batch to the
+			// peers that are already in the world: they can apply it now, while a peer
+			// outside the world receives the new baseline on entry instead (and must not
+			// have its old world replaced by a switch it has not been told about).
+			// Measured 2026-11-22: five batches were dropped 14 ms before the announcement.
+			// The checkpoint is idempotent for a peer that is already there.
+			var peers = _session.InWorldPeerIds.ToArray();
+			foreach (var peer in peers)
+			{
+				SendCheckpoint(peer, rebaseline: true);
+			}
+
+			_log.LogInformation("Re-baselined {Members} member(s) at run {Epoch} before its first batch (dropped {Dropped} journal batch(es) of another run).",
+				peers.Length, batch.RunEpoch.Value, dropped);
 		}
 
 		var frame = new ProtocolFrame
@@ -123,27 +153,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		};
 
 		SendToGuests(frame);
-
-		if (dropped > 0)
-		{
-			// The new run's first batch is the edge where the journal lost the previous run
-			// (PruneJournalToEpoch above). A peer that had not applied everything before it
-			// can never repair that hole from the history — the host would replay a range it
-			// no longer keeps, and the peer would ask again for as long as the run lasts (the
-			// 813 MB storm of 2026-11-22). Give every connected peer the baseline at the edge
-			// instead of a hole: SendCheckpoint is idempotent for a peer that is already there.
-			var peers = _session.HandshakenPeerIds.ToArray();
-			foreach (var peer in peers)
-			{
-				SendCheckpoint(peer);
-			}
-
-			_log.LogInformation("Re-baselined {Members} member(s) at run {Epoch} after dropping {Dropped} journal batch(es) of another run.",
-				peers.Length, batch.RunEpoch.Value, dropped);
-		}
 	}
 
-	public void SendCheckpoint(ulong targetSteamId)
+	public void SendCheckpoint(ulong targetSteamId, bool rebaseline = false)
 	{
 		if (!_session.IsHost || !_session.SessionActive)
 		{
@@ -162,6 +174,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				{
 					Header = CreateHeader(WirePayloadType.CheckpointChunk, 0, null, checkpoint.GlobalRevision),
 					Checkpoint = chunk,
+					Rebaseline = rebaseline,
 				},
 			};
 			_sender.Send(targetSteamId, frame);
@@ -297,6 +310,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_checkpointReceiver.ResetSessionState();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
+		_announcedRunEpoch = 0;
 		_staleStreamEpochWarned.Clear();
 		_stateStreams.Reset();
 		_refusedCreations.Reset(); // item ids are session-partitioned: a finished session's creation tombstones must not refuse the next session's ids

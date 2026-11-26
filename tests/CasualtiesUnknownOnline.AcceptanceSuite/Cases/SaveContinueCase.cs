@@ -174,6 +174,20 @@ internal sealed class SaveContinueCase : AcceptanceCase
 			context.Note("member id after continue: " + members[0]);
 		}
 
+		// The member rejoins with the cut's injuries: it goes under and the game drops the hand item
+		// (2026-11-27 slice-8: `[LimbEvent] injury` then `ItemDropped lantern` one second later).
+		// Heal the host through its own console before the clone is read; the member is not on the
+		// host's op list, so its own `/heal @a` is refused locally (slice-12) and the host's command
+		// is the only one that can reach it.
+		await context.Session.WaitUntilAsync(
+			context.Session.MemberUrl,
+			state => SessionDriver.StateTrue(state, "inWorld"),
+			TimeSpan.FromSeconds(40),
+			cancellationToken).ConfigureAwait(false);
+		var healedHostAfterRejoin = await context.Session.ActionAsync(
+			context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
+		context.Read("heal after rejoin (host)", healedHostAfterRejoin);
+
 		var hostSeesMemberAfter = await WaitForCloneAsync(
 			() => context.RecipeAsync("clone-customization", cancellationToken),
 			"MemberColor",

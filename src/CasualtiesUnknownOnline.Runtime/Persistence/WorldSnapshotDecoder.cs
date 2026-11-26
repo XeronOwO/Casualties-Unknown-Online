@@ -242,10 +242,16 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 	private void DecodeCharacter(JsonElement entry, SalvageSession session, string playerKey, string id)
 	{
 		var character = Decode<CharacterDataMsg>(entry, session, $"{playerKey}/{id}");
-		if (character is not null)
+		if (character is null)
 		{
-			_characters.Add(new SavedCharacter(playerKey, character));
+			// A character row that does not decode used to vanish without a record, so a continue that lost this
+			// client's own body read exactly like an archive that never carried it (measured 2026-11-27: the same
+			// deployment said "absent" at 01:00:46 and "present" at 01:02:30 for the host's own record).
+			session.Skip($"{playerKey}/{id}", "the character record did not decode", _currentPath);
+			return;
 		}
+
+		_characters.Add(new SavedCharacter(playerKey, character));
 	}
 
 	private void DecodeEnemyRow(JsonElement entry, SalvageSession session, string id)

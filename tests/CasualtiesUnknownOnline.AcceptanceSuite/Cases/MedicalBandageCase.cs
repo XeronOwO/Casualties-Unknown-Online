@@ -304,20 +304,45 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				await Task.Delay(TimeSpan.FromMilliseconds(60), cancellationToken).ConfigureAwait(false);
 			}
 
-			await context.MemberRecipeAsync(
-				"virtual-input",
-				cancellationToken,
-				("mode", "release-key"),
-				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-				("button", "0")).ConfigureAwait(false);
-			await context.MemberRecipeAsync(
-				"virtual-input",
-				cancellationToken,
-				("mode", "press-key"),
-				("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
-				("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
-				("button", "0")).ConfigureAwait(false);
+			// The start edge has to land on the frame the hand is inside the roll's window. The old fixed pair pressed once
+			// and hoped the hand was there; bandfix-1 and bandfix-2 (2026-11-27 04:06) both read `holding:false` for the
+			// whole gesture while the drive walked the ring — the press had landed with the hand sixty degrees away, so
+			// `MinigameBase.Update` computed the dot product as 0.5 against its > 0.9 window. Poll the roll and press only
+			// on a pass through the window, and retry while the edge does not take.
+			var pressDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(12);
+			var pressed = false;
+			while (DateTime.UtcNow < pressDeadline && !pressed)
+			{
+				var pass = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+				var gap = Math.Abs(Number(pass, "handAngle") - Number(pass, "angle"));
+				if (gap <= 20)
+				{
+					await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "release-key"),
+						("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
+					await context.MemberRecipeAsync(
+						"virtual-input",
+						cancellationToken,
+						("mode", "press-key"),
+						("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
+						("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
+						("button", "0")).ConfigureAwait(false);
+					await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+					var held = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+					pressed = Boolean(held, "holding") == true;
+					context.Read("press through the roll's window (gap " + gap.ToString("0.#", CultureInfo.InvariantCulture) + ")", held);
+				}
+				else
+				{
+					await Task.Delay(40, cancellationToken).ConfigureAwait(false);
+				}
+			}
+
+			Require(pressed, "the wrap's holding flag never took while the hand passed the roll's window.");
 
 			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
 			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand

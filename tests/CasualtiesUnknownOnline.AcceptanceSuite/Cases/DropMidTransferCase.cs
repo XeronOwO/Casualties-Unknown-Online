@@ -36,7 +36,7 @@ internal sealed class DropMidTransferCase : AcceptanceCase
 		var memberState = await context.Session.ActionAsync(context.Session.MemberUrl, "state", cancellationToken).ConfigureAwait(false);
 		Require(string.Equals(Text(memberState, "hostId"), hostId, StringComparison.Ordinal), "the member does not address the host the case reads: " + Raw(memberState));
 
-		var hostBefore = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+		var hostBefore = await WaitForSettledBagAsync(context, cancellationToken).ConfigureAwait(false);
 		var memberBefore = await context.MemberRecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 		context.Read("host bag before", hostBefore);
 		context.Read("member bag before", memberBefore);
@@ -118,6 +118,32 @@ internal sealed class DropMidTransferCase : AcceptanceCase
 			+ " became " + afterHostCount + "+" + afterMemberCount);
 
 		await ArmAsync(context, "KernelEnvelope", cancellationToken, host: red, off: true).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// A continue gives the host a new character whose starting supplies land on the body a moment after
+	/// the world entry; a single read at entry sees the empty transitional body and picks a slot the
+	/// supplies then occupy. Wait until the bag has read the same contents twice.
+	/// </summary>
+	private static async Task<JsonElement?> WaitForSettledBagAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		var started = DateTime.UtcNow;
+		var deadline = started.AddSeconds(6);
+		string? previous = null;
+		while (DateTime.UtcNow < deadline)
+		{
+			var reading = await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
+			var ids = Text(reading, "ids");
+			if (previous == ids && DateTime.UtcNow - started >= TimeSpan.FromMilliseconds(500))
+			{
+				return reading;
+			}
+
+			previous = ids;
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+		}
+
+		return await context.RecipeAsync("body-items", cancellationToken).ConfigureAwait(false);
 	}
 
 	private static async Task<int> FreeHostSlotAsync(CaseContext context, JsonElement? before, CancellationToken cancellationToken)

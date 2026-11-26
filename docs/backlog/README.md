@@ -187,7 +187,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [1.0: the final layer's ending is the host's state](done/1.0-endings-authority.md) — **High** — the ending is the host's, in the run row and the save.
 - [1.0: a prosthetic limb reaches the other clients](done/1.0-prosthetics.md) — **High** — the clone carries the peg limb.
 - [The wire carries a prosthetic](done/1.0-the-wire-carries-no-prosthetic.md) — **High** — the member's clone shows the owner's peg.
-- [The continued run's dropped rows](done/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy is judged against the row's own claim.
+- [The continued run's dropped rows](done/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md) — **High** — a destroy is judged.
 - [1.0: the release's run settings reach the baseline and the save](done/1.0-run-settings-extended.md) — **High** — 50 keys ride the run row.
 
 - [Save backups are too many and disorganized](done/save-backups-overwhelm-the-archive.md) — **High** — deletes, an editable ceiling, runs not folders.

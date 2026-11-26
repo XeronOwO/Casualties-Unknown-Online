@@ -26,6 +26,7 @@ internal static class LaunchCommand
 			SandboxieExe: facts.Require(arguments.Optional("sandboxie") ?? string.Empty, "sandboxie-exe", "--sandboxie"),
 			GuestBox: facts.Require(arguments.Optional("guest-box") ?? string.Empty, "sandbox-guest-box", "--guest-box"),
 			GuestRoot: facts.Require(arguments.Optional("guest-root") ?? string.Empty, "sandbox-guest-root", "--guest-root"),
+			HostBox: arguments.Optional("host-box") ?? facts.Optional(string.Empty, "sandbox-host-box"),
 			AltBox: facts.Require(arguments.Optional("alt-box") ?? string.Empty, "sandbox-alt-box", "--alt-box"),
 			AltRoot: facts.Require(arguments.Optional("alt-root") ?? string.Empty, "sandbox-alt-root", "--alt-root"),
 			HostUrl: facts.Require(arguments.Optional("host-url") ?? string.Empty, "hotrepl-host-url", "--host-url"),

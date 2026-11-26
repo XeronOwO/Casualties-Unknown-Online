@@ -32,6 +32,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 		string SandboxieExe,
 		string GuestBox,
 		string GuestRoot,
+		string? HostBox,
 		string AltBox,
 		string AltRoot,
 		string HostUrl,
@@ -117,7 +118,7 @@ internal sealed class ClientLauncher(ClientLauncher.LauncherOptions options)
 
 	private void BuildClientList()
 	{
-		var host = ("host", _options.HostUrl, false, _options.GameDir, (string?)null);
+		var host = ("host", _options.HostUrl, !string.IsNullOrWhiteSpace(_options.HostBox), _options.HostBox ?? _options.GameDir, _options.HostBox);
 		var guest = ("guest", _options.GuestUrl, true, _options.GuestRoot, _options.GuestBox);
 		var alt = ("alt", _options.AltUrl, true, _options.AltRoot, _options.AltBox);
 

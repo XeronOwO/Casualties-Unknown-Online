@@ -14,7 +14,53 @@ namespace CasualtiesUnknownOnline.AcceptanceSuite;
 /// </summary>
 internal static partial class Program
 {
+	private static void ReportUnhandled(string[] args, Exception exception)
+	{
+		try
+		{
+			var outputDirectory = string.Empty;
+			for (var index = 0; index + 1 < args.Length; index++)
+			{
+				if (string.Equals(args[index], "--out", StringComparison.Ordinal))
+				{
+					outputDirectory = args[index + 1];
+				}
+			}
+
+			var directory = string.IsNullOrWhiteSpace(outputDirectory)
+				? Path.Combine(Path.GetTempPath(), "cuo-acceptance-crash")
+				: Path.Combine(outputDirectory, "report");
+			Directory.CreateDirectory(directory);
+			var path = Path.Combine(directory, "crash-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".log");
+			File.WriteAllText(path, exception.ToString());
+			Console.Error.WriteLine("the suite crashed; its stack is at " + path);
+			Console.Error.WriteLine(exception);
+		}
+		catch (Exception writeFailure) when (writeFailure is IOException or UnauthorizedAccessException)
+		{
+			Console.Error.WriteLine(exception);
+		}
+	}
+
+	/// <summary>
+	/// The entry point keeps one job: an unhandled exception is written down before it leaves. Two suites started side
+	/// by side once exited with -532462766 and left nothing behind — the host tool's own stdout stayed empty because the
+	/// crash happened inside this process (measured 2026-11-26 22:50, `.acceptance/par-a3`).
+	/// </summary>
 	private static async Task<int> Main(string[] args)
+	{
+		try
+		{
+			return await RunAsync(args).ConfigureAwait(false);
+		}
+		catch (Exception exception)
+		{
+			ReportUnhandled(args, exception);
+			throw;
+		}
+	}
+
+	private static async Task<int> RunAsync(string[] args)
 	{
 		// The manual driver lives in the suite's own action client now (the port of drive-in-process.ps1):
 		// `--action`-style probes are `drive --url ... --action ...` here, and nothing about them is shell.

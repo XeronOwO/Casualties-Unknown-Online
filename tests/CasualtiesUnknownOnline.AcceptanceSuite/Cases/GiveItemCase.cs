@@ -70,8 +70,14 @@ internal sealed class GiveItemCase : AcceptanceCase
 		JsonElement? memberBag = null;
 		for (var attempt = 0; attempt < 3 && !landed; attempt++)
 		{
-			context.Note("member placed before give " + attempt.ToString(CultureInfo.InvariantCulture) + ": "
-				+ await context.Session.BringTheMemberBesideTheHostAsync("the give", cancellationToken).ConfigureAwait(false));
+			// The first attempt reuses the placement above; only a retry has to put the pair back, because the drop's
+			// physics and the member's own step are what separate them (measured 2026-11-26 22:00: `give-item` spent
+			// 19.1 s on two placements before its first give, one of them repeating the placement just made).
+			if (attempt > 0)
+			{
+				context.Note("member placed before give " + attempt.ToString(CultureInfo.InvariantCulture) + ": "
+					+ await context.Session.BringTheMemberBesideTheHostAsync("the give", cancellationToken).ConfigureAwait(false));
+			}
 
 			give = await context.RecipeAsync("give-probe", cancellationToken,
 				("mode", "give-world"),

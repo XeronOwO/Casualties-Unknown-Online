@@ -63,7 +63,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 - [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
-- [The game window never takes the front](todo/1.0-the-game-window-never-takes-the-front.md) — **High** — a native hook waits to be measured.
 - [Split the row rebuild ledger](todo/1.0-split-the-row-rebuild-ledger.md) — **Low** — 115 KB, over budget.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
@@ -130,6 +129,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 ### Done
 
 - [Give refused for a distance](done/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the world hand-over reaches the member's bag.
+- [The game window never takes the front](done/1.0-the-game-window-never-takes-the-front.md) — **High** — zero foreground in both watches.
 - [Physics steps crawl in a slice](done/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — the drive crossed the wrap's finish window.
 - [The bandage hand never holds](done/1.0-the-bandage-hand-never-holds-the-wrap.md) — **High** — pressed on the window; green alone and in a slice.
 - [The restore drops what the member carried](done/1.0-the-restore-drops-what-the-member-carried.md) — **High** — the cut waits on the kernel's rows.

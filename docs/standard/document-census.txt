@@ -1436,7 +1436,7 @@ docs/backlog/done/1.0-guest-joins-with-a-role-and-no-world.md | keep | claim | d
 docs/backlog/done/1.0-a-host-leaving-the-world-strands-the-members.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-split-the-code-audit-ledger.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-save-cut-that-never-commits.md | keep | index | docs/backlog/README.md
-docs/backlog/todo/1.0-the-game-window-never-takes-the-front.md | keep | index | docs/backlog/README.md
+docs/backlog/done/1.0-the-game-window-never-takes-the-front.md | keep | index | docs/backlog/README.md
 docs/backlog/review/1.0-the-run-change-arrives-after-its-batches.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-split-the-kernel-protocol-service.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-the-journal-repair-resends-forever.md | keep | index | docs/backlog/README.md

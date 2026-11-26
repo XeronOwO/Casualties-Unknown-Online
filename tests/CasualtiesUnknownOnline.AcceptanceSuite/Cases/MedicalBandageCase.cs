@@ -276,7 +276,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 				cancellationToken,
 				("mode", "start"),
 				("radius", "250"),
-				("step", "15")).ConfigureAwait(false);
+				("step", "3")).ConfigureAwait(false);
 			context.Read("hand drive started", drive);
 			Require(
 				Boolean(drive, "ok"),
@@ -343,6 +343,16 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			}
 
 			Require(pressed, "the wrap's holding flag never took while the hand passed the roll's window.");
+
+			// The edge only needs the hand near the roll for the one frame it lands; after that the hand can walk the
+			// lap at the speed the wrap's own ratchet expects. Step 3 keeps the landing frame inside the dot window even
+			// when a slice runs six physics steps per frame; step 15 then makes a wrap action every other pass.
+			await context.MemberRecipeAsync(
+				"bandage-hand",
+				cancellationToken,
+				("mode", "start"),
+				("radius", "250"),
+				("step", "15")).ConfigureAwait(false);
 
 			// The gesture is a path the game integrates itself, so the row records the path: a handful of samples while
 			// the client walks the lap say whether the pointer orbits, whether the hand follows it, and where the hand

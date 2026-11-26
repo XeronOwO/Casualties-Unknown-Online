@@ -335,7 +335,7 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			// 40 ms to catch a pass, then polled for up to sixty seconds (measured 2026-11-22: 66.3 s of case time and the
 			// wrap never completed).
 
-			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(8);
 			var step = 0;
 			while (DateTime.UtcNow < deadline)
 			{

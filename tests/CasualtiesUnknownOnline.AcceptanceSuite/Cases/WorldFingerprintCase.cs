@@ -570,7 +570,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				var damageRose = false;
 				var broke = false;
 				JsonElement? holdStaged = null;
-				for (var attempt = 0; attempt < 24 && !broke; attempt++)
+				for (var attempt = 0; attempt < 6 && !broke; attempt++)
 				{
 					await Task.Delay(250, cancellationToken).ConfigureAwait(false);
 					// The staged press is a state the client owns; re-stating it each tick keeps the hold visible even when
@@ -683,7 +683,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 		// The claim is about the member's screen: the same cell has to become the same empty cell there.
 		JsonElement? memberAfter = null;
-		for (var attempt = 0; attempt < 20; attempt++)
+		for (var attempt = 0; attempt < 6; attempt++)
 		{
 			memberAfter = await ReadCellAsync(context, cell, true, cancellationToken).ConfigureAwait(false);
 			if (Integer(memberAfter, "block") <= 0)
@@ -1031,7 +1031,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 		var lastX = startX;
 		var lastY = startY;
-		for (var step = 0; step < 40; step++)
+		for (var step = 0; step < 12; step++)
 		{
 			await StageAsync(context, exitBind, "down", cancellationToken).ConfigureAwait(false);
 			await Task.Delay(140, cancellationToken).ConfigureAwait(false);
@@ -1080,7 +1080,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var missesY = 0;
 		// Sixteen steps of two ticks is enough to cross the room and keeps the case inside its budget: every tick is a
 		// websocket turn on the game thread, and forty steps of four ticks cost 238 s of a 240 s case (`row1-171`).
-		for (var step = 0; step < 16; step++)
+		for (var step = 0; step < 6; step++)
 		{
 			var away = Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5);
 			// A person does not walk to a coordinate; they stop when the wall is within reach of the swing. The scan's
@@ -1271,7 +1271,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	private static async Task<JsonElement?> WaitForMovementAsync(CaseContext context, CancellationToken cancellationToken)
 	{
 		JsonElement? clock = null;
-		for (var attempt = 0; attempt < 32; attempt++)
+		for (var attempt = 0; attempt < 8; attempt++)
 		{
 			clock = await context.RecipeAsync("frame-clock", cancellationToken).ConfigureAwait(false);
 			if (clock is { } state
@@ -1450,7 +1450,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			("y", cell.Y.ToString(CultureInfo.InvariantCulture)),
 			("dmg", "100000")).ConfigureAwait(false);
 		context.Read("the game's own block entry", broken);
-		for (var attempt = 0; attempt < 20; attempt++)
+		for (var attempt = 0; attempt < 6; attempt++)
 		{
 			var after = await ReadCellAsync(context, cell, false, cancellationToken).ConfigureAwait(false);
 			if (Integer(after, "block") <= 0)

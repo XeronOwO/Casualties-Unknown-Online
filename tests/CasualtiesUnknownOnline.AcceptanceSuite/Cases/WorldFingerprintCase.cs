@@ -355,6 +355,36 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		var ray = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
 		context.Read("host-swing-ray", ray);
 		var obstacle = ray is { } reading ? FirstObstacle(reading, cell) : "nothing the client could read";
+		// The hand's ray starts at the hand, not at the body's centre. Aiming at the cell's centre can leave the ray
+		// short of the collider that sits a cell further along (measured 2026-11-27: aim (3.5,481.5) from the hand at
+		// (1.87,483.5) met nothing, while the same hand's ray aimed past the cell hit it). Aim one cell beyond the target
+		// along the hand-to-cell direction and keep that aim when its ray reaches the cell.
+		if (ray is { } missed && Integer(missed, "count") == 0)
+		{
+			var fromX = Double(missed, "fromX");
+			var fromY = Double(missed, "fromY");
+			var dx = (cell.X + 0.5) - fromX;
+			var dy = (cell.Y + 0.5) - fromY;
+			var length = Math.Sqrt((dx * dx) + (dy * dy));
+			if (length > 0.1)
+			{
+				var farX = (int)Math.Floor((cell.X + 0.5) + ((dx / length) * 1.5));
+				var farY = (int)Math.Floor((cell.Y + 0.5) + ((dy / length) * 1.5));
+				var farAim = await context.RecipeAsync(
+					"aim-at-cell",
+					cancellationToken,
+					("x", farX.ToString(CultureInfo.InvariantCulture)),
+					("y", farY.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+				context.Read("host-aim-beyond-the-cell", farAim);
+				var farRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+				context.Read("host-swing-ray-beyond-the-cell", farRay);
+				if (farRay is { } beyond && FirstObstacle(beyond, cell) == "")
+				{
+					ray = farRay;
+					obstacle = "";
+				}
+			}
+		}
 		// A player who sees the swing land on the block in front of the crosshair digs THAT block. When the ray's first
 		// `BlockGround` is a different cell than the one the camera points at (an up-slope block, or one whose collider
 		// sits half a cell over), the row aims at the block the swing would really hit and holds there instead of

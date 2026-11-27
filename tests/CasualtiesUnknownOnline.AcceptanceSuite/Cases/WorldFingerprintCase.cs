@@ -89,6 +89,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		{
 			_lastScan += " [not one of the scanned cells carries a `BlockGround` collider; the row walks to the nearest one and lets the damage reading decide]";
 		}
+
+		// Whether the world itself offered ground the row could stand beside, from the row's own probes. The walk uses
+		// this to tell a void from the pod: a body can stand on the pod's hull with grounded false, so the body's flag
+		// alone ended rows that later steps would have answered (`.acceptance/walkbody-11`).
+		var worldHasGround = hittableBeside.Count > 0 || grounded.Count > 0;
 		// A player digs a block they can see: the game's scan order is not the screen's order, so the row takes the
 		// first candidate whose point lands inside the drawn area. The camera settles after the world loads, so a scan
 		// that finds nothing visible is repeated before it is called a failure (measured 2026-11-22: the same pairing
@@ -213,7 +218,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			var otherDistance = Distance(Double(otherMotion, "posX"), Double(otherMotion, "posY"), cell.X + 0.5, cell.Y + 0.5);
 			if (otherDistance < 1.5 || otherDistance > 4.4)
 			{
-				var clearingWalk = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+				var clearingWalk = await WalkBesideAsync(context, cell, cancellationToken, worldHasGround: worldHasGround).ConfigureAwait(false);
 				context.Note($"the clearing walk moved the body to ({clearingWalk.X},{clearingWalk.Y}): {clearingWalk.Trace}");
 			}
 		}
@@ -249,12 +254,12 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			else
 			{
 				context.Note($"the hand's ray meets {Describe(touchingCell)}, a cell the grid holds no block in, so the row walks to the cell the scan named: {Raw(touchingHost)}");
-				stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+				stood = await WalkBesideAsync(context, cell, cancellationToken, worldHasGround: worldHasGround).ConfigureAwait(false);
 			}
 		}
 		else
 		{
-			stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+			stood = await WalkBesideAsync(context, cell, cancellationToken, worldHasGround: worldHasGround).ConfigureAwait(false);
 		}
 		// A body that stops while the key is held has met something — the pod wall, a machine, a rock — and a player
 		// walks to another block rather than reporting the wall as a defect (measured 2026-11-22: the body moved four
@@ -296,7 +301,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			if (nearby.Count > 0)
 			{
 				cell = nearby[0];
-				stood = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+				stood = await WalkBesideAsync(context, cell, cancellationToken, worldHasGround: worldHasGround).ConfigureAwait(false);
 				lastReason += $" [the row walked to the block now in reach, {Describe(cell)}]";
 			}
 		}
@@ -1122,7 +1127,8 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	private static async Task<(int X, int Y, string Trace)> WalkBesideAsync(
 		CaseContext context,
 		(int X, int Y) cell,
-		CancellationToken cancellationToken)
+		CancellationToken cancellationToken,
+		bool worldHasGround = true)
 	{
 		var scan = await FindBreakableAsync(context, cancellationToken).ConfigureAwait(false);
 		var bodyX = Integer(scan, "bodyX");
@@ -1145,6 +1151,28 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		posX = exit.X;
 		posY = exit.Y;
 		trace.Append("; leave-pod " + exit.Trace);
+		// The row's next move is a walk, and a world with no ground under the body cannot answer it: the walk spent two
+		// hundred seconds on such a world in `.acceptance/ten-6` (the ground probe found 0 `BlockGround` colliders and
+		// the body held grounded false with velY -6.6). The guard asks the world's own probe first, so a body standing
+		// on the pod's hull — grounded false with velY 0 in `.acceptance/walkbody-11` — is not mistaken for a void.
+		if (!worldHasGround)
+		{
+			var standing = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var standingOnAGround = false;
+			for (var wait = 0; wait < 12; wait++)
+			{
+				if (Boolean(standing, "grounded"))
+				{
+					standingOnAGround = true;
+					break;
+				}
+
+				await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+				standing = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			}
+
+			Require(standingOnAGround, "the world offers no cell a body can stand beside and the host body never stood on a floor after leaving the pod (grounded false, velY " + String(standing, "velY") + " at " + String(standing, "posX") + "," + String(standing, "posY") + "), so the row cannot walk to its cell");
+		}
 		// The walk below costs a websocket turn per step and the body can refuse to move at all (measured 2026-11-27:
 		// the right bind answered held 635 times in 44,250 queries and the body stood at one spot for six steps). The
 		// row's question is whether both sides see the same block from the same spot, so the declared setup substitution

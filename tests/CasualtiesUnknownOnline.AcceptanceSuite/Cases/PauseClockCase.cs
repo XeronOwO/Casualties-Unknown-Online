@@ -25,7 +25,7 @@ internal sealed class PauseClockCase : AcceptanceCase
 		// The bandage wrap's hand keeps the minigame open (`pause-state` reports minigame true), and the
 		// game refuses a pause there (PauseHandler.disallowPause); the medical-bandage row can leave it
 		// running (2026-11-28 full-51 read `minigame:true` here), so stop it before asking for the gates.
-		await context.RecipeAsync("bandage-hand", cancellationToken, ("mode", "stop")).ConfigureAwait(false);
+		await context.RecipeAsync("bandage-hand", cancellationToken, ("mode", "stop"), ("radius", "0"), ("step", "0")).ConfigureAwait(false);
 		var ready = await WaitForPauseGateAsync(context, cancellationToken).ConfigureAwait(false);
 		Require(ready is not null, "the game's pause gates never opened: " + Raw(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false)));
 

@@ -163,9 +163,24 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			$"the game's own scan found no breakable cell beside the host's player: {_lastScan}");
 		if (point is null && candidates.Count > 0)
 		{
+			// The scan can name cells that are all behind the camera or out of its drawn area: the 2026-11-27
+			// walkbody-7 world offered 144 cells, the nearest 7.5 units away, and the projection called every one of
+			// them off screen.  A player turns or steps to the wall; the row steps the body beside the nearest cell
+			// through the same diagnostic placement the walk uses, then aims from there.
+			var rescue = candidates.OrderBy(candidate => Distance(hereXBeforeScan, hereYBeforeScan, candidate.X + 0.5, candidate.Y + 0.5)).First();
+			var rescued = await context.RecipeAsync(
+				"body-place",
+				cancellationToken,
+				("x", (rescue.X + 0.5 + 2.2).ToString(CultureInfo.InvariantCulture)),
+				("y", (rescue.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host-body-placed-at-the-rescued-cell", rescued);
+			var rescueMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			context.Read("host-body-motion-at-the-rescued-cell", rescueMotion);
+			var rescuedDistance = Distance(Double(rescueMotion, "posX"), Double(rescueMotion, "posY"), rescue.X + 0.5, rescue.Y + 0.5);
 			Require(
-				false,
-				$"the game's scan offered no cell within a few steps of the host's player ({hereXBeforeScan:F1},{hereYBeforeScan:F1}), so there is nothing this row can walk to and swing at: {_lastScan}");
+				rescuedDistance <= 3.2,
+				$"the game put the body {rescuedDistance:0.00} units from the rescued cell {Describe(rescue)}: {Raw(rescueMotion)}");
+			cell = rescue;
 		}
 
 		// A swing's ray starts at the attacking limb and passes through whatever that hand holds, so a lantern a starting

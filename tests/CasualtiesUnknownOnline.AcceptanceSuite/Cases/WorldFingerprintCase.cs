@@ -860,7 +860,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 
 	private static async Task<List<(int X, int Y)>> FindBreakableCellsAsync(CaseContext context, CancellationToken cancellationToken, int radius = 16, int count = 24)
 	{
-		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", count.ToString(CultureInfo.InvariantCulture)), ("minOffset", "1"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		// Six blocks from the body, not one: the cells right beside the spawn are the pod's own dynamic hull, and a body
+		// placed on that hull slides off it (measured 2026-11-27, `.acceptance/ten-7`: the row placed the body at
+		// (5.7,500.5) beside the cell at (3,500), then the body read (25.6,489.7), (34.8,477.8), (44.1,457.6) one aim
+		// apart and every swing missed). `host-crash-restart` reads its cells with the same offset.
+		var found = await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", count.ToString(CultureInfo.InvariantCulture)), ("minOffset", "6"), ("radius", radius.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-breakable", found);
 		// A body that has just left the capsule can stand in open ground with nothing breakable inside the first
 		// radius: the pod lands near the map's edge in some worlds (measured 2026-11-22: the scan answered `count 0`
@@ -871,7 +875,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				"block-find-breakable",
 				cancellationToken,
 				("count", (count * 2).ToString(CultureInfo.InvariantCulture)),
-				("minOffset", "1"),
+				("minOffset", "6"),
 				("radius", (radius * 2).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("host-breakable-wider", found);
 		}

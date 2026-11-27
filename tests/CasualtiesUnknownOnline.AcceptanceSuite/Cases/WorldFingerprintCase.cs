@@ -1057,6 +1057,17 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				break;
 			}
 
+			// A world the ground repair could not give a floor under the body keeps it falling. The walk below cannot
+			// answer a row whose body never lands, and a body in free fall reads as movement: measured 2026-11-27, the
+			// body stood at grounded false with velY -6.6 for the whole case, so the twelve-second settle wait was
+			// spent watching a body that would never land. Stopping here lets the caller read the world as unusable in
+			// seconds instead of walking a void.
+			if (wait >= 8 && !Boolean(watching, "grounded"))
+			{
+				trace.Append($" [dropping at step {wait} velY {String(watching, "velY")}]");
+				break;
+			}
+
 			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
 		}
 
@@ -1145,6 +1156,25 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		posX = exit.X;
 		posY = exit.Y;
 		trace.Append("; leave-pod " + exit.Trace);
+		// The row's next move is a walk, and a body with no floor under it cannot answer that walk. Measured
+		// 2026-11-27: the ground repair placed the body, the world had no `BlockGround` collider under it, and the body
+		// fell with grounded false for the rest of the case — two hundred seconds spent walking a void. The world's own
+		// reading ends the row in seconds instead of walking a world the row can never pass.
+		var standing = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		var standingOnAGround = false;
+		for (var wait = 0; wait < 12; wait++)
+		{
+			if (Boolean(standing, "grounded"))
+			{
+				standingOnAGround = true;
+				break;
+			}
+
+			await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+			standing = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		}
+
+		Require(standingOnAGround, "the world has no ground under the host body: it never stood on a floor after leaving the pod (grounded false, velY " + String(standing, "velY") + " at " + String(standing, "posX") + "," + String(standing, "posY") + "), so the row cannot walk to its cell");
 		// The walk below costs a websocket turn per step and the body can refuse to move at all (measured 2026-11-27:
 		// the right bind answered held 635 times in 44,250 queries and the body stood at one spot for six steps). The
 		// row's question is whether both sides see the same block from the same spot, so the declared setup substitution

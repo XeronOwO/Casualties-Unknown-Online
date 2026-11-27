@@ -16,7 +16,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// </summary>
 internal sealed class StartGateJoinPump
 {
-	private const long ContinueResendWindowMs = 10_000;
+	// The member's own world load measured 37-50 s in a sandbox client (2026-11-27: savetime-1 48.6 s); a
+	// ten-second window closed before the member could answer, so every continue row paid a manual rejoin.
+	private const long ContinueResendWindowMs = 60_000;
 
 	private long _lastTick;
 	private long _continueDeadline;

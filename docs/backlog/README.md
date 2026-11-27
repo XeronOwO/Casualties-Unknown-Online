@@ -70,6 +70,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The restore cancels its own wait](todo/1.0-the-restore-cancels-its-own-wait.md) — **High** — a world generated under a pending restore discards it.
 - [Rejoined member's item id](todo/1.0-the-rejoined-member-keeps-its-own-id-for-a-seated-item.md) — **High** — two ids for one item.
 - [The kernel protocol service is over its line ceiling](todo/1.0-split-the-kernel-protocol-service.md) — **Low** — 632 lines against a 600-line budget.
+- [The one-run acceptance ticket is over its size line](todo/1.0-split-the-one-run-ticket.md) — **Low** — split the readings, keep every row.
 
 ### In progress
 - [One acceptance run covers every case](in-progress/1.0-one-acceptance-run-covers-every-case.md) — **High** — the tiers are gone; the run is being measured.

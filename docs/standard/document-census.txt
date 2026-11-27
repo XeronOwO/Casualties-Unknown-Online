@@ -217,7 +217,7 @@ docs/backlog/done/adapter-capability-catalog.md | keep | index | docs/backlog/RE
 docs/backlog/done/1.0-acceptance-rows-as-c-sharp-cases.md | keep | claim | docs/backlog/README.md
 docs/backlog/done/1.0-acceptance-failure-paths-and-update-replay.md | keep | claim | docs/backlog/README.md
 docs/backlog/todo/1.0-the-batch-compares-live-world-state.md | keep | claim | docs/backlog/README.md
-docs/backlog/in-progress/1.0-one-acceptance-run-covers-every-case.md | keep | claim | docs/backlog/README.md
+docs/backlog/in-progress/1.0-one-acceptance-run-covers-every-case.md | rework | none | docs/backlog/todo/1.0-split-the-one-run-ticket.md
 docs/backlog/in-progress/1.0-rebuild-each-acceptance-row-from-the-game.md | rework | none | docs/backlog/todo/1.0-split-the-row-rebuild-ledger.md
 docs/backlog/todo/1.0-split-the-row-rebuild-ledger.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-ip-direct-duplicate-names-mix-characters.md | keep | claim | docs/backlog/README.md
@@ -1439,6 +1439,7 @@ docs/backlog/todo/1.0-the-save-cut-that-never-commits.md | keep | index | docs/b
 docs/backlog/done/1.0-the-game-window-never-takes-the-front.md | keep | index | docs/backlog/README.md
 docs/backlog/review/1.0-the-run-change-arrives-after-its-batches.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-split-the-kernel-protocol-service.md | keep | index | docs/backlog/README.md
+docs/backlog/todo/1.0-split-the-one-run-ticket.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-the-journal-repair-resends-forever.md | keep | index | docs/backlog/README.md
 docs/backlog/todo/1.0-the-restore-cancels-its-own-wait.md | keep | index | docs/backlog/README.md
 docs/backlog/done/1.0-the-continued-run-meets-reports-for-items-it-never-carried.md | keep | index | docs/backlog/README.md

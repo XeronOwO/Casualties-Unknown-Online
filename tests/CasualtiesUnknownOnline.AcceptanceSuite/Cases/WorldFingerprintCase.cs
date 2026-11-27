@@ -177,6 +177,11 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		Require(freed is { } hands && Boolean(hands, "ok"), "the host could not empty its hands before the swing: " + Raw(freed));
 		context.Read("host-hands-emptied", freed);
 
+		// The kit falls at the body's feet; step the body to the cell's side before the ray is read, so the pile
+		// stays behind the swing instead of on it (measured 2026-11-27: the first aim met the lantern at 1.9).
+		var cleared = await context.RecipeAsync("body-place", cancellationToken, ("x", (cell.X + 0.5 + 2.2).ToString(CultureInfo.InvariantCulture)), ("y", (cell.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+		context.Read("host-body-cleared-before-the-ray", cleared);
+
 		// With empty hands, the question is whether the body needs to move at all: the game can already name the block
 		// the hand's ray meets where the body stands, and a player digs the wall beside them before walking anywhere
 		// (measured 2026-11-22: the walk overshot a slippery floor by ten units and the row then aimed at air, while the

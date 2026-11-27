@@ -26,8 +26,8 @@ internal sealed class WorldCensusCase : AcceptanceCase
 		{
 			host = await context.RecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
 			member = await context.MemberRecipeAsync("world-object-census", cancellationToken).ConfigureAwait(false);
-			var hostTotal = Integer(host, "total");
-			var memberTotal = Integer(member, "total");
+			var hostTotal = Counted(host);
+			var memberTotal = Counted(member);
 			if (hostTotal >= 1 && hostTotal == memberTotal && Groups(host) == Groups(member))
 			{
 				context.Read("census", host);
@@ -43,7 +43,7 @@ internal sealed class WorldCensusCase : AcceptanceCase
 		Require(Boolean(host, "ok") == true, "the host's world census could not be read: " + Raw(host));
 		Require(Integer(host, "total") >= 1, "the host's own world holds no building object: " + Raw(host));
 		throw new AssertionException(
-			"the two clients are not in the same world: host " + Integer(host, "total") + " object(s), member " + Integer(member, "total")
+			"the two clients are not in the same world: host " + Counted(host) + " object(s), member " + Counted(member)
 			+ "; host groups " + Trim(Groups(host)) + ", member groups " + Trim(Groups(member)));
 	}
 
@@ -70,17 +70,55 @@ internal sealed class WorldCensusCase : AcceptanceCase
 		var text = new StringBuilder();
 		foreach (var group in value.EnumerateArray())
 		{
+			var id = group.TryGetProperty("id", out var idValue) ? idValue.GetString() : "?";
+			if (IsLocalDebris(id))
+			{
+				continue;
+			}
+
 			if (text.Length > 0)
 			{
 				text.Append(';');
 			}
 
-			text.Append(group.TryGetProperty("id", out var id) ? id.GetString() : "?")
+			text.Append(id)
 				.Append(':')
 				.Append(group.TryGetProperty("count", out var count) && count.TryGetInt32(out var number) ? number : 0);
 		}
 
 		return text.ToString();
+	}
+
+	/// <summary>
+	/// Debris the game spawns per client when a block breaks is not world identity: `glassshards` is block 7's drop
+	/// (`src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDropTable.cs:48`) and CUO carries no path that recreates
+	/// it on the other side, so a world where one client broke glass reads one shard apart (measured 2026-11-27,
+	/// `.acceptance/freezeprefix-1`: host 2 against member 3, totals 1891 against 1892 while every other group agreed).
+	/// </summary>
+	private static bool IsLocalDebris(string? id) => id == "glassshards";
+
+	private static long Counted(JsonElement? reading)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("groups", out var value)
+			|| value.ValueKind != JsonValueKind.Array)
+		{
+			return Integer(reading, "total");
+		}
+
+		var total = 0L;
+		foreach (var group in value.EnumerateArray())
+		{
+			var id = group.TryGetProperty("id", out var idValue) ? idValue.GetString() : null;
+			if (IsLocalDebris(id))
+			{
+				continue;
+			}
+
+			total += group.TryGetProperty("count", out var count) && count.TryGetInt32(out var number) ? number : 0;
+		}
+
+		return total;
 	}
 
 	private static string Trim(string text) => text.Length <= 300 ? text : text[..300] + "…";

@@ -313,7 +313,8 @@ internal sealed class HostAfterContinueCase : AcceptanceCase
 	{
 		try
 		{
-			return new FileInfo(path) is { Exists: true } file ? file.Length : 0;
+			// Character count, not UTF-8 bytes; ReadLog shares the game's write handle (measured 2026-11-28).
+			return ReadLog(path).Length;
 		}
 		catch (IOException)
 		{

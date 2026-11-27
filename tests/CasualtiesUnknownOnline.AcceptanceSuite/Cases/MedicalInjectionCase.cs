@@ -202,7 +202,8 @@ internal sealed class MedicalInjectionCase : AcceptanceCase
 			? limbs.EnumerateArray()
 			: [];
 
-	private static long LogLength(string path) => File.Exists(path) ? new FileInfo(path).Length : 0;
+	// Character count, not UTF-8 bytes; ReadLog shares the game's write handle (measured 2026-11-28).
+	private static long LogLength(string path) => ReadLog(path).Length;
 
 	private static string ReadLog(string path)
 	{

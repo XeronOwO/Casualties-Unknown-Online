@@ -91,8 +91,18 @@ internal sealed class LateJoinCase : AcceptanceCase
 	/// <summary>The log's length, or 0 when the file is not there yet; the offset marks this case's lines.</summary>
 	private static long LogLength(string path)
 	{
-		var info = new FileInfo(path);
-		return info.Exists ? info.Length : 0;
+		// Character count, not UTF-8 bytes; the shared read handle keeps the game's writer out of the way
+		// (measured 2026-11-28).
+		try
+		{
+			using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+			using var reader = new StreamReader(stream);
+			return reader.ReadToEnd().Length;
+		}
+		catch (IOException)
+		{
+			return 0;
+		}
 	}
 
 	/// <summary>The first full line at or after <paramref name="start"/> that contains the needle, else "".</summary>

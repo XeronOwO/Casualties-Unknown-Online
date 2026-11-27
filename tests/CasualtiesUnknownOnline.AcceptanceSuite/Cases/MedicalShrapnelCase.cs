@@ -262,7 +262,11 @@ internal sealed class MedicalShrapnelCase : AcceptanceCase
 	{
 		try
 		{
-			return File.Exists(path) ? new FileInfo(path).Length : 0;
+			// Character count, not UTF-8 bytes; the shared read handle keeps the game's writer out of the way
+			// (measured 2026-11-28).
+			using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+			using var reader = new StreamReader(stream);
+			return reader.ReadToEnd().Length;
 		}
 		catch (IOException)
 		{

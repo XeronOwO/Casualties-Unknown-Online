@@ -245,8 +245,11 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 
 	private static long LogLength(string path)
 	{
-		var info = new FileInfo(path);
-		return info.Exists ? info.Length : 0;
+		// The wait compares the needle's CHARACTER index against this mark, so the mark must be a
+		// character count too: FileInfo.Length counts UTF-8 bytes, and a log with any non-ASCII line
+		// puts every later needle before the byte mark (measured 2026-11-28: the cut committed at
+		// 02:17:03 and the row still timed out on it).
+		return ReadLog(path).Length;
 	}
 
 	private static string ReadLog(string path)

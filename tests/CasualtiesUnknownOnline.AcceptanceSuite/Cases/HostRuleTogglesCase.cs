@@ -314,8 +314,8 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 
 	private static long LogLength(string path)
 	{
-		var info = new FileInfo(path);
-		return info.Exists ? info.Length : 0;
+		// Character count, not UTF-8 bytes; ReadLog shares the game's write handle (measured 2026-11-28).
+		return ReadLog(path).Length;
 	}
 
 	private static string ReadLog(string path)

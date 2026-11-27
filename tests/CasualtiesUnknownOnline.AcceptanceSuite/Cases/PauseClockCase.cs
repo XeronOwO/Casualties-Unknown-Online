@@ -22,6 +22,10 @@ internal sealed class PauseClockCase : AcceptanceCase
 		// screens are up (`PauseHandler.disallowPause`, PauseHandler.cs:22-28) — a player presses the key once the world is
 		// theirs, so the row waits for that moment instead of pressing into a refusal and calling it a product fault.
 		await CloseTheConsoleAsync(context, cancellationToken).ConfigureAwait(false);
+		// The bandage wrap's hand keeps the minigame open (`pause-state` reports minigame true), and the
+		// game refuses a pause there (PauseHandler.disallowPause); the medical-bandage row can leave it
+		// running (2026-11-28 full-51 read `minigame:true` here), so stop it before asking for the gates.
+		await context.RecipeAsync("bandage-hand", cancellationToken, ("mode", "stop")).ConfigureAwait(false);
 		var ready = await WaitForPauseGateAsync(context, cancellationToken).ConfigureAwait(false);
 		Require(ready is not null, "the game's pause gates never opened: " + Raw(await context.RecipeAsync("pause-state", cancellationToken).ConfigureAwait(false)));
 

@@ -161,6 +161,12 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	/// </summary>
 	public bool TryDeferMenuReturn(bool hasLiveWorld)
 	{
+		// The old world keeps ticking until the leave, and a runtime creation's own script throws after
+		// the teardown (2026-11-28: 125-3401 NullReferenceException from TechballScript.Update while the
+		// deferred scene load ran). Drop every runtime creation this client made, on the deferred and the
+		// replayed leave alike, before the policy decides whether the scene load runs.
+		domains.EntitySpawnSync.DropTheLocalCreations();
+
 		// This IS the recorded leave being honoured (SaveCutSeam.Leave →
 		// PlayerCamera.ToMainMenu): let it through, or the world can never be left.
 		var replaying = domains.MenuReturn.IsReplayingLeave;
@@ -198,7 +204,6 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		}
 
 		domains.Log.LogInformation("The game left the world (its scene load was deferred for the mid-run cut). Caller: {Caller}", leaveCaller.ToString());
-		domains.EntitySpawnSync.DropTheLocalCreations(); // the old world keeps ticking until the leave; a runtime creation's own script throws after the teardown (2026-11-28)
 		domains.MenuReturn.Request(domains.Session.Role, RunMenuReturnOrigin.PlayerLeave, inWorld: true);
 		return true;
 	}

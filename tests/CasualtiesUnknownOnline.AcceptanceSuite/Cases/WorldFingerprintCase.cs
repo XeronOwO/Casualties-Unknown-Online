@@ -201,10 +201,21 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// cell, and a ray from inside the wall met nothing.  Try the other side once.
 		var clearedMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 		context.Read("host-body-cleared-motion", clearedMotion);
-		if (Distance(Double(clearedMotion, "posX"), Double(clearedMotion, "posY"), cell.X + 0.5, cell.Y + 0.5) < 1.5)
+		var clearedDistance = Distance(Double(clearedMotion, "posX"), Double(clearedMotion, "posY"), cell.X + 0.5, cell.Y + 0.5);
+		if (clearedDistance < 1.5 || clearedDistance > 4.4)
 		{
+			// The game snaps a body placed inside geometry back to the nearest air, which can be right beside the
+			// cell (a ray from inside the wall meets nothing) or far on the other side (the empty hand reaches 4.5,
+			// `Body.cs:2036`, so a cell six units away is out of reach).  Try the other side once, then walk.
 			var otherSide = await context.RecipeAsync("body-place", cancellationToken, ("x", (cell.X + 0.5 - 2.2).ToString(CultureInfo.InvariantCulture)), ("y", (cell.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 			context.Read("host-body-cleared-other-side", otherSide);
+			var otherMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var otherDistance = Distance(Double(otherMotion, "posX"), Double(otherMotion, "posY"), cell.X + 0.5, cell.Y + 0.5);
+			if (otherDistance < 1.5 || otherDistance > 4.4)
+			{
+				var clearingWalk = await WalkBesideAsync(context, cell, cancellationToken).ConfigureAwait(false);
+				context.Note($"the clearing walk moved the body to ({clearingWalk.X},{clearingWalk.Y}): {clearingWalk.Trace}");
+			}
 		}
 
 		// With empty hands, the question is whether the body needs to move at all: the game can already name the block

@@ -65,7 +65,6 @@ What each open review ticket actually waits on (user decision, missing capabilit
 - [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
 - [The guest's body outlives its world](todo/1.0-the-guests-body-outlives-its-world.md) — **High** — the member's bag is empty after a rebuild.
 - [The run's preset never reaches the start](todo/1.0-the-runs-preset-never-reaches-the-start.md) — **High** — the world starts chipped.
-- [The runtime entities outlive the world](todo/1.0-the-runtime-entities-outlive-the-world.md) — **High** — the techball keeps updating after the leave.
 - [Split the row rebuild ledger](todo/1.0-split-the-row-rebuild-ledger.md) — **Low** — 115 KB, over budget.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers
@@ -132,6 +131,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Done
 
+- [The runtime entities outlive the world](done/1.0-the-runtime-entities-outlive-the-world.md) — **High** — the leave drops the runtime creations.
 - [Give refused for a distance](done/1.0-a-give-refused-for-a-distance-the-member-never-had.md) — **High** — the world hand-over reaches the member's bag.
 - [The game window never takes the front](done/1.0-the-game-window-never-takes-the-front.md) — **High** — zero foreground in both watches.
 - [Physics steps crawl in a slice](done/1.0-the-physics-steps-crawl-inside-a-slice.md) — **High** — the drive crossed the wrap's finish window.

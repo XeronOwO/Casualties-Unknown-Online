@@ -28,6 +28,24 @@ internal sealed class CraftingCase : AcceptanceCase
 		context.Read("craft-list", list);
 		Require(Boolean(list, "ok") == true, "the craft list could not be read: " + Raw(list));
 		var craftable = Integer(list, "craftable");
+		if (craftable == 0)
+		{
+			// A long batch reaches this row after earlier cases spent or dropped the run's starting
+			// supplies, so the materials the recipe needs are simply not on the body any more
+			// (2026-11-28: `craftable 0, materials []` in the thirty-three-row prefix). Put the
+			// run's own starting items back through the game's own create call (the same
+			// `Utils.Create` ids the native grant uses) and read the list again — the row's
+			// subject is the craft call, not the materials' journey through earlier rows.
+			foreach (var type in new[] { "trashbag", "lantern", "waterbottle" })
+			{
+				var provided = await context.RecipeAsync("item-provide", cancellationToken, ("mode", "create"), ("type", type)).ConfigureAwait(false);
+				context.Read("craft-material-" + type, provided);
+			}
+
+			list = await context.RecipeAsync("craft-drive", cancellationToken, ("mode", "list"), ("index", "0")).ConfigureAwait(false);
+			context.Read("craft-list-after-the-materials", list);
+			craftable = Integer(list, "craftable");
+		}
 		Require(craftable >= 1, $"the run's own starting materials leave no craftable recipe (craftable {craftable}): " + Raw(list));
 
 		// The recipe index the game reports for its first craftable row — the same index

@@ -229,8 +229,12 @@ internal sealed class PlayerDeathsCase : AcceptanceCase
 		while (DateTime.UtcNow < deadline)
 		{
 			var log = ReadLog(path);
-			var index = log.IndexOf(needle, StringComparison.Ordinal);
-			if (index >= offset)
+			// Search from the mark: the earlier lines of the same world already carry this needle, and
+			// IndexOf would answer with that older line and never reach the fresh one (measured 2026-11-28:
+			// the cut wrote at 02:27:47.282 while the row timed out on a hit before its own mark).
+			var start = (int)Math.Min(Math.Max(offset, 0), log.Length);
+			var index = log.IndexOf(needle, start, StringComparison.Ordinal);
+			if (index >= 0)
 			{
 				var lineStart = log.LastIndexOf('\n', index) + 1;
 				var lineEnd = log.IndexOf('\n', index);

@@ -298,8 +298,11 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 		while (DateTime.UtcNow < deadline)
 		{
 			var log = ReadLog(path);
-			var index = log.IndexOf(needle, StringComparison.Ordinal);
-			if (index >= offset)
+			// Search from the mark, not the file's first hit: an earlier line of the same world already
+			// carries the needle, and it sits before this round's offset (measured 2026-11-28).
+			var start = (int)Math.Min(Math.Max(offset, 0), log.Length);
+			var index = log.IndexOf(needle, start, StringComparison.Ordinal);
+			if (index >= 0)
 			{
 				var lineStart = log.LastIndexOf('\n', index) + 1;
 				var lineEnd = log.IndexOf('\n', index);

@@ -1477,6 +1477,27 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 	{
 		var targetX = cell.X + 0.5;
 		var targetY = cell.Y + 0.5;
+		// The aim is a screen point, and the body can drift a few units between the walk and this call (measured
+		// 2026-11-27, `.acceptance/walkbody-13`: the clear placed the body at (9.7,487.5), the aim read it at
+		// (12.97,489.0), and the ray met nothing because the hand was past its 4.5 reach). The body is put back beside
+		// the cell and the cell is projected again, so the pointer aims from where the body actually stands.
+		var drift = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		if (Distance(Double(drift, "posX"), Double(drift, "posY"), targetX, targetY) > 3.2)
+		{
+			var direction = Double(drift, "posX") >= targetX ? 1 : -1;
+			await context.RecipeAsync(
+				"body-place",
+				cancellationToken,
+				("x", (targetX + (2.2 * direction)).ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", targetY.ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			drift = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			Require(
+				Distance(Double(drift, "posX"), Double(drift, "posY"), targetX, targetY) <= 3.6,
+				"the body could not stand within the empty hand's reach of " + Describe(cell) + " for the aim: it read (" + String(drift, "posX") + "," + String(drift, "posY") + ")");
+			var reprojected = await ProjectAsync(context, cell, cancellationToken).ConfigureAwait(false);
+			screenX = Integer(reprojected, "screenX");
+			screenY = Integer(reprojected, "screenY");
+		}
 		async Task<JsonElement?> ProbeAt(int x, int y)
 		{
 			var moved = await MovePointerAsync(context, x, y, cancellationToken).ConfigureAwait(false);

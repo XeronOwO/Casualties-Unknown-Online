@@ -343,10 +343,23 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 						("x", centerX.ToString("0.###", CultureInfo.InvariantCulture)),
 						("y", centerY.ToString("0.###", CultureInfo.InvariantCulture)),
 						("button", "0")).ConfigureAwait(false);
-					await Task.Delay(150, cancellationToken).ConfigureAwait(false);
-					var held = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-					pressed = Boolean(held, "holding") == true;
-					context.Read("press through the roll's window (gap " + gap.ToString("0.#", CultureInfo.InvariantCulture) + ")", held);
+					// The minigame's own frame can be slow: medguard-1 (2026-11-27 23:33) read `updateTime: 0.585` in a
+					// world at pain 85.6, and a fixed 150 ms read after the press sampled before that frame ran, so
+					// `holding` read false although the edge had been staged. Wait for the game's next frame instead.
+					var pressReadDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+					JsonElement? held = null;
+					do
+					{
+						await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+						held = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
+					}
+					while (DateTime.UtcNow < pressReadDeadline && (held is not { } probe || Boolean(probe, "holding") != true));
+
+					pressed = held is { } answer && Boolean(answer, "holding") == true;
+					if (held is { } shown)
+					{
+						context.Read("press through the roll's window (gap " + gap.ToString("0.#", CultureInfo.InvariantCulture) + ")", shown);
+					}
 				}
 				else
 				{

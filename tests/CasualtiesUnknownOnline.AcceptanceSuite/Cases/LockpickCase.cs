@@ -211,6 +211,8 @@ internal sealed class LockpickCase : AcceptanceCase
 		// `averagePain > 99`. A player lets go at the first cost, so the release cannot wait for a round trip: the
 		// committed guard presses the key and watches the body on every frame, and the row only reads its record.
 		// Measured 2026-11-26: polling from the suite read 104.8 on its first look after the press.
+		// 2026-11-28: the full batch still spent 99 s in this row (PASS) because the guard's 90 s timeout is the
+		// whole turn window; the row judges the start, so its wait is capped at 30 s at 75 ms a look.
 		var guardPath = Path.Combine(RepositoryPaths.Root, "tools", "acceptance", "driver", "eval-declarations", "lockpick-pain-guard.cs");
 		var guardSource = await File.ReadAllTextAsync(guardPath, cancellationToken).ConfigureAwait(false);
 		var declared = await context.Session.ActionAsync(context.Session.HostUrl, "declare", cancellationToken,
@@ -222,13 +224,13 @@ internal sealed class LockpickCase : AcceptanceCase
 			var started = await context.RecipeAsync("lockpick-pain-guard", cancellationToken,
 				("x", hold.X), ("y", hold.Y),
 				("baseline", painBeforePicking.ToString("0.###", CultureInfo.InvariantCulture)),
-				("timeout", "90")).ConfigureAwait(false);
+				("timeout", "30")).ConfigureAwait(false);
 			context.Read("guard", started);
 			Require(Boolean(started, "ok"), "the pain guard did not press the attack key: " + Raw(started));
 			// The guard's own coroutine is the event this waits on: each read asks whether it still holds the key,
 			// and the wait ends when the game itself produced the release (the pain rose, the lock turned, or the
 			// minigame closed). No pause between reads: the round trip is the pacing.
-			for (var look = 0; look < 1200; look++)
+			for (var look = 0; look < 400; look++)
 			{
 				var guard = await context.RecipeAsync("lockpick-pain-guard-state", cancellationToken).ConfigureAwait(false);
 				guardTrace = StringValue(guard, "trace");

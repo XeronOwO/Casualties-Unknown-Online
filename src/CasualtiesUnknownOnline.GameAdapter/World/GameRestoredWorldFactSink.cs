@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -101,6 +104,32 @@ internal sealed class GameRestoredWorldFactSink(
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
+		// 定位 2026-11-27 的 80.4 米拒绝：先记下这一侧活着的喷泉和存档行各自在哪儿。两边若是同一层、
+		// 同一批坐标，拒绝就只可能是计数把别的层的喷泉算了进来；两边坐标本就不同，问题在生成基准。
+		var live = Object.FindObjectsOfType<GeyserScript>(true);
+		var liveFirst = new StringBuilder();
+		for (var i = 0; i < live.Length && i < 3; i++)
+		{
+			var p = live[i].transform.position;
+			liveFirst.Append(i == 0 ? "" : ", ")
+				.Append('(').Append(p.x.ToString("0.0", CultureInfo.InvariantCulture))
+				.Append(',').Append(p.y.ToString("0.0", CultureInfo.InvariantCulture)).Append(')');
+		}
+
+		var rowFirst = new StringBuilder();
+		for (var i = 0; i < geysers.Count && i < 3; i++)
+		{
+			rowFirst.Append(i == 0 ? "" : ", ")
+				.Append('(').Append(geysers[i].Position.X.ToString("0.0", CultureInfo.InvariantCulture))
+				.Append(',').Append(geysers[i].Position.Y.ToString("0.0", CultureInfo.InvariantCulture)).Append(')');
+		}
+
+		_log.LogInformation(
+			"[SaveFacts] the geyser write sees {Live} live against {Rows} row(s); live first {LiveFirst}; rows first {RowFirst}.",
+			live.Length,
+			geysers.Count,
+			liveFirst.ToString(),
+			rowFirst.ToString());
 		var applied = GeyserStateTable.Apply(geysers, _log);
 		return new LiveWorldWriteOutcome(applied, geysers.Count - applied);
 	}

@@ -18,6 +18,14 @@ internal sealed class PodTeamWaitCase : AcceptanceCase
 	/// <summary>The wait places the member a hundred units away to hold up the pod, and its refusal paths leave it there.</summary>
 	public override CaseLeftovers Leaves => CaseLeftovers.Position;
 
+	/// <summary>
+	/// The row descends two layers through the pod and does not climb back: the next row that needs the
+	/// run's own layer would otherwise read a world the row made (2026-11-28 full-47: player-deaths
+	/// started 35 s after this row, found no member in the host's run and rebuilt the pair for 34.2 s).
+	/// A fresh run before the next row is the honest undo; a layer ascent the game does not offer is not.
+	/// </summary>
+	public override bool LeavesTheRunChanged => true;
+
 	public override CaseCost Cost => CaseCost.InRun;
 
 	public override async Task RunAsync(CaseContext context, CancellationToken cancellationToken)

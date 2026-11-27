@@ -63,6 +63,7 @@ What each open review ticket actually waits on (user decision, missing capabilit
 
 ### Todo
 - [The batch compares the two clients' live world](todo/1.0-the-batch-compares-live-world-state.md) — **High** — two reds, two rows, cause unknown.
+- [The guest's body outlives its world](todo/1.0-the-guests-body-outlives-its-world.md) — **High** — the member's bag is empty after a rebuild.
 - [Split the row rebuild ledger](todo/1.0-split-the-row-rebuild-ledger.md) — **Low** — 115 KB, over budget.
 - [Split the code audit ledger](todo/1.0-split-the-code-audit-ledger.md) — **Low** — 122 KB, over budget.
 - [The save cut that never commits in a long run](todo/1.0-the-save-cut-that-never-commits.md) — **High** — it answers

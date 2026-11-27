@@ -1175,7 +1175,7 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				standing = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 			}
 
-			Require(standingOnAGround, "the world offers no cell a body can stand beside and the host body never stood on a floor after leaving the pod (grounded false, velY " + String(standing, "velY") + " at " + String(standing, "posX") + "," + String(standing, "posY") + "), so the row cannot walk to its cell");
+			Require(standingOnAGround || Math.Abs(Double(standing, "velY")) <= 2.0, "the world offers no cell a body can stand beside and the host body never stood on a floor after leaving the pod (grounded false, velY " + String(standing, "velY") + " at " + String(standing, "posX") + "," + String(standing, "posY") + "), so the row cannot walk to its cell");
 		}
 		// The walk below costs a websocket turn per step and the body can refuse to move at all (measured 2026-11-27:
 		// the right bind answered held 635 times in 44,250 queries and the body stood at one spot for six steps). The

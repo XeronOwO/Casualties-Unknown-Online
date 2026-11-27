@@ -61,6 +61,16 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// <summary>Received geyser creations awaiting their own copy's Start before the carried type is applied.</summary>
 	private readonly List<(RuntimeEntityKey Key, Vector2 Pos, byte Type, int AtFrame)> _applyQueue = [];
 
+	/// <summary>
+	/// The copies this side materialized for runtime creations (its own and the
+	/// ones received from peers). A leave defers the scene load for the mid-run
+	/// cut, and the old world keeps ticking in that window (2026-11-28: 3 s of
+	/// <c>TechballScript.Update</c> NullReferenceException after the deferred
+	/// leave). Dropping them at the deferral is the leave's own cleanup; the
+	/// generation entities are never added here.
+	/// </summary>
+	private readonly List<BuildingEntity> _created = [];
+
 	internal void BindToSession()
 	{
 		_world.EntitySpawnedReceived += OnRemoteEntitySpawned;
@@ -71,6 +81,29 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	{
 		_world.EntitySpawnedReceived -= OnRemoteEntitySpawned;
 		_world.RuntimeEntityRejectedReceived -= OnRuntimeEntityRejected;
+	}
+
+	/// <summary>
+	/// The world is about to be left (the deferred menu return) — the old world
+	/// keeps ticking in that window, and a runtime creation's own script can
+	/// throw once the scene is torn down (2026-11-28: 3 s of
+	/// <c>TechballScript.Update</c> NullReferenceException). Destroy the copies
+	/// this side made and drop the deferred queues; generation entities are
+	/// never in the list.
+	/// </summary>
+	internal void DropTheLocalCreations()
+	{
+		foreach (var entity in _created)
+		{
+			if (entity != null) // Unity object — ==
+			{
+				Object.Destroy(entity.gameObject);
+			}
+		}
+
+		_created.Clear();
+		_reportQueue.Clear();
+		_applyQueue.Clear();
 	}
 
 	internal void Update()
@@ -114,6 +147,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// </summary>
 	internal void OnRuntimeEntityDestroyed(BuildingEntity entity)
 	{
+		_created.Remove(entity);
 		// The record key is the CREATION identity, and a BuildingEntity's
 		// Rigidbody2D becomes Dynamic while its chunk is visible
 		// (BuildingEntity.cs:54), so a runtime creation can drift before it
@@ -211,6 +245,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		var pos = entity.transform.position;
 		var key = NextCreationKey(entity.id, pos.x, pos.y);
 		RuntimeEntityCreation.Stamp(entity, key); // the creation key the death hook reports later (the entity may drift)
+		_created.Add(entity); // the leave's cleanup owns this copy (see DropTheLocalCreations)
 		if (entity.GetComponentInChildren<GeyserScript>() != null) // Unity object — ==
 		{
 			// The deferred report must carry THIS creation key and position: the
@@ -286,6 +321,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			}
 
 			RuntimeEntityCreation.Stamp(created, key);
+			_created.Add(created); // the leave's cleanup owns this copy (see DropTheLocalCreations)
 
 			var relay = msg;
 			var openable = created.GetComponent<Openable>();

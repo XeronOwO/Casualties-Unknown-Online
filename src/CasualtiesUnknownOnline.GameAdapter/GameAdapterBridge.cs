@@ -198,6 +198,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		}
 
 		domains.Log.LogInformation("The game left the world (its scene load was deferred for the mid-run cut). Caller: {Caller}", leaveCaller.ToString());
+		domains.EntitySpawnSync.DropTheLocalCreations(); // the old world keeps ticking until the leave; a runtime creation's own script throws after the teardown (2026-11-28)
 		domains.MenuReturn.Request(domains.Session.Role, RunMenuReturnOrigin.PlayerLeave, inWorld: true);
 		return true;
 	}

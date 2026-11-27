@@ -515,7 +515,36 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 				context.Read($"host-swing-ray-at-{Describe(other)}", tryRay);
 				if (tryObstacle != "")
 				{
-					continue;
+					// 2026-11-28: freezecheck-2 stood on a world patch where every candidate's ray was empty
+					// (`bodyX 15.916`, cell `23,428`, count 0). A player at that spot steps beside the patch and
+					// swings again, so the row places the body beside this candidate and re-reads the ray once.
+					var beside = await context.RecipeAsync(
+						"body-place",
+						cancellationToken,
+						("x", (other.X + 0.5 + 2.2).ToString(CultureInfo.InvariantCulture)),
+						("y", (other.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					context.Read($"host-body-beside-{Describe(other)}", beside);
+					var besideAim = await context.RecipeAsync(
+						"aim-at-cell",
+						cancellationToken,
+						("x", other.X.ToString(CultureInfo.InvariantCulture)),
+						("y", other.Y.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+					if (!(Boolean(besideAim, "ok") && Double(besideAim, "distance") < 0.5))
+					{
+						continue;
+					}
+
+					var besideRay = await context.RecipeAsync("swing-hits", cancellationToken).ConfigureAwait(false);
+					context.Read($"host-swing-ray-beside-{Describe(other)}", besideRay);
+					// The ray starts inside the placed body, so the first hits can be its own limbs (`UpTorso` at
+					// distance 0 in `freezecheck-3`). What the row needs is a `BlockGround` hit in THIS cell.
+					if (!(besideRay is { } besideReading && FirstBlockCell(besideReading) is { } besideCell && besideCell == other))
+					{
+						continue;
+					}
+
+					tryRay = besideRay;
+					tryObstacle = "";
 				}
 
 				cell = other;

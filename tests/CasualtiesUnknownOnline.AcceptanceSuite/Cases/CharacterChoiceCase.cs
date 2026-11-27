@@ -59,11 +59,26 @@ internal sealed class CharacterChoiceCase : AcceptanceCase
 			// while the host reads its picker and picks; then the member picks at the menu, and the
 			// host starts the run.
 			context.Note(await memberSessionTask.ConfigureAwait(false));
+			// The member's start screen loads after its session; `pick-character` writes the
+			// game's own static, and the menu's Start resets that static to `savedCharacter`
+			// (PreRunScript.cs:438). Pick only once the menu owns its instance, so the choice
+			// is the one the spawned body reads (2026-11-28 solo-slice-1 spawned 0 after a
+			// pick the menu had not loaded for).
 			var memberPick = await context.Session.ActionAsync(
 				context.Session.MemberUrl,
 				"pick-character",
 				cancellationToken,
 				("-Argument", memberChoice.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			for (var attempt = 0; attempt < 40 && (Int(memberPick, "selected") != memberChoice || Boolean(memberPick, "instance") != true); attempt++)
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+				memberPick = await context.Session.ActionAsync(
+					context.Session.MemberUrl,
+					"pick-character",
+					cancellationToken,
+					("-Argument", memberChoice.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			}
+
 			context.Read("member:pick", memberPick);
 			Require(Int(memberPick, "selected") == memberChoice, "the member's picker did not take index " + memberChoice + ": " + Raw(memberPick));
 

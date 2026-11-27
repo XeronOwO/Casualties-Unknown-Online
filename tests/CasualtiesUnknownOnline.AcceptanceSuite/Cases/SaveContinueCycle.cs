@@ -32,7 +32,7 @@ internal static class SaveContinueCycle
 		var mark = LogMark(context.HostLogPath);
 		var save = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/save")).ConfigureAwait(false);
 		context.Read("save", save);
-		return await WaitForLogAsync(context.HostLogPath, mark, "Cut timing for world", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
+		return await WaitForLogAsync(context.HostLogPath, mark, "Cut Command committed", TimeSpan.FromSeconds(25), cancellationToken).ConfigureAwait(false);
 	}
 
 	/// <summary>
@@ -54,7 +54,7 @@ internal static class SaveContinueCycle
 		}
 
 		Require(left, "the host did not leave the world: " + (state.ValueKind == JsonValueKind.Object ? state.GetRawText() : "(no state)"));
-		var cut = await WaitForLogAsync(context.HostLogPath, mark, "Cut timing for world", TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
+		var cut = await WaitForLogAsync(context.HostLogPath, mark, "Cut MenuReturn committed", TimeSpan.FromSeconds(15), cancellationToken).ConfigureAwait(false);
 		Require(cut.Length > 0, "the leave did not commit its menu cut");
 		return cut;
 	}

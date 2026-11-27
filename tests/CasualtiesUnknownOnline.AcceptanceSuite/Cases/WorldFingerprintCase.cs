@@ -1074,6 +1074,30 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		posX = exit.X;
 		posY = exit.Y;
 		trace.Append("; leave-pod " + exit.Trace);
+		// The walk below costs a websocket turn per step and the body can refuse to move at all (measured 2026-11-27:
+		// the right bind answered held 635 times in 44,250 queries and the body stood at one spot for six steps). The
+		// row's question is whether both sides see the same block from the same spot, so the declared setup substitution
+		// (`body-place`, the same one the audibility rows use) puts the body beside the cell first; the walk stays as the
+		// fallback when the place lands in geometry the game pushes out of.
+		if (Distance(posX, posY, cell.X + 0.5, cell.Y + 0.5) > 4.4)
+		{
+			var direction = posX >= cell.X + 0.5 ? 1 : -1;
+			var placed = await context.RecipeAsync(
+				"body-place",
+				cancellationToken,
+				("x", (cell.X + 0.5 + (2.2 * direction)).ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", (cell.Y + 0.5).ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host body placed beside the cell", placed);
+			var placedMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			var placedX = Double(placedMotion, "posX");
+			var placedY = Double(placedMotion, "posY");
+			if (Distance(placedX, placedY, cell.X + 0.5, cell.Y + 0.5) <= 3.2)
+			{
+				posX = placedX;
+				posY = placedY;
+				trace.Append($"; placed {posX:0.00},{posY:0.00}");
+			}
+		}
 		var flippedX = false;
 		var flippedY = false;
 		var missesX = 0;

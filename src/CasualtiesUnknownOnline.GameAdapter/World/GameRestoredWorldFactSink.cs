@@ -104,8 +104,9 @@ internal sealed class GameRestoredWorldFactSink(
 	/// <inheritdoc />
 	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
 	{
-		// 定位 2026-11-27 的 80.4 米拒绝：先记下这一侧活着的喷泉和存档行各自在哪儿。两边若是同一层、
-		// 同一批坐标，拒绝就只可能是计数把别的层的喷泉算了进来；两边坐标本就不同，问题在生成基准。
+		// Locate the 2026-11-27 refusal at 80.4 m: record where this side's live geysers and the cut's rows are. If both
+		// name the same layer at the same coordinates, the refusal can only be the count picking up another layer's
+		// geysers; if the coordinates differ, the generation baseline is the difference.
 		var live = Object.FindObjectsOfType<GeyserScript>(true);
 		var liveFirst = new StringBuilder();
 		for (var i = 0; i < live.Length && i < 3; i++)

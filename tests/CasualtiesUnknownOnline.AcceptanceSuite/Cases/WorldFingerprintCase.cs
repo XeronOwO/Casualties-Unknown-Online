@@ -1168,8 +1168,10 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			// The ground in this game is slippery enough that a held key carries the body past the block: measured
 			// 2026-11-22, three 120 ms presses took the body from x 0 to x 30 with `velX 25`, and the row ended sixty
 			// units away. A person lifts their finger and lets the body coast to a stop, so the last few units are
-			// covered with every key released and the position re-read after the slide.
-			if (away <= 6.0)
+			// covered with every key released and the position re-read after the slide. The brake starts at eight
+			// units, not six: measured 2026-11-27, a step that closed to 6.3 units still coasted eight units past the
+			// cell to x -11, and the next step walked away.
+			if (away <= 8.0)
 			{
 				foreach (var brake in new[] { "left", "right", "up", "down" })
 				{

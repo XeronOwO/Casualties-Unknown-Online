@@ -1320,7 +1320,27 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			bodyY = movedY;
 		}
 
-		context.Read("host-body-after-walking", last);
+		if (Distance(bodyX, bodyY, cell.X + 0.5, cell.Y + 0.5) > 4.4)
+		{
+			// The walk can carry the body past the cell on the slippery floor, or refuse to move at all (measured
+			// 2026-11-27: the walk ended at x 30 while the cell stood at 3). The declared substitution puts the body
+			// beside the cell before the aim, so the row's question - do both sides see the same block from the same
+			// spot - is not answered by a body that walked away.
+			var placedAfterWalk = await context.RecipeAsync(
+				"body-place",
+				cancellationToken,
+				("x", (cell.X + 0.5 + 2.2).ToString("0.###", CultureInfo.InvariantCulture)),
+				("y", (cell.Y + 0.5).ToString("0.###", CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host body placed after the walk", placedAfterWalk);
+			var settled = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			bodyX = (int)Math.Floor(Double(settled, "posX") + 0.5);
+			bodyY = (int)Math.Floor(Double(settled, "posY") + 0.5);
+		}
+
+		var finalMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		bodyX = (int)Math.Floor(Double(finalMotion, "posX") + 0.5);
+		bodyY = (int)Math.Floor(Double(finalMotion, "posY") + 0.5);
+		context.Read("host-body-after-walking", finalMotion);
 		return (bodyX, bodyY, trace.ToString());
 	}
 

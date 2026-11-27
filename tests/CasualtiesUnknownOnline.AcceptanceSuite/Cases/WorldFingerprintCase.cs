@@ -181,6 +181,16 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 		// stays behind the swing instead of on it (measured 2026-11-27: the first aim met the lantern at 1.9).
 		var cleared = await context.RecipeAsync("body-place", cancellationToken, ("x", (cell.X + 0.5 + 2.2).ToString(CultureInfo.InvariantCulture)), ("y", (cell.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
 		context.Read("host-body-cleared-before-the-ray", cleared);
+		// The game snaps a body placed inside geometry back to the nearest air, which can be
+		// right beside the cell: the 2026-11-27 walkbody-5 read the body back 0.9 from the
+		// cell, and a ray from inside the wall met nothing.  Try the other side once.
+		var clearedMotion = await context.RecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		context.Read("host-body-cleared-motion", clearedMotion);
+		if (Distance(Double(clearedMotion, "posX"), Double(clearedMotion, "posY"), cell.X + 0.5, cell.Y + 0.5) < 1.5)
+		{
+			var otherSide = await context.RecipeAsync("body-place", cancellationToken, ("x", (cell.X + 0.5 - 2.2).ToString(CultureInfo.InvariantCulture)), ("y", (cell.Y + 0.5).ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("host-body-cleared-other-side", otherSide);
+		}
 
 		// With empty hands, the question is whether the body needs to move at all: the game can already name the block
 		// the hand's ray meets where the body stands, and a player digs the wall beside them before walking anywhere

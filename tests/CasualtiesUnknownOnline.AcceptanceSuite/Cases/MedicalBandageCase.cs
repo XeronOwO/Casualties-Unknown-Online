@@ -314,13 +314,20 @@ internal sealed class MedicalBandageCase : AcceptanceCase
 			while (DateTime.UtcNow < pressDeadline && !pressed)
 			{
 				var pass = await context.MemberRecipeAsync("minigame-live", cancellationToken).ConfigureAwait(false);
-				// `handAngle` is the visual hand after `UpdateHandVisuals` pulled it toward the staged pointer; the hand the
-				// drive places on the physics pass is `driveAngle`. Three readings kept the press from ever landing:
-				// slice-16 (gap 3 on `handAngle`) pressed while the drive's trace held the hand at 63 degrees (dot 0.45),
-				// and slice-17 (gap on `driveAngle`) never pressed at all — the two angles are only equal on the pass the
-				// game reads, so the poll keeps the twenty-degree window and lets the retry loop take the edge there.
-				var gap = Math.Abs(Number(pass, "handAngle") - Number(pass, "angle"));
-				if (gap <= 20)
+				// `handAngle` is computed from the game's own `handPos` and is omitted while the hand sits at the centre
+				// (`magnitude <= 0.001`), so a plain `Number(pass, "handAngle")` read 0 there and the poll pressed with
+				// the hand nowhere near the roll (slice-16: gap 3 while the drive's trace held it at 63 degrees, dot
+				// 0.45). The drive's own angle is the hand the physics pass places; when it is active it is the one the
+				// game reads, and otherwise the game's hand angle is. Require a hand away from the centre and one of the
+				// two angles before a press can count.
+				var hasHandAngle = Raw(pass).Contains("\"handAngle\":", StringComparison.Ordinal);
+				var hasDriveAngle = Raw(pass).Contains("\"driveAngle\":", StringComparison.Ordinal);
+				var magnitude = Number(pass, "handMagnitude");
+				var measuredAngle = hasDriveAngle ? Number(pass, "driveAngle") : hasHandAngle ? Number(pass, "handAngle") : double.NaN;
+				var gap = double.IsNaN(measuredAngle) || magnitude <= 100.0
+					? double.NaN
+					: Math.Abs(measuredAngle - Number(pass, "angle"));
+				if (!double.IsNaN(gap) && gap <= 20)
 				{
 					await context.MemberRecipeAsync(
 						"virtual-input",

@@ -14,3 +14,4 @@ Fill every box, then run `tools/check-delivery.ps1`. Each box needs the literal 
 - [ ] Structure review done
 - [ ] Build + dotnet format + dotnet test normative gates pass
 - [ ] Release-cycle deployment/acceptance
+- [ ] FORBIDDEN

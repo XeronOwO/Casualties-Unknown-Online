@@ -1613,12 +1613,15 @@ internal sealed class WorldFingerprintCase(string name = "world-fingerprint") : 
 			return true;
 		}
 
+		// 2026-11-28: block 14's `BlockInfo.health` is 420,133,760 (`WorldGeneration.cs:492`), so the row's own
+		// 100,000 damage could not break it even through the game's entry (`blockAfter` stayed 14 with the damage
+		// recorded). The entry takes a damage float, so pass one above every block's health.
 		var broken = await context.RecipeAsync(
 			"block-break-at",
 			cancellationToken,
 			("x", cell.X.ToString(CultureInfo.InvariantCulture)),
 			("y", cell.Y.ToString(CultureInfo.InvariantCulture)),
-			("dmg", "100000")).ConfigureAwait(false);
+			("dmg", "1000000000000")).ConfigureAwait(false);
 		context.Read("the game's own block entry", broken);
 		for (var attempt = 0; attempt < 6; attempt++)
 		{

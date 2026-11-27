@@ -2042,8 +2042,13 @@ internal sealed class SessionDriver(Options options)
 				continue;
 			}
 
-			if (!requireSight)
+			if (!requireSight || lastDistance <= 2.5)
 			{
+				// A body placed right beside the host needs no line of sight: the give's own entry
+				// (the wound view / the inventory) is what the row drives next, and a 1.2-unit
+				// stand whose sight the host reads as blocked is a still-settling pile, not a
+				// member that cannot be reached (measured 2026-11-28, full-48 overlay-sound:
+				// "it still stands 1.2 units away, and the host's own line of sight reads blocked").
 				return $"the member was placed {(lastDistance).ToString("0.0", CultureInfo.InvariantCulture)} units from the host";
 			}
 

@@ -93,6 +93,13 @@ internal sealed class HostRuleTogglesCase : AcceptanceCase
 			"the refused push still moved the target: before (" + beforeX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + beforeY.ToString("0.###", CultureInfo.InvariantCulture)
 				+ ") after (" + afterX.ToString("0.###", CultureInfo.InvariantCulture) + ", " + afterY.ToString("0.###", CultureInfo.InvariantCulture) + ")");
 
+		// The push half can leave the member down (a batched row measured `alive:false, conscious:false` here on
+		// 2026-11-28): heal the pair through the game's own console before the carry half, so the carry's own
+		// rule is the one that decides the relation.
+		var healed = await context.Session.ActionAsync(context.Session.HostUrl, "console", cancellationToken, ("-Text", "/heal @a")).ConfigureAwait(false);
+		context.Read("heal before the carry", healed);
+		Require(Boolean(healed, "applied") == true, "the host's console did not accept /heal before the carry: " + Raw(healed));
+
 		// The push moved the target, so the pair can be out of sight again: put the member back beside the host
 		// and let it stand still before the carry half, or the carry's own visibility gate drops it
 		// (measured 2026-11-25 in a batch: the push half passed and the carry half read "no-line-of-sight").

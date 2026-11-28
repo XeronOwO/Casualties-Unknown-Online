@@ -291,6 +291,14 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 				_log.LogWarning("[RemoteIntent] hand-over refused by the game's own pickup: item {Item} did not go into slot {Slot} (the destination cannot take it).",
 					item.GetInstanceID(), targetSlot);
 			}
+			else
+			{
+				// The receiver's own follow table must stop treating this id as a world row once the
+				// object sits in a slot; the parent it lands under is the fact that decides it (2026-11-28:
+				// the guest replayed this pick-up, then ItemPositionFollow snapped the same id for seconds).
+				_log.LogInformation("[RemoteIntent] hand-over into slot {Slot}: item {Item} now sits under {Parent}.",
+					targetSlot, item.id, item.transform.parent == null ? "(no parent)" : item.transform.parent.name);
+			}
 
 			return;
 		}

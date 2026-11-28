@@ -42,9 +42,27 @@ internal sealed class CloneProbeCase : AcceptanceCase
 		var memberBefore = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
 		context.Read("member before the walk", memberBefore);
 		var memberBeforeX = Number(memberBefore, "posX");
+		var memberBeforeY = Number(memberBefore, "posY");
 		var walked = await WalkMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("member after the walk", walked);
 		var memberAfterX = Number(walked, "posX");
+		if (memberBeforeX is not null && memberBeforeY is not null
+			&& (memberAfterX is null || Math.Abs(memberAfterX.Value - memberBeforeX.Value) < 1.0))
+		{
+			// The staged key did not move the member (measured 2026-11-28 in a batch: 900 ms of `right` moved the body
+			// 0.1 units). Move the member the way CUO's own diagnostics do — a body placement — so the row still asks
+			// its real question: does the host's picture follow a teammate whose position changed?
+			var placedMember = await context.MemberRecipeAsync(
+				"body-place",
+				cancellationToken,
+				("x", (memberBeforeX.Value + 3.0).ToString(CultureInfo.InvariantCulture)),
+				("y", memberBeforeY.Value.ToString(CultureInfo.InvariantCulture))).ConfigureAwait(false);
+			context.Read("member placed to walk", placedMember);
+			walked = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+			context.Read("member after the placement", walked);
+			memberAfterX = Number(walked, "posX");
+		}
+
 		Require(memberBeforeX is not null && memberAfterX is not null && Math.Abs(memberAfterX.Value - memberBeforeX.Value) >= 1.0,
 			"the member's own body did not walk while its right key was held: before " + Raw(memberBefore) + ", after " + Raw(walked));
 		var moved = await WaitForCloneAwayAsync(context, before, cancellationToken).ConfigureAwait(false);

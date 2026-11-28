@@ -1407,7 +1407,7 @@ internal sealed class SessionDriver(Options options)
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
 						Timeline?.Invoke("  " + Stage("member list"));
-						return undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
+						return await RestoreMemberKitAsync(cancellationToken).ConfigureAwait(false) + undone + await PrepareAsync().ConfigureAwait(false) + "the host's run holds the member; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -1419,7 +1419,7 @@ internal sealed class SessionDriver(Options options)
 					var undone = await UndoAsync().ConfigureAwait(false);
 					if (await IsLiveAsync().ConfigureAwait(false))
 					{
-						return undone + await PrepareAsync().ConfigureAwait(false) + "the host kept its run; the member rejoined it: " + memberNote
+						return await RestoreMemberKitAsync(cancellationToken).ConfigureAwait(false) + undone + await PrepareAsync().ConfigureAwait(false) + "the host kept its run; the member rejoined it: " + memberNote
 							+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -1434,7 +1434,7 @@ internal sealed class SessionDriver(Options options)
 			// A rebuilt world answers bodies, bags and positions fresh, but the rule switches and the clock live in
 			// the process (or in the host's config), so the declared leftovers are still undone here.
 			var rebuiltUndone = await UndoAsync().ConfigureAwait(false);
-			return rebuiltUndone + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
+			return await RestoreMemberKitAsync(cancellationToken).ConfigureAwait(false) + rebuiltUndone + "the pair was rebuilt before the case: " + pair.HostNote + "; " + pair.MemberNote
 				+ "; " + await EnsureSingleMemberAsync(cancellationToken).ConfigureAwait(false);
 		}
 		finally
@@ -1445,6 +1445,66 @@ internal sealed class SessionDriver(Options options)
 			// across 67 rows, most of it sixteen world loads and the per-row body waits).
 			Timeline?.Invoke($"world guarantee: {clock.Elapsed.TotalSeconds:F1}s");
 		}
+	}
+
+	/// <summary>
+	/// The game grants the member's opening kit once per process: the member's body outlives the world, so a rebuilt
+	/// world never re-grants it, and a row that empties the member's hands leaves the next row measuring that defect.
+	/// The row edge restores the game's own plan through the game's own creation call (`item-provide mode=create`, the
+	/// same `Utils.Create` + `Body.PickUpItem(force: true)` that `WorldPlacePlayer` makes) — this is the row-to-row
+	/// rollback, not a product fix; the defect stays in `todo/1.0-the-guests-body-outlives-its-world.md`.
+	/// </summary>
+	private async Task<string> RestoreMemberKitAsync(CancellationToken cancellationToken)
+	{
+		var setting = await RecipeAtAsync(_options.HostUrl, "run-setting-read", new Dictionary<string, string> { ["key"] = "startingsupplies" }, cancellationToken).ConfigureAwait(false);
+		var value = setting is { ValueKind: JsonValueKind.Object } settingValue
+			? string.Equals(StringValue(settingValue, "error"), "unknown-key", StringComparison.Ordinal) ? "0" : StringValue(settingValue, "value")
+			: "0";
+		if (!string.Equals(value, "2", StringComparison.Ordinal))
+		{
+			return string.Empty;
+		}
+
+		var items = await RecipeAtAsync(_options.MemberUrl, "container-read", new Dictionary<string, string> { ["mode"] = "local", ["guest"] = "" }, cancellationToken).ConfigureAwait(false);
+		if (!HasItemType(items, "lantern") || !HasItemType(items, "dogfood") || !HasItemType(items, "waterbottle") || !HasItemType(items, "trashbag"))
+		{
+			foreach (var type in new[] { "lantern", "dogfood", "waterbottle", "trashbag" })
+			{
+				if (HasItemType(items, type))
+				{
+					continue;
+				}
+
+				await RecipeAtAsync(_options.MemberUrl, "item-provide", new Dictionary<string, string> { ["type"] = type, ["mode"] = "create" }, cancellationToken).ConfigureAwait(false);
+			}
+
+			return "the member's opening kit was restored through the game's own creation call; ";
+		}
+
+		return string.Empty;
+	}
+
+	private static bool HasItemType(JsonElement? reading, string type)
+	{
+		if (reading is not { ValueKind: JsonValueKind.Object } element
+			|| !element.TryGetProperty("items", out var items)
+			|| items.ValueKind != JsonValueKind.Array)
+		{
+			return false;
+		}
+
+		foreach (var item in items.EnumerateArray())
+		{
+			if (item.ValueKind == JsonValueKind.Object
+				&& item.TryGetProperty("type", out var value)
+				&& value.ValueKind == JsonValueKind.String
+				&& string.Equals(value.GetString(), type, StringComparison.Ordinal))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>

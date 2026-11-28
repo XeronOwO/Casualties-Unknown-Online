@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 
@@ -11,10 +12,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// every world after the first. This grants the same table, at the same slots, to a member whose bag is empty in a
 /// world it has not been granted in: the ids and slots are the game's own table, not a CUO rule (2026-11-28
 /// <c>full-49</c>: four starting supplies dropped at the member's feet 70 ms after the checkpoint).
+///
+/// The grant only fires inside a short window after the world instance changes. A row's own "empty the member's
+/// hands" step would otherwise be refilled on the next frame and the row would read a hand that never emptied
+/// (measured 2026-11-28, <c>supply-5</c>).
 /// </summary>
 internal sealed class LocalStartingSupplies(ISessionControl session, ILogger log)
 {
+	private const long GrantWindowMs = 3000;
+
 	private int _worldId;
+	private long _worldChangedAtMs;
 	private bool _granted;
 
 	internal void Tick(Body? localBody)
@@ -36,13 +44,18 @@ internal sealed class LocalStartingSupplies(ISessionControl session, ILogger log
 		}
 
 		var worldId = world.GetInstanceID();
+		var nowMs = Environment.TickCount;
 		if (worldId != _worldId)
 		{
 			_worldId = worldId;
+			_worldChangedAtMs = nowMs;
 			_granted = false;
 		}
 
-		if (_granted || world.biomeDepth != 0 || HasSupplies(localBody))
+		if (_granted
+			|| (uint)(nowMs - _worldChangedAtMs) > GrantWindowMs
+			|| world.biomeDepth != 0
+			|| HasSupplies(localBody))
 		{
 			return;
 		}

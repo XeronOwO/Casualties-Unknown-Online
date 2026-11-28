@@ -189,7 +189,7 @@ internal sealed class TwoMemberContinueCase : AcceptanceCase
 	{
 		var items = await ItemsAsync(context, url, cancellationToken).ConfigureAwait(false);
 		var slot = FirstSlot(Text(items, "ids"));
-		Require(slot.Length > 0, "this client has no item to colour: " + Raw(items));
+		Require(slot.Length > 0, "this client (" + url + ") has no item to colour: " + Raw(items));
 		var coloured = await context.Session.RecipeAtAsync(url, "item-customize-native", new Dictionary<string, string>(StringComparer.Ordinal)
 		{
 			["slot"] = slot,

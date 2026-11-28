@@ -270,6 +270,12 @@ internal sealed class RemoteIntentApplier(GameAdapterDomains domains)
 		// defect the ticket names, so the world case is answered by name instead.
 		if (body.SlotOf(item) < 0)
 		{
+			// The branch is worth one line before it decides: a world hand-over that the receiver
+			// already counts as body-held takes the slot-release path instead, and nothing else in the
+			// row says which branch ran (2026-11-28: the success line never printed in the batch shape).
+			_log.LogInformation("[RemoteIntent] hand-over entry: item {Item} slotOf {SlotOf} target {Slot} parent {Parent}.",
+				item.id, body.SlotOf(item), targetSlot,
+				item.transform.parent == null ? "(no parent)" : item.transform.parent.name);
 			if (targetSlot < 0 || targetSlot >= body.slots.Length)
 			{
 				_log.LogWarning("[RemoteIntent] hand-over refused: slot {Slot} is outside the local body ({Slots} slots).", targetSlot, body.slots.Length);

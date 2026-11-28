@@ -35,10 +35,18 @@ internal sealed class CloneProbeCase : AcceptanceCase
 		Require(Boolean(facing, "ok"), "the clone's facing probe did not answer ok: " + Raw(facing));
 
 		// The member walks; the host's picture has to follow. The member's own movement key is held for a moment, the way a
-		// player holds a direction, and the row waits for the picture instead of reading it on one frame.
+		// player holds a direction, and the row waits for the picture instead of reading it on one frame. The member's own
+		// body is read first: a batch that stages the key but never moves the member (measured 2026-11-28, full-60) would
+		// otherwise be reported as a frozen clone.
 		var before = Number(placed, "x");
+		var memberBefore = await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+		context.Read("member before the walk", memberBefore);
+		var memberBeforeX = Number(memberBefore, "posX");
 		var walked = await WalkMemberAsync(context, cancellationToken).ConfigureAwait(false);
 		context.Read("member after the walk", walked);
+		var memberAfterX = Number(walked, "posX");
+		Require(memberBeforeX is not null && memberAfterX is not null && Math.Abs(memberAfterX.Value - memberBeforeX.Value) >= 1.0,
+			"the member's own body did not walk while its right key was held: before " + Raw(memberBefore) + ", after " + Raw(walked));
 		var moved = await WaitForCloneAwayAsync(context, before, cancellationToken).ConfigureAwait(false);
 		Require(moved is not null, "the host's copy of the teammate stayed put while the teammate walked: before x " + before + ", after " + Raw(moved));
 

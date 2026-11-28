@@ -57,6 +57,9 @@ internal sealed class CharacterDataSync(
 	/// <summary>The local favourite marks this client's own character record carries (its own responsibility, split out when this coordinator reached the architecture line's watchlist).</summary>
 	private readonly LocalFavouriteMarkSync _favouriteMarks = new(mapper, nativeSystem, log);
 
+	/// <summary>The game's own starting-supply table, granted to a member whose body outlived its world (2026-11-28 `full-49`: the member's bag stayed empty after every rebuild).</summary>
+	private readonly LocalStartingSupplies _startingSupplies = new(session, log);
+
 	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
 	public event Action<ulong>? CloneSnapshotUpdated
 	{
@@ -307,12 +310,13 @@ internal sealed class CharacterDataSync(
 
 		if (RestoreRunner.RestorePending)
 		{
-			// Restoring: a fresh-run snapshot would overwrite the host's saved character data. The
-			// injury baseline is dropped too — the restore writes limb state, and a rise it causes is
+			// The injury baseline is dropped too — the restore writes limb state, and a rise it causes is
 			// not an owner-judged wound.
 			OwnerState.ResetInjury();
 			return;
 		}
+
+		_startingSupplies.Tick(localBody);
 
 		if (OwnerState.TrackInjury(localBody, _vitals.AppliedCount))
 		{

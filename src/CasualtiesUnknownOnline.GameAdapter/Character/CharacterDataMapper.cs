@@ -55,5 +55,33 @@ internal static class CharacterDataMapper
 			.Ignore(d => d.Index)
 			.Ignore(d => d.IsHead)
 			.Ignore(d => d.IsVital);
+
+		// CharacterLimbMsg → Limb is explicit for a measured reason: Mapster's
+		// convention map reads the live Limb's public fields as a source but does
+		// not write them back as a destination, so a heal that answered applied
+		// left the limb's skin where the damage put it (2026-11-28: the host's
+		// abdomen read 63.926 after `/heal @a`, and four rows then found no free
+		// slot in an empty bag). Every state field the wire carries is written by
+		// name here; Index/IsHead/IsVital/Components stay out because the capture
+		// loop and LimbComponentStateCodec own them.
+		TypeAdapterConfig<CharacterLimbMsg, Limb>.NewConfig()
+			.Map(d => d.skinHealth, s => s.SkinHealth)
+			.Map(d => d.muscleHealth, s => s.MuscleHealth)
+			.Map(d => d.bleedAmount, s => s.BleedAmount)
+			.Map(d => d.pain, s => s.Pain)
+			.Map(d => d.broken, s => s.Broken)
+			.Map(d => d.dislocated, s => s.Dislocated)
+			.Map(d => d.splinted, s => s.Splinted)
+			.Map(d => d.infected, s => s.Infected)
+			.Map(d => d.infectionAmount, s => s.InfectionAmount)
+			.Map(d => d.dismembered, s => s.Dismembered)
+			.Map(d => d.blockedBleeding, s => s.BlockedBleeding)
+			.Map(d => d.shrapnel, s => s.Shrapnel)
+			.Map(d => d.furBloodAmount, s => s.FurBloodAmount)
+			.Map(d => d.bandageSlowAmount, s => s.BandageSlowAmount)
+			.Map(d => d.skinHealAmount, s => s.SkinHealAmount)
+			.Map(d => d.dislocationTimer, s => s.DislocationTimer)
+			.Map(d => d.boneHealTimer, s => s.BoneHealTimer)
+			.Ignore(d => d.prostheticInfo);
 	}
 }

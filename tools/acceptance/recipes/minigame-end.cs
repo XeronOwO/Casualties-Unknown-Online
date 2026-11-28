@@ -1,5 +1,5 @@
 // recipe: minigame-end
-// args: (none)
+// args: none
 // serves: 1.0-one-acceptance-run-covers-every-case (pause-clock)
 // returns: ok, had
 //

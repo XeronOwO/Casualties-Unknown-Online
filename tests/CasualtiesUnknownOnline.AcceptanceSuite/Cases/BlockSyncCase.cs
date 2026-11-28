@@ -160,6 +160,17 @@ internal sealed class BlockSyncCase : AcceptanceCase
 		var read = member
 			? await context.MemberRecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "16")).ConfigureAwait(false)
 			: await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "16")).ConfigureAwait(false);
+		// 2026-11-28 (full-59): the world guarantee had carried the pair onto ground whose 16-unit band held no breakable
+		// cell (body at (-24,452), count 0). A player walks further and looks again, so the row widens the scan once before
+		// calling it a failure.
+		if (read is { ValueKind: JsonValueKind.Object } narrow && narrow.TryGetProperty("cells", out var narrowCells)
+			&& narrowCells.ValueKind == JsonValueKind.Array && narrowCells.GetArrayLength() == 0)
+		{
+			read = member
+				? await context.MemberRecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "48")).ConfigureAwait(false)
+				: await context.RecipeAsync("block-find-breakable", cancellationToken, ("count", "1"), ("minOffset", "0"), ("radius", "48")).ConfigureAwait(false);
+			context.Read("scan-wider", read);
+		}
 		if (read is not { ValueKind: JsonValueKind.Object } element
 			|| !element.TryGetProperty("cells", out var cells)
 			|| cells.ValueKind != JsonValueKind.Array

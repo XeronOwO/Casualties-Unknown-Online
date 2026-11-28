@@ -85,7 +85,7 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 
 			var walked = await WalkTheMemberAsync(context, cancellationToken).ConfigureAwait(false);
 			context.Read("watched after its own walk", walked);
-			var followed = await context.RecipeAsync("spectator-read", cancellationToken).ConfigureAwait(false);
+			var followed = await WaitForCameraNearBodyAsync(context, cancellationToken).ConfigureAwait(false);
 			context.Read("camera after the walk", followed);
 			var toBodyX = Math.Abs(Number(followed, "cameraX") - Number(followed, "bodyX"));
 			var toBodyY = Math.Abs(Number(followed, "cameraY") - Number(followed, "bodyY"));
@@ -157,6 +157,25 @@ internal sealed class SpectatorPresentationCase : AcceptanceCase
 		Require(Boolean(up, "ok"), "the member's walk key could not be staged up: " + Raw(up));
 		await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken).ConfigureAwait(false);
 		return await context.MemberRecipeAsync("body-motion", cancellationToken).ConfigureAwait(false);
+	}
+
+	private static async Task<JsonElement?> WaitForCameraNearBodyAsync(CaseContext context, CancellationToken cancellationToken)
+	{
+		JsonElement? last = null;
+		for (var attempt = 0; attempt < 12; attempt++)
+		{
+			last = await context.RecipeAsync("spectator-read", cancellationToken).ConfigureAwait(false);
+			var x = Math.Abs(Number(last, "cameraX") - Number(last, "bodyX"));
+			var y = Math.Abs(Number(last, "cameraY") - Number(last, "bodyY"));
+			if (x <= 6 && y <= 6)
+			{
+				return last;
+			}
+
+			await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+		}
+
+		return last;
 	}
 
 	private static async Task SeedWatchedPainAsync(CaseContext context, CancellationToken cancellationToken)
